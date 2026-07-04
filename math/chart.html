@@ -247,6 +247,13 @@
     $('answer').disabled=true; $('checkBtn').style.display='none'; $('hintBtn').style.display='none';
     $('nextBtn').style.display=''; $('nextBtn').focus();
     if(ok && streak>0 && streak%5===0) celebrate(streak);
+    if(ok && streak>0 && streak%20===0 && level<5 && window.askLevelUp){
+      window.askLevelUp(level+1, ()=>{
+        level+=1;
+        document.querySelectorAll('.lvl').forEach(x=>x.classList.toggle('on', +x.dataset.lvl===level));
+        wrongQueue=[]; missed=false; r=null; lastKey=null; newQuestion();
+      });
+    }
   }
 
   function check(){
@@ -282,6 +289,7 @@
   newQuestion();
 })();
 </script>
+<script src="levelup.js"></script>
 <script src="timer.js"></script>
 </body>
 </html>
