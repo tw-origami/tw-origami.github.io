@@ -194,6 +194,8 @@
   let lastPart = null;
   let flashFlipped = false;
   let quizAnswered = false;
+  let advanceTimer = null;  // 3s auto-advance after answering
+  let countdownTimer = null;
 
   function pool(){
     return cat === 'all' ? window.ROOTS : window.ROOTS.filter(r => r.type === cat);
@@ -247,7 +249,13 @@
   }
 
   // ---------- QUIZ ----------
+  function clearTimers(){
+    if (advanceTimer){ clearTimeout(advanceTimer); advanceTimer = null; }
+    if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
+  }
+
   function newQuizQuestion(){
+    clearTimers();
     cur = nextItem();
     quizAnswered = false;
     $('quizTag').textContent = `${TYPE_LABEL[cur.type]} · ${cur.origin}`;
@@ -292,9 +300,19 @@
     else { fb.textContent = `"${cur.part}" means "${cur.meaning}".`; fb.className = 'feedback bad'; }
     $('factoid').innerHTML = 'e.g. <b>' + cur.examples.join('</b>, <b>') + '</b>';
     $('nextRow').style.display = 'flex';
-    $('nextBtn').focus();
 
     if (isCorrect && streak > 0 && streak % 5 === 0) celebrate(streak);
+
+    // Pause 3s on the answer so they can absorb it, then auto-advance.
+    let secs = 3;
+    const nextBtn = $('nextBtn');
+    nextBtn.textContent = `Next word ➡️ (${secs})`;
+    countdownTimer = setInterval(()=>{
+      secs--;
+      if (secs > 0) nextBtn.textContent = `Next word ➡️ (${secs})`;
+      else { clearInterval(countdownTimer); countdownTimer = null; nextBtn.textContent = 'Next word ➡️'; }
+    }, 1000);
+    advanceTimer = setTimeout(newQuizQuestion, 3000);
   }
 
   function celebrate(n){
