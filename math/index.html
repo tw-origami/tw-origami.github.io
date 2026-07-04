@@ -15,8 +15,11 @@
     --accent-soft: #eef2ff;
     --correct: #16a34a;
     --wrong: #dc2626;
+    --line: #94a3b8;
+    --hi: #f59e0b;
     --shadow: 0 10px 30px rgba(30, 41, 99, 0.12);
   }
+  #line { width:100%; height:auto; }
   * { box-sizing: border-box; }
   body {
     margin: 0;
@@ -156,7 +159,6 @@
     <a href="../index.html">🏠 Home</a>
     <a href="index.html" class="on">📊 Blocks</a>
     <a href="chart.html">🔢 Chart</a>
-    <a href="addsub.html">➕ Add &amp; Subtract</a>
   </div>
   <h1>🧮 Math Practice</h1>
   <p class="sub">Type the answer, or tap <b>Hint</b> for choices.</p>
@@ -165,6 +167,8 @@
     <div class="seg" id="modeSeg">
       <button data-mode="mul" class="on">✖️ Multiply</button>
       <button data-mode="div">➗ Divide</button>
+      <button data-mode="add">➕ Add</button>
+      <button data-mode="sub">➖ Subtract</button>
     </div>
     <div class="levels" id="levelSeg">
       <span class="lbl">Level</span>
@@ -206,6 +210,7 @@
       <h2 id="visualTitle"></h2>
       <p class="hint-txt" id="visualHint"></p>
       <div class="strip" id="strip"></div>
+      <svg id="line" viewBox="0 0 480 150" xmlns="http://www.w3.org/2000/svg" style="display:none"></svg>
     </div>
   </div>
 
@@ -215,8 +220,9 @@
   const rand = (lo, hi) => Math.floor(Math.random()*(hi-lo+1))+lo;
   const pick = arr => arr[Math.floor(Math.random()*arr.length)];
   const STRIP_MAX = 12;
+  const SVGNS = "http://www.w3.org/2000/svg";
 
-  // Level -> factor range. L1 easy (1x2, 3x3) ... L5 hard (12x9)
+  // Level -> factor range for ×/÷. L1 easy (1x2, 3x3) ... L5 hard (12x9)
   const LEVELS = {
     1: [1, 3],
     2: [2, 5],
@@ -224,8 +230,16 @@
     4: [6, 10],
     5: [8, 12]
   };
+  // Level -> operand range for +/−. Bigger levels = bigger numbers.
+  const ADD_LEVELS = {
+    1: [1, 5],
+    2: [1, 10],
+    3: [5, 20],
+    4: [10, 50],
+    5: [20, 100]
+  };
 
-  let mode = 'mul';     // 'mul' | 'div'
+  let mode = 'mul';     // 'mul' | 'div' | 'add' | 'sub'
   let level = 1;
   let P = null;         // current problem
   let answered, correct = 0, total = 0, streak = 0;
@@ -234,16 +248,29 @@
   const shade = (step, steps) => `hsl(222, 78%, ${40 + (step/steps)*45}%)`;
 
   function makeProblem(){
+    if (mode === 'add' || mode === 'sub'){
+      const [lo, hi] = ADD_LEVELS[level];
+      const x = rand(lo, hi), y = rand(lo, hi);
+      if (mode === 'add'){
+        return { display: `${x} <span class="op">+</span> ${y}`,
+                 answer: x+y, kind: 'line', start: x, delta: y, result: x+y, lineMax: x+y, step: 1 };
+      } else {
+        // (x+y) − y = x : answer never negative, operands stay in range
+        const m = x + y;
+        return { display: `${m} <span class="op">−</span> ${y}`,
+                 answer: x, kind: 'line', start: m, delta: -y, result: x, lineMax: m, step: 1 };
+      }
+    }
     const [lo, hi] = LEVELS[level];
     const x = rand(lo, hi), y = rand(lo, hi);
     if (mode === 'mul'){
       // a × b : count by a, highlight b
       return { display: `${x} <span class="op">×</span> ${y}`,
-               answer: x*y, base: x, target: y, product: x*y, step: x, verb: 'jump' };
+               answer: x*y, kind: 'strip', base: x, target: y, product: x*y, step: x };
     } else {
       // (x*y) ÷ x = y : count by x (divisor), highlight y (quotient)
       return { display: `${x*y} <span class="op">÷</span> ${x}`,
-               answer: y, base: x, target: y, product: x*y, step: 1, verb: 'group' };
+               answer: y, kind: 'strip', base: x, target: y, product: x*y, step: 1 };
     }
   }
 
@@ -299,6 +326,54 @@
     }
   }
 
+  function niceStep(range){ for(const s of [1,2,5,10,20,25,50,100]){ if(range/s<=13) return s; } return 100; }
+
+  function buildLine(){
+    $('visualTitle').textContent = mode==='add' ? 'Count on the number line' : 'Count back on the number line';
+    $('visualHint').innerHTML = mode==='add'
+      ? `Start at <b>${P.start}</b>, jump forward <b>${P.delta}</b> → land on <b>${P.result}</b>.`
+      : `Start at <b>${P.start}</b>, jump back <b>${Math.abs(P.delta)}</b> → land on <b>${P.result}</b>.`;
+    const svg = $('line'); while(svg.firstChild) svg.removeChild(svg.firstChild);
+    const W=480,padL=34,padR=34,y0=105,innerW=W-padL-padR;
+    const step=niceStep(P.lineMax || 1);
+    const maxTick=Math.max(step, Math.ceil((P.lineMax)/step)*step);
+    const X=v=> padL + (v/maxTick)*innerW;
+    const add=(tag,attrs,text)=>{ const e=document.createElementNS(SVGNS,tag);
+      for(const k in attrs) e.setAttribute(k,attrs[k]); if(text!=null) e.textContent=text; svg.appendChild(e); return e; };
+
+    const defs=document.createElementNS(SVGNS,'defs');
+    defs.innerHTML=`<marker id="arw" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="var(--accent)"/></marker>`;
+    svg.appendChild(defs);
+
+    add('line',{x1:padL,y1:y0,x2:W-padR,y2:y0,stroke:'var(--line)','stroke-width':2});
+    for(let t=0;t<=maxTick;t+=step){
+      const x=X(t);
+      add('line',{x1:x,y1:y0-5,x2:x,y2:y0+5,stroke:'var(--line)','stroke-width':2});
+      add('text',{x:x,y:y0+22,'text-anchor':'middle','font-size':12,'font-weight':700,fill:'var(--muted)'}, t);
+    }
+    const xs=X(P.start), xe=X(P.result);
+    add('circle',{cx:xs,cy:y0,r:5,fill:'var(--accent)'});
+    add('text',{x:xs,y:y0-52,'text-anchor':'middle','font-size':13,'font-weight':800,fill:'var(--ink)'}, P.start);
+    const midx=(xs+xe)/2, peak=y0-46;
+    add('path',{d:`M ${xs} ${y0-6} Q ${midx} ${peak} ${xe} ${y0-6}`, fill:'none', stroke:'var(--accent)','stroke-width':3,'marker-end':'url(#arw)'});
+    add('text',{x:midx,y:peak-4,'text-anchor':'middle','font-size':14,'font-weight':800,fill:'var(--accent)'}, (P.delta>0?'+':'−')+Math.abs(P.delta));
+    add('circle',{cx:xe,cy:y0,r:8,fill:'var(--hi)',stroke:'#fff','stroke-width':2});
+    add('text',{x:xe,y:y0-16,'text-anchor':'middle','font-size':16,'font-weight':900,fill:'#b45309'}, P.result);
+  }
+
+  function buildVisual(){
+    if (P.kind === 'line'){
+      $('strip').style.display = 'none';
+      $('line').style.display = '';
+      buildLine();
+    } else {
+      $('line').style.display = 'none';
+      $('strip').style.display = '';
+      buildStrip();
+    }
+  }
+
   function finish(isCorrect){
     answered = true;
     total++;
@@ -320,7 +395,7 @@
     // Pop up the visual now that the answer is won
     const vc = $('visualCard');
     vc.className = 'card visual pop';
-    buildStrip();
+    buildVisual();
     vc.scrollIntoView({behavior:'smooth', block:'nearest'});
 
     // Reward every 5 in a row
