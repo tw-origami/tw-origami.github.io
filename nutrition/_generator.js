@@ -55,7 +55,7 @@ const EMOJI = {
   'fortified cereal':'🥣','fortified milk':'🥛','fortified orange juice':'🧃','garlic':'🧄','grapefruit':'🍊',
   'herring':'🐟','kale':'🥬','kiwi':'🥝','lemon':'🍋','lentils':'🫘','lettuce':'🥬','milk':'🥛','mushrooms':'🍄',
   'mustard greens':'🥬','nuts':'🥜','oats':'🥣','olives':'🫒','orange':'🍊','orange juice':'🧃','oysters':'🦪',
-  'pasta':'🍝','peanut butter':'🥜','peanuts':'🥜','peas':'🟢','pineapple':'🍍','pork':'🥓','potato':'🥔',
+  'pasta':'🍝','peanut butter':'🥜','peanuts':'🥜','peas':'🫛','pineapple':'🍍','pork':'🥓','potato':'🥔',
   'pumpkin':'🎃','pumpkin seeds':'🎃','raisins':'🍇','raspberries':'🫐','red pepper':'🌶️','rice':'🍚','salmon':'🐟',
   'sardines':'🐟','seaweed':'🌿','shrimp':'🦐','soy milk':'🥛','soybeans':'🫛','spinach':'🥬','strawberries':'🍓',
   'sunflower seeds':'🌻','sweet potato':'🍠','Swiss chard':'🥬','tofu':'⬜','tomato':'🍅','trout':'🐟','tuna':'🐟',
