@@ -153,6 +153,9 @@
   let correct=0, total=0, streak=0;
   const cell = {};   // cell["r,c"] -> element, plus heads
 
+  // No-repeat + wrong-requeue state
+  let qCount=0, lastKey=null, missed=false, wrongQueue=[]; // wrongQueue: [{r,c,due}]
+
   // Build the 13x13 grid once
   (function build(){
     const grid=$('grid');
@@ -177,11 +180,27 @@
     for (const k in cell){ const [rr,cc]=k.split(',').map(Number); cell[k].textContent=rr*cc; }
   }
 
+  // Pick next cell: prefer a due wrong one, else fresh random, never repeat back-to-back.
+  function pickCell(){
+    qCount++;
+    for (let i=0;i<wrongQueue.length;i++){
+      const w=wrongQueue[i];
+      if (w.due<=qCount && (w.r+','+w.c)!==lastKey){ wrongQueue.splice(i,1); return [w.r,w.c]; }
+    }
+    const [lo,hi]=LEVELS[level];
+    let rr,cc,tries=0;
+    do { rr=rand(lo,hi); cc=rand(lo,hi); tries++; } while ((rr+','+cc)===lastKey && tries<40);
+    return [rr,cc];
+  }
+
   function newQuestion(){
+    // Bring back the previous cell later if it was missed.
+    if (r!=null && missed) wrongQueue.push({r,c,due:qCount+3});
+    missed=false;
     answered=false;
     clearHighlights();
-    const [lo,hi]=LEVELS[level];
-    r=rand(lo,hi); c=rand(lo,hi);
+    [r,c]=pickCell();
+    lastKey=r+','+c;
     const ans=r*c;
 
     $('question').innerHTML = `${r} <span class="op">×</span> ${c} = <span class="q">?</span>`;
@@ -236,7 +255,7 @@
     if(isNaN(v)){ $('answer').focus(); return; }
     if(v===r*c){ $('answer').className='answer-input correct'; finish(true); }
     else{
-      $('answer').className='answer-input wrong'; streak=0; $('streak').textContent=streak;
+      $('answer').className='answer-input wrong'; missed=true; streak=0; $('streak').textContent=streak;
       $('feedback').textContent='Not quite — try again or tap 💡 Hint.'; $('feedback').className='feedback bad';
       setTimeout(()=>{ if(!answered){ $('answer').className='answer-input'; $('answer').select(); } },500);
     }
@@ -250,17 +269,19 @@
     const sh=[...opts].sort(()=>Math.random()-.5);
     box.className='choices'; box.innerHTML='';
     sh.forEach(v=>{ const b=document.createElement('button'); b.className='choice'; b.textContent=v;
-      b.onclick=()=>{ if(answered) return; if(v===ans){ b.classList.add('correct'); finish(true);} else { b.classList.add('wrong'); b.disabled=true; streak=0; $('streak').textContent=streak; } };
+      b.onclick=()=>{ if(answered) return; if(v===ans){ b.classList.add('correct'); finish(true);} else { b.classList.add('wrong'); b.disabled=true; missed=true; streak=0; $('streak').textContent=streak; } };
       box.appendChild(b); });
   }
 
   $('levelSeg').addEventListener('click', e=>{ const b=e.target.closest('button.lvl'); if(!b) return;
-    level=+b.dataset.lvl; document.querySelectorAll('.lvl').forEach(x=>x.classList.toggle('on',x===b)); newQuestion(); });
+    level=+b.dataset.lvl; document.querySelectorAll('.lvl').forEach(x=>x.classList.toggle('on',x===b));
+    wrongQueue=[]; missed=false; r=null; lastKey=null; newQuestion(); });
   $('checkBtn').onclick=check; $('hintBtn').onclick=showHint; $('nextBtn').onclick=newQuestion;
   document.addEventListener('keydown', e=>{ if(e.key!=='Enter') return; e.preventDefault(); if(answered) newQuestion(); else check(); });
 
   newQuestion();
 })();
 </script>
+<script src="timer.js"></script>
 </body>
 </html>
