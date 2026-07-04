@@ -40,6 +40,12 @@
   function gameMatch(){
     let deck = 'food'; // 'food' = what's in a food; 'function' = what a body-job needs
     const ALL_NUTRIENTS = Object.keys(LIB.NUTRIENTS);
+    // How many foods contain each nutrient — rarer nutrients make a food a more standout source.
+    const FOOD_COUNT = {};
+    LIB.FOODS.forEach(f=> f.nutrients.forEach(n=> FOOD_COUNT[n.nutrient]=(FOOD_COUNT[n.nutrient]||0)+1));
+    const TOTALF = LIB.FOODS.length;
+    // Ranking score: excellent-tier wins big; then the fewer foods that offer it, the more standout.
+    const rankScore = f => (f.tier==='excellent'?1000:0) + (TOTALF - (FOOD_COUNT[f.name]||TOTALF));
 
     function buildRound(){
       if(deck==='food'){
@@ -49,10 +55,12 @@
         const notIn = ALL_NUTRIENTS.filter(n=>!f.nutrients.some(x=>x.nutrient===n));
         const distract = sample(notIn, Math.min(3, notIn.length));
         return {
+          isFood:true,
           question:`Which nutrients does ${f.emoji} ${f.food} have?`,
           correct:inSet, distract,
-          intro:`${f.emoji} ${f.food} gives you:`,
-          facts: chosen.map(c=>({ name:c.nutrient, tier:c.tier, does:LIB.NUTRIENTS[c.nutrient].does }))
+          intro:`${f.emoji} ${f.food} — ranked by what it's a top source of:`,
+          // reveal ALL of the food's nutrients, ranked, so the lesson is complete
+          facts: f.nutrients.map(c=>({ name:c.nutrient, tier:c.tier, does:LIB.NUTRIENTS[c.nutrient].does }))
         };
       } else {
         const fn = pick(LIB.FUNCTIONS);
@@ -61,6 +69,7 @@
         const notIn = ALL_NUTRIENTS.filter(n=>!fn.nutrients.includes(n));
         const distract = sample(notIn, Math.min(3, notIn.length));
         return {
+          isFood:false,
           question:`Which nutrients help with ${fn.emoji} ${fn.fn}?`,
           correct:inSet, distract,
           intro:`For ${fn.emoji} ${fn.fn}, your body uses:`,
@@ -103,25 +112,25 @@
         // reveal: what each nutrient does + how much (%DV per serving, strongest first)
         const facts=el('div','nutfacts');
         facts.appendChild(el('div','intro', R.intro));
-        const sorted = deck==='food'
-          ? R.facts.slice().sort((a,b)=> (a.tier==='excellent'?0:1)-(b.tier==='excellent'?0:1))
-          : R.facts;
-        sorted.forEach(f=>{
+        const rows = R.isFood ? R.facts.slice().sort((a,b)=> rankScore(b)-rankScore(a)) : R.facts;
+        const MEDALS=['🥇','🥈','🥉'];
+        rows.forEach((f,i)=>{
           // "how much is a lot?" context: kid daily target if we have one, else the label DV
           const kd = LIB.KID_DAILY[f.name];
           const dv = LIB.NUTRIENTS[f.name] && LIB.NUTRIENTS[f.name].dv;
           const daily = kd ? ' <span class="daily">('+kd.note+')</span>'
                        : (dv && dv!=='—' ? ' <span class="daily">(Daily goal on labels: '+dv+'.)</span>' : '');
-          if(deck==='food'){
-            const exc = f.tier==='excellent';
-            facts.appendChild(el('div','nutfact '+(exc?'exc':'low'),
-              '<span class="pct">'+(exc?'20%+ 🌟':'10–19%')+'</span>'+
+          if(R.isFood){
+            const top = (i===0) || f.tier==='excellent';   // #1 (or any 'excellent' source) highlighted
+            const badge = MEDALS[i] || ('#'+(i+1));
+            facts.appendChild(el('div','nutfact '+(top?'exc':'low'),
+              '<span class="pct">'+badge+'</span>'+
               '<span><span class="nn">'+f.name+'</span> — '+f.does+'.'+daily+'</span>'));
           } else {
             facts.appendChild(el('div','nutfact low','<span><span class="nn">'+f.name+'</span> — '+f.does+'.'+daily+'</span>'));
           }
         });
-        if(deck==='food') facts.appendChild(el('div','keynote','% = about how much of your daily need one serving covers. Green = a top source!'));
+        if(R.isFood) facts.appendChild(el('div','keynote','🥇 = what this food is one of the biggest sources of. Lower down = smaller amounts.'));
         card.appendChild(facts);
         ctr.innerHTML=''; ctr.appendChild(mkBtn('Next ▶',round)); ctr.appendChild(backBtn());
       }));
