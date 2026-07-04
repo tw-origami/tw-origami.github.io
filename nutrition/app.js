@@ -176,6 +176,7 @@
         lab.appendChild(el('div','row','<span>Serving size</span><span>'+L.servingSize+'</span>'));
         lab.appendChild(el('div','row big','<span>Servings per container</span><span>'+L.servingsPerContainer+'</span>'));
         lab.appendChild(el('div','row','<span><b>Calories</b></span><span><b>'+L.calories+'</b></span>'));
+        if(L.sodiumMg!=null) lab.appendChild(el('div','row','<span>Sodium</span><span>'+L.sodiumMg+'mg</span>'));
         lab.appendChild(el('div','row','<span>Dietary Fiber</span><span>'+L.fiberG+'g</span>'));
         lab.appendChild(el('div','row sug','<span>Total Sugars</span><span>'+L.sugarG+'g</span>'));
         card.appendChild(lab);
