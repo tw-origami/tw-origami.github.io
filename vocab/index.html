@@ -55,6 +55,7 @@
   .part { font-size:44px; font-weight:800; letter-spacing:-1px; margin:4px 0 8px; }
   .flip-hint { color:var(--muted); font-size:13px; margin-top:10px; }
   .meaning { font-size:26px; font-weight:800; color:var(--accent); margin:4px 0 14px; }
+  .etym { color:var(--ink); font-size:13.5px; line-height:1.55; text-align:left; width:100%; max-width:360px; margin:2px auto 14px; padding:10px 14px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
   .examples { color:var(--muted); font-size:14px; line-height:1.4; text-align:left; width:100%; max-width:340px; }
   .examples .ex, .factoid .ex { margin:5px 0; }
   .examples b, .factoid b { color:var(--ink); }
@@ -153,6 +154,7 @@
             <div class="tagrow"><span class="tag" id="backType"></span><span class="tag origin" id="backOrigin"></span></div>
             <div class="part" id="backPart"></div>
             <div class="meaning" id="backMeaning"></div>
+            <div class="etym" id="backEtym"></div>
             <div class="examples" id="backExamples"></div>
           </div>
         </div>
@@ -173,6 +175,7 @@
         <div class="qpart" id="quizPart"></div>
         <div class="choices" id="choices"></div>
         <div class="feedback" id="feedback"></div>
+        <div class="etym" id="quizEtym"></div>
         <p class="factoid" id="factoid"></p>
         <div class="btn-row" id="nextRow" style="display:none">
           <button class="act btn-primary" id="nextBtn">Next word ➡️</button>
@@ -259,6 +262,7 @@
     $('backOrigin').textContent = cur.origin;
     $('backPart').textContent = cur.part;
     $('backMeaning').textContent = '"' + cur.meaning + '"';
+    $('backEtym').textContent = cur.etym || '';
     $('backExamples').innerHTML = exampleHTML(cur);
     $('flashKnowRow').style.display = 'none';
     $('flashFlipRow').style.display = 'flex';
@@ -302,6 +306,7 @@
     $('quizTag').textContent = `${TYPE_LABEL[cur.type]} · ${cur.origin}`;
     $('quizPart').textContent = cur.part;
     $('feedback').textContent = ''; $('feedback').className = 'feedback';
+    $('quizEtym').textContent = '';
     $('factoid').textContent = '';
     $('nextRow').style.display = 'none';
 
@@ -339,6 +344,7 @@
     const fb = $('feedback');
     if (isCorrect){ fb.textContent = pick(['🎉 Correct!','⭐ Nice work!','✅ You got it!','🚀 Great job!']); fb.className = 'feedback good'; }
     else { fb.textContent = `"${cur.part}" means "${cur.meaning}".`; fb.className = 'feedback bad'; }
+    $('quizEtym').textContent = cur.etym || '';
     $('factoid').innerHTML = exampleHTML(cur);
     $('nextRow').style.display = 'flex';
 
