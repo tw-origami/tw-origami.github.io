@@ -249,6 +249,7 @@
   let lastKey = null;   // previous problem's identity (never repeat back-to-back)
   let missed = false;   // did the current question have any wrong attempt?
   let wrongQueue = [];  // [{P, due}] problems to bring back a few questions later
+  let advanceReady = true;  // brief lock after a correct answer so Enter can't skip instantly
 
   // Blue gradient: dark (small) -> light (large)
   const shade = (step, steps) => `hsl(222, 78%, ${40 + (step/steps)*45}%)`;
@@ -416,6 +417,10 @@
     $('nextRow').style.display = 'flex';
     $('nextBtn').focus();
 
+    // Lock advancing for 0.5s so an eager Enter/tap can't skip the "correct" moment
+    advanceReady = false;
+    setTimeout(()=>{ advanceReady = true; }, 500);
+
     // Pop up the visual now that the answer is won
     const vc = $('visualCard');
     vc.className = 'card visual pop';
@@ -515,14 +520,17 @@
     newQuestion();
   });
 
+  // Advance only once the post-correct lock has lifted.
+  function tryAdvance(){ if (answered && !advanceReady) return; newQuestion(); }
+
   $('checkBtn').onclick = check;
   $('hintBtn').onclick  = showHint;
-  $('nextBtn').onclick  = newQuestion;
+  $('nextBtn').onclick  = tryAdvance;
   // Enter submits the answer; once answered, Enter goes to the next question.
   document.addEventListener('keydown', e=>{
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    if (answered) newQuestion();
+    if (answered) tryAdvance();
     else check();
   });
 
