@@ -71,6 +71,7 @@
   .quiz { flex:1 1 340px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:420px; }
   .question { font-size:64px; font-weight:800; letter-spacing:-2px; margin:4px 0 24px; text-align:center; }
   .question .op { color:var(--accent); }
+  .question.word { font-size:24px; font-weight:700; letter-spacing:0; line-height:1.45; max-width:480px; }
 
   .answer-input {
     font-size:44px; font-weight:800; text-align:center; width:220px; padding:12px;
@@ -169,6 +170,7 @@
       <button data-mode="div">➗ Divide</button>
       <button data-mode="add">➕ Add</button>
       <button data-mode="sub">➖ Subtract</button>
+      <button data-mode="word">📖 Word</button>
     </div>
     <div class="levels" id="levelSeg">
       <span class="lbl">Level</span>
@@ -214,6 +216,7 @@
     </div>
   </div>
 
+<script src="wordproblems.js"></script>
 <script>
 (function(){
   const $ = id => document.getElementById(id);
@@ -256,6 +259,7 @@
   const shade = (step, steps) => `hsl(222, 78%, ${40 + (step/steps)*45}%)`;
 
   function makeProblem(){
+    if (mode === 'word') return window.makeWordProblem(level);
     if (mode === 'add' || mode === 'sub'){
       const [lo, hi] = ADD_LEVELS[level];
       const x = rand(lo, hi), y = rand(lo, hi);
@@ -304,6 +308,7 @@
     lastKey = P.display;
     answered = false;
     $('question').innerHTML = P.display;
+    $('question').classList.toggle('word', !!P.word);
     const inp = $('answer');
     inp.value = ''; inp.className = 'answer-input'; inp.disabled = false;
     $('feedback').textContent = ''; $('feedback').className = 'feedback';
@@ -316,9 +321,10 @@
 
   function buildStrip(){
     const strip = $('strip'); strip.innerHTML = '';
-    const countWord = mode === 'mul' ? 'Counting' : 'Grouping';
+    const op = P.op || mode;
+    const countWord = op === 'mul' ? 'Counting' : 'Grouping';
     $('visualTitle').textContent = `${countWord} by ${P.base}`;
-    if (mode === 'mul'){
+    if (op === 'mul'){
       $('visualHint').innerHTML = `<b>${P.base} × ${P.target} = ${P.product}</b> — that's ${P.target} jump${P.target>1?'s':''} of ${P.base}.`;
     } else {
       $('visualHint').innerHTML = `<b>${P.product} ÷ ${P.base} = ${P.target}</b> — ${P.product} splits into ${P.target} group${P.target>1?'s':''} of ${P.base}.`;
@@ -355,8 +361,9 @@
   function niceStep(range){ for(const s of [1,2,5,10,20,25,50,100]){ if(range/s<=13) return s; } return 100; }
 
   function buildLine(){
-    $('visualTitle').textContent = mode==='add' ? 'Count on the number line' : 'Count back on the number line';
-    $('visualHint').innerHTML = mode==='add'
+    const op = P.op || mode;
+    $('visualTitle').textContent = op==='add' ? 'Count on the number line' : 'Count back on the number line';
+    $('visualHint').innerHTML = op==='add'
       ? `Start at <b>${P.start}</b>, jump forward <b>${P.delta}</b> → land on <b>${P.result}</b>.`
       : `Start at <b>${P.start}</b>, jump back <b>${Math.abs(P.delta)}</b> → land on <b>${P.result}</b>.`;
     const svg = $('line'); while(svg.firstChild) svg.removeChild(svg.firstChild);
