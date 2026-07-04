@@ -96,6 +96,15 @@
   .barrow .fill{ height:100%; border-radius:999px; background:var(--accent); transition:width .3s; }
   .barrow .tgt{ position:absolute; top:-3px; width:2px; height:20px; background:#334155; }
 
+  /* nutrient reveal facts */
+  .nutfacts{ margin-top:16px; display:flex; flex-direction:column; gap:8px; text-align:left; }
+  .nutfacts .intro{ font-weight:800; font-size:15px; margin-bottom:2px; }
+  .nutfact{ background:#f8fafc; border-radius:12px; padding:10px 12px; font-size:14px; line-height:1.35; }
+  .nutfact .amt{ font-weight:800; }
+  .nutfact .amt.exc{ color:var(--gold); }
+  .nutfact .amt.good{ color:var(--accent); }
+  .nutfact .nn{ font-weight:800; color:var(--accent2); }
+
   /* streak celebration */
   #confetti{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
   .conf{ position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; animation:fall linear forwards; }
@@ -119,7 +128,7 @@
 
   <!-- MENU -->
   <div class="menu" id="menu">
-    <button class="gamecard" data-game="match"><span class="icon">🔗</span><h3>Matching Pairs</h3><p>Match foods to nutrients, and body jobs to the nutrients that power them.</p></button>
+    <button class="gamecard" data-game="match"><span class="icon">🔗</span><h3>What's Inside?</h3><p>Pick every nutrient a food has, then learn what each one does for your body — and how much the food packs.</p></button>
     <button class="gamecard" data-game="fuel"><span class="icon">⚡</span><h3>Best Fuel</h3><p>Pick the best food for the situation — and learn <em>why</em> it's the smart choice.</p></button>
     <button class="gamecard" data-game="label"><span class="icon">🏷️</span><h3>Label Reader</h3><p>Read real nutrition labels: serving size, servings per box, and spot the hidden sugar.</p></button>
     <button class="gamecard" data-game="plate"><span class="icon">🍽️</span><h3>Build a Plate</h3><p>Drag foods onto your plate and get a balance score. How healthy can you build it?</p></button>

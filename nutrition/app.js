@@ -38,63 +38,86 @@
 
   // ============ 1) MATCHING PAIRS ============
   function gameMatch(){
-    $('subtitle').textContent='Tap a card on the left, then its match on the right.';
-    let deck = 'food';
-    function buildPairs(){
-      const pairs=[];
+    let deck = 'food'; // 'food' = what's in a food; 'function' = what a body-job needs
+    const ALL_NUTRIENTS = Object.keys(LIB.NUTRIENTS);
+
+    function buildRound(){
       if(deck==='food'){
-        const used=new Set();
-        for(const f of shuffle(LIB.FOODS)){
-          const opts=f.nutrients.map(n=>n.nutrient).filter(n=>!used.has(n));
-          if(!opts.length) continue;
-          const nut=pick(opts); used.add(nut);
-          pairs.push({ id:pairs.length, left:f.emoji+' '+f.food, right:nut });
-          if(pairs.length===5) break;
-        }
+        const f = pick(LIB.FOODS.filter(x=>x.nutrients.length>=2));
+        const chosen = sample(f.nutrients, Math.min(5, f.nutrients.length)); // [{nutrient,tier}]
+        const inSet = new Set(chosen.map(c=>c.nutrient));
+        const notIn = ALL_NUTRIENTS.filter(n=>!f.nutrients.some(x=>x.nutrient===n));
+        const distract = sample(notIn, Math.min(3, notIn.length));
+        return {
+          question:`Which nutrients does ${f.emoji} ${f.food} have?`,
+          correct:inSet, distract,
+          intro:`${f.emoji} ${f.food} gives you:`,
+          facts: chosen.map(c=>({ name:c.nutrient, tier:c.tier, does:LIB.NUTRIENTS[c.nutrient].does }))
+        };
       } else {
-        const used=new Set();
-        for(const fn of shuffle(LIB.FUNCTIONS)){
-          const opts=fn.nutrients.filter(n=>!used.has(n));
-          if(!opts.length) continue;
-          const nut=pick(opts); used.add(nut);
-          pairs.push({ id:pairs.length, left:fn.emoji+' '+fn.fn, right:nut });
-          if(pairs.length===5) break;
-        }
+        const fn = pick(LIB.FUNCTIONS);
+        const chosen = sample(fn.nutrients, Math.min(5, fn.nutrients.length)); // [names]
+        const inSet = new Set(chosen);
+        const notIn = ALL_NUTRIENTS.filter(n=>!fn.nutrients.includes(n));
+        const distract = sample(notIn, Math.min(3, notIn.length));
+        return {
+          question:`Which nutrients help with ${fn.emoji} ${fn.fn}?`,
+          correct:inSet, distract,
+          intro:`For ${fn.emoji} ${fn.fn}, your body uses:`,
+          facts: chosen.map(n=>({ name:n, does:LIB.NUTRIENTS[n].does }))
+        };
       }
-      return pairs;
     }
-    function render(){
+
+    function round(){
+      $('subtitle').textContent = deck==='food'
+        ? 'Tap every nutrient this food has, then Check.'
+        : 'Tap every nutrient this body-job needs, then Check.';
       stage.innerHTML='';
       const toggle=el('div','center');
-      ['food','function'].forEach(d=>{ const b=el('button','btn '+(deck===d?'btn-primary':'btn-ghost'), d==='food'?'🍎 Food → Nutrient':'💪 Body Job → Nutrient');
-        b.onclick=()=>{ deck=d; render(); }; toggle.appendChild(b); });
+      ['food','function'].forEach(d=>{ const b=el('button','btn '+(deck===d?'btn-primary':'btn-ghost'), d==='food'?'🍎 What\'s in a food?':'💪 What a body-job needs');
+        b.onclick=()=>{ deck=d; round(); }; toggle.appendChild(b); });
       stage.appendChild(toggle);
 
+      const R=buildRound();
       const card=el('div','card'); card.style.marginTop='14px';
-      const pairs=buildPairs();
-      let selLeft=null, done=0;
-      const wrap=el('div','matchwrap');
-      const lc=el('div','col'), rc=el('div','col');
-      lc.appendChild(el('div','colhead', deck==='food'?'Food':'Body Job'));
-      rc.appendChild(el('div','colhead','Nutrient'));
-      const leftEls={};
-      pairs.forEach(p=>{ const e=el('div','mitem', p.left); leftEls[p.id]=e;
-        e.onclick=()=>{ if(e.classList.contains('done'))return; if(selLeft) selLeft.classList.remove('sel'); selLeft=e; e.classList.add('sel'); e.dataset.id=p.id; };
-        lc.appendChild(e); });
-      shuffle(pairs).forEach(p=>{ const e=el('div','mitem', p.right);
-        e.onclick=()=>{ if(e.classList.contains('done')||!selLeft) return;
-          const id=+selLeft.dataset.id;
-          if(id===p.id){ e.classList.add('done'); e.classList.remove('sel'); leftEls[id].classList.add('done'); leftEls[id].classList.remove('sel'); selLeft=null; done++;
-            if(done===pairs.length){ bumpScore(true); $('feedback').textContent='🎉 All matched!'; $('feedback').className='feedback good';
-              const c=el('div','center'); c.appendChild(mkBtn('New round ▶',()=>render())); c.appendChild(backBtn()); card.appendChild(c); }
-          } else { e.classList.add('badflash'); const bad=e; setTimeout(()=>bad.classList.remove('badflash'),450); streak=0; $('streak').textContent=0; }
-        };
-        rc.appendChild(e); });
-      wrap.appendChild(lc); wrap.appendChild(rc); card.appendChild(wrap);
-      card.appendChild(el('div','feedback',''));
+      card.appendChild(el('div','prompt', R.question));
+      card.appendChild(el('div','promptsub','Tap all that apply — watch out for ones it doesn\'t have!'));
+      const grid=el('div','tiles');
+      const sel=new Set();
+      const tiles = shuffle([...[...R.correct].map(n=>({n,ok:true})), ...R.distract.map(n=>({n,ok:false}))]);
+      tiles.forEach(o=>{ const t=el('div','tile', o.n); t._n=o.n; t._ok=o.ok;
+        t.onclick=()=>{ if(card.dataset.done) return; if(sel.has(o.n)){ sel.delete(o.n); t.classList.remove('sel'); } else { sel.add(o.n); t.classList.add('sel'); } };
+        grid.appendChild(t); });
+      card.appendChild(grid);
+      const fb=el('div','feedback',''); const ctr=el('div','center');
+      ctr.appendChild(mkBtn('Check ✓',()=>{
+        card.dataset.done='1';
+        const okExact = sel.size===R.correct.size && [...sel].every(n=>R.correct.has(n));
+        [...grid.children].forEach(t=>{ t.classList.remove('sel'); t.setAttribute('disabled','');
+          if(R.correct.has(t._n)) t.classList.add('correct');
+          else if(sel.has(t._n)) t.classList.add('wrong');
+        });
+        fb.textContent = okExact?'🎉 You got them all!':'Close — the green ones are the right answers.'; fb.className='feedback '+(okExact?'good':'bad');
+        bumpScore(okExact);
+        // reveal: what each nutrient does + how much
+        const facts=el('div','nutfacts');
+        facts.appendChild(el('div','intro', R.intro));
+        R.facts.forEach(f=>{
+          let amt='';
+          if(deck==='food'){ amt = f.tier==='excellent'
+            ? '<span class="amt exc">🌟 lots of</span> '
+            : '<span class="amt good">✓ a good amount of</span> '; }
+          facts.appendChild(el('div','nutfact', amt+'<span class="nn">'+f.name+'</span> — '+f.does+'.'));
+        });
+        card.appendChild(facts);
+        ctr.innerHTML=''; ctr.appendChild(mkBtn('Next ▶',round)); ctr.appendChild(backBtn());
+      }));
+      ctr.appendChild(backBtn());
+      card.appendChild(fb); card.appendChild(ctr);
       stage.appendChild(card);
     }
-    render();
+    round();
   }
 
   // ============ 2) BEST FUEL ============
