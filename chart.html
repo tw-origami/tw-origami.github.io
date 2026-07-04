@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Multiplication Chart Game</title>
+<style>
+  :root{
+    --ink:#1e293b; --muted:#64748b; --accent:#4f46e5; --accent-soft:#eef2ff;
+    --correct:#16a34a; --wrong:#dc2626;
+    --chart-blue:#29a6df; --chart-red:#e23b3b; --chart-yellow:#fff28a;
+    --shadow:0 10px 30px rgba(30,41,99,.12);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    background:linear-gradient(160deg,#eef2ff,#f8fafc); color:var(--ink);
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:20px 14px 60px;
+  }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; }
+  .nav a{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 16px; border-radius:9px; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+  h1{ font-size:24px; margin:2px 0; letter-spacing:-.5px; }
+  .sub{ color:var(--muted); margin:0 0 16px; font-size:14px; }
+
+  .levels{ display:flex; gap:8px; align-items:center; margin-bottom:14px; }
+  .levels .lbl{ font-size:13px; color:var(--muted); font-weight:700; }
+  .lvl{ width:38px; height:38px; border:none; border-radius:11px; font-weight:800; font-size:16px; cursor:pointer;
+        background:#fff; color:var(--muted); box-shadow:var(--shadow); transition:transform .1s; }
+  .lvl:active{ transform:scale(.94); }
+  .lvl.on{ background:var(--accent); color:#fff; }
+
+  .scorebar{ display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; justify-content:center; }
+  .chip{ background:#fff; border-radius:999px; padding:7px 15px; font-weight:700; font-size:13px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small{ color:var(--muted); font-weight:600; }
+  .chip.streak{ color:#ea580c; }
+
+  /* Question + input */
+  .qbar{ display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:18px; }
+  .question{ font-size:40px; font-weight:800; letter-spacing:-1px; }
+  .question .op{ color:var(--accent); }
+  .question .q{ color:var(--chart-red); }
+  .row2{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center; }
+  .answer-input{ font-size:30px; font-weight:800; text-align:center; width:130px; padding:8px; border:3px solid #e2e8f0;
+    border-radius:14px; outline:none; color:var(--ink); -moz-appearance:textfield; transition:border-color .15s,box-shadow .15s; }
+  .answer-input::-webkit-outer-spin-button,.answer-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .answer-input:focus{ border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); }
+  .answer-input.correct{ border-color:var(--correct); box-shadow:0 0 0 4px #dcfce7; }
+  .answer-input.wrong{ border-color:var(--wrong); box-shadow:0 0 0 4px #fee2e2; animation:shake .4s; }
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}50%{transform:translateX(7px)}75%{transform:translateX(-4px)}}
+  button.act{ font-family:inherit; font-size:16px; font-weight:700; border:none; border-radius:12px; padding:11px 20px; cursor:pointer; transition:transform .1s,background .15s; }
+  button.act:active{ transform:scale(.96); }
+  .btn-primary{ background:var(--accent); color:#fff; } .btn-primary:hover{ background:#4338ca; }
+  .btn-ghost{ background:var(--accent-soft); color:var(--accent); } .btn-ghost:hover{ background:#e0e7ff; }
+  .choices{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:4px; }
+  .choices.hidden{ display:none; }
+  .choice{ background:#fff; border:3px solid #e2e8f0; border-radius:14px; font-size:22px; font-weight:800; padding:12px 16px; color:var(--ink); cursor:pointer; }
+  .choice:hover{ border-color:var(--accent); background:var(--accent-soft); }
+  .choice.correct{ border-color:var(--correct); background:#dcfce7; color:var(--correct); }
+  .choice.wrong{ border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
+  .feedback{ min-height:24px; font-weight:700; font-size:17px; text-align:center; }
+  .feedback.good{ color:var(--correct); } .feedback.bad{ color:var(--wrong); }
+
+  /* Chart */
+  .chart-wrap{ background:var(--chart-blue); padding:10px; border-radius:18px; box-shadow:var(--shadow); max-width:640px; width:100%; }
+  .grid{ display:grid; grid-template-columns:repeat(13, 1fr); gap:3px; }
+  .cell{
+    aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+    background:#fff; border-radius:5px; font-weight:700;
+    font-size:clamp(9px, 2.1vw, 17px); color:var(--ink); position:relative;
+  }
+  .cell.head{ background:var(--chart-red); color:#fff; font-weight:800; }
+  .cell.corner{ background:var(--chart-red); color:#fff; font-size:clamp(11px,2.4vw,20px); }
+  /* crosshair guides for the current question */
+  .cell.rowlit{ background:#eaf6fd; }
+  .cell.collit{ background:#eaf6fd; }
+  .cell.head.hl{ background:#b3260f; box-shadow:0 0 0 3px #fff28a inset; }
+  .cell.revealed{ background:var(--chart-yellow); color:#7a5b00; box-shadow:0 0 0 2px #eab308 inset; }
+
+  /* the covered / flip cell */
+  .cell.flip{ background:transparent; perspective:400px; }
+  .fi{ position:absolute; inset:0; transform-style:preserve-3d; transition:transform .55s cubic-bezier(.4,.2,.2,1); }
+  .cell.flip.show .fi{ transform:rotateY(180deg); }
+  .face{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; border-radius:5px; backface-visibility:hidden; -webkit-backface-visibility:hidden; font-weight:800; }
+  .front{ background:var(--accent); color:#fff; font-size:clamp(11px,2.4vw,20px); }
+  .back{ background:var(--chart-yellow); color:#7a5b00; box-shadow:0 0 0 2px #eab308 inset; transform:rotateY(180deg); font-size:clamp(9px,2.1vw,17px); }
+
+  #confetti{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf{ position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; animation:fall linear forwards; }
+  @keyframes fall{ to{ transform:translateY(105vh) rotate(720deg); } }
+  #streakBanner{ position:fixed; left:50%; top:24%; transform:translate(-50%,-50%) scale(.6);
+    background:linear-gradient(135deg,#f59e0b,#ea580c); color:#fff; font-weight:900; font-size:28px;
+    padding:18px 34px; border-radius:20px; box-shadow:0 18px 50px rgba(234,88,12,.45); z-index:60; opacity:0; pointer-events:none; text-align:center; }
+  #streakBanner small{ display:block; font-size:14px; font-weight:700; opacity:.9; margin-top:4px; }
+  #streakBanner.show{ animation:banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  @keyframes banner{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}28%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-60%) scale(.95)}}
+</style>
+</head>
+<body>
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="nav">
+    <a href="index.html">📊 Blocks</a>
+    <a href="chart.html" class="on">🔢 Chart</a>
+    <a href="addsub.html">➕ Add &amp; Subtract</a>
+  </div>
+
+  <h1>🔢 Multiplication Chart</h1>
+  <p class="sub">Find the covered square — answer to flip it over!</p>
+
+  <div class="levels" id="levelSeg">
+    <span class="lbl">Level</span>
+    <button class="lvl on" data-lvl="1">1</button>
+    <button class="lvl" data-lvl="2">2</button>
+    <button class="lvl" data-lvl="3">3</button>
+    <button class="lvl" data-lvl="4">4</button>
+    <button class="lvl" data-lvl="5">5</button>
+  </div>
+
+  <div class="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="qbar">
+    <div class="question" id="question"></div>
+    <div class="row2">
+      <input class="answer-input" id="answer" type="number" inputmode="numeric" placeholder="?" autocomplete="off">
+      <button class="act btn-primary" id="checkBtn">Check</button>
+      <button class="act btn-ghost" id="hintBtn">💡 Hint</button>
+      <button class="act btn-primary" id="nextBtn" style="display:none">Next ➡️</button>
+    </div>
+    <div class="choices hidden" id="choices"></div>
+    <div class="feedback" id="feedback"></div>
+  </div>
+
+  <div class="chart-wrap">
+    <div class="grid" id="grid"></div>
+  </div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const rand=(lo,hi)=>Math.floor(Math.random()*(hi-lo+1))+lo;
+  const pick=a=>a[Math.floor(Math.random()*a.length)];
+  const N = 12;
+  const LEVELS = { 1:[1,3], 2:[2,5], 3:[4,9], 4:[6,10], 5:[8,12] };
+
+  let level=1, r, c, answered=false;
+  let correct=0, total=0, streak=0;
+  const cell = {};   // cell["r,c"] -> element, plus heads
+
+  // Build the 13x13 grid once
+  (function build(){
+    const grid=$('grid');
+    for (let row=0; row<=N; row++){
+      for (let col=0; col<=N; col++){
+        const d=document.createElement('div');
+        if (row===0 && col===0){ d.className='cell corner'; d.textContent='×'; }
+        else if (row===0){ d.className='cell head'; d.textContent=col; d.dataset.head='col'; d.dataset.n=col; }
+        else if (col===0){ d.className='cell head'; d.textContent=row; d.dataset.head='row'; d.dataset.n=row; }
+        else { d.className='cell'; d.textContent=row*col; cell[row+','+col]=d; }
+        d.dataset.row=row; d.dataset.col=col;
+        grid.appendChild(d);
+      }
+    }
+  })();
+
+  function clearHighlights(){
+    document.querySelectorAll('.cell').forEach(el=>{
+      el.classList.remove('rowlit','collit','hl','revealed','flip','show');
+    });
+    // restore any previously covered cell's number
+    for (const k in cell){ const [rr,cc]=k.split(',').map(Number); cell[k].textContent=rr*cc; }
+  }
+
+  function newQuestion(){
+    answered=false;
+    clearHighlights();
+    const [lo,hi]=LEVELS[level];
+    r=rand(lo,hi); c=rand(lo,hi);
+    const ans=r*c;
+
+    $('question').innerHTML = `${r} <span class="op">×</span> ${c} = <span class="q">?</span>`;
+    const inp=$('answer'); inp.value=''; inp.className='answer-input'; inp.disabled=false;
+    $('feedback').textContent=''; $('feedback').className='feedback';
+    $('choices').className='choices hidden'; $('choices').innerHTML='';
+    $('nextBtn').style.display='none'; $('checkBtn').style.display=''; $('hintBtn').style.display='';
+
+    // crosshair guides
+    for (let i=1;i<=N;i++){ cell[r+','+i].classList.add('rowlit'); cell[i+','+c].classList.add('collit'); }
+    document.querySelector(`.cell.head[data-head="row"][data-n="${r}"]`).classList.add('hl');
+    document.querySelector(`.cell.head[data-head="col"][data-n="${c}"]`).classList.add('hl');
+
+    // cover the answer cell with a flip card
+    const tgt=cell[r+','+c];
+    tgt.classList.add('flip');
+    tgt.innerHTML=`<div class="fi"><div class="face front">?</div><div class="face back">${ans}</div></div>`;
+
+    inp.focus();
+  }
+
+  function reveal(){
+    cell[r+','+c].classList.add('show');
+  }
+
+  function celebrate(n){
+    const msgs={5:'🌟 5 in a row!',10:'🔥 10 streak!',15:'⚡ 15 in a row!',20:'🏆 20 streak!'};
+    const b=$('streakBanner'); b.innerHTML=`${msgs[n]||'🌟 '+n+' in a row!'}<small>Keep it going!</small>`;
+    b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+    const colors=['#f59e0b','#4f46e5','#16a34a','#dc2626','#0ea5e9','#ec4899']; const box=$('confetti');
+    for(let i=0;i<90;i++){ const c=document.createElement('div'); c.className='conf'; c.style.left=Math.random()*100+'vw';
+      c.style.background=colors[i%colors.length]; c.style.animationDuration=(1.6+Math.random()*1.4)+'s';
+      c.style.animationDelay=(Math.random()*0.4)+'s'; box.appendChild(c); setTimeout(()=>c.remove(),3400); }
+  }
+
+  function finish(ok){
+    answered=true; total++;
+    if(ok){ correct++; streak++; } else streak=0;
+    $('correctCount').textContent=correct; $('totalCount').textContent=total; $('streak').textContent=streak;
+    const fb=$('feedback');
+    if(ok){ fb.textContent=pick(['🎉 Correct!','⭐ Nice work!','✅ You got it!','🚀 Great job!']); fb.className='feedback good'; }
+    else { fb.textContent=`The answer is ${r*c}.`; fb.className='feedback bad'; }
+    reveal();
+    $('answer').disabled=true; $('checkBtn').style.display='none'; $('hintBtn').style.display='none';
+    $('nextBtn').style.display=''; $('nextBtn').focus();
+    if(ok && streak>0 && streak%5===0) celebrate(streak);
+  }
+
+  function check(){
+    if(answered) return;
+    const v=parseInt($('answer').value,10);
+    if(isNaN(v)){ $('answer').focus(); return; }
+    if(v===r*c){ $('answer').className='answer-input correct'; finish(true); }
+    else{
+      $('answer').className='answer-input wrong'; streak=0; $('streak').textContent=streak;
+      $('feedback').textContent='Not quite — try again or tap 💡 Hint.'; $('feedback').className='feedback bad';
+      setTimeout(()=>{ if(!answered){ $('answer').className='answer-input'; $('answer').select(); } },500);
+    }
+  }
+
+  function showHint(){
+    if(answered) return;
+    const box=$('choices'); if(box.childElementCount){ box.className='choices'; return; }
+    const ans=r*c; const opts=new Set([ans]);
+    while(opts.size<4){ const k=rand(1,3)*(Math.random()<.5?-1:1); let cand=ans+k*r; if(cand<1) cand=ans+Math.abs(k)*r; opts.add(cand); }
+    const sh=[...opts].sort(()=>Math.random()-.5);
+    box.className='choices'; box.innerHTML='';
+    sh.forEach(v=>{ const b=document.createElement('button'); b.className='choice'; b.textContent=v;
+      b.onclick=()=>{ if(answered) return; if(v===ans){ b.classList.add('correct'); finish(true);} else { b.classList.add('wrong'); b.disabled=true; streak=0; $('streak').textContent=streak; } };
+      box.appendChild(b); });
+  }
+
+  $('levelSeg').addEventListener('click', e=>{ const b=e.target.closest('button.lvl'); if(!b) return;
+    level=+b.dataset.lvl; document.querySelectorAll('.lvl').forEach(x=>x.classList.toggle('on',x===b)); newQuestion(); });
+  $('checkBtn').onclick=check; $('hintBtn').onclick=showHint; $('nextBtn').onclick=newQuestion;
+  document.addEventListener('keydown', e=>{ if(e.key!=='Enter') return; e.preventDefault(); if(answered) newQuestion(); else check(); });
+
+  newQuestion();
+})();
+</script>
+</body>
+</html>
