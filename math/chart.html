@@ -156,6 +156,7 @@
   // No-repeat + wrong-requeue state
   let qCount=0, lastKey=null, missed=false, wrongQueue=[]; // wrongQueue: [{r,c,due}]
   let advanceReady=true;  // brief lock after a correct answer so Enter can't skip instantly
+  let retryLock=false;    // 3s lock after a wrong answer before they can try again
 
   // Build the 13x13 grid once
   (function build(){
@@ -259,14 +260,15 @@
   }
 
   function check(){
-    if(answered) return;
+    if(answered || retryLock) return;
     const v=parseInt($('answer').value,10);
     if(isNaN(v)){ $('answer').focus(); return; }
     if(v===r*c){ $('answer').className='answer-input correct'; finish(true); }
     else{
-      $('answer').className='answer-input wrong'; missed=true; streak=0; $('streak').textContent=streak;
-      $('feedback').textContent='Not quite — try again or tap 💡 Hint.'; $('feedback').className='feedback bad';
-      setTimeout(()=>{ if(!answered){ $('answer').className='answer-input'; $('answer').select(); } },500);
+      $('answer').className='answer-input wrong'; $('answer').disabled=true; retryLock=true;
+      missed=true; streak=0; $('streak').textContent=streak;
+      $('feedback').textContent='Not quite — take a look, then try again…'; $('feedback').className='feedback bad';
+      setTimeout(()=>{ retryLock=false; if(!answered){ $('answer').disabled=false; $('answer').className='answer-input'; $('answer').focus(); $('answer').select(); } },3000);
     }
   }
 

@@ -250,6 +250,7 @@
   let missed = false;   // did the current question have any wrong attempt?
   let wrongQueue = [];  // [{P, due}] problems to bring back a few questions later
   let advanceReady = true;  // brief lock after a correct answer so Enter can't skip instantly
+  let retryLock = false;    // 3s lock after a wrong answer before they can try again
 
   // Blue gradient: dark (small) -> light (large)
   const shade = (step, steps) => `hsl(222, 78%, ${40 + (step/steps)*45}%)`;
@@ -463,18 +464,23 @@
   }
 
   function check(){
-    if (answered) return;
+    if (answered || retryLock) return;
     const inp = $('answer');
     const val = parseInt(inp.value, 10);
     if (isNaN(val)){ inp.focus(); return; }
     if (val === P.answer){ inp.className = 'answer-input correct'; finish(true); }
     else {
       inp.className = 'answer-input wrong';
+      inp.disabled = true;         // pause on the wrong answer for 3s
+      retryLock = true;
       missed = true;
       streak = 0; $('streak').textContent = streak;
-      $('feedback').textContent = 'Not quite — try again or tap 💡 Hint.';
+      $('feedback').textContent = 'Not quite — take a look, then try again…';
       $('feedback').className = 'feedback bad';
-      setTimeout(()=>{ if(!answered){ inp.className='answer-input'; inp.select(); } }, 500);
+      setTimeout(()=>{
+        retryLock = false;
+        if(!answered){ inp.disabled=false; inp.className='answer-input'; inp.focus(); inp.select(); }
+      }, 3000);
     }
   }
 
