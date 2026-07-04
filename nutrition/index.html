@@ -84,6 +84,9 @@
   .plate{ width:260px; height:260px; border-radius:50%; background:#fff; border:8px solid #cbd5e1; position:relative; overflow:hidden; flex:0 0 auto; box-shadow:var(--shadow); display:flex; flex-wrap:wrap; align-content:flex-start; gap:2px; padding:14px; }
   .plate .pf{ font-size:24px; }
   .plate .empty{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-weight:700; font-size:14px; text-align:center; padding:20px; }
+  .plate.meal{ align-content:center; justify-content:center; gap:10px; }
+  .plate .slot{ width:48px; height:48px; border:3px dashed #94a3b8; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:900; color:#94a3b8; }
+  .plate .slot.filled{ border-style:solid; border-color:var(--accent); background:var(--accent-soft); color:inherit; }
   .tray{ flex:1; min-width:240px; }
   .traygrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(64px,1fr)); gap:8px; max-height:300px; overflow:auto; }
   .food{ background:#fff; border:2px solid #e2e8f0; border-radius:12px; padding:8px 4px; text-align:center; cursor:pointer; font-size:11px; font-weight:700; }
@@ -139,14 +142,14 @@
     <button class="gamecard" data-game="match"><span class="icon">🔗</span><h3>What's Inside?</h3><p>Pick every nutrient a food has, then learn what each one does for your body — and how much the food packs.</p></button>
     <button class="gamecard" data-game="fuel"><span class="icon">⚡</span><h3>Best Fuel</h3><p>Pick the best food for the situation — and learn <em>why</em> it's the smart choice.</p></button>
     <button class="gamecard" data-game="label"><span class="icon">🏷️</span><h3>Label Reader</h3><p>Read real nutrition labels: serving size, servings per box, and spot the hidden sugar.</p></button>
-    <button class="gamecard" data-game="plate"><span class="icon">🍽️</span><h3>Build a Plate</h3><p>Drag foods onto your plate and get a balance score. How healthy can you build it?</p></button>
+    <button class="gamecard" data-game="plate"><span class="icon">🍽️</span><h3>Complete the Meal</h3><p>A plate is missing a nutrient. Pick the food that adds the iron, calcium, or protein it needs!</p></button>
     <button class="gamecard" data-game="swap"><span class="icon">🔀</span><h3>Healthier Swap</h3><p>Fast rounds: tap the better choice before the clock runs out.</p></button>
   </div>
 
   <!-- GAME STAGE -->
   <div class="stage hidden" id="stage"></div>
 
-<script src="library.js"></script>
-<script src="app.js"></script>
+<script src="library.js?v=2"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>

@@ -252,61 +252,66 @@
     next();
   }
 
-  // ============ 4) BUILD A PLATE ============
+  // ============ 4) COMPLETE THE MEAL ============
+  // A plate is missing one nutrient — pick the food that adds it.
   function gamePlate(){
-    $('subtitle').textContent='Tap foods to add them to your plate. Aim for a balanced plate!';
-    const targets=LIB.PLATE.targets;
-    const groups=['vegetable','fruit','grain','protein'];
-    let onPlate=[]; // {food,emoji,group}
-    // a tray of tappable foods across groups (exclude 'other')
-    const tray=sample(LIB.FOODS.filter(f=>groups.includes(f.group)||f.group==='dairy'), 30);
-    function render(){
+    $('subtitle').textContent='This meal is missing something — pick the food that adds it!';
+    // target nutrients that have plenty of clear food sources and kid-friendly framing
+    const TARGETS = ['Protein','Calcium','Iron','Vitamin C','Fiber','Potassium','Vitamin A','Vitamin D','Vitamin K','Zinc','Omega-3','Folate','Magnesium','Vitamin B12']
+      .filter(n=> LIB.NUTRIENTS[n] && LIB.FOODS.filter(f=>hasNut(f,n)).length>=5);
+    function hasNut(f,n){ return f.nutrients.some(x=>x.nutrient===n); }
+
+    function round(){
+      const target = pick(TARGETS);
+      const sources = LIB.FOODS.filter(f=>hasNut(f,target));
+      const nonSources = LIB.FOODS.filter(f=>!hasNut(f,target));
+      // prefer an "excellent" source as the answer when one exists
+      const exc = sources.filter(f=> f.nutrients.some(x=>x.nutrient===target && x.tier==='excellent'));
+      const correct = pick(exc.length ? exc : sources);
+      const distract = sample(nonSources.filter(f=>f!==correct), 3);
+      const choices = shuffle([correct, ...distract]);
+      // the meal on the plate: 3 foods that do NOT already have the target nutrient
+      const meal = sample(nonSources.filter(f=>!choices.includes(f)), 3);
+
       stage.innerHTML='';
       const card=el('div','card');
-      card.appendChild(el('div','promptsub', LIB.PLATE.note));
-      const area=el('div','plate-area');
-      // plate
-      const plate=el('div','plate');
-      if(!onPlate.length) plate.appendChild(el('div','empty','Tap foods to build your plate 🍽️'));
-      else onPlate.forEach(f=> plate.appendChild(el('span','pf', f.emoji)));
-      area.appendChild(plate);
-      // tray
-      const tw=el('div','tray');
-      const tg=el('div','traygrid');
-      tray.forEach(f=>{ const t=el('div','food','<span class="em">'+f.emoji+'</span>'+f.food);
-        t.onclick=()=>{ onPlate.push(f); render(); }; tg.appendChild(t); });
-      tw.appendChild(tg);
-      area.appendChild(tw);
-      card.appendChild(area);
-      // bars
-      const bars=el('div','bars');
-      const total=onPlate.filter(f=>groups.includes(f.group)).length || 1;
-      groups.forEach(g=>{ const frac=onPlate.filter(f=>f.group===g).length/total;
-        const row=el('div','barrow');
-        row.appendChild(el('div','lbl', g));
-        const track=el('div','track'); const fill=el('div','fill'); fill.style.width=Math.min(100,frac*100)+'%';
-        const tgt=el('div','tgt'); tgt.style.left=(targets[g]*100)+'%'; track.appendChild(fill); track.appendChild(tgt);
-        row.appendChild(track);
-        bars.appendChild(row);
-      });
-      card.appendChild(bars);
+      const does = LIB.NUTRIENTS[target].does;
+      card.appendChild(el('div','prompt','Which food adds <span class="nn">'+target+'</span> to this meal?'));
+      card.appendChild(el('div','promptsub','This plate has no '+target+' — and you need it for '+does+'.'));
+
+      // the plate: meal foods + one empty "?" slot
+      const plate=el('div','plate meal');
+      meal.forEach(f=> plate.appendChild(el('span','pf', f.emoji)));
+      const slot=el('span','slot','?');
+      plate.appendChild(slot);
+      card.appendChild(plate);
+      card.appendChild(el('div','promptsub','On the plate: '+meal.map(f=>f.emoji+' '+f.food).join(', ')));
+
+      // choices
+      const grid=el('div','tiles');
       const fb=el('div','feedback',''); const why=el('div','why','');
       const ctr=el('div','center');
-      ctr.appendChild(mkBtn('Score my plate 🏆',()=>{
-        const n=onPlate.filter(f=>groups.includes(f.group)).length;
-        if(n<4){ fb.textContent='Add a few more foods first!'; fb.className='feedback bad'; return; }
-        let diff=0; groups.forEach(g=>{ diff+=Math.abs(onPlate.filter(f=>f.group===g).length/n - targets[g]); });
-        const score=Math.max(0,Math.round(100*(1-diff/2)));
-        fb.textContent='Balance score: '+score+'/100'; fb.className='feedback '+(score>=75?'good':'bad');
-        why.textContent = score>=85?'🌟 Amazing balance!' : score>=70?'👍 Pretty balanced — nudge it closer.' : 'Try more veggies & fruit, less of one group.';
-        bumpScore(score>=75);
-      }));
-      ctr.appendChild(mkBtn('Clear',()=>{ onPlate=[]; render(); }));
+      choices.forEach(f=>{ const t=el('div','tile','<span class="em">'+f.emoji+'</span>'+f.food);
+        t.onclick=()=>{ if(card.dataset.done) return; card.dataset.done='1';
+          const ok = f===correct;
+          [...grid.children].forEach(x=>{ x.setAttribute('disabled',''); });
+          t.classList.add(ok?'correct':'wrong');
+          if(!ok){ [...grid.children].forEach((x,i)=>{ if(choices[i]===correct) x.classList.add('correct'); }); }
+          // fill the slot with the right answer
+          slot.textContent=correct.emoji; slot.classList.add('filled');
+          bumpScore(ok);
+          fb.textContent = ok?'🎉 Perfect — that adds '+target+'!':'Not quite — the green one adds '+target+'.'; fb.className='feedback '+(ok?'good':'bad');
+          const kd = LIB.KID_DAILY[target];
+          why.innerHTML = correct.emoji+' <b>'+correct.food+'</b> is a great source of '+target+' — '+does+'.'+(kd?' <span class="daily">('+kd.note+')</span>':'');
+          ctr.innerHTML=''; ctr.appendChild(mkBtn('Next meal ▶',round)); ctr.appendChild(backBtn());
+        };
+        grid.appendChild(t); });
+      card.appendChild(grid);
       ctr.appendChild(backBtn());
       card.appendChild(fb); card.appendChild(why); card.appendChild(ctr);
       stage.appendChild(card);
     }
-    render();
+    round();
   }
 
   // ============ 5) HEALTHIER SWAP (timed) ============
