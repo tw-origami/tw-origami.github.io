@@ -40,7 +40,7 @@
 
   /* ---- Flashcard ---- */
   .flash-wrap { width:100%; perspective:1400px; margin-bottom:20px; }
-  .flash { position:relative; width:100%; min-height:280px; cursor:pointer; }
+  .flash { position:relative; width:100%; min-height:200px; cursor:pointer; transition:height .5s cubic-bezier(.4,.2,.2,1); }
   .face {
     position:absolute; inset:0; background:#fff; border-radius:24px; box-shadow:var(--shadow);
     display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
@@ -55,12 +55,15 @@
   .part { font-size:44px; font-weight:800; letter-spacing:-1px; margin:4px 0 8px; }
   .flip-hint { color:var(--muted); font-size:13px; margin-top:10px; }
   .meaning { font-size:26px; font-weight:800; color:var(--accent); margin:4px 0 14px; }
-  .examples { color:var(--muted); font-size:15px; line-height:1.6; }
-  .examples b { color:var(--ink); }
+  .examples { color:var(--muted); font-size:14px; line-height:1.4; text-align:left; width:100%; max-width:340px; }
+  .examples .ex, .factoid .ex { margin:5px 0; }
+  .examples b, .factoid b { color:var(--ink); }
+  .examples u, .factoid u { color:var(--accent); text-decoration-color:var(--accent); text-decoration-thickness:2px; text-underline-offset:2px; }
 
   .btn-row { display:flex; gap:12px; margin-top:4px; flex-wrap:wrap; justify-content:center; }
   button.act { font-family:inherit; font-size:16px; font-weight:700; border:none; border-radius:14px; padding:13px 22px; cursor:pointer; transition:transform .1s, background .15s; }
   button.act:active { transform:scale(.96); }
+  button.act:disabled { opacity:.55; cursor:default; transform:none; }
   .btn-primary { background:var(--accent); color:#fff; }
   .btn-primary:hover { background:#4338ca; }
   .btn-ghost { background:var(--accent-soft); color:var(--accent); }
@@ -83,7 +86,7 @@
   .feedback { min-height:26px; margin-top:18px; font-weight:700; font-size:17px; text-align:center; }
   .feedback.good { color:var(--correct); }
   .feedback.bad { color:var(--wrong); }
-  .factoid { color:var(--muted); font-size:14px; margin-top:4px; text-align:center; }
+  .factoid { color:var(--muted); font-size:14px; margin-top:6px; text-align:left; display:inline-block; }
 
   @media (max-width:560px){ .part, .qpart { font-size:36px; } .meaning { font-size:21px; } }
 
@@ -186,6 +189,26 @@
   const shuffle = arr => arr.slice().sort(()=>Math.random()-0.5);
   const TYPE_LABEL = { prefix:'Prefix', root:'Root', suffix:'Suffix' };
 
+  // Underline where the root/prefix/suffix shows up inside an example word.
+  // Handles multi-spelling parts (e.g. "spect/spec") by trying the longest first,
+  // and looks from the end for suffixes so "-ist" underlines art[ist], not others.
+  function underlineRoot(word, entry){
+    const variants = entry.part.split('/').concat(entry.alt || [])
+      .map(v => v.replace(/[-\s]/g, '').toLowerCase())
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length);
+    const lower = word.toLowerCase();
+    for (const v of variants){
+      const idx = entry.type === 'suffix' ? lower.lastIndexOf(v) : lower.indexOf(v);
+      if (idx >= 0){
+        return word.slice(0, idx) + '<u>' + word.slice(idx, idx + v.length) + '</u>' + word.slice(idx + v.length);
+      }
+    }
+    return word;
+  }
+  const exampleHTML = entry =>
+    entry.examples.map(([w,d]) => `<div class="ex"><b>${underlineRoot(w, entry)}</b> — ${d}</div>`).join('');
+
   let mode = 'flash';       // 'flash' | 'quiz'
   let cat = 'all';          // 'all' | 'prefix' | 'root' | 'suffix'
   let correct = 0, total = 0, streak = 0;
@@ -194,7 +217,8 @@
   let lastPart = null;
   let flashFlipped = false;
   let quizAnswered = false;
-  let advanceTimer = null;  // 3s auto-advance after answering
+  let advanceReady = true;  // false during the 3s read-lock after answering
+  let advanceTimer = null;  // unlocks "Next" after 3s
   let countdownTimer = null;
 
   function pool(){
@@ -216,6 +240,14 @@
   }
 
   // ---------- FLASHCARDS ----------
+  // Size the card to whichever face is showing so the front isn't swimming in
+  // empty space and the back's examples never overflow.
+  function fitFlash(){
+    if (mode !== 'flash') return;
+    const face = document.querySelector(flashFlipped ? '.face.back' : '.face.front');
+    $('flash').style.height = face.scrollHeight + 'px';
+  }
+
   function newFlashcard(){
     cur = nextItem();
     flashFlipped = false;
@@ -227,15 +259,17 @@
     $('backOrigin').textContent = cur.origin;
     $('backPart').textContent = cur.part;
     $('backMeaning').textContent = '"' + cur.meaning + '"';
-    $('backExamples').innerHTML = 'e.g. <b>' + cur.examples.join('</b>, <b>') + '</b>';
+    $('backExamples').innerHTML = exampleHTML(cur);
     $('flashKnowRow').style.display = 'none';
     $('flashFlipRow').style.display = 'flex';
+    fitFlash();
   }
 
   function flipCard(){
     if (flashFlipped) return;
     flashFlipped = true;
     $('flash').classList.add('flipped');
+    fitFlash();
     $('flashFlipRow').style.display = 'none';
     $('flashKnowRow').style.display = 'flex';
   }
@@ -254,8 +288,15 @@
     if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
   }
 
+  // Advance only once the 3s read-lock has lifted.
+  function tryAdvance(){
+    if (!quizAnswered || !advanceReady) return;
+    newQuizQuestion();
+  }
+
   function newQuizQuestion(){
     clearTimers();
+    advanceReady = true;
     cur = nextItem();
     quizAnswered = false;
     $('quizTag').textContent = `${TYPE_LABEL[cur.type]} · ${cur.origin}`;
@@ -298,21 +339,30 @@
     const fb = $('feedback');
     if (isCorrect){ fb.textContent = pick(['🎉 Correct!','⭐ Nice work!','✅ You got it!','🚀 Great job!']); fb.className = 'feedback good'; }
     else { fb.textContent = `"${cur.part}" means "${cur.meaning}".`; fb.className = 'feedback bad'; }
-    $('factoid').innerHTML = 'e.g. <b>' + cur.examples.join('</b>, <b>') + '</b>';
+    $('factoid').innerHTML = exampleHTML(cur);
     $('nextRow').style.display = 'flex';
 
     if (isCorrect && streak > 0 && streak % 5 === 0) celebrate(streak);
 
-    // Pause 3s on the answer so they can absorb it, then auto-advance.
+    // Lock "Next" for 3s so they have to read the answer before moving on —
+    // no auto-advance; Enter/click do nothing until the countdown ends.
+    advanceReady = false;
     let secs = 3;
     const nextBtn = $('nextBtn');
-    nextBtn.textContent = `Next word ➡️ (${secs})`;
+    nextBtn.disabled = true;
+    nextBtn.textContent = `Read it… (${secs})`;
     countdownTimer = setInterval(()=>{
       secs--;
-      if (secs > 0) nextBtn.textContent = `Next word ➡️ (${secs})`;
-      else { clearInterval(countdownTimer); countdownTimer = null; nextBtn.textContent = 'Next word ➡️'; }
+      if (secs > 0) nextBtn.textContent = `Read it… (${secs})`;
+      else { clearInterval(countdownTimer); countdownTimer = null; }
     }, 1000);
-    advanceTimer = setTimeout(newQuizQuestion, 3000);
+    advanceTimer = setTimeout(()=>{
+      advanceReady = true;
+      advanceTimer = null;
+      nextBtn.disabled = false;
+      nextBtn.textContent = 'Next word ➡️';
+      nextBtn.focus();
+    }, 3000);
   }
 
   function celebrate(n){
@@ -342,6 +392,7 @@
   }
 
   function render(){
+    clearTimers();
     $('flashView').style.display = mode === 'flash' ? '' : 'none';
     $('quizView').style.display = mode === 'quiz' ? '' : 'none';
     if (mode === 'flash') newFlashcard(); else newQuizQuestion();
@@ -362,11 +413,12 @@
     render();
   });
 
+  window.addEventListener('resize', fitFlash);
   $('flash').addEventListener('click', flipCard);
   $('flipBtn').onclick = flipCard;
   $('knewItBtn').onclick = () => flashResult(true);
   $('stillLearningBtn').onclick = () => flashResult(false);
-  $('nextBtn').onclick = newQuizQuestion;
+  $('nextBtn').onclick = tryAdvance;
 
   document.addEventListener('keydown', e=>{
     if (e.key !== 'Enter') return;
@@ -374,7 +426,7 @@
     if (mode === 'flash'){
       if (!flashFlipped) flipCard();
     } else {
-      if (quizAnswered) newQuizQuestion();
+      if (quizAnswered) tryAdvance();
     }
   });
 
