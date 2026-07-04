@@ -107,13 +107,18 @@
           ? R.facts.slice().sort((a,b)=> (a.tier==='excellent'?0:1)-(b.tier==='excellent'?0:1))
           : R.facts;
         sorted.forEach(f=>{
+          // "how much is a lot?" context: kid daily target if we have one, else the label DV
+          const kd = LIB.KID_DAILY[f.name];
+          const dv = LIB.NUTRIENTS[f.name] && LIB.NUTRIENTS[f.name].dv;
+          const daily = kd ? ' <span class="daily">('+kd.note+')</span>'
+                       : (dv && dv!=='—' ? ' <span class="daily">(Daily goal on labels: '+dv+'.)</span>' : '');
           if(deck==='food'){
             const exc = f.tier==='excellent';
             facts.appendChild(el('div','nutfact '+(exc?'exc':'low'),
               '<span class="pct">'+(exc?'20%+ 🌟':'10–19%')+'</span>'+
-              '<span><span class="nn">'+f.name+'</span> — '+f.does+'.</span>'));
+              '<span><span class="nn">'+f.name+'</span> — '+f.does+'.'+daily+'</span>'));
           } else {
-            facts.appendChild(el('div','nutfact low','<span><span class="nn">'+f.name+'</span> — '+f.does+'.</span>'));
+            facts.appendChild(el('div','nutfact low','<span><span class="nn">'+f.name+'</span> — '+f.does+'.'+daily+'</span>'));
           }
         });
         if(deck==='food') facts.appendChild(el('div','keynote','% = about how much of your daily need one serving covers. Green = a top source!'));
@@ -195,6 +200,15 @@
         }).join(', ');
         ing.innerHTML='<b>Ingredients</b><br>'+ingHtml;
         card.appendChild(ing);
+        // "is that a lot?" daily guide for kids
+        const KD=LIB.KID_DAILY;
+        const guide=el('div','dailybox');
+        const rows=[];
+        rows.push('🍬 <b>Sugar:</b> this has '+L.sugarG+'g per serving — kids should stay '+KD['Added sugar'].amount+' of <i>added</i> sugar a day.');
+        rows.push('🌾 <b>Fiber:</b> this has '+L.fiberG+'g per serving — kids need '+KD['Fiber'].amount+' a day.');
+        if(L.sodiumMg!=null) rows.push('🧂 <b>Sodium:</b> this has '+L.sodiumMg+'mg per serving — kids should stay '+KD['Sodium'].amount+' a day.');
+        guide.innerHTML='<b class="gt">💡 Is that a lot?</b>'+rows.map(r=>'<div class="gr">'+r+'</div>').join('');
+        card.appendChild(guide);
         // question
         const Q=L.questions[qi];
         card.appendChild(el('div','prompt', Q.q));

@@ -320,6 +320,20 @@ const LABELS = [
     ] },
 ];
 
+// ============ 5b) KID DAILY TARGETS (ages ~9-13; NIH RDA / AHA / Dietary Guidelines) ============
+// Used to give "is that a lot?" context wherever amounts appear.
+const KID_DAILY = {
+  'Fiber':      { amount:'~25g',            note:'Kids need about 25 grams of fiber a day.' },
+  'Added sugar':{ amount:'under 25g',       note:'Doctors say kids should stay UNDER about 25 grams (6 teaspoons) of added sugar a day.' },
+  'Sodium':     { amount:'under 1,800mg',   note:'Kids should stay under about 1,800mg of sodium (salt) a day.' },
+  'Calcium':    { amount:'1,300mg',         note:'Growing kids need about 1,300mg of calcium a day — more than grown-ups!' },
+  'Iron':       { amount:'~8mg',            note:'Kids around 9–13 need about 8mg of iron a day.' },
+  'Protein':    { amount:'~34g',            note:'Kids around 9–13 need about 34 grams of protein a day.' },
+  'Vitamin C':  { amount:'~45mg',           note:'Kids around 9–13 need about 45mg of vitamin C a day — one orange nearly covers it!' },
+  'Vitamin D':  { amount:'15mcg (600 IU)',  note:'Kids need about 15mcg of vitamin D a day — sunshine helps your body make it too.' },
+  'Potassium':  { amount:'~2,500mg',        note:'Kids around 9–13 need about 2,300–2,500mg of potassium a day.' },
+};
+
 // ============ 6) PLATE targets (MyPlate proportions) ============
 const PLATE = {
   targets: { vegetable:0.30, fruit:0.20, grain:0.25, protein:0.25 },
@@ -341,6 +355,7 @@ window.LIB = {
   FUNCTIONS: ${JSON.stringify(FUNCTIONS)},
   SCENARIOS: ${JSON.stringify(SCENARIOS)},
   SWAPS: ${JSON.stringify(SWAPS)},
+  KID_DAILY: ${JSON.stringify(KID_DAILY, null, 2)},
   SUGAR_ALIASES: ${JSON.stringify(SUGAR_ALIASES)},
   LABELS: ${JSON.stringify(LABELS)},
   PLATE: ${JSON.stringify(PLATE)}
