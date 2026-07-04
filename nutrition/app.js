@@ -100,16 +100,23 @@
         });
         fb.textContent = okExact?'🎉 You got them all!':'Close — the green ones are the right answers.'; fb.className='feedback '+(okExact?'good':'bad');
         bumpScore(okExact);
-        // reveal: what each nutrient does + how much
+        // reveal: what each nutrient does + how much (%DV per serving, strongest first)
         const facts=el('div','nutfacts');
         facts.appendChild(el('div','intro', R.intro));
-        R.facts.forEach(f=>{
-          let amt='';
-          if(deck==='food'){ amt = f.tier==='excellent'
-            ? '<span class="amt exc">🌟 lots of</span> '
-            : '<span class="amt good">✓ a good amount of</span> '; }
-          facts.appendChild(el('div','nutfact', amt+'<span class="nn">'+f.name+'</span> — '+f.does+'.'));
+        const sorted = deck==='food'
+          ? R.facts.slice().sort((a,b)=> (a.tier==='excellent'?0:1)-(b.tier==='excellent'?0:1))
+          : R.facts;
+        sorted.forEach(f=>{
+          if(deck==='food'){
+            const exc = f.tier==='excellent';
+            facts.appendChild(el('div','nutfact '+(exc?'exc':'low'),
+              '<span class="pct">'+(exc?'20%+ 🌟':'10–19%')+'</span>'+
+              '<span><span class="nn">'+f.name+'</span> — '+f.does+'.</span>'));
+          } else {
+            facts.appendChild(el('div','nutfact low','<span><span class="nn">'+f.name+'</span> — '+f.does+'.</span>'));
+          }
         });
+        if(deck==='food') facts.appendChild(el('div','keynote','% = about how much of your daily need one serving covers. Green = a top source!'));
         card.appendChild(facts);
         ctr.innerHTML=''; ctr.appendChild(mkBtn('Next ▶',round)); ctr.appendChild(backBtn());
       }));

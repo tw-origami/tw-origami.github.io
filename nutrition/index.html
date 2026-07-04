@@ -99,11 +99,15 @@
   /* nutrient reveal facts */
   .nutfacts{ margin-top:16px; display:flex; flex-direction:column; gap:8px; text-align:left; }
   .nutfacts .intro{ font-weight:800; font-size:15px; margin-bottom:2px; }
-  .nutfact{ background:#f8fafc; border-radius:12px; padding:10px 12px; font-size:14px; line-height:1.35; }
-  .nutfact .amt{ font-weight:800; }
-  .nutfact .amt.exc{ color:var(--gold); }
-  .nutfact .amt.good{ color:var(--accent); }
+  .nutfact{ border-radius:12px; padding:10px 12px; font-size:14px; line-height:1.4; display:flex; align-items:center; gap:10px; }
+  .nutfact.exc{ background:var(--accent-soft); border:2px solid var(--accent); }
+  .nutfact.low{ background:#f1f5f9; border:2px solid #e2e8f0; color:#475569; }
+  .nutfact .pct{ flex:0 0 auto; font-weight:900; font-size:13px; border-radius:999px; padding:5px 10px; white-space:nowrap; }
+  .nutfact.exc .pct{ background:var(--accent); color:#fff; }
+  .nutfact.low .pct{ background:#cbd5e1; color:#334155; }
   .nutfact .nn{ font-weight:800; color:var(--accent2); }
+  .nutfact.exc .nn{ color:#15803d; }
+  .nutfacts .keynote{ font-size:12px; color:var(--muted); margin-top:4px; }
 
   /* streak celebration */
   #confetti{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
