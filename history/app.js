@@ -76,9 +76,13 @@
   }
 
   // ============ 2) QUOTE FLIP ============
+  const STATUS = {
+    paraphrase:{t:'📝 A popular paraphrase or translation', c:'st-para'},
+    attributed:{t:'≈ Commonly linked to this person', c:'st-attr'},
+    misattributed:{t:'⚠️ Often credited to them — but likely not their exact words', c:'st-mis'} };
   function gameQuote(){
     $('subtitle').textContent='Read the quote — can you guess who? Flip to find out.';
-    const quoted = H.FIGURES.filter(f=>f.quote);
+    const quoted = H.FIGURES.filter(f=>f.quote).concat(H.QUOTES||[]);
     let queue = shuffle(quoted.slice());
     function next(){
       if(!queue.length) queue=shuffle(quoted.slice());
@@ -93,6 +97,7 @@
             '<div class="nm">'+esc(f.name)+'</div>'+pronEl(f)+
             '<div class="meta">'+f.flag+' '+esc(f.country)+' · '+esc(f.eraLabel)+' · '+esc(f.role)+'</div>'+
             '<div class="bio">'+esc(f.bio)+'</div>'+
+            (f.status && STATUS[f.status] ? '<div class="qstatus '+STATUS[f.status].c+'">'+esc(STATUS[f.status].t)+'</div>' : '')+
             (f.quoteCtx ? '<div class="qctx"><div class="qctx-h">📖 The story behind the quote</div><div class="qctx-t">'+esc(f.quoteCtx)+'</div></div>' : '')+
           '</div>'+
         '</div>';
