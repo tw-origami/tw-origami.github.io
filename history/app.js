@@ -119,10 +119,14 @@
   function gameRead(){
     $('subtitle').textContent='Read the story, then answer like a test detective.';
     const artA = w => /^[aeiou]/i.test(w) ? 'an ' : 'a ';
-    // hand-written passages override the auto ones by slug
+    // hand-written passages override the auto ones by slug (and can add new figures)
     const AUTH = {}; (window.HIST_AUTHORED||[]).forEach(a=>AUTH[a.slug]=a);
+    const libSlugs = new Set(H.PASSAGES.map(p=>p.slug));
+    const extras = (window.HIST_AUTHORED||[]).filter(a=>!libSlugs.has(a.slug) && a.title)
+      .map(a=>({ slug:a.slug, title:a.title, emoji:a.emoji||'📜', img:a.img||null, region:a.region||'W', text:a.text, facts:a.facts }));
+    const allPassages = H.PASSAGES.concat(extras);
     // fact pools for distractors, built from all fact-based passages (auto + authored facts)
-    const auto = H.PASSAGES.filter(p=>p.facts).map(p=> AUTH[p.slug] ? Object.assign({},p,{facts:AUTH[p.slug].facts}) : p);
+    const auto = allPassages.filter(p=>p.facts).map(p=> AUTH[p.slug] ? Object.assign({},p,{facts:AUTH[p.slug].facts}) : p);
     const poolOf = k => [...new Set(auto.map(p=>p.facts[k]).filter(Boolean))];
     const POOL = { country:poolOf('country'), field:poolOf('field'), birthplace:poolOf('birthplace'),
       spouse:poolOf('spouse'), work:poolOf('work'),
@@ -148,9 +152,9 @@
       return sample(cand, Math.min(3, cand.length));
     }
 
-    let queue = shuffle(H.PASSAGES.slice());
+    let queue = shuffle(allPassages.slice());
     function next(){
-      if(!queue.length) queue=shuffle(H.PASSAGES.slice());
+      if(!queue.length) queue=shuffle(allPassages.slice());
       const P0=queue.shift(); const a=AUTH[P0.slug];
       const P = a ? Object.assign({}, P0, { text:a.text, facts:a.facts }) : P0;  // hand-written override
       let qi=0;
