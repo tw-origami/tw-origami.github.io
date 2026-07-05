@@ -71,13 +71,13 @@
 
   /* flashcard */
   .flip{ perspective:1200px; max-width:460px; margin:0 auto 8px; }
-  .flip-inner{ position:relative; transition:transform .6s; transform-style:preserve-3d; min-height:480px; }
+  .flip-inner{ position:relative; transition:transform .6s; transform-style:preserve-3d; min-height:440px; }
   .flip.flipped .flip-inner{ transform:rotateY(180deg); }
   .face{ position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:20px; padding:26px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
   .face.front{ background:linear-gradient(160deg,#fff7ed,#fef3c7); border:2px solid #fcd34d; }
-  .face.front .q{ font-size:24px; font-weight:800; line-height:1.4; font-style:italic; }
-  .face.front .q::before{ content:'“'; } .face.front .q::after{ content:'”'; }
-  .face.front .hint{ margin-top:16px; color:var(--muted); font-weight:700; font-size:13px; }
+  .quotebar{ font-size:23px; font-weight:800; font-style:italic; line-height:1.4; text-align:center; margin-bottom:16px; color:var(--ink); }
+  .face.front .qmark{ font-size:64px; }
+  .face.front .hint{ margin-top:12px; color:var(--muted); font-weight:700; font-size:14px; }
   .face.back{ background:#fff; border:2px solid #e7ddcb; transform:rotateY(180deg); justify-content:flex-start; overflow:auto; }
   .face.back img{ width:96px; height:96px; object-fit:cover; border-radius:14px; margin-bottom:8px; background:#f3ede2; }
   .face.back .nm{ font-size:21px; font-weight:900; }
@@ -146,6 +146,6 @@
   <div class="credit" id="credit"></div>
 
 <script src="library.js?v=6"></script>
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

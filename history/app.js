@@ -89,10 +89,12 @@
       const f=queue.shift();
       stage.innerHTML='';
       const card=el('div','card');
+      // quote stays pinned above the flip box, visible on both sides
+      card.appendChild(el('div','quotebar','“'+esc(f.quote)+'”'));
       const flip=el('div','flip');
       flip.innerHTML =
         '<div class="flip-inner">'+
-          '<div class="face front"><div class="q">'+esc(f.quote)+'</div><div class="hint">Tap to flip 🔄</div></div>'+
+          '<div class="face front"><div class="qmark">❓</div><div class="hint">Who said it? Tap to flip 🔄</div></div>'+
           '<div class="face back">'+portrait(f).replace('width:84px;height:84px','width:96px;height:96px')+
             '<div class="nm">'+esc(f.name)+'</div>'+pronEl(f)+
             '<div class="meta">'+f.flag+' '+esc(f.country)+' · '+esc(f.eraLabel)+' · '+esc(f.role)+'</div>'+
