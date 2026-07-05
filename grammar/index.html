@@ -69,6 +69,36 @@
   .btn-primary:hover { background:#0b7d73; }
   .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
 
+  /* ---- Help ("?") button + reference popup ---- */
+  .helpRow { display:flex; justify-content:center; margin-top:18px; }
+  .helpBtn {
+    width:46px; height:46px; border:none; border-radius:50%; cursor:pointer;
+    background:#fff; color:var(--accent); font-size:22px; font-weight:800; font-family:inherit;
+    box-shadow:var(--shadow); transition:transform .1s, background .15s, color .15s;
+  }
+  .helpBtn:hover { background:var(--accent); color:#fff; }
+  .helpBtn:active { transform:scale(.92); }
+  .modal { position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:80; display:flex; align-items:center; justify-content:center; padding:18px; }
+  .modal.hidden { display:none; }
+  .sheet {
+    background:#fff; border-radius:22px; box-shadow:0 24px 60px rgba(15,82,74,.35);
+    width:100%; max-width:560px; max-height:82vh; overflow-y:auto; padding:26px 24px 30px; position:relative;
+  }
+  .sheet h2 { margin:0 0 4px; font-size:22px; letter-spacing:-.4px; }
+  .sheet .sheet-sub { color:var(--muted); font-size:14px; margin:0 0 18px; }
+  .closeBtn {
+    position:sticky; float:right; top:0; width:34px; height:34px; border:none; border-radius:50%;
+    background:var(--accent-soft); color:#0f766e; font-size:17px; font-weight:800; cursor:pointer; font-family:inherit;
+  }
+  .closeBtn:hover { background:var(--accent); color:#fff; }
+  .term { padding:13px 0; border-top:1px solid #e2e8f0; }
+  .term:first-of-type { border-top:none; }
+  .term h3 { margin:0 0 4px; font-size:16.5px; color:#0f766e; }
+  .term .def { margin:0 0 8px; font-size:14px; color:var(--ink); line-height:1.5; }
+  .term .exx { font-size:13.5px; color:var(--muted); line-height:1.6; padding-left:14px; }
+  .term .exx .arrow { color:#94a3b8; padding:0 4px; }
+  .term .exx .no { color:var(--wrong); }
+
   #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
   .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
   @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
@@ -126,6 +156,13 @@
         <button class="act btn-primary" id="nextBtn">Next round ➡️</button>
       </div>
     </div>
+    <div class="helpRow" id="helpRow">
+      <button class="helpBtn" id="helpBtn" title="What do these terms mean?">?</button>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="helpModal">
+    <div class="sheet" id="helpSheet"></div>
   </div>
 
 <script src="data.js"></script>
@@ -189,9 +226,54 @@
     if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
   }
 
+  // ---- "?" reference popup: each term, its definition, and 2 examples ----
+  function helpHTML(){
+    let title, sub, sections;
+    if (mode === 'tag'){
+      title = '🏷️ Parts of Speech';
+      sub = 'Every kind of word you might be asked to tag.';
+      sections = POS_LIST.map(p => ({
+        name: G.POS_LABEL[p],
+        def: G.POS_INFO[p],
+        exx: G.POS_ITEMS.filter(x => x.pos === p).slice(0, 2).map(x => marked(x.s, 'target'))
+      }));
+    } else if (mode === 'fix'){
+      title = '🔧 Types of Mistakes';
+      sub = 'Every mistake you might be asked to spot, with a wrong ✗ and fixed ✓ example.';
+      sections = G.FIX_TYPES.map(t => ({
+        name: t,
+        def: G.FIX_INFO[t],
+        exx: G.FIX_ITEMS.filter(x => x.type === t).slice(0, 2)
+          .map(x => `<span class="no">✗ ${x.wrong}</span><span class="arrow">→</span>✓ ${marked(x.fixed, 'hi')}`)
+      }));
+    } else {
+      title = '🧩 Sentence Types';
+      sub = 'The three kinds of word groups, and how to repair the broken ones.';
+      sections = Object.keys(G.SENT_KINDS).map(k => ({
+        name: G.SENT_KINDS[k],
+        def: G.SENT_INFO[k],
+        exx: G.SENT_ITEMS.filter(x => x.kind === k).slice(0, 2)
+          .map(x => x.fix ? `<span class="no">✗ ${x.s}</span><span class="arrow">→</span>✓ ${marked(x.fix, 'hi')}` : `✓ ${x.s}`)
+      }));
+    }
+    return `<button class="closeBtn" id="closeHelp" title="Close">✕</button>
+      <h2>${title}</h2><p class="sheet-sub">${sub}</p>` +
+      sections.map(sec => `<div class="term"><h3>${sec.name}</h3><p class="def">${sec.def}</p>
+        <div class="exx">${sec.exx.map(e => `<div>${e}</div>`).join('')}</div></div>`).join('');
+  }
+
+  function openHelp(){
+    $('helpSheet').innerHTML = helpHTML();
+    $('helpModal').className = 'modal';
+    $('helpSheet').scrollTop = 0;
+    document.getElementById('closeHelp').onclick = closeHelp;
+  }
+  function closeHelp(){ $('helpModal').className = 'modal hidden'; }
+
   function renderCats(){
     const seg = $('catSeg'); seg.innerHTML = '';
     seg.style.display = CATS[mode].length > 1 ? '' : 'none';
+    $('helpRow').style.display = mode === 'pick' ? 'none' : 'flex';
     CATS[mode].forEach(([key, label]) => {
       const b = document.createElement('button');
       b.dataset.cat = key; b.textContent = label;
@@ -338,9 +420,13 @@
     resetProgress(); newRound();
   });
   $('nextBtn').onclick = tryAdvance;
+  $('helpBtn').onclick = openHelp;
+  $('helpModal').addEventListener('click', e => { if (e.target === $('helpModal')) closeHelp(); });
   document.addEventListener('keydown', e => {
+    if (e.key === 'Escape'){ closeHelp(); return; }
     if (e.key !== 'Enter') return;
     e.preventDefault();
+    if (!$('helpModal').className.includes('hidden')){ closeHelp(); return; }
     if (answered) tryAdvance();
   });
 

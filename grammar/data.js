@@ -22,6 +22,21 @@ window.GRAMMAR = {
   },
   // The mistake types used for the "what's wrong?" choices.
   FIX_TYPES: ['Comma', 'Capitalization', 'Run-on', 'Subject–verb agreement', 'Apostrophe', 'Spelling', 'Wrong word', 'Double negative'],
+  FIX_INFO: {
+    'Comma': 'A comma (,) marks a small pause — use it between items in a list, after introductory words, in dates and addresses, and before joining words like "and" or "but."',
+    'Capitalization': 'Capital letters start every sentence and the names of specific people, places, days, months, holidays, and languages.',
+    'Run-on': 'A run-on crams two complete sentences together with nothing joining them. Fix it with a period, or a comma plus a joining word.',
+    'Subject–verb agreement': 'The verb must match its subject: a singular subject takes a singular verb (she walks), and a plural subject takes a plural verb (they walk).',
+    'Apostrophe': "An apostrophe (') shows ownership (the dog's bone) or stands in for missing letters in a contraction (can't = cannot).",
+    'Spelling': 'The word is spelled wrong — watch for tricky letters, silent letters, and sound-alike patterns.',
+    'Wrong word': "A word that sounds right but is the wrong one — like their/they're, than/then, to/too, or good/well.",
+    'Double negative': "Two negative words in one sentence (don't + nothing) cancel each other out — keep only one negative."
+  },
+  SENT_INFO: {
+    sentence: 'A complete sentence has a subject (who or what) and a predicate (what they do), and expresses a complete thought.',
+    fragment: 'A fragment is missing a subject, a predicate, or both — it leaves you hanging.',
+    runon: 'A run-on is two or more complete sentences incorrectly written as one.'
+  },
 
   POS_ITEMS: [
     // nouns
