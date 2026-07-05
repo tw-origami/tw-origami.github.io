@@ -18,6 +18,13 @@
   set('i k , 8','f-middle'); set('o l . 9','f-ring'); set('p ; / 0 - =','f-pinky');
   FINGER[' ']='f-thumb';
 
+  // key -> which hand + finger (for the live hand-position guide)
+  const KEYINFO={};
+  const setinfo=(keys,hand,finger)=> keys.split(' ').forEach(k=>KEYINFO[k]={hand,finger});
+  setinfo('q a z 1','L','pinky'); setinfo('w s x 2','L','ring'); setinfo('e d c 3','L','middle'); setinfo('r f v t g b 4 5','L','index');
+  setinfo('y h n u j m 6 7','R','index'); setinfo('i k , 8','R','middle'); setinfo('o l . 9','R','ring'); setinfo('p ; / 0 - =','R','pinky');
+  KEYINFO[' ']={hand:null,finger:'thumb'};
+
   // ---- lessons (auto-built drills from key sets, plus words & sentences) ----
   const LESSONS = [
     { name:'Home Row', keys:'a s d f j k l ;', desc:'Where your fingers rest.',
@@ -87,19 +94,23 @@
   // Hand-position guide: where each finger rests on the home row.
   function buildHandGuide(){
     const wrap=el('div','handguide');
-    const L=[['A',110,95,'--f-pinky'],['S',142,72,'--f-ring'],['D',174,58,'--f-middle'],['F',206,78,'--f-index']];
-    const R=[['J',434,78,'--f-index'],['K',466,58,'--f-middle'],['L',498,72,'--f-ring'],[';',530,95,'--f-pinky']];
-    const finger=(key,x,top,color)=>`
-      <rect x="${x-13}" y="${top}" width="26" height="${178-top}" rx="13" fill="var(${color})"/>
-      <circle cx="${x}" cy="${top}" r="15" fill="var(${color})" stroke="#fff" stroke-width="2"/>
-      <text x="${x}" y="${top+5}" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">${key}</text>`;
+    const L=[['A',110,95,'--f-pinky','L','pinky'],['S',142,72,'--f-ring','L','ring'],['D',174,58,'--f-middle','L','middle'],['F',206,78,'--f-index','L','index']];
+    const R=[['J',434,78,'--f-index','R','index'],['K',466,58,'--f-middle','R','middle'],['L',498,72,'--f-ring','R','ring'],[';',530,95,'--f-pinky','R','pinky']];
+    const finger=(key,x,top,color,hand,fname)=>`
+      <g class="hgf" data-hand="${hand}" data-finger="${fname}">
+        <rect x="${x-13}" y="${top}" width="26" height="${178-top}" rx="13" fill="var(${color})"/>
+        <circle cx="${x}" cy="${top}" r="15" fill="var(${color})" stroke="#fff" stroke-width="2"/>
+        <text x="${x}" y="${top+5}" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">${key}</text>
+      </g>`;
     const svg=`<svg viewBox="0 0 640 252" xmlns="http://www.w3.org/2000/svg">
       <rect x="96" y="158" width="134" height="62" rx="28" fill="#e2e8f0"/>
       <rect x="410" y="158" width="134" height="62" rx="28" fill="#e2e8f0"/>
-      <line x1="228" y1="192" x2="292" y2="214" stroke="var(--f-thumb)" stroke-width="22" stroke-linecap="round"/>
-      <line x1="412" y1="192" x2="348" y2="214" stroke="var(--f-thumb)" stroke-width="22" stroke-linecap="round"/>
-      <rect x="268" y="205" width="104" height="30" rx="12" fill="var(--f-thumb)"/>
-      <text x="320" y="225" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">SPACE</text>
+      <g class="hgf" data-finger="thumb">
+        <line x1="228" y1="192" x2="292" y2="214" stroke="var(--f-thumb)" stroke-width="22" stroke-linecap="round"/>
+        <line x1="412" y1="192" x2="348" y2="214" stroke="var(--f-thumb)" stroke-width="22" stroke-linecap="round"/>
+        <rect x="268" y="205" width="104" height="30" rx="12" fill="var(--f-thumb)"/>
+        <text x="320" y="225" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">SPACE</text>
+      </g>
       ${L.map(f=>finger(...f)).join('')}
       ${R.map(f=>finger(...f)).join('')}
       <text x="163" y="248" text-anchor="middle" font-size="12" font-weight="800" fill="#94a3b8">LEFT HAND</text>
@@ -152,7 +163,8 @@
       '<span><i style="background:var(--f-index)"></i>index</span>'+
       '<span><i style="background:var(--f-thumb)"></i>thumbs</span>');
     card.appendChild(legend);
-    card.appendChild(buildHandGuide());
+    const handGuide=buildHandGuide();
+    card.appendChild(handGuide);
 
     const fb=el('div','feedback','Type the highlighted letter to begin ✨');
     card.appendChild(fb);
@@ -168,6 +180,15 @@
       kb.querySelectorAll('.key.next').forEach(x=>x.classList.remove('next'));
       const nx = target[pos] ? target[pos].toLowerCase() : null;
       if(nx){ const key=kb.querySelector('.key[data-k="'+(nx===' '?' ':cssKey(nx))+'"]'); if(key) key.classList.add('next'); }
+      // hand guide: light up the finger to use, fade the rest
+      handGuide.querySelectorAll('.hgf.active').forEach(g=>g.classList.remove('active'));
+      const info = nx ? KEYINFO[nx] : null;
+      if(info){
+        handGuide.classList.add('armed');
+        const sel = info.finger==='thumb' ? '.hgf[data-finger="thumb"]'
+                  : '.hgf[data-hand="'+info.hand+'"][data-finger="'+info.finger+'"]';
+        const g = handGuide.querySelector(sel); if(g) g.classList.add('active');
+      } else { handGuide.classList.remove('armed'); }
       $('prog').textContent = Math.round(pos/target.length*100)+'%';
     }
     function cssKey(k){ return k.replace('"','\\"'); }

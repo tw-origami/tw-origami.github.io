@@ -68,6 +68,9 @@
   .handguide{ margin-top:16px; text-align:center; }
   .handguide .hgcap{ font-size:13px; color:var(--muted); margin-bottom:8px; line-height:1.4; }
   .handguide svg{ width:100%; max-width:440px; height:auto; }
+  .handguide .hgf{ transition:opacity .15s; }
+  .handguide.armed .hgf{ opacity:.22; }
+  .handguide.armed .hgf.active{ opacity:1; filter:drop-shadow(0 4px 8px rgba(30,41,99,.35)); }
   .feedback{ min-height:24px; font-weight:800; font-size:17px; text-align:center; margin-top:6px; }
   .feedback.good{ color:var(--correct); }
   .center{ display:flex; gap:12px; justify-content:center; margin-top:16px; flex-wrap:wrap; }
@@ -95,6 +98,6 @@
   <div class="menu" id="menu"></div>
   <div class="stage hidden" id="stage"></div>
 
-<script src="app.js?v=2"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>
