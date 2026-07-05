@@ -18,9 +18,11 @@
   }
   h1 { font-size: 26px; margin: 6px 0 2px; letter-spacing: -0.5px; }
   .sub { color: var(--muted); margin: 0 0 18px; font-size: 15px; text-align: center; max-width: 480px; }
-  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; }
-  .nav a{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 16px; border-radius:9px; }
+  /* Sticky so Home and the Guide button stay reachable no matter how tall the card grows. */
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; position:sticky; top:10px; z-index:70; }
+  .nav a, .nav button{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 16px; border-radius:9px; border:none; background:transparent; font-family:inherit; cursor:pointer; }
   .nav a.on{ background:var(--accent); color:#fff; }
+  .nav button:hover{ background:var(--accent-soft); color:var(--accent); }
 
   .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
   .seg { display:flex; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; }
@@ -70,14 +72,6 @@
   .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
 
   /* ---- Help ("?") button + reference popup ---- */
-  .helpRow { display:flex; justify-content:center; margin-top:18px; }
-  .helpBtn {
-    width:46px; height:46px; border:none; border-radius:50%; cursor:pointer;
-    background:#fff; color:var(--accent); font-size:22px; font-weight:800; font-family:inherit;
-    box-shadow:var(--shadow); transition:transform .1s, background .15s, color .15s;
-  }
-  .helpBtn:hover { background:var(--accent); color:#fff; }
-  .helpBtn:active { transform:scale(.92); }
   .modal { position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:80; display:flex; align-items:center; justify-content:center; padding:18px; }
   .modal.hidden { display:none; }
   .sheet {
@@ -122,6 +116,7 @@
 <body>
   <div class="nav">
     <a href="../index.html">🏠 Home</a>
+    <button id="helpBtn" title="What do these terms mean?">❓ Guide</button>
   </div>
   <h1>🏋️ Grammar Gym</h1>
   <p class="sub">Rapid reps for the mechanics of writing: tag parts of speech, spot &amp; fix mistakes, pick the right word, and know a real sentence when you see one.</p>
@@ -155,9 +150,6 @@
       <div class="btn-row" id="nextRow" style="display:none">
         <button class="act btn-primary" id="nextBtn">Next round ➡️</button>
       </div>
-    </div>
-    <div class="helpRow" id="helpRow">
-      <button class="helpBtn" id="helpBtn" title="What do these terms mean?">?</button>
     </div>
   </div>
 
@@ -273,7 +265,7 @@
   function renderCats(){
     const seg = $('catSeg'); seg.innerHTML = '';
     seg.style.display = CATS[mode].length > 1 ? '' : 'none';
-    $('helpRow').style.display = mode === 'pick' ? 'none' : 'flex';
+    $('helpBtn').style.display = mode === 'pick' ? 'none' : '';
     CATS[mode].forEach(([key, label]) => {
       const b = document.createElement('button');
       b.dataset.cat = key; b.textContent = label;
