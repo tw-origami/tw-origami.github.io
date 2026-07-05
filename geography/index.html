@@ -49,6 +49,20 @@
   .item .name { font-size:26px; font-weight:800; letter-spacing:-.3px; margin:8px 0 10px; }
   .item .cattag { display:inline-block; font-size:12px; font-weight:800; color:var(--accent); background:var(--accent-soft); padding:4px 12px; border-radius:999px; text-transform:uppercase; letter-spacing:.4px; }
 
+  /* Find on the Globe */
+  .globe-wrap { display:flex; justify-content:center; margin-bottom:20px; }
+  .globe-wrap canvas { border-radius:50%; box-shadow:0 8px 30px rgba(30,58,138,.22); touch-action:none; cursor:grab; }
+  .globe-loading { text-align:center; color:var(--muted); font-size:16px; font-weight:700; padding:56px 0; }
+  .globe-zoom { display:flex; justify-content:center; gap:12px; margin:12px 0 2px; }
+  .globe-zoom button { width:40px; height:40px; border:none; border-radius:11px; background:#fff; color:var(--accent); font-size:24px; font-weight:800; box-shadow:var(--shadow); cursor:pointer; font-family:inherit; line-height:1; transition:transform .1s, background .15s, color .15s; }
+  .globe-zoom button:hover { background:var(--accent); color:#fff; }
+  .globe-zoom button:active { transform:scale(.92); }
+  .globe-tip { text-align:center; color:var(--muted); font-size:12.5px; font-weight:700; margin:10px 0 16px; }
+  .hints { width:100%; max-width:400px; margin:0 auto 16px; display:flex; flex-direction:column; gap:8px; }
+  .hints.hidden { display:none; }
+  .hint { background:#fff7ed; border-left:3px solid #f59e0b; border-radius:8px; padding:9px 13px; font-size:14px; font-weight:600; color:#9a3412; line-height:1.4; }
+  .hint b { color:#7c2d12; }
+
   /* Guess the Country: clue list */
   .clues { width:100%; max-width:400px; margin:0 auto 24px; display:flex; flex-direction:column; gap:10px; }
   .clue { display:flex; align-items:center; gap:12px; background:#f8fafc; border:2px solid #e2e8f0; border-radius:14px; padding:12px 15px; font-size:17px; font-weight:700; }
@@ -71,6 +85,13 @@
   .reveal.hidden { display:none; }
   .reveal .rev-country { font-size:19px; font-weight:800; margin-bottom:5px; }
   .reveal .why { color:#1e3a8a; }
+  .reveal .blurb { margin-top:7px; color:var(--ink); }
+  .locator { margin-top:14px; text-align:center; }
+  .locator-label { font-size:12px; font-weight:800; color:#1e3a8a; text-transform:uppercase; letter-spacing:.4px; margin-bottom:8px; }
+  .reveal .facts { margin-top:11px; }
+  .reveal .facts-label { font-size:12px; font-weight:800; color:#1e3a8a; text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px; }
+  .reveal .facts ul { margin:0; padding-left:20px; }
+  .reveal .facts li { margin:5px 0; color:var(--ink); line-height:1.45; }
 
   button.act { font-family:inherit; font-size:16px; font-weight:700; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; transition:transform .1s, background .15s; }
   button.act:active { transform:scale(.96); }
@@ -119,12 +140,13 @@
     <button id="helpBtn" title="See all the countries">🌍 Countries</button>
   </div>
   <h1>🌍 World Explorer</h1>
-  <p class="sub">Explore the world by what each country gave it — art, inventions, discoveries, food, landmarks, and traditions.</p>
+  <p class="sub">Explore the world by what each country gave it — art, inventions, discoveries, food, landmarks, and traditions — then find countries on a spinning globe.</p>
 
   <div class="controls">
     <div class="seg" id="modeSeg">
       <button data-mode="match" class="on">🧭 Match It</button>
       <button data-mode="country">🌍 Guess the Country</button>
+      <button data-mode="globe">🌐 Find on the Globe</button>
     </div>
     <div class="seg cats" id="catSeg"></div>
   </div>
@@ -142,6 +164,7 @@
     <div class="card">
       <p class="qprompt" id="prompt"></p>
       <div id="subject"></div>
+      <div class="hints hidden" id="hints"></div>
       <div class="choices" id="choices"></div>
       <div class="feedback" id="feedback"></div>
       <div class="reveal hidden" id="reveal"></div>
@@ -171,6 +194,9 @@
   let cur = null, lastKey = null;
   let answered = false, advanceReady = true;
   let advanceTimer = null, countdownTimer = null;
+  // Globe mode state
+  let globe = { ready:false, loading:false, world:null, proj:null, path:null, ctx:null, canvas:null, size:0, target:null, rot:[-10,-15], anim:0 };
+  let globeSolved = false, scoredThisRound = false, wrongCount = 0, hintIdx = 0, globeHints = [];
 
   function itemPool(){
     return cat === 'all' ? G.ITEMS : G.ITEMS.filter(x => x.cat === cat);
@@ -217,11 +243,13 @@
   }
 
   function newRound(){
+    if (mode === 'globe'){ newGlobeRound(); return; }
     clearTimers();
     advanceReady = true;
     answered = false;
     $('feedback').textContent = ''; $('feedback').className = 'feedback';
     $('reveal').className = 'reveal hidden'; $('reveal').innerHTML = '';
+    $('hints').className = 'hints hidden'; $('hints').innerHTML = '';
     $('nextRow').style.display = 'none';
 
     if (mode === 'match'){
@@ -272,15 +300,23 @@
 
     const info = G.COUNTRIES[correctCountry];
     const rev = $('reveal');
-    const detail = mode === 'match'
-      ? cur.fact
-      : `Capital: <b>${info.capital}</b> · Continent: <b>${info.continent}</b>`;
-    rev.innerHTML = `<div class="rev-country">${info.flag} ${correctCountry}</div><div class="why">${detail}</div>`;
+    if (mode === 'match'){
+      rev.innerHTML = `<div class="rev-country">${info.flag} ${correctCountry}</div><div class="why">${cur.fact}</div>`;
+    } else {
+      rev.innerHTML = `<div class="rev-country">${info.flag} ${correctCountry}</div>` +
+        `<div class="why">Capital: <b>${info.capital}</b> · Continent: <b>${info.continent}</b></div>` +
+        (info.lang ? `<div class="why">Language: <b>${info.lang}</b></div>` : '') +
+        (info.blurb ? `<div class="why blurb">${info.blurb}</div>` : '');
+      showLocatorGlobe(rev, correctCountry);   // draws a mini globe showing where it is
+    }
     rev.className = 'reveal';
 
     if (isCorrect && streak > 0 && streak % 5 === 0) celebrate(streak);
+    startReadLock();
+  }
 
-    // 3s read-lock so they actually read the fact before moving on.
+  // 3s read-lock so they actually read the answer before moving on.
+  function startReadLock(){
     advanceReady = false;
     let secs = 3;
     const nb = $('nextBtn');
@@ -322,18 +358,285 @@
 
   function resetProgress(){ correct = 0; total = 0; streak = 0; lastKey = null; updateScorebar(); }
 
-  // ---- "?" reference: all the countries ----
+  // ---------- Find on the Globe ----------
+  function loadScript(src){
+    return new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = src; s.onload = res; s.onerror = () => rej(new Error('load ' + src));
+      document.head.appendChild(s);
+    });
+  }
+  function ensureGlobe(){
+    if (globe.ready) return Promise.resolve(true);
+    if (globe._loadP) return globe._loadP;      // share one in-flight load between globe mode and the locator
+    globe._loadP = (async () => {
+      try {
+        if (!window.d3) await loadScript('https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js');
+        if (!window.topojson) await loadScript('https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js');
+        const topo = await (await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')).json();
+        globe.world = topojson.feature(topo, topo.objects.countries).features;
+        globe.ready = true;
+        return true;
+      } catch(e){ globe._loadP = null; return false; }
+    })();
+    return globe._loadP;
+  }
+  const featureFor = t => globe.world && globe.world.find(f => String(f.id) === t.id);
+
+  // A small draggable globe that shows WHERE a country is and what it looks like.
+  async function showLocatorGlobe(container, countryName){
+    const g = G.GLOBE.find(x => x.name === countryName);
+    if (!g) return;
+    const ok = await ensureGlobe();
+    if (!ok || !container.isConnected) return;      // offline, or the reveal was replaced
+    const feat = globe.world.find(f => String(f.id) === g.id);
+    if (!feat) return;
+    const size = 168, dpr = window.devicePixelRatio || 1;
+    const cv = document.createElement('canvas');
+    cv.width = size*dpr; cv.height = size*dpr; cv.style.width = size+'px'; cv.style.height = size+'px';
+    cv.style.borderRadius = '50%'; cv.style.touchAction = 'none'; cv.style.cursor = 'grab';
+    cv.style.boxShadow = '0 6px 20px rgba(30,58,138,.2)';
+    const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+    const c = d3.geoCentroid(feat);
+    const rot = [-c[0], -c[1]];
+    const proj = d3.geoOrthographic().scale(size/2 - 2).translate([size/2, size/2]).clipAngle(90).rotate(rot);
+    const path = d3.geoPath(proj, ctx);
+    function draw(){
+      ctx.clearRect(0, 0, size, size);
+      ctx.beginPath(); path({type:'Sphere'}); ctx.fillStyle = '#dbeafe'; ctx.fill();
+      globe.world.forEach(f => {
+        const hit = String(f.id) === g.id;
+        ctx.beginPath(); path(f);
+        ctx.fillStyle = hit ? '#2563eb' : '#e2e8f0'; ctx.fill();
+        ctx.lineWidth = hit ? 1.2 : 0.4; ctx.strokeStyle = hit ? '#1e3a8a' : '#cbd5e1'; ctx.stroke();
+      });
+      ctx.beginPath(); path({type:'Sphere'}); ctx.lineWidth = 1; ctx.strokeStyle = '#93c5fd'; ctx.stroke();
+    }
+    draw();
+    let dragging = false, lx = 0, ly = 0;
+    cv.addEventListener('pointerdown', e => { dragging = true; lx = e.clientX; ly = e.clientY; try{ cv.setPointerCapture(e.pointerId); }catch(_){} cv.style.cursor = 'grabbing'; });
+    cv.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      rot[0] += (e.clientX - lx) * 0.4; rot[1] = Math.max(-90, Math.min(90, rot[1] - (e.clientY - ly) * 0.4));
+      lx = e.clientX; ly = e.clientY; proj.rotate(rot); draw();
+    });
+    const end = () => { dragging = false; cv.style.cursor = 'grab'; };
+    cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+    const wrap = document.createElement('div'); wrap.className = 'locator';
+    wrap.innerHTML = '<div class="locator-label">📍 Where in the world</div>';
+    wrap.appendChild(cv);
+    container.appendChild(wrap);
+  }
+
+  function initCanvas(){
+    const size = Math.max(240, Math.min(340, window.innerWidth - 90));
+    const dpr = window.devicePixelRatio || 1;
+    const canvas = document.createElement('canvas');
+    canvas.width = size * dpr; canvas.height = size * dpr;
+    canvas.style.width = size + 'px'; canvas.style.height = size + 'px';
+    globe.canvas = canvas; globe.size = size;
+    globe.baseScale = size/2 - 2; globe.zoom = 1;
+    globe.ctx = canvas.getContext('2d'); globe.ctx.scale(dpr, dpr);
+    globe.proj = d3.geoOrthographic().scale(globe.baseScale).translate([size/2, size/2]).clipAngle(90).rotate(globe.rot);
+    globe.path = d3.geoPath(globe.proj, globe.ctx);
+    attachControls(canvas);
+  }
+
+  function setZoom(z){
+    globe.zoom = Math.max(0.8, Math.min(6, z));
+    globe.proj.scale(globe.baseScale * globe.zoom);
+    drawGlobe();
+  }
+
+  function drawGlobe(){
+    const ctx = globe.ctx, size = globe.size, path = globe.path;
+    if (!ctx) return;
+    ctx.clearRect(0, 0, size, size);
+    ctx.beginPath(); path({type:'Sphere'}); ctx.fillStyle = '#dbeafe'; ctx.fill();
+    globe.world.forEach(f => {
+      const isTarget = globe.target && String(f.id) === globe.target.id;
+      ctx.beginPath(); path(f);
+      ctx.fillStyle = isTarget ? '#2563eb' : '#e2e8f0';
+      ctx.fill();
+      ctx.lineWidth = isTarget ? 1.4 : 0.5;
+      ctx.strokeStyle = isTarget ? '#1e3a8a' : '#cbd5e1';
+      ctx.stroke();
+    });
+    ctx.beginPath(); path({type:'Sphere'}); ctx.lineWidth = 1; ctx.strokeStyle = '#93c5fd'; ctx.stroke();
+  }
+  let drawPending = false;
+  function requestDraw(){ if (drawPending) return; drawPending = true; requestAnimationFrame(() => { drawPending = false; drawGlobe(); }); }
+
+  function attachControls(canvas){
+    const pts = new Map();          // active pointers → {x,y}
+    let lastX = 0, lastY = 0, pinchDist = 0, pinchZoom = 1;
+    canvas.addEventListener('pointerdown', e => {
+      pts.set(e.pointerId, { x:e.clientX, y:e.clientY });
+      try { canvas.setPointerCapture(e.pointerId); } catch(_) {}
+      canvas.style.cursor = 'grabbing';
+      cancelAnimationFrame(globe.anim);
+      if (pts.size === 1){ lastX = e.clientX; lastY = e.clientY; }
+      else if (pts.size === 2){ const [a,b] = [...pts.values()]; pinchDist = Math.hypot(a.x-b.x, a.y-b.y); pinchZoom = globe.zoom; }
+    });
+    canvas.addEventListener('pointermove', e => {
+      if (!pts.has(e.pointerId)) return;
+      pts.set(e.pointerId, { x:e.clientX, y:e.clientY });
+      if (pts.size >= 2){                                  // pinch to zoom
+        const [a,b] = [...pts.values()];
+        const d = Math.hypot(a.x-b.x, a.y-b.y);
+        if (pinchDist > 0) setZoom(pinchZoom * d / pinchDist);
+        return;
+      }
+      const dx = e.clientX - lastX, dy = e.clientY - lastY;   // one finger → rotate
+      lastX = e.clientX; lastY = e.clientY;
+      const sens = 0.35 / globe.zoom;                        // finer control when zoomed in
+      globe.rot[0] += dx * sens;
+      globe.rot[1] = Math.max(-90, Math.min(90, globe.rot[1] - dy * sens));
+      globe.proj.rotate(globe.rot); drawGlobe();             // draw synchronously so it never waits on a throttled rAF
+    });
+    const end = e => {
+      pts.delete(e.pointerId);
+      if (pts.size === 0) canvas.style.cursor = 'grab';
+      if (pts.size === 1){ const p = [...pts.values()][0]; lastX = p.x; lastY = p.y; }
+    };
+    canvas.addEventListener('pointerup', end);
+    canvas.addEventListener('pointercancel', end);
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      setZoom(globe.zoom * (e.deltaY < 0 ? 1.15 : 1/1.15));
+    }, { passive:false });
+  }
+
+  function spinTo(feature){
+    if (!feature) { drawGlobe(); return; }
+    const c = d3.geoCentroid(feature);
+    const dest = [-c[0], -c[1]];
+    const start = globe.rot.slice();
+    const interp = d3.interpolate([start[0], start[1]], dest);
+    const t0 = performance.now(), dur = 900;
+    cancelAnimationFrame(globe.anim);
+    (function frame(now){
+      const t = Math.min(1, (now - t0) / dur);
+      const e = t < .5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;   // easeInOutQuad
+      const r = interp(e);
+      globe.rot[0] = r[0]; globe.rot[1] = r[1];
+      globe.proj.rotate(globe.rot); drawGlobe();
+      if (t < 1) globe.anim = requestAnimationFrame(frame);
+    })(t0);
+  }
+
+  function hintsFor(t){
+    const feat = featureFor(t);
+    const lat = feat ? d3.geoCentroid(feat)[1] : 0;
+    const hemi = lat >= 0 ? 'the Northern Hemisphere' : 'the Southern Hemisphere';
+    return [
+      `<b>Continent:</b> ${t.continent}.`,
+      `It's in <b>${hemi}</b>.`,
+      `People there mostly speak <b>${t.lang}</b>.`,
+      `Its <b>capital</b> is ${t.capital}.`,
+      `Its name starts with <b>“${t.name[0]}.”</b>`,
+      t.hint
+    ].filter(Boolean);
+  }
+
+  function buildGlobeChoices(target){
+    const others = shuffle(G.GLOBE.filter(t => t.name !== target.name)).slice(0, 3).map(t => t.name);
+    const names = shuffle([target.name, ...others]);
+    const box = $('choices'); box.innerHTML = '';
+    names.forEach(n => {
+      const t = G.GLOBE.find(x => x.name === n);
+      const btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.innerHTML = `<span class="cflag">${t.flag}</span> ${n}`;
+      btn.dataset.val = n;
+      btn.onclick = () => globeGuess(btn, n, target);
+      box.appendChild(btn);
+    });
+  }
+
+  function newGlobeRound(){
+    clearTimers();
+    advanceReady = true; answered = false;
+    globeSolved = false; scoredThisRound = false; wrongCount = 0; hintIdx = 0;
+    $('feedback').textContent = ''; $('feedback').className = 'feedback';
+    $('reveal').className = 'reveal hidden'; $('reveal').innerHTML = '';
+    $('hints').className = 'hints hidden'; $('hints').innerHTML = '';
+    $('nextRow').style.display = 'none';
+
+    const pickable = G.GLOBE.filter(featureFor);
+    let t, tries = 0;
+    do { t = pick(pickable); tries++; } while (pickable.length > 1 && t.name === lastKey && tries < 30);
+    lastKey = t.name; globe.target = t; globeHints = hintsFor(t);
+    globe.zoom = 1; globe.proj.scale(globe.baseScale);   // reset zoom each round
+
+    $('prompt').textContent = 'Spin the globe 🌐 — which country is highlighted?';
+    const wrap = document.createElement('div'); wrap.className = 'globe-wrap'; wrap.appendChild(globe.canvas);
+    $('subject').innerHTML = ''; $('subject').appendChild(wrap);
+    const zoomRow = document.createElement('div'); zoomRow.className = 'globe-zoom';
+    const zout = document.createElement('button'); zout.textContent = '−'; zout.title = 'Zoom out'; zout.onclick = () => setZoom(globe.zoom / 1.3);
+    const zin = document.createElement('button'); zin.textContent = '+'; zin.title = 'Zoom in'; zin.onclick = () => setZoom(globe.zoom * 1.3);
+    zoomRow.append(zout, zin);
+    $('subject').appendChild(zoomRow);
+    $('subject').insertAdjacentHTML('beforeend', '<div class="globe-tip">Drag to spin · pinch, scroll, or use +/− to zoom.</div>');
+    buildGlobeChoices(t);
+    spinTo(featureFor(t));
+  }
+
+  async function startGlobe(){
+    renderCats(); resetProgress();
+    $('prompt').textContent = '';
+    $('subject').innerHTML = '<div class="globe-loading">🌐 Loading the globe…</div>';
+    $('choices').innerHTML = ''; $('feedback').textContent = '';
+    $('reveal').className = 'reveal hidden'; $('hints').className = 'hints hidden'; $('hints').innerHTML = '';
+    $('nextRow').style.display = 'none';
+    const ok = await ensureGlobe();
+    if (mode !== 'globe') return;                  // user switched away while loading
+    if (!ok){ $('subject').innerHTML = '<div class="globe-loading">Couldn’t load the globe. Check your internet and try again.</div>'; return; }
+    if (!globe.canvas) initCanvas();
+    newGlobeRound();
+  }
+
+  function globeGuess(btn, name, target){
+    if (globeSolved) return;
+    const right = name === target.name;
+    if (!scoredThisRound){ scoredThisRound = true; total++; if (right){ correct++; streak++; } else streak = 0; updateScorebar(); }
+    if (right){
+      globeSolved = true; answered = true;
+      [...$('choices').children].forEach(c => { c.disabled = true; if (c.dataset.val === target.name) c.classList.add('correct'); });
+      btn.classList.add('correct');
+      const fb = $('feedback'); fb.textContent = pick(['🎉 Correct!','⭐ Nice!','✅ You got it!','🌟 Explorer!']); fb.className = 'feedback good';
+      const rev = $('reveal');
+      const facts = (G.GLOBE_FACTS && G.GLOBE_FACTS[target.name]) || [];
+      rev.innerHTML = `<div class="rev-country">${target.flag} ${target.name}</div>` +
+        `<div class="why">Capital: <b>${target.capital}</b> · Continent: <b>${target.continent}</b></div>` +
+        `<div class="why">Language: <b>${target.lang}</b></div>` +
+        (facts.length ? `<div class="facts"><div class="facts-label">📝 Good to know</div><ul>${facts.map(f => `<li>${f}</li>`).join('')}</ul></div>` : '');
+      rev.className = 'reveal';
+      if (streak > 0 && streak % 5 === 0) celebrate(streak);
+      startReadLock();
+    } else {
+      btn.classList.add('wrong'); btn.disabled = true; wrongCount++;
+      if (hintIdx < globeHints.length){
+        const h = document.createElement('div'); h.className = 'hint'; h.innerHTML = '💡 ' + globeHints[hintIdx++];
+        $('hints').appendChild(h); $('hints').className = 'hints';
+      }
+      const fb = $('feedback'); fb.textContent = 'Not quite — here’s a hint 👇'; fb.className = 'feedback bad';
+    }
+  }
+
+  // ---- "?" reference: the countries (globe mode has its own larger set) ----
   function openHelp(){
-    const rows = COUNTRY_NAMES.slice().sort().map(c => {
-      const info = G.COUNTRIES[c];
-      return `<div class="crow"><span class="cf">${info.flag}</span>` +
-        `<span class="cn">${c}</span>` +
-        `<span class="cd">${info.capital} · ${info.continent}</span></div>`;
-    }).join('');
+    const list = mode === 'globe'
+      ? G.GLOBE.map(t => ({ name:t.name, flag:t.flag, capital:t.capital, continent:t.continent, lang:t.lang }))
+      : COUNTRY_NAMES.map(c => ({ name:c, flag:G.COUNTRIES[c].flag, capital:G.COUNTRIES[c].capital, continent:G.COUNTRIES[c].continent, lang:G.COUNTRIES[c].lang }));
+    const rows = list.sort((a,b) => a.name.localeCompare(b.name)).map(e =>
+      `<div class="crow"><span class="cf">${e.flag}</span>` +
+      `<span class="cn">${e.name}</span>` +
+      `<span class="cd">${e.capital} · ${e.continent}${e.lang ? ' · ' + e.lang : ''}</span></div>`).join('');
     $('helpSheet').innerHTML =
       `<button class="closeBtn" id="closeHelp" title="Close">✕</button>` +
       `<h2>🌍 Countries in this game</h2>` +
-      `<p class="sheet-sub">${COUNTRY_NAMES.length} countries, their capitals, and continents.</p>` + rows;
+      `<p class="sheet-sub">${list.length} countries — capital · continent · language.</p>` + rows;
     $('helpModal').className = 'modal';
     $('helpSheet').scrollTop = 0;
     $('closeHelp').onclick = closeHelp;
@@ -344,7 +647,8 @@
     const b = e.target.closest('button'); if (!b) return;
     mode = b.dataset.mode; cat = 'all';
     [...$('modeSeg').children].forEach(x => x.classList.toggle('on', x === b));
-    renderCats(); resetProgress(); newRound();
+    if (mode === 'globe'){ startGlobe(); }
+    else { renderCats(); resetProgress(); newRound(); }
   });
   $('catSeg').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
