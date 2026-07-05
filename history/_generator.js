@@ -125,8 +125,8 @@ const FIGURES = [
 ];
 
 // ---- Reading-comprehension passages (standardized-test ELA skill) ----
-const PASSAGES = [
-  { slug:'marie_curie', title:'The Scientist Who Glowed', text:
+const AUTHORED = [
+  { slug:'marie_curie', emoji:'🔬', img:'marie_curie.jpg', title:'The Scientist Who Glowed', text:
     "Marie Curie was born in Poland in 1867, at a time when women were not allowed to attend university there. Determined to learn, she moved to France and studied late into the night, sometimes so poor that she nearly fainted from hunger. Her hard work paid off. Curie discovered two new elements and won two Nobel Prizes — the first person ever to do so. But her discoveries had a hidden danger. The radioactive materials she handled every day slowly made her sick, because no one yet understood how harmful they were.",
     questions:[
       { q:'What is the main idea of this passage?', choices:['Curie was too poor to eat','Curie overcame obstacles to make great discoveries','France is better than Poland','Nobel Prizes are hard to win'], answer:1, explain:'The passage is mostly about how Curie pushed past hardships to achieve major scientific discoveries.' },
@@ -134,7 +134,7 @@ const PASSAGES = [
       { q:'In this passage, the word "determined" means —', choices:['confused','giving up easily','strongly wanting to do something','very tired'], answer:2, explain:'"Determined to learn," she studied late into the night — she strongly wanted to succeed.' },
       { q:'What can you infer about radioactivity in Curie’s time?', choices:['People knew it was dangerous','Its dangers were not yet understood','It was not real','Only women could study it'], answer:1, explain:'The passage says she got sick because no one yet understood how harmful it was.' },
     ] },
-  { slug:'mansa_musa', title:'The Richest Man Who Ever Lived', text:
+  { slug:'mansa_musa', emoji:'💰', img:'mansa_musa.jpg', title:'The Richest Man Who Ever Lived', text:
     "In the 1300s, the West African empire of Mali was rich beyond imagination, and its ruler, Mansa Musa, may have been the wealthiest person in all of history. Mali controlled vast amounts of gold. In 1324, Mansa Musa made a long journey to Mecca, traveling with a caravan of thousands of people. Along the way he gave away so much gold that its value actually dropped in the cities he passed through. But Mansa Musa cared about more than riches. He brought back scholars and architects and turned the city of Timbuktu into a famous center of learning and books.",
     questions:[
       { q:'What is this passage mostly about?', choices:['How to travel to Mecca','A wealthy African ruler who valued learning','Why gold loses value','The city of Timbuktu today'], answer:1, explain:'The passage focuses on Mansa Musa’s wealth and how he used it to support learning.' },
@@ -142,21 +142,21 @@ const PASSAGES = [
       { q:'Which sentence best shows that Mansa Musa cared about more than money?', choices:['Mali controlled vast amounts of gold','He traveled with thousands of people','He turned Timbuktu into a center of learning','He may have been the wealthiest person in history'], answer:2, explain:'Building a center of learning shows he valued knowledge, not just riches.' },
       { q:'The word "vast" in the passage means —', choices:['tiny','extremely large','hidden','fake'], answer:1, explain:'"Vast amounts of gold" means a huge, enormous quantity.' },
     ] },
-  { slug:'katherine_johnson', title:'The Human Computer', text:
+  { slug:'katherine_johnson', emoji:'🚀', img:'katherine_johnson.jpg', title:'The Human Computer', text:
     "Before electronic computers were trusted, NASA relied on brilliant human mathematicians to check their numbers. One of the best was Katherine Johnson. She calculated the flight paths that would carry astronauts into space and safely back to Earth. When NASA first used an electronic computer for John Glenn’s orbit, Glenn refused to fly until Johnson had checked the machine’s math by hand. Johnson did all of this at a time when Black women in America faced unfair rules and were often kept apart from others at work. Her skill was so important that it could not be ignored.",
     questions:[
       { q:'What is the main idea of the passage?', choices:['Computers are always wrong','A gifted mathematician helped NASA despite facing unfairness','John Glenn was afraid to fly','NASA had no computers'], answer:1, explain:'The passage highlights Johnson’s vital work at NASA while facing discrimination.' },
       { q:'Why did John Glenn want Johnson to check the computer’s math?', choices:['She was his friend','He trusted her calculations','The computer was broken','She asked to'], answer:1, explain:'Glenn refused to fly until Johnson verified the numbers — he trusted her.' },
       { q:'What does the passage suggest about Johnson’s time period?', choices:['Everyone was treated equally','Black women faced unfair treatment','NASA hired only women','Space travel was easy'], answer:1, explain:'It states Black women faced unfair rules and were often kept apart at work.' },
     ] },
-  { slug:'zheng_he', title:'The Admiral of the Treasure Fleet', text:
+  { slug:'zheng_he', emoji:'⛵', img:'zheng_he.jpg', title:'The Admiral of the Treasure Fleet', text:
     "Almost a hundred years before European ships crossed the oceans, a Chinese admiral named Zheng He led some of the largest fleets the world had ever seen. His “treasure ships” were several times bigger than the boats European explorers would later use. Between 1405 and 1433, Zheng He sailed to Southeast Asia, India, the Middle East, and the eastern coast of Africa. He carried silk and porcelain to trade and returned with gifts, including a giraffe that amazed the Chinese court. After his voyages ended, China turned its attention inward, and the great fleets were never rebuilt.",
     questions:[
       { q:'What is the passage mainly about?', choices:['How to build a ship','A Chinese admiral’s great ocean voyages','Giraffes in China','European explorers'], answer:1, explain:'The passage describes Zheng He’s large fleets and his voyages.' },
       { q:'How did Zheng He’s ships compare to later European ships?', choices:['They were smaller','They were about the same','They were several times bigger','They were faster but weaker'], answer:2, explain:'The passage says his treasure ships were several times bigger.' },
       { q:'What happened after Zheng He’s voyages ended?', choices:['China built even bigger fleets','China turned its attention inward','Europe copied his ships','He sailed to the Americas'], answer:1, explain:'China turned inward and the great fleets were never rebuilt.' },
     ] },
-  { slug:'wangari_maathai', title:'One Tree at a Time', text:
+  { slug:'wangari_maathai', emoji:'🌳', img:'wangari_maathai.jpg', title:'One Tree at a Time', text:
     "In Kenya, a scientist named Wangari Maathai noticed that the forests were disappearing. Without trees, the soil washed away and streams dried up, making life harder for families. Instead of waiting for others to fix the problem, Maathai encouraged ordinary women to plant trees — first a few, then thousands, then tens of millions. Her Green Belt Movement helped the land and gave women new confidence and income. Some powerful people opposed her, but she refused to back down. In 2004, she became the first African woman to win the Nobel Peace Prize.",
     questions:[
       { q:'What problem did Maathai set out to solve?', choices:['Too many trees','Disappearing forests and damaged land','A lack of schools','Unemployment in cities'], answer:1, explain:'She noticed forests disappearing, which damaged the soil and streams.' },
@@ -164,7 +164,7 @@ const PASSAGES = [
       { q:'The phrase "refused to back down" shows that Maathai was —', choices:['easily scared','determined and brave','unfriendly','uninterested'], answer:1, explain:'Refusing to back down against powerful opponents shows courage and determination.' },
       { q:'What is the lesson of this passage?', choices:['Only leaders can make change','Small actions by ordinary people can make a big difference','Trees are not important','Kenya has no forests'], answer:1, explain:'Ordinary women planting trees created huge change — small actions add up.' },
     ] },
-  { slug:'galileo_galilei', title:'The Man Who Looked Up', text:
+  { slug:'galileo_galilei', emoji:'🔭', img:'galileo_galilei.jpg', title:'The Man Who Looked Up', text:
     "Long ago, most people believed that the Sun and stars circled the Earth. Then an Italian scientist named Galileo pointed a new invention — the telescope — at the night sky. He saw mountains on the Moon and four tiny moons circling the planet Jupiter. These discoveries convinced him that the Earth was not the center of everything; instead, the Earth traveled around the Sun. Powerful leaders were angry and put Galileo on trial, forcing him to take back his words. He spent his final years under house arrest, yet his careful observations helped launch modern science.",
     questions:[
       { q:'What did Galileo’s telescope help him discover?', choices:['New countries','Moons circling Jupiter','A cure for illness','Buried treasure'], answer:1, explain:'He saw mountains on the Moon and four moons around Jupiter.' },
@@ -201,6 +201,81 @@ async function fetchImage(fig){
   return file;
 }
 
+// ============ big reading list (auto-generated passages from Wikipedia) ============
+// Entry = 'Name' (wiki title auto) or 'Name|Wiki_Title'. ~70% Western.
+const WEST = [
+  'Isaac Newton','Charles Darwin','Michael Faraday','James Clerk Maxwell','Louis Pasteur','Alexander Fleming',
+  'Gregor Mendel','Niels Bohr','Werner Heisenberg','Erwin Schrödinger','Max Planck','Enrico Fermi','Richard Feynman',
+  'Alan Turing','Charles Babbage','Tim Berners-Lee','Robert Boyle','Antoine Lavoisier','Dmitri Mendeleev','Blaise Pascal',
+  'Gottfried Wilhelm Leibniz','Leonhard Euler','Carl Friedrich Gauss','Johannes Kepler','Nicolaus Copernicus','Tycho Brahe',
+  'Edwin Hubble','Stephen Hawking','Rosalind Franklin','James Watson','Francis Crick','Jonas Salk','Alexander Graham Bell',
+  'Wright brothers','Henry Ford','Guglielmo Marconi','Alfred Nobel','Rudolf Diesel','Grace Hopper','John von Neumann',
+  'J. Robert Oppenheimer','Carl Sagan','Jane Goodall','Rachel Carson','Barbara McClintock','Lise Meitner','Emmy Noether',
+  'Benjamin Franklin','Archimedes','Euclid','Pythagoras','Hippocrates','Florence Nightingale','Nikolaus Otto',
+  'Leonardo da Vinci','Michelangelo','Raphael|Raphael','Vincent van Gogh','Pablo Picasso','Claude Monet','Rembrandt',
+  'Johannes Vermeer','Salvador Dalí','Henri Matisse','Sandro Botticelli','Titian','Caravaggio','Jackson Pollock',
+  'Georgia O’Keeffe|Georgia_O%27Keeffe','Edvard Munch','Gustav Klimt','Auguste Rodin','Andy Warhol',
+  'Ludwig van Beethoven','Wolfgang Amadeus Mozart','Johann Sebastian Bach','Franz Schubert','Frédéric Chopin',
+  'Pyotr Ilyich Tchaikovsky','Antonio Vivaldi','Richard Wagner','Johannes Brahms','George Frideric Handel','Igor Stravinsky',
+  'Louis Armstrong','Ella Fitzgerald','Elvis Presley',
+  'William Shakespeare','Charles Dickens','Jane Austen','Mark Twain','Ernest Hemingway','Leo Tolstoy','Fyodor Dostoevsky',
+  'Victor Hugo','Homer','Virgil','Dante Alighieri','Geoffrey Chaucer','Emily Dickinson','Edgar Allan Poe','J. R. R. Tolkien',
+  'Agatha Christie','George Orwell','Maya Angelou','Walt Whitman','Oscar Wilde','Miguel de Cervantes',
+  'Johann Wolfgang von Goethe','Hans Christian Andersen','Lewis Carroll','Mary Shelley',
+  'Abraham Lincoln','George Washington','Thomas Jefferson','Winston Churchill','Napoleon','Julius Caesar','Augustus',
+  'Alexander the Great','Elizabeth I','Queen Victoria','Catherine the Great','Peter the Great','Charlemagne',
+  'Theodore Roosevelt','Franklin D. Roosevelt','John F. Kennedy','Martin Luther King Jr.','Susan B. Anthony',
+  'Joan of Arc','Pericles','Constantine the Great','Louis XIV','Otto von Bismarck','Simón Bolívar',
+  'Christopher Columbus','Ferdinand Magellan','Vasco da Gama','James Cook','Roald Amundsen','Ernest Shackleton',
+  'Marco Polo','Charles Lindbergh','Neil Armstrong','Yuri Gagarin','Amerigo Vespucci','Francis Drake','Meriwether Lewis',
+  'Socrates','Plato','Aristotle','René Descartes','Immanuel Kant','Friedrich Nietzsche','John Locke','Voltaire',
+  'Jean-Jacques Rousseau','Karl Marx','Adam Smith','Thomas Aquinas',
+];
+const OTHER = [
+  'Confucius','Laozi','Sun Tzu','Qin Shi Huang','Kublai Khan','Genghis Khan','Cai Lun','Zhang Heng',
+  'Cixi|Empress_Dowager_Cixi','Murasaki Shikibu','Tokugawa Ieyasu','Oda Nobunaga','Hokusai','Hiroshige',
+  'Emperor Meiji','Hirohito','Mao Zedong','Sun Yat-sen','Chiang Kai-shek','Ho Chi Minh',
+  'Gautama Buddha','Ashoka','Akbar','Chandragupta Maurya','Rani Lakshmibai|Lakshmibai',
+  'Ibn Sina|Avicenna','Averroes','Omar Khayyam','Rumi','Saladin','Suleiman the Magnificent','Cyrus the Great',
+  'Darius the Great','Xerxes I','Hammurabi','Nefertiti','Ramesses II','Tutankhamun','Cleopatra','Hannibal',
+  'Shaka|Shaka','Sundiata Keita','Haile Selassie','Kwame Nkrumah','Nelson Mandela','Mahatma Gandhi',
+  'Frida Kahlo','Diego Rivera','José de San Martín','Pelé','Atahualpa','Pachacuti','Moctezuma II',
+  'Sitting Bull','Geronimo','Sequoyah','Tecumseh','Sacagawea',
+];
+
+const ROLE_KEYWORDS = ['physicist','chemist','biologist','astronomer','mathematician','inventor','engineer','physician',
+  'naturalist','geologist','botanist','scientist','painter','sculptor','architect','artist','composer','pianist','musician',
+  'singer','playwright','novelist','poet','author','writer','philosopher','theologian','historian','explorer','navigator',
+  'aviator','admiral','conqueror','general','emperor','empress','pharaoh','queen','king','sultan','monarch','president',
+  'statesman','politician','activist','revolutionary','reformer','economist','nurse','saint','footballer','athlete'];
+const RE = {}; // role -> emoji
+const setE=(ks,e)=>ks.split(' ').forEach(k=>RE[k]=e);
+setE('physicist chemist biologist scientist naturalist geologist botanist physician nurse','🔬');
+setE('mathematician economist','🔢'); setE('inventor engineer','💡'); setE('astronomer','🔭');
+setE('painter sculptor artist','🎨'); setE('architect','🏛️'); setE('composer pianist musician singer','🎼');
+setE('playwright novelist poet author writer','✍️'); setE('philosopher theologian','💭'); setE('historian','📚');
+setE('explorer navigator','🧭'); setE('aviator','✈️'); setE('admiral','⚓'); setE('conqueror general','⚔️');
+setE('emperor empress pharaoh queen king sultan monarch','👑'); setE('president statesman politician','🏛️');
+setE('activist revolutionary reformer','✊'); setE('saint','😇'); setE('footballer athlete','⚽');
+const findRole = txt => { const l=txt.toLowerCase(); for(const k of ROLE_KEYWORDS){ if(new RegExp('\\b'+k+'\\b').test(l)) return k; } return null; };
+
+async function fetchPerson(entry, region){
+  const [name, wikiOverride] = entry.split('|');
+  const wiki = wikiOverride || name.replace(/ /g,'_');
+  const j = await get('https://en.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(wiki), true);
+  if(!j || !j.extract || j.extract.length < 80 || j.type==='disambiguation') return null;
+  let img=null;
+  const src = j.thumbnail && j.thumbnail.source;
+  if(src){
+    const ext=(src.match(/\.(jpg|jpeg|png)/i)||['','jpg'])[1].toLowerCase();
+    const file=slug(name)+'.'+ext;
+    if(fs.existsSync(IMGDIR+'/'+file)) img=file;
+    else { const buf=await get(src,false); if(buf){ fs.writeFileSync(IMGDIR+'/'+file, buf); img=file; } }
+  }
+  const text = j.extract.replace(/\s+/g,' ').trim();
+  return { name, slug:slug(name), region, text, img, role:findRole(text) };
+}
+
 (async ()=>{
   fs.mkdirSync(IMGDIR, {recursive:true});
   let got=0;
@@ -213,15 +288,56 @@ async function fetchImage(fig){
   }
   console.log('\nportraits downloaded:', got, '/', FIGURES.length);
 
+  // ---- build the big auto reading set from Wikipedia ----
+  const rand=a=>a[Math.floor(Math.random()*a.length)];
+  const shuf=a=>{const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;};
+  const samp=(a,n)=>shuf(a).slice(0,n);
+  const list = WEST.map(e=>[e,'W']).concat(OTHER.map(e=>[e,'O']));
+  const items=[]; let ok=0, fail=0;
+  process.stdout.write('reading: ');
+  for(const [entry,region] of list){
+    const it = await fetchPerson(entry, region);
+    if(it){ items.push(it); ok++; process.stdout.write('.'); }
+    else { fail++; process.stdout.write('x'); }
+    await sleep(90);
+  }
+  console.log('\nreading passages fetched:', ok, ' (failed:', fail, ')');
+
+  const pool = items.map(i=>({name:i.name, role:i.role}));
+  const artA = w => (/^[aeiou]/i.test(w) ? 'an ' : 'a ');
+  const desc = p => 'The life and work of '+p.name+(p.role?', '+artA(p.role)+p.role:'')+'.';
+  const autoPassages = items.map(it=>{
+    const qs=[];
+    // Q1 — main idea
+    const others = samp(pool.filter(p=>p.name!==it.name), 3);
+    const choiceObjs = shuf([{d:desc({name:it.name,role:it.role}),ok:true}, ...others.map(o=>({d:desc(o),ok:false}))]);
+    qs.push({ q:'What is this passage mostly about?', choices:choiceObjs.map(c=>c.d),
+      answer:choiceObjs.findIndex(c=>c.ok), explain:'The whole passage is about '+it.name+'.' });
+    // Q2 — role detail straight from the text
+    if(it.role){
+      const wrong = shuf(ROLE_KEYWORDS.filter(r=> r!==it.role && !new RegExp('\\b'+r+'\\b').test(it.text.toLowerCase()))).slice(0,3);
+      const rObjs = shuf([{r:it.role,ok:true}, ...wrong.map(r=>({r,ok:false}))]);
+      qs.push({ q:'According to the passage, '+it.name+' is best described as a(n) —', choices:rObjs.map(o=>o.r),
+        answer:rObjs.findIndex(o=>o.ok), explain:'The passage calls '+it.name+' a '+it.role+'.' });
+    }
+    return { slug:it.slug, emoji:RE[it.role]||'📜', img:it.img, region:it.region, title:it.name, text:it.text, questions:qs };
+  });
+
+  const PASSAGES = AUTHORED.concat(autoPassages);
+  const wCount = autoPassages.filter(p=>p.region==='W').length;
+
   const clean = FIGURES.map(f=>({ name:f.name, slug:f.slug, country:f.country, flag:f.flag, era:f.era, eraLabel:f.eraLabel,
     role:f.role, emoji:f.emoji, img:f.img, facts:f.facts, quote:f.quote||null, bio:f.bio }));
   const out = `// MASTER HISTORY LIBRARY — figures, quotes, bios, and reading passages for the 3 games.
 // Portraits in img/ are Wikipedia thumbnails (mostly public-domain historical images).
+// Most reading passages are auto-built from Wikipedia summaries; questions are drawn
+// straight from the passage text so answers are always supported.
 window.HIST = {
-  FIGURES: ${JSON.stringify(clean, null, 1)},
-  PASSAGES: ${JSON.stringify(PASSAGES, null, 1)}
+  FIGURES: ${JSON.stringify(clean, null, 0)},
+  PASSAGES: ${JSON.stringify(PASSAGES, null, 0)}
 };
 `;
   fs.writeFileSync(OUT+'/library.js', out);
-  console.log('wrote library.js —', clean.length, 'figures,', PASSAGES.length, 'passages,', clean.filter(f=>f.quote).length, 'with quotes');
+  console.log('wrote library.js —', clean.length, 'figures,', PASSAGES.length, 'passages ('+
+    Math.round(wCount/autoPassages.length*100)+'% Western in auto set),', clean.filter(f=>f.quote).length, 'quotes');
 })();

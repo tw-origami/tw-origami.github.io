@@ -80,8 +80,10 @@
   .face.back .bio{ font-size:14px; line-height:1.5; color:var(--ink); }
 
   /* reading */
-  .passage{ background:#fbf7ef; border:2px solid #ece3d3; border-radius:14px; padding:18px 20px; font-size:16px; line-height:1.7; margin-bottom:16px; }
+  .passage{ background:#fbf7ef; border:2px solid #ece3d3; border-radius:14px; padding:18px 20px; font-size:16px; line-height:1.7; margin-bottom:16px; overflow:hidden; }
   .passage h4{ margin:0 0 8px; font-size:18px; }
+  .passage .pimg{ float:right; width:96px; height:96px; object-fit:cover; border-radius:12px; margin:0 0 10px 14px; background:#f3ede2; }
+  .passage .ptext{ min-height:60px; }
   .qtext{ font-weight:800; font-size:17px; text-align:center; margin:6px 0 12px; }
   .choices{ display:flex; flex-direction:column; gap:10px; }
   .choice{ background:#fff; border:3px solid #e7ddcb; border-radius:14px; padding:13px 16px; font-weight:700; font-size:15px; cursor:pointer; text-align:left; }
@@ -121,7 +123,7 @@
   <div class="stage hidden" id="stage"></div>
   <div class="credit" id="credit"></div>
 
-<script src="library.js?v=1"></script>
-<script src="app.js?v=2"></script>
+<script src="library.js?v=2"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>

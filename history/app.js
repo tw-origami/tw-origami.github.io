@@ -110,11 +110,12 @@
     function next(){
       if(!queue.length) queue=shuffle(H.PASSAGES.slice());
       const P=queue.shift(); let qi=0;
-      const fig = H.FIGURES.find(f=>f.slug===P.slug);
       function render(){
         stage.innerHTML='';
         const card=el('div','card');
-        const pass=el('div','passage','<h4>'+(fig?fig.emoji+' ':'')+esc(P.title)+'</h4>'+esc(P.text));
+        const head = (P.img?'<img class="pimg" src="img/'+P.img+'" alt="">':'')+
+          '<h4>'+(P.emoji?P.emoji+' ':'')+esc(P.title)+'</h4>';
+        const pass=el('div','passage', head+'<div class="ptext">'+esc(P.text)+'</div>');
         card.appendChild(pass);
         card.appendChild(el('div','qdots','Question '+(qi+1)+' of '+P.questions.length));
         const Q=P.questions[qi];
