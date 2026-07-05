@@ -88,9 +88,11 @@ setE('lawyer jurist judge attorney','⚖️'); setE('educator','🍎'); setE('sa
 // match roles ONLY in the identity sentence, so titles of OTHER people mentioned later
 // (e.g., "President Lyndon B. Johnson appointed him") don't hijack the role.
 const findRole=t=>{
-  // strip quoted nicknames like 'Queen of Jazz' / 'First Lady of Song' so they don't hijack ruler roles
-  const clean=t.replace(/[‘’“”'"][^‘’“”'"]{0,40}[‘’“”'"]/g,' ');
-  if(/first lady of the (united states|us)\b/i.test(clean)) return 'first lady'; // real First Ladies only
+  // strip quoted nicknames like 'Queen of Jazz' / 'First Lady of Song' so they don't hijack ruler roles,
+  // and neutralize "vice president" so it isn't read as "president"
+  const clean=t.replace(/[‘’“”'"][^‘’“”'"]{0,40}[‘’“”'"]/g,' ').replace(/vice[ -]presiden(t|cy)/gi,'deputy');
+  if(/first lady of the (united states|us)\b/i.test(clean)) return 'first lady'; // e.g. Eleanor Roosevelt
+  if(/\bwife\b[\s\S]{0,80}\bpresident\b/i.test(clean)) return 'first lady';      // "wife of [a] president" (Dolley, Abigail, Martha)
   const l=(clean.split('. ')[0]||clean).toLowerCase();
   for(const k of ROLE_KEYWORDS){ if(new RegExp('\\b'+k+'\\b').test(l)) return k; } return null;};
 
@@ -150,10 +152,9 @@ function makeBio(p, facts, gender, work){
   }
   if(facts.era) S.push((gender.s)+' lived '+facts.era+'. '+timeContext(facts.era, category));
   if(work) S.push('One major reason people remember '+p.name+' is '+work+'.');
-  else S.push('People remember '+p.name+' because '+gender.p+' influenced '+category+', and that influence reached beyond one lifetime.');
-  if(facts.spouse) S.push(gender.s+' was married to '+facts.spouse+', which can help students connect private life, family networks, and public history.');
-  S.push(contributionContext(category, role));
-  S.push('When studying '+p.name+', focus on where '+gender.p+' lived, what problem or opportunity shaped '+gender.o+' life, what '+gender.p+' contributed, and why later generations still talk about '+gender.o+'.');
+  else S.push('People remember '+p.name+' for the mark '+gender.p+' left on '+category+'.');
+  if(facts.spouse) S.push(gender.s+' was married to '+facts.spouse+'.');
+  S.push('Today, people all over the world still learn about '+p.name+'.');
   return S.join(' ');
 }
 
