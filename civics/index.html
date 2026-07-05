@@ -59,6 +59,12 @@
   .choice { background:#fff; border:3px solid #e2e8f0; border-radius:16px; font-size:16.5px; font-weight:700; padding:14px 18px; color:var(--ink); cursor:pointer; text-align:left; display:flex; align-items:center; gap:10px; font-family:inherit; line-height:1.35; }
   .choice .cico { font-size:22px; flex:none; }
   .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.has-sub { align-items:flex-start; }
+  .choice.has-sub .cico { margin-top:1px; }
+  .choice-text { display:flex; flex-direction:column; gap:3px; }
+  .choice-label { font-weight:700; }
+  .choice-sub { font-size:12px; font-weight:600; color:var(--muted); line-height:1.35; }
+  .choice.correct .choice-sub, .choice.wrong .choice-sub { color:inherit; opacity:.8; }
   .choice.correct { border-color:var(--correct); background:#dcfce7; color:var(--correct); }
   .choice.wrong { border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
   .choice:disabled { cursor:default; }
@@ -100,6 +106,25 @@
   /* ELI5 box in reveals */
   .eli5 { margin-top:12px; background:#fefce8; border-left:3px solid #eab308; border-radius:8px; padding:10px 13px; font-size:14px; color:#713f12; line-height:1.5; }
   .eli5 b { color:#854d0e; }
+
+  /* World Governments: pros/cons + history & trajectory boxes */
+  .proscons { display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
+  .pc-col { flex:1 1 140px; min-width:140px; background:#f8fafc; border-radius:10px; padding:10px 12px; }
+  .pc-col.pro { border-left:3px solid var(--correct); }
+  .pc-col.con { border-left:3px solid var(--wrong); }
+  .pc-col h4 { margin:0 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.4px; }
+  .pc-col.pro h4 { color:var(--correct); }
+  .pc-col.con h4 { color:var(--wrong); }
+  .pc-col ul { margin:0; padding-left:18px; }
+  .pc-col li { font-size:12.5px; line-height:1.45; margin:4px 0; color:var(--ink); }
+  .histbox { margin-top:14px; background:#fff; border:2px solid #e2e8f0; border-radius:12px; padding:12px 14px; }
+  .histbox .hb-label { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); margin-bottom:6px; }
+  .histbox .hb-label:not(:first-child) { margin-top:12px; }
+  .histbox .hb-text { font-size:13.5px; line-height:1.5; color:var(--ink); }
+  .trend { display:inline-flex; align-items:center; gap:6px; margin-top:11px; font-weight:800; font-size:12.5px; padding:5px 11px; border-radius:999px; }
+  .trend.up { background:#dcfce7; color:#15803d; }
+  .trend.down { background:#fee2e2; color:#b91c1c; }
+  .trend.mixed { background:#fef3c7; color:#b45309; }
 
   /* Order It!: picked steps + wrong-tap shake */
   .choice.picked { border-color:var(--correct); background:#f0fdf4; color:var(--ink); cursor:default; }
@@ -310,6 +335,9 @@
     };
   }
 
+  const TREND_ICON = { up: '📈', down: '📉', mixed: '↔️' };
+  const TREND_LABEL = { up: 'Trending toward more rights & freedom', down: 'Trending toward less rights & freedom', mixed: 'Mixed signs — some progress, some setbacks' };
+
   function roundWorld(){
     let c, tries = 0;
     do { c = pick(C.GOV_COUNTRIES); tries++; } while (C.GOV_COUNTRIES.length > 1 && c.name === lastKey && tries < 30);
@@ -318,19 +346,36 @@
     const distractors = shuffle(allTypes.filter(t => t !== c.type)).slice(0, 3);
     const options = shuffle([c.type, ...distractors]);
     const gt = C.GOVTYPES[c.type];
+    const pcCol = (cls, label, items) =>
+      `<div class="pc-col ${cls}"><h4>${label}</h4><ul>${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>`;
     return {
       prompt: 'What type of government does this country have?',
       subjectHTML:
         `<div class="subj-flag">${c.flag}</div>` +
         `<div class="subj-name">${esc(c.name)}</div>`,
-      choices: options.map(o => ({ html: `<span class="cico">${C.GOVTYPES[o].icon}</span>${esc(o)}`, val: o, correct: o === c.type })),
+      choices: options.map(o => ({
+        html: `<span class="cico">${C.GOVTYPES[o].icon}</span>` +
+              `<span class="choice-text"><span class="choice-label">${esc(o)}</span>` +
+              `<span class="choice-sub">${esc(C.GOVTYPES[o].oneLiner)}</span></span>`,
+        val: o, correct: o === c.type, cls: 'has-sub'
+      })),
       revealHTML:
         `<div class="rev-title">${c.flag} ${esc(c.name)} — ${esc(c.type)}</div>` +
         `<div class="rev-body">${esc(gt.desc)}</div>` +
         `<div class="rev-ex">🏛️ Led by: ${esc(c.head)}</div>` +
-        `<div class="rev-body" style="margin-top:8px">${esc(c.fact)}</div>` +
+        `<div class="rev-body" style="margin-top:8px">${esc(c.fact)} ${esc(c.structure)}</div>` +
         eli5Box(gt.eli5) +
-        srcLink('factbook')
+        `<div class="rev-label">⚖️ Pros &amp; cons of how it works</div>` +
+        `<div class="proscons">` +
+          pcCol('pro', '✅ Pros', c.pros) +
+          pcCol('con', '⚠️ Cons', c.cons) +
+        `</div>` +
+        `<div class="histbox">` +
+          `<div class="hb-label">📖 A short history</div><div class="hb-text">${esc(c.history)}</div>` +
+          `<div class="hb-label">🔮 Where it’s headed</div><div class="hb-text">${esc(c.trajectory.text)}</div>` +
+          `<div class="trend ${c.trajectory.dir}">${TREND_ICON[c.trajectory.dir]} ${TREND_LABEL[c.trajectory.dir]}</div>` +
+        `</div>` +
+        srcLink('factbook') + ' ' + srcLink('freedom')
     };
   }
 
@@ -409,7 +454,7 @@
     const box = $('choices'); box.innerHTML = '';
     round.choices.forEach(ch => {
       const btn = document.createElement('button');
-      btn.className = 'choice';
+      btn.className = ch.cls ? 'choice ' + ch.cls : 'choice';
       btn.innerHTML = ch.html;
       btn.dataset.val = ch.val;
       if (ch.correct) btn.dataset.correct = '1';
