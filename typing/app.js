@@ -84,6 +84,31 @@
     return kb;
   }
 
+  // Hand-position guide: where each finger rests on the home row.
+  function buildHandGuide(){
+    const wrap=el('div','handguide');
+    const L=[['A',110,95,'--f-pinky'],['S',142,72,'--f-ring'],['D',174,58,'--f-middle'],['F',206,78,'--f-index']];
+    const R=[['J',434,78,'--f-index'],['K',466,58,'--f-middle'],['L',498,72,'--f-ring'],[';',530,95,'--f-pinky']];
+    const finger=(key,x,top,color)=>`
+      <rect x="${x-13}" y="${top}" width="26" height="${178-top}" rx="13" fill="var(${color})"/>
+      <circle cx="${x}" cy="${top}" r="15" fill="var(${color})" stroke="#fff" stroke-width="2"/>
+      <text x="${x}" y="${top+5}" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">${key}</text>`;
+    const svg=`<svg viewBox="0 0 640 252" xmlns="http://www.w3.org/2000/svg">
+      <rect x="96" y="158" width="134" height="62" rx="28" fill="#e2e8f0"/>
+      <rect x="410" y="158" width="134" height="62" rx="28" fill="#e2e8f0"/>
+      <line x1="228" y1="192" x2="292" y2="214" stroke="var(--f-thumb)" stroke-width="22" stroke-linecap="round"/>
+      <line x1="412" y1="192" x2="348" y2="214" stroke="var(--f-thumb)" stroke-width="22" stroke-linecap="round"/>
+      <rect x="268" y="205" width="104" height="30" rx="12" fill="var(--f-thumb)"/>
+      <text x="320" y="225" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">SPACE</text>
+      ${L.map(f=>finger(...f)).join('')}
+      ${R.map(f=>finger(...f)).join('')}
+      <text x="163" y="248" text-anchor="middle" font-size="12" font-weight="800" fill="#94a3b8">LEFT HAND</text>
+      <text x="477" y="248" text-anchor="middle" font-size="12" font-weight="800" fill="#94a3b8">RIGHT HAND</text>
+    </svg>`;
+    wrap.innerHTML='<div class="hgcap">✋ Rest your fingers on the <b>home row</b>: left hand on <b>A&nbsp;S&nbsp;D&nbsp;F</b>, right hand on <b>J&nbsp;K&nbsp;L&nbsp;;</b> — both thumbs on the space bar.</div>'+svg;
+    return wrap;
+  }
+
   function startLesson(i){
     const L=LESSONS[i];
     menu.classList.add('hidden'); stage.classList.remove('hidden');
@@ -127,6 +152,7 @@
       '<span><i style="background:var(--f-index)"></i>index</span>'+
       '<span><i style="background:var(--f-thumb)"></i>thumbs</span>');
     card.appendChild(legend);
+    card.appendChild(buildHandGuide());
 
     const fb=el('div','feedback','Type the highlighted letter to begin ✨');
     card.appendChild(fb);
