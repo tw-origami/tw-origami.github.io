@@ -94,12 +94,14 @@
     <a href="../index.html">🏠 Home</a>
   </div>
   <h1>🏋️ Grammar Gym</h1>
-  <p class="sub">Rapid reps for the mechanics of writing. Tag the parts of speech, then spot &amp; fix the mistake — until it's automatic.</p>
+  <p class="sub">Rapid reps for the mechanics of writing: tag parts of speech, spot &amp; fix mistakes, pick the right word, and know a real sentence when you see one.</p>
 
   <div class="controls">
     <div class="seg" id="modeSeg">
       <button data-mode="tag" class="on">🏷️ Tag It</button>
       <button data-mode="fix">🔧 Fix It</button>
+      <button data-mode="pick">✅ Pick It</button>
+      <button data-mode="sent">🧩 Sentence?</button>
     </div>
     <div class="seg" id="catSeg"></div>
   </div>
@@ -140,11 +142,19 @@
     return str.split('*').map((chunk, i) => i % 2 ? `<span class="${cls}">${chunk}</span>` : chunk).join('');
   }
 
-  // Category filters per mode.
+  // Category filters per mode. Each key maps (via CAT_MAP) to the item values it includes.
   const CATS = {
-    tag: [['all','All'],['noun','Nouns'],['verb','Verbs'],['adjective','Adjectives'],['adverb','Adverbs']],
-    fix: [['all','All'],['Comma','Commas'],['Capitalization','Capitals'],['Run-on','Run-ons'],['Subject–verb agreement','Agreement']]
+    tag: [['all','All'],['noun','Nouns'],['verb','Verbs'],['adjective','Adjectives'],['adverb','Adverbs'],['more','More']],
+    fix: [['all','All'],['punct','Commas & Apostrophes'],['Capitalization','Capitals'],['Run-on','Run-ons'],['Subject–verb agreement','Agreement'],['Spelling','Spelling'],['words','Word Traps']],
+    pick: [['all','All'],['agree','Agreement'],['pronoun','Pronouns'],['compare','Comparing'],['word','Word Choice'],['neg','Negatives']],
+    sent: [['all','All']]
   };
+  const CAT_MAP = {
+    more: ['pronoun','preposition','conjunction','interjection'],
+    punct: ['Comma','Apostrophe'],
+    words: ['Wrong word','Double negative']
+  };
+  const inCat = (val) => cat === 'all' || val === cat || (CAT_MAP[cat] || []).includes(val);
 
   let mode = 'tag';
   let cat = 'all';
@@ -154,10 +164,10 @@
   let advanceTimer = null, countdownTimer = null;
 
   function pool(){
-    if (mode === 'tag'){
-      return cat === 'all' ? G.POS_ITEMS : G.POS_ITEMS.filter(x => x.pos === cat);
-    }
-    return cat === 'all' ? G.FIX_ITEMS : G.FIX_ITEMS.filter(x => x.type === cat);
+    if (mode === 'tag')  return G.POS_ITEMS.filter(x => inCat(x.pos));
+    if (mode === 'fix')  return G.FIX_ITEMS.filter(x => inCat(x.type));
+    if (mode === 'pick') return G.PICK_ITEMS.filter(x => inCat(x.cat));
+    return G.SENT_ITEMS;
   }
 
   function pickItem(){
@@ -181,6 +191,7 @@
 
   function renderCats(){
     const seg = $('catSeg'); seg.innerHTML = '';
+    seg.style.display = CATS[mode].length > 1 ? '' : 'none';
     CATS[mode].forEach(([key, label]) => {
       const b = document.createElement('button');
       b.dataset.cat = key; b.textContent = label;
@@ -205,12 +216,22 @@
       correctVal = cur.pos;
       const distractors = shuffle(POS_LIST.filter(p => p !== correctVal)).slice(0, 3);
       opts = shuffle([correctVal, ...distractors]).map(v => [v, G.POS_LABEL[v]]);
-    } else {
+    } else if (mode === 'fix'){
       $('prompt').textContent = "What's the mistake in this sentence?";
       $('sentence').textContent = cur.wrong;
       correctVal = cur.type;
       const distractors = shuffle(G.FIX_TYPES.filter(t => t !== correctVal)).slice(0, 3);
       opts = shuffle([correctVal, ...distractors]).map(v => [v, v]);
+    } else if (mode === 'pick'){
+      $('prompt').textContent = 'Which word completes the sentence correctly?';
+      $('sentence').innerHTML = cur.s.replace('___', '<span class="target">_____</span>');
+      correctVal = cur.a;
+      opts = shuffle(cur.opts).map(v => [v, v]);
+    } else {
+      $('prompt').textContent = 'Complete sentence, fragment, or run-on?';
+      $('sentence').textContent = cur.s;
+      correctVal = cur.kind;
+      opts = Object.entries(G.SENT_KINDS);   // fixed order: sentence / fragment / run-on
     }
 
     const box = $('choices'); box.innerHTML = '';
@@ -238,13 +259,25 @@
 
     const fb = $('feedback');
     if (isCorrect){ fb.textContent = pick(['🎉 Correct!','⭐ Nice!','✅ You got it!','🚀 Great rep!']); fb.className = 'feedback good'; }
-    else { fb.textContent = mode === 'tag' ? `It's a ${G.POS_LABEL[correctVal].toLowerCase()}.` : `It's a ${correctVal.toLowerCase()} error.`; fb.className = 'feedback bad'; }
+    else {
+      const bad = mode === 'tag'  ? `It's a ${G.POS_LABEL[correctVal].toLowerCase()}.`
+                : mode === 'fix'  ? `It's a ${correctVal.toLowerCase()} error.`
+                : mode === 'pick' ? `The right word is "${correctVal}."`
+                : `It's a ${G.SENT_KINDS[correctVal].toLowerCase()}.`;
+      fb.textContent = bad; fb.className = 'feedback bad';
+    }
 
     const rev = $('reveal');
     if (mode === 'tag'){
       rev.innerHTML = `<div class="rule"><b>${G.POS_LABEL[cur.pos]}.</b> ${G.POS_INFO[cur.pos]}</div>`;
-    } else {
+    } else if (mode === 'fix'){
       rev.innerHTML = `<div class="fixed-line">✓ ${marked(cur.fixed, 'hi')}</div><div class="why">${cur.why}</div>`;
+    } else if (mode === 'pick'){
+      const done = cur.s.replace('___', `<span class="hi">${cur.a}</span>`);
+      rev.innerHTML = `<div class="fixed-line">✓ ${done}</div><div class="why">${cur.why}</div>`;
+    } else {
+      const fixLine = cur.fix ? `<div class="fixed-line">✓ ${marked(cur.fix, 'hi')}</div>` : '';
+      rev.innerHTML = `<div class="rule"><b>${G.SENT_KINDS[cur.kind]}.</b> ${cur.why}</div>${fixLine}`;
     }
     rev.className = 'reveal';
 
