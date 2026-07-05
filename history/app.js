@@ -11,6 +11,9 @@
 
   const menu=$('menu'), stage=$('stage');
   let correct=0, streak=0;
+  const tabs=[...document.querySelectorAll('#gametabs button')];
+  function setTab(name){ tabs.forEach(t=>t.classList.toggle('on', t.dataset.game===name)); }
+  const pronEl = f => f.pron ? '<div class="pron">'+esc(f.pron)+'</div>' : '';
 
   function bump(ok){ if(ok){ correct++; streak++; } else streak=0;
     $('correctCount').textContent=correct; $('streak').textContent=streak;
@@ -21,9 +24,10 @@
       c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; c.style.animationDelay=(Math.random()*0.4)+'s'; box.appendChild(c); setTimeout(()=>c.remove(),3400); } }
 
   function showMenu(){ stage.classList.add('hidden'); stage.innerHTML=''; menu.classList.remove('hidden');
-    $('scorebar').style.display='none'; $('navMenu').classList.add('on');
+    $('scorebar').style.display='none'; $('navMenu').classList.add('on'); setTab(null);
     $('subtitle').textContent='Meet people who changed the world — pick a game!'; $('credit').textContent=''; }
   function openGame(name){ menu.classList.add('hidden'); stage.classList.remove('hidden'); $('scorebar').style.display='flex';
+    $('navMenu').classList.remove('on'); setTab(name);
     $('credit').textContent='Portraits from Wikipedia — mostly public-domain historical images.';
     GAMES[name](); }
   function backBtn(){ const b=el('button','btn btn-ghost','← Menu'); b.onclick=showMenu; return b; }
@@ -44,7 +48,7 @@
       const grid=el('div','people');
       const fb=el('div','feedback',''); const ctr=el('div','center');
       options.forEach(f=>{
-        const t=el('div','person', portrait(f)+'<div class="nm">'+esc(f.name)+'</div><div class="meta">'+f.flag+' '+esc(f.role)+'</div>');
+        const t=el('div','person', portrait(f)+'<div class="nm">'+esc(f.name)+'</div>'+pronEl(f)+'<div class="meta">'+f.flag+' '+esc(f.role)+'</div>');
         t.onclick=()=>{ if(card.dataset.done) return; card.dataset.done='1';
           const ok=f.name===answer.name;
           [...grid.children].forEach(x=>x.setAttribute('disabled',''));
@@ -55,7 +59,7 @@
           // reveal a short bio of the answer
           const bioCard=el('div','revealbio');
           bioCard.innerHTML = portrait(answer).replace('width:84px;height:84px','width:70px;height:70px')+
-            '<div class="rb-text"><div class="rb-nm">'+esc(answer.name)+'</div>'+
+            '<div class="rb-text"><div class="rb-nm">'+esc(answer.name)+'</div>'+pronEl(answer)+
             '<div class="rb-meta">'+answer.flag+' '+esc(answer.country)+' · '+esc(answer.eraLabel)+' · '+esc(answer.role)+'</div>'+
             '<div class="rb-bio">'+esc(answer.bio)+'</div></div>';
           card.insertBefore(bioCard, fb);
@@ -86,17 +90,18 @@
         '<div class="flip-inner">'+
           '<div class="face front"><div class="q">'+esc(f.quote)+'</div><div class="hint">Tap to flip 🔄</div></div>'+
           '<div class="face back">'+portrait(f).replace('width:84px;height:84px','width:96px;height:96px')+
-            '<div class="nm">'+esc(f.name)+'</div>'+
+            '<div class="nm">'+esc(f.name)+'</div>'+pronEl(f)+
             '<div class="meta">'+f.flag+' '+esc(f.country)+' · '+esc(f.eraLabel)+' · '+esc(f.role)+'</div>'+
             '<div class="bio">'+esc(f.bio)+'</div>'+
+            (f.quoteCtx ? '<div class="qctx"><div class="qctx-h">📖 The story behind the quote</div><div class="qctx-t">'+esc(f.quoteCtx)+'</div></div>' : '')+
           '</div>'+
         '</div>';
       flip.onclick=()=> flip.classList.toggle('flipped');
       card.appendChild(flip);
       const ctr=el('div','center');
-      ctr.appendChild(mkBtn('Flip 🔄',()=>flip.classList.toggle('flipped'),'btn-ghost'));
-      ctr.appendChild(mkBtn('Next quote ▶',next));
-      ctr.appendChild(backBtn());
+      ctr.appendChild(backBtn());                                             // Menu — left
+      ctr.appendChild(mkBtn('Flip 🔄',()=>flip.classList.toggle('flipped'))); // Flip — middle, highlighted
+      ctr.appendChild(mkBtn('Next quote ▶',next,'btn-ghost'));                // Next — right
       card.appendChild(ctr);
       stage.appendChild(card);
     }
@@ -146,5 +151,6 @@
 
   const GAMES={ match:gameMatch, quote:gameQuote, read:gameRead };
   document.querySelectorAll('.gamecard').forEach(c=> c.onclick=()=>openGame(c.dataset.game));
+  tabs.forEach(t=> t.onclick=()=>openGame(t.dataset.game));
   $('navMenu').onclick=showMenu;
 })();

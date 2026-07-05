@@ -20,6 +20,11 @@
   h1{ font-size:28px; margin:4px 0 2px; letter-spacing:-.5px; }
   .sub{ color:var(--muted); margin:0 0 16px; font-size:15px; text-align:center; }
 
+  .gametabs{ display:flex; gap:6px; background:#fff; padding:5px; border-radius:14px; box-shadow:var(--shadow); margin-bottom:16px; flex-wrap:wrap; justify-content:center; }
+  .gametabs button{ font-family:inherit; font-weight:800; font-size:14px; border:none; background:transparent; color:var(--muted); padding:9px 15px; border-radius:10px; cursor:pointer; transition:background .15s, color .15s; }
+  .gametabs button:hover{ background:var(--accent-soft); }
+  .gametabs button.on{ background:var(--accent); color:#fff; }
+
   .scorebar{ display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; justify-content:center; }
   .chip{ background:#fff; border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
   .chip small{ color:var(--muted); font-weight:600; } .chip.streak{ color:#ea580c; }
@@ -66,7 +71,7 @@
 
   /* flashcard */
   .flip{ perspective:1200px; max-width:460px; margin:0 auto 8px; }
-  .flip-inner{ position:relative; transition:transform .6s; transform-style:preserve-3d; min-height:340px; }
+  .flip-inner{ position:relative; transition:transform .6s; transform-style:preserve-3d; min-height:440px; }
   .flip.flipped .flip-inner{ transform:rotateY(180deg); }
   .face{ position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:20px; padding:26px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
   .face.front{ background:linear-gradient(160deg,#fff7ed,#fef3c7); border:2px solid #fcd34d; }
@@ -78,6 +83,13 @@
   .face.back .nm{ font-size:21px; font-weight:900; }
   .face.back .meta{ color:var(--muted); font-weight:700; font-size:13px; margin:2px 0 10px; }
   .face.back .bio{ font-size:14px; line-height:1.5; color:var(--ink); }
+  .pron{ color:var(--accent2); font-weight:700; font-size:13px; margin:2px 0; }
+  .pron::before{ content:'🔊 '; }
+  .qctx{ margin-top:12px; padding-top:12px; border-top:1px dashed #e7ddcb; text-align:left; }
+  .qctx .qctx-h{ font-weight:800; font-size:12px; color:var(--accent); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; }
+  .qctx .qctx-t{ font-size:13.5px; line-height:1.5; color:var(--muted); }
+  .person .pron{ font-size:11px; margin-top:2px; }
+  .revealbio .pron{ font-size:12px; margin:2px 0 6px; }
 
   /* reading */
   .passage{ background:#fbf7ef; border:2px solid #ece3d3; border-radius:14px; padding:18px 20px; font-size:16px; line-height:1.7; margin-bottom:16px; overflow:hidden; }
@@ -109,6 +121,12 @@
   <h1>🏺 History Heroes</h1>
   <p class="sub" id="subtitle">Meet people who changed the world — pick a game!</p>
 
+  <div class="gametabs" id="gametabs">
+    <button data-game="match">🧩 Who Did It?</button>
+    <button data-game="quote">💬 Quote Flip</button>
+    <button data-game="read">🔎 Reading Detective</button>
+  </div>
+
   <div class="scorebar" id="scorebar" style="display:none">
     <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
     <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
@@ -123,7 +141,7 @@
   <div class="stage hidden" id="stage"></div>
   <div class="credit" id="credit"></div>
 
-<script src="library.js?v=2"></script>
-<script src="app.js?v=3"></script>
+<script src="library.js?v=3"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>
