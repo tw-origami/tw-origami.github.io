@@ -52,23 +52,47 @@ const OTHER = [
   'Sitting Bull','Geronimo','Sequoyah','Tecumseh','Sacagawea',
 ];
 
+// Extra GED/STA-friendly figures not already in the world-history lists.
+// Bias is intentional: GED Social Studies emphasizes U.S. civics, rights,
+// government, economics, and historical interpretation.
+const EXTRA_GED = [
+  'John Adams','Abigail Adams','Samuel Adams','Patrick Henry','Thomas Paine','James Madison','Alexander Hamilton',
+  'John Marshall','James Monroe','Andrew Jackson','Dolley Madison','Henry Clay','Daniel Webster','John C. Calhoun',
+  'Ulysses S. Grant','Robert E. Lee','William Lloyd Garrison','Harriet Tubman','Frederick Douglass',
+  'Sojourner Truth','Harriet Beecher Stowe','Elizabeth Cady Stanton','Lucretia Mott','Ida B. Wells',
+  'Booker T. Washington','W. E. B. Du Bois','Thurgood Marshall','Cesar Chavez','Dolores Huerta',
+  'Rosa Parks','Malcolm X','Bayard Rustin','Coretta Scott King','Betty Friedan','Phyllis Schlafly',
+  'Cesar Rodney','Roger Sherman','John Jay','Warren G. Harding','Woodrow Wilson','Dwight D. Eisenhower',
+  'Lyndon B. Johnson','Richard Nixon','Ronald Reagan','Barack Obama','Sandra Day O’Connor|Sandra_Day_O%27Connor',
+  'Sally Ride','Amelia Earhart','George Washington Carver','Duke Ellington'
+];
+
 // ordered by "most recognizable identity first" so polymaths get their famous role
 const ROLE_KEYWORDS=['pharaoh','emperor','empress','queen','king','sultan','monarch','president',
   'painter','sculptor','composer','pianist','playwright','architect',
-  'explorer','navigator','aviator','admiral',
+  'astronaut','explorer','navigator','aviator','admiral',
   'physicist','astronomer','mathematician','chemist','inventor','naturalist','biologist','geologist','botanist','physician','nurse','economist','engineer',
-  'philosopher','poet','novelist','author','writer','theologian','historian',
-  'general','conqueror','activist','revolutionary','reformer','statesman','politician',
+  'philosopher','poet','novelist','author','journalist','writer','theologian','historian',
+  'general','conqueror','suffragist','abolitionist','activist','revolutionary','reformer','diplomat','statesman','politician',
+  'lawyer','jurist','judge','attorney','educator',
   'scientist','artist','musician','singer','saint','footballer','athlete'];
 const RE={}; const setE=(ks,e)=>ks.split(' ').forEach(k=>RE[k]=e);
 setE('physicist chemist biologist scientist naturalist geologist botanist physician nurse','🔬');
 setE('mathematician economist','🔢'); setE('inventor engineer','💡'); setE('astronomer','🔭');
 setE('painter sculptor artist','🎨'); setE('architect','🏛️'); setE('composer pianist musician singer','🎼');
-setE('playwright novelist poet author writer','✍️'); setE('philosopher theologian','💭'); setE('historian','📚');
-setE('explorer navigator','🧭'); setE('aviator','✈️'); setE('admiral','⚓'); setE('conqueror general','⚔️');
-setE('emperor empress pharaoh queen king sultan monarch','👑'); setE('president statesman politician','🏛️');
-setE('activist revolutionary reformer','✊'); setE('saint','😇'); setE('footballer athlete','⚽');
-const findRole=t=>{const l=t.toLowerCase(); for(const k of ROLE_KEYWORDS){ if(new RegExp('\\b'+k+'\\b').test(l)) return k; } return null;};
+setE('playwright novelist poet author writer','✍️'); setE('journalist','📰'); setE('philosopher theologian','💭'); setE('historian','📚');
+setE('explorer navigator','🧭'); setE('astronaut','🚀'); setE('aviator','✈️'); setE('admiral','⚓'); setE('conqueror general','⚔️');
+setE('emperor empress pharaoh queen king sultan monarch','👑'); setE('president statesman politician','🏛️'); setE('first lady','🏛️');
+setE('suffragist abolitionist activist revolutionary reformer','✊'); setE('diplomat','🕊️');
+setE('lawyer jurist judge attorney','⚖️'); setE('educator','🍎'); setE('saint','😇'); setE('footballer athlete','⚽');
+// match roles ONLY in the identity sentence, so titles of OTHER people mentioned later
+// (e.g., "President Lyndon B. Johnson appointed him") don't hijack the role.
+const findRole=t=>{
+  // strip quoted nicknames like 'Queen of Jazz' / 'First Lady of Song' so they don't hijack ruler roles
+  const clean=t.replace(/[‘’“”'"][^‘’“”'"]{0,40}[‘’“”'"]/g,' ');
+  if(/first lady of the (united states|us)\b/i.test(clean)) return 'first lady'; // real First Ladies only
+  const l=(clean.split('. ')[0]||clean).toLowerCase();
+  for(const k of ROLE_KEYWORDS){ if(new RegExp('\\b'+k+'\\b').test(l)) return k; } return null;};
 
 const parseYear=t=>{ if(!t) return null; const m=t.match(/^([+-])(\d+)/); if(!m) return null; const y=parseInt(m[2],10); return m[1]==='-'?-y:y; };
 function eraLabel(y){ if(y==null) return null;
@@ -76,6 +100,62 @@ function eraLabel(y){ if(y==null) return null;
   if(y<1500) return 'in the Middle Ages'; if(y<1700) return 'in the 1500s and 1600s'; if(y<1800) return 'in the 1700s';
   if(y<1900) return 'in the 1800s'; if(y<2000) return 'in the 1900s'; return 'in the 2000s'; }
 const artA=w=>(/^[aeiou]/i.test(w)?'an ':'a ');
+
+function broadCategory(role){
+  if(!role) return 'history';
+  if(/president|statesman|politician|emperor|empress|pharaoh|queen|king|sultan|monarch|first lady|diplomat|lawyer|jurist|judge|attorney/.test(role)) return 'government and leadership';
+  if(/activist|revolutionary|reformer|suffragist|abolitionist/.test(role)) return 'rights and reform';
+  if(/physicist|chemist|biologist|scientist|naturalist|geologist|botanist|physician|nurse|astronomer|mathematician/.test(role)) return 'science and medicine';
+  if(/inventor|engineer|aviator/.test(role)) return 'invention and technology';
+  if(/painter|sculptor|artist|architect|composer|pianist|musician|singer|playwright|novelist|poet|author|writer|journalist/.test(role)) return 'arts and literature';
+  if(/explorer|navigator|admiral|astronaut/.test(role)) return 'exploration and geography';
+  if(/philosopher|theologian|economist|educator/.test(role)) return 'ideas and society';
+  if(/footballer|athlete/.test(role)) return 'sports and culture';
+  return 'history';
+}
+
+function timeContext(era, category){
+  if(!era) return 'Their life helps students connect one person to the larger forces of history, including government, culture, technology, geography, and social change.';
+  if(era.includes('ancient')) return 'This was a time when early empires, city-states, trade routes, religions, and writing systems helped shape later civilizations.';
+  if(era.includes('Middle Ages')) return 'This was a time of kingdoms, empires, faith traditions, trade networks, and slow but important changes in learning and government.';
+  if(era.includes('1500s')) return 'This period included the Renaissance, Reformation, scientific discovery, overseas exploration, and the growth of powerful states and empires.';
+  if(era.includes('1700s')) return 'This was the age of Enlightenment ideas, revolutions, expanding trade, and debates about liberty, rights, monarchy, and representative government.';
+  if(era.includes('1800s')) return 'The 1800s brought industrial growth, nationalism, reform movements, imperialism, abolition, migration, and major changes in daily work and family life.';
+  if(era.includes('1900s')) return 'The 1900s included world wars, civil rights movements, decolonization, mass media, new technology, and major debates over democracy and power.';
+  if(era.includes('2000s')) return 'The 2000s connect history to today through globalization, digital technology, public debate, climate issues, and changing ideas about rights and identity.';
+  return 'Their life connects to broad historical themes that often appear on reading and social studies tests.';
+}
+
+function contributionContext(category, role){
+  switch(category){
+    case 'government and leadership': return 'A GED-style question might connect this person to laws, leadership decisions, citizenship, war, reform, or the way governments gain and use power.';
+    case 'rights and reform': return 'Their story can help explain how people challenge unfair systems through speeches, organizing, court cases, protest, writing, and public pressure.';
+    case 'science and medicine': return 'Their work shows how evidence, experiments, measurement, and peer debate can change what people believe about nature and health.';
+    case 'invention and technology': return 'Their life connects to the way inventions can change transportation, communication, industry, labor, and everyday life.';
+    case 'arts and literature': return 'Their work matters because art, music, and writing help people understand a culture, question society, and remember emotional experiences from the past.';
+    case 'exploration and geography': return 'Their story connects to maps, trade, migration, empire, cultural exchange, and the risks people took to travel through unfamiliar places.';
+    case 'ideas and society': return 'Their ideas can connect to economics, ethics, government, religion, education, and debates about what makes a fair society.';
+    case 'sports and culture': return 'Sports figures can become historically important when their careers connect to national pride, race, media, politics, or changing social rules.';
+    default: return 'Their life is useful for social studies because one biography can show cause and effect, point of view, geography, culture, and change over time.';
+  }
+}
+
+function makeBio(p, facts, gender, work){
+  const role=facts.field, category=facts.category;
+  const S=[];
+  S.push(p.name+' was '+(role?artA(role)+role:'an important person in history')+(facts.country?' from '+facts.country:'')+'.');
+  if(facts.birthplace || facts.birthYear){
+    const born = facts.birthplace ? 'born in '+facts.birthplace : 'born';
+    S.push((gender.s)+' was '+born+(facts.birthYear?' in '+Math.abs(facts.birthYear)+(facts.birthYear<0?' BCE':''):'')+'.');
+  }
+  if(facts.era) S.push((gender.s)+' lived '+facts.era+'. '+timeContext(facts.era, category));
+  if(work) S.push('One major reason people remember '+p.name+' is '+work+'.');
+  else S.push('People remember '+p.name+' because '+gender.p+' influenced '+category+', and that influence reached beyond one lifetime.');
+  if(facts.spouse) S.push(gender.s+' was married to '+facts.spouse+', which can help students connect private life, family networks, and public history.');
+  S.push(contributionContext(category, role));
+  S.push('When studying '+p.name+', focus on where '+gender.p+' lived, what problem or opportunity shaped '+gender.o+' life, what '+gender.p+' contributed, and why later generations still talk about '+gender.o+'.');
+  return S.join(' ');
+}
 
 // ---- batched fetch helpers ----
 async function qidsFor(titles){
@@ -123,12 +203,12 @@ async function fetchSummary(wiki, name){
 }
 
 (async ()=>{
-  const list=WEST.map(e=>[e,'W']).concat(OTHER.map(e=>[e,'O']));
+  const list=WEST.map(e=>[e,'W']).concat(OTHER.map(e=>[e,'O']), EXTRA_GED.map(e=>[e,'GED']));
   // pass 1: summaries (role + image) + resolve wiki title
   const people=[];
   process.stdout.write('summaries: ');
   for(const [entry,region] of list){
-    const [name,ov]=entry.split('|'); const wiki=ov||name.replace(/ /g,'_');
+    const [name,ov]=entry.split('|'); const wiki=(ov||name.replace(/ /g,'_')).replace(/%27/g,"'"); // undo pre-encoded apostrophes so they aren't double-encoded
     const s=await fetchSummary(wiki,name);
     if(s){ people.push({name,wiki,region,role:s.role,img:s.img}); process.stdout.write('.'); } else process.stdout.write('x');
     await sleep(70);
@@ -165,18 +245,29 @@ async function fetchSummary(wiki, name){
     if(work && (work.length>34 || /[:(]/.test(work))) work=null; // drop long/technical titles — keep kid-friendly
     if(bp && (!/^[A-Z]/.test(bp) || bp.length>24 || / of /.test(bp))) bp=null; // only clean place names
     const era=eraLabel(birth);
-    const facts={ field:field||null, country, birthplace:bp, spouse, work, birthYear:birth, era };
-    // ELI10 passage — only sentences for facts we have; each fact is stated so questions are answerable
-    const S=[];
-    S.push(p.name+' was '+(field?artA(field)+field:'an important person from history')+'.');
-    if(country) S.push(g.s+' was from '+country+'.');
-    if(bp) S.push(g.s+' was born in '+bp+'.');
-    if(era) S.push(g.s+' lived '+era+'.');
-    if(work) S.push('One thing '+g.p+' is famous for is '+work+'.');
-    if(spouse) S.push(g.s+' was married to '+spouse+'.');
-    S.push('Today, people all over the world still learn about '+p.name+'.');
+    const category=broadCategory(field);
+    const facts={
+      field:field||null,
+      category,
+      country,
+      birthplace:bp,
+      spouse,
+      work,
+      birthYear:birth,
+      deathYear:death,
+      era,
+      questionPatterns:[
+        'where_born',
+        'where_from',
+        'what_famous_for',
+        'field_or_role',
+        'when_lived',
+        spouse?'spouse':null
+      ].filter(Boolean)
+    };
+    const text=makeBio(p, facts, g, work);
     auto.push({ slug:slug(p.name), region:p.region, emoji:RE[field]||'📜', img:p.img, title:p.name,
-      text:S.join(' '), facts, gender:(r.gender==='Q6581072'?'f':r.gender==='Q6581097'?'m':'n') });
+      text, facts, gender:(r.gender==='Q6581072'?'f':r.gender==='Q6581097'?'m':'n') });
   });
 
   // keep FIGURES + the 6 authored passages from the existing library
@@ -192,6 +283,7 @@ async function fetchSummary(wiki, name){
 // picks 3 questions at random from each passage's facts, so repeats differ.
 window.HIST = {
   FIGURES: ${JSON.stringify(H.FIGURES,null,0)},
+  QUOTES: ${JSON.stringify(H.QUOTES||[],null,0)},
   PASSAGES: ${JSON.stringify(PASSAGES,null,0)}
 };
 `;
@@ -199,6 +291,6 @@ window.HIST = {
   const wc=auto.filter(p=>p.region==='W').length;
   const factCov=k=>auto.filter(p=>p.facts[k]).length;
   console.log('wrote library.js — passages:', PASSAGES.length, '(authored '+authored.length+' + auto '+auto.length+'),',
-    Math.round(wc/auto.length*100)+'% West');
-  console.log('fact coverage — country:'+factCov('country'),'birthplace:'+factCov('birthplace'),'work:'+factCov('work'),'spouse:'+factCov('spouse'),'era:'+factCov('era'),'field:'+factCov('field'));
+    Math.round(wc/auto.length*100)+'% West/GED-western');
+  console.log('fact coverage — country:'+factCov('country'),'birthplace:'+factCov('birthplace'),'work:'+factCov('work'),'spouse:'+factCov('spouse'),'era:'+factCov('era'),'field:'+factCov('field'),'category:'+factCov('category'));
 })();
