@@ -18,7 +18,8 @@
   }
   header{ text-align:center; margin-bottom:36px; }
   h1{ font-size:38px; margin:0 0 6px; letter-spacing:-1px; }
-  .tagline{ color:var(--muted); font-size:17px; margin:0; }
+  .tagline{ color:var(--muted); font-size:17px; margin:0 auto; max-width:620px; line-height:1.5; font-style:italic; min-height:1.5em; }
+  .tagline .qa{ display:block; margin-top:8px; font-size:14px; font-style:normal; font-weight:700; opacity:.85; }
 
   .grid{
     display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
@@ -51,7 +52,7 @@
 <body>
   <header>
     <h1>🚀 The Learn Zone</h1>
-    <p class="tagline">A little collection of things I've built.</p>
+    <p class="tagline" id="quote">A little collection of things I've built.</p>
   </header>
 
   <div class="grid">
@@ -109,6 +110,19 @@
       <div class="go">Open →</div>
     </a>
 
+    <!-- TYPING APP -->
+    <a class="app" href="typing/index.html">
+      <div class="icon">⌨️</div>
+      <h2>Typing Quest</h2>
+      <p>Learn to touch type with guided lessons, an on-screen keyboard that shows the next key, and live WPM &amp; accuracy.</p>
+      <div class="tags">
+        <span class="tag">Touch typing</span>
+        <span class="tag">WPM</span>
+        <span class="tag">Lessons</span>
+      </div>
+      <div class="go">Open →</div>
+    </a>
+
     <!-- Placeholder for future apps -->
     <div class="app soon">
       <div class="icon">✨</div>
@@ -118,5 +132,44 @@
   </div>
 
   <footer>Made with ❤️</footer>
+
+<script>
+  // A fresh learning quote each visit (from growthengineering.co.uk/quotes-about-learning).
+  var LEARNING_QUOTES = [
+    ["Live as if you were to die tomorrow. Learn as if you were to live forever.", "Mahatma Gandhi"],
+    ["The beautiful thing about learning is nobody can take it away from you.", "B.B. King"],
+    ["Develop a passion for learning. If you do, you will never cease to grow.", "Anthony J. D'Angelo"],
+    ["Anyone who stops learning is old, whether at twenty or eighty.", "Henry Ford"],
+    ["Tell me and I forget, teach me and I may remember, involve me and I learn.", "Xunzi"],
+    ["Change is the end result of all true learning.", "Leo Buscaglia"],
+    ["I am still learning.", "Michelangelo"],
+    ["That is what learning is. You suddenly understand something you've understood all your life, but in a new way.", "Doris Lessing"],
+    ["Your brain has a capacity for learning that is virtually limitless.", "Michael J. Gelb"],
+    ["He who laughs most, learns best.", "John Cleese"],
+    ["Study hard what interests you the most in the most undisciplined, irreverent and original manner possible.", "Richard Feynman"],
+    ["You don't understand anything until you learn it more than one way.", "Marvin Minsky"],
+    ["One learns from books and example only that certain things can be done. Actual learning requires that you do those things.", "Frank Herbert"],
+    ["Wisdom is not a product of schooling but of the lifelong attempt to acquire it.", "Albert Einstein"],
+    ["The illiterate of the 21st century will not be those who cannot read and write, but those who cannot learn, unlearn, and relearn.", "Alvin Toffler"],
+    ["It's what you learn after you know it all that counts.", "Harry S. Truman"],
+    ["It is what we know already that often prevents us from learning.", "Claude Bernard"],
+    ["The great aim of education is not knowledge but action.", "Herbert Spencer"],
+    ["I am always ready to learn although I do not always like being taught.", "Winston Churchill"],
+    ["We now accept the fact that learning is a lifelong process of keeping abreast of change.", "Peter Drucker"],
+    ["There is no end to education. The whole of life is a process of learning.", "Jiddu Krishnamurti"],
+    ["Being a student is easy. Learning requires actual work.", "William Crawford"],
+    ["In the end we retain from our studies only that which we practically apply.", "Johann Wolfgang von Goethe"],
+    ["Study without desire spoils the memory, and it retains nothing that it takes in.", "Leonardo da Vinci"]
+  ];
+  (function(){
+    var q = LEARNING_QUOTES[Math.floor(Math.random() * LEARNING_QUOTES.length)];
+    var el = document.getElementById('quote');
+    el.textContent = '“' + q[0] + '”';
+    var a = document.createElement('span');
+    a.className = 'qa';
+    a.textContent = '— ' + q[1];
+    el.appendChild(a);
+  })();
+</script>
 </body>
 </html>
