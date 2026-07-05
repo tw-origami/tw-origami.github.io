@@ -6,6 +6,9 @@
   const shuffle = a => { const b=a.slice(); for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; };
   const pick = a => a[Math.floor(Math.random()*a.length)];
   const sample = (a,n) => shuffle(a).slice(0,n);
+  // real food image when available, else the emoji. inline=small (in text), big=for tiles/plate.
+  const foodInline = f => f.img ? '<img class="ficon" src="foodimg/'+f.img+'" alt="">' : f.emoji;
+  const foodBig = f => f.img ? '<img class="fimg" src="foodimg/'+f.img+'" alt="">' : f.emoji;
 
   const stage = $('stage'), menu = $('menu');
   let correct = 0, streak = 0;
@@ -56,9 +59,9 @@
         const distract = sample(notIn, Math.min(3, notIn.length));
         return {
           isFood:true,
-          question:`Which nutrients does ${f.emoji} ${f.food} have?`,
+          question:`Which nutrients does ${foodInline(f)} ${f.food} have?`,
           correct:inSet, distract,
-          intro:`${f.emoji} ${f.food} — ranked by what it's a top source of:`,
+          intro:`${foodInline(f)} ${f.food} — ranked by what it's a top source of:`,
           // reveal ALL of the food's nutrients, ranked, so the lesson is complete
           facts: f.nutrients.map(c=>({ name:c.nutrient, tier:c.tier, does:LIB.NUTRIENTS[c.nutrient].does }))
         };
@@ -281,28 +284,28 @@
 
       // the plate: meal foods + one empty "?" slot
       const plate=el('div','plate meal');
-      meal.forEach(f=> plate.appendChild(el('span','pf', f.emoji)));
+      meal.forEach(f=> plate.appendChild(el('span','pf', foodBig(f))));
       const slot=el('span','slot','?');
       plate.appendChild(slot);
       card.appendChild(plate);
-      card.appendChild(el('div','promptsub','On the plate: '+meal.map(f=>f.emoji+' '+f.food).join(', ')));
+      card.appendChild(el('div','promptsub','On the plate: '+meal.map(f=>foodInline(f)+' '+f.food).join(', ')));
 
       // choices
       const grid=el('div','tiles');
       const fb=el('div','feedback',''); const why=el('div','why','');
       const ctr=el('div','center');
-      choices.forEach(f=>{ const t=el('div','tile','<span class="em">'+f.emoji+'</span>'+f.food);
+      choices.forEach(f=>{ const t=el('div','tile','<span class="em">'+foodBig(f)+'</span>'+f.food);
         t.onclick=()=>{ if(card.dataset.done) return; card.dataset.done='1';
           const ok = f===correct;
           [...grid.children].forEach(x=>{ x.setAttribute('disabled',''); });
           t.classList.add(ok?'correct':'wrong');
           if(!ok){ [...grid.children].forEach((x,i)=>{ if(choices[i]===correct) x.classList.add('correct'); }); }
           // fill the slot with the right answer
-          slot.textContent=correct.emoji; slot.classList.add('filled');
+          slot.innerHTML=foodBig(correct); slot.classList.add('filled');
           bumpScore(ok);
           fb.textContent = ok?'🎉 Perfect — that adds '+target+'!':'Not quite — the green one adds '+target+'.'; fb.className='feedback '+(ok?'good':'bad');
           const kd = LIB.KID_DAILY[target];
-          why.innerHTML = correct.emoji+' <b>'+correct.food+'</b> is a great source of '+target+' — '+does+'.'+(kd?' <span class="daily">('+kd.note+')</span>':'');
+          why.innerHTML = foodInline(correct)+' <b>'+correct.food+'</b> is a great source of '+target+' — '+does+'.'+(kd?' <span class="daily">('+kd.note+')</span>':'');
           ctr.innerHTML=''; ctr.appendChild(mkBtn('Next meal ▶',round)); ctr.appendChild(backBtn());
         };
         grid.appendChild(t); });

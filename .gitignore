@@ -1,1 +1,4 @@
 .DS_Store
+
+# large source image pack (only slim foodimg/ is used)
+nutrition/food_emoji_pack_high_res_300/

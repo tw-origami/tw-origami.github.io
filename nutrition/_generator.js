@@ -62,6 +62,25 @@ const EMOJI = {
   'turkey':'🦃','turnip greens':'🥬','vegetable oil':'🫗','walnuts':'🌰','whole grains':'🌾','yogurt':'🥛',
 };
 
+// Real food images (from food_emoji_pack). Value = filename stem, or absent = emoji only.
+const IMG = {
+  'apple':'red_apple','apricots':'peach','avocado':'avocado','banana':'banana','beans':'beans',
+  'beef':'beef_steak','beef liver':'cut_of_meat','bell pepper':'bell_pepper','bok choy':'leafy_green',
+  'Brazil nuts':'chestnut','bread':'bread','broccoli':'broccoli','Brussels sprouts':'cabbage',
+  'canned salmon':'canned_food','cantaloupe':'cantaloupe','carrot':'carrot','cheese':'cheese_wedge',
+  'chicken':'roast_chicken','chickpeas':'chickpeas','collard greens':'leafy_green','dark chocolate':'chocolate_bar',
+  'egg':'egg','fortified cereal':'bowl_with_spoon','fortified milk':'glass_of_milk','garlic':'garlic',
+  'grapefruit':'grapefruit','kale':'kale','kiwi':'kiwi_fruit','lemon':'lemon','lentils':'lentils',
+  'lettuce':'lettuce','lima beans':'lima_beans','milk':'glass_of_milk','mushrooms':'button_mushroom',
+  'mustard greens':'leafy_green','nuts':'chestnut','oats':'bowl_with_spoon','orange':'orange',
+  'pasta':'spaghetti','peanut butter':'peanuts','peanuts':'peanuts','peas':'green_peas','pineapple':'pineapple',
+  'pork':'pork_chop','potato':'potato','raspberries':'raspberries','red pepper':'red_bell_pepper',
+  'rice':'cooked_rice','shrimp':'fried_shrimp','soy milk':'glass_of_milk','soybeans':'edamame',
+  'spinach':'spinach','strawberries':'strawberries','sweet potato':'sweet_potato','Swiss chard':'leafy_green',
+  'tomato':'tomato','turkey':'turkey_leg','turnip greens':'leafy_green','vegetable oil':'pouring_liquid',
+  'walnuts':'chestnut','whole grains':'wheat_bread',
+};
+
 // plate group + whole/processed per food (for Build-a-Plate and Sort games)
 const PLATE_GROUP = {
   fruit:['apple','apricots','banana','cantaloupe','grapefruit','kiwi','lemon','orange','pineapple','plantain','raisins','raspberries','strawberries'],
@@ -85,10 +104,16 @@ for (const [nutrient, info] of Object.entries(N)){
 }
 const FOODS = Object.keys(foodMap).sort().map(food=>({
   food, emoji: EMOJI[food]||'🍽️',
+  img: IMG[food] ? IMG[food]+'.png' : null,
   group: groupOf[food]||'other',
   type: PROCESSED.has(food)?'processed':'whole',
   nutrients: foodMap[food].sort((a,b)=> a.tier===b.tier ? a.nutrient.localeCompare(b.nutrient) : (a.tier==='excellent'?-1:1)),
 }));
+
+// validate every mapped image file actually exists in the pack
+const PACK='/Users/traviswilber/Claude-Projects/math-app/nutrition/food_emoji_pack_high_res_300';
+const missingImgs = [...new Set(Object.values(IMG))].filter(stem=> !fs.existsSync(PACK+'/'+stem+'.png'));
+if(missingImgs.length) throw new Error('IMG maps to missing files: '+missingImgs.join(', '));
 
 // ============ 2) FUNCTIONS: body job -> nutrients (for the matching game) ============
 const FUNCTIONS = [
