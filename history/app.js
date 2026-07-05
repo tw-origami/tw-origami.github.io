@@ -119,8 +119,10 @@
   function gameRead(){
     $('subtitle').textContent='Read the story, then answer like a test detective.';
     const artA = w => /^[aeiou]/i.test(w) ? 'an ' : 'a ';
-    // fact pools for distractors, built from all fact-based passages
-    const auto = H.PASSAGES.filter(p=>p.facts);
+    // hand-written passages override the auto ones by slug
+    const AUTH = {}; (window.HIST_AUTHORED||[]).forEach(a=>AUTH[a.slug]=a);
+    // fact pools for distractors, built from all fact-based passages (auto + authored facts)
+    const auto = H.PASSAGES.filter(p=>p.facts).map(p=> AUTH[p.slug] ? Object.assign({},p,{facts:AUTH[p.slug].facts}) : p);
     const poolOf = k => [...new Set(auto.map(p=>p.facts[k]).filter(Boolean))];
     const POOL = { country:poolOf('country'), field:poolOf('field'), birthplace:poolOf('birthplace'),
       spouse:poolOf('spouse'), work:poolOf('work'),
@@ -149,8 +151,10 @@
     let queue = shuffle(H.PASSAGES.slice());
     function next(){
       if(!queue.length) queue=shuffle(H.PASSAGES.slice());
-      const P=queue.shift(); let qi=0;
-      const QS = P.questions ? P.questions.slice() : buildQuestions(P);  // authored keep fixed Qs
+      const P0=queue.shift(); const a=AUTH[P0.slug];
+      const P = a ? Object.assign({}, P0, { text:a.text, facts:a.facts }) : P0;  // hand-written override
+      let qi=0;
+      const QS = P.questions ? P.questions.slice() : buildQuestions(P);  // 6 authored keep fixed Qs
       function render(){
         stage.innerHTML='';
         const card=el('div','card');
