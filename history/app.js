@@ -111,19 +111,47 @@
   // ============ 3) READING DETECTIVE ============
   function gameRead(){
     $('subtitle').textContent='Read the story, then answer like a test detective.';
+    const artA = w => /^[aeiou]/i.test(w) ? 'an ' : 'a ';
+    // fact pools for distractors, built from all fact-based passages
+    const auto = H.PASSAGES.filter(p=>p.facts);
+    const poolOf = k => [...new Set(auto.map(p=>p.facts[k]).filter(Boolean))];
+    const POOL = { country:poolOf('country'), field:poolOf('field'), birthplace:poolOf('birthplace'),
+      spouse:poolOf('spouse'), work:poolOf('work'),
+      era:['in ancient times, before the year 1','over a thousand years ago','in the Middle Ages',
+           'in the 1500s and 1600s','in the 1700s','in the 1800s','in the 1900s','in the 2000s'] };
+    const descOf = p => 'The life of '+p.title+(p.facts.field?', '+artA(p.facts.field)+p.facts.field:'')+'.';
+
+    // choose 3 random questions supported by this passage's facts
+    function buildQuestions(P){
+      const f=P.facts, n=P.title, cand=[];
+      const mkQ=(q,ans,pool,explain)=>{ const opts=shuffle([ans,...sample(pool.filter(x=>x!==ans),3)]);
+        return { q, choices:opts, answer:opts.indexOf(ans), explain }; };
+      // main idea
+      const others=sample(auto.filter(p=>p.title!==n),3).map(descOf);
+      const md=shuffle([descOf(P),...others]);
+      cand.push({ q:'What is this passage mostly about?', choices:md, answer:md.indexOf(descOf(P)), explain:'The whole passage is about '+n+'.' });
+      if(f.country)    cand.push(mkQ('What country was '+n+' from?', f.country, POOL.country, 'The passage says '+n+' was from '+f.country+'.'));
+      if(f.field)      cand.push(mkQ('What was '+n+' best known as?', f.field, POOL.field, 'The passage calls '+n+' '+artA(f.field)+f.field+'.'));
+      if(f.birthplace) cand.push(mkQ('In what city was '+n+' born?', f.birthplace, POOL.birthplace, 'The passage says '+n+' was born in '+f.birthplace+'.'));
+      if(f.era)        cand.push(mkQ('About when did '+n+' live?', f.era, POOL.era, 'The passage says '+n+' lived '+f.era+'.'));
+      if(f.spouse)     cand.push(mkQ('Who was '+n+' married to?', f.spouse, POOL.spouse, 'The passage says '+n+' was married to '+f.spouse+'.'));
+      if(f.work)       cand.push(mkQ('What is '+n+' famous for?', f.work, POOL.work, 'The passage says '+n+' is famous for '+f.work+'.'));
+      return sample(cand, Math.min(3, cand.length));
+    }
+
     let queue = shuffle(H.PASSAGES.slice());
     function next(){
       if(!queue.length) queue=shuffle(H.PASSAGES.slice());
       const P=queue.shift(); let qi=0;
+      const QS = P.questions ? P.questions.slice() : buildQuestions(P);  // authored keep fixed Qs
       function render(){
         stage.innerHTML='';
         const card=el('div','card');
         const head = (P.img?'<img class="pimg" src="img/'+P.img+'" alt="">':'')+
           '<h4>'+(P.emoji?P.emoji+' ':'')+esc(P.title)+'</h4>';
-        const pass=el('div','passage', head+'<div class="ptext">'+esc(P.text)+'</div>');
-        card.appendChild(pass);
-        card.appendChild(el('div','qdots','Question '+(qi+1)+' of '+P.questions.length));
-        const Q=P.questions[qi];
+        card.appendChild(el('div','passage', head+'<div class="ptext">'+esc(P.text)+'</div>'));
+        card.appendChild(el('div','qdots','Question '+(qi+1)+' of '+QS.length));
+        const Q=QS[qi];
         card.appendChild(el('div','qtext', esc(Q.q)));
         const box=el('div','choices');
         const fb=el('div','feedback',''); const why=el('div','why',''); const ctr=el('div','center');
@@ -133,7 +161,7 @@
             const ok=i===Q.answer; bump(ok);
             fb.textContent=ok?'✅ Correct!':'❌ Not quite.'; fb.className='feedback '+(ok?'good':'bad');
             why.textContent=Q.explain;
-            const more=qi<P.questions.length-1;
+            const more=qi<QS.length-1;
             ctr.appendChild(mkBtn(more?'Next question ▶':'New story ▶', ()=>{ if(more){ qi++; render(); } else next(); }));
             ctr.appendChild(backBtn());
           };
