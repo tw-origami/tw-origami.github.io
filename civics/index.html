@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Civic Nation</title>
+<style>
+  :root {
+    --ink: #1e293b; --muted: #64748b; --accent: #4338ca; --accent-soft: #e0e7ff;
+    --correct: #16a34a; --wrong: #dc2626; --shadow: 0 10px 30px rgba(49, 46, 129, 0.14);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; color: var(--ink);
+    background: linear-gradient(160deg, #eef2ff, #f8fafc); min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; padding: 24px 16px 60px;
+  }
+  h1 { font-size: 26px; margin: 6px 0 2px; letter-spacing: -0.5px; }
+  .sub { color: var(--muted); margin: 0 0 14px; font-size: 15px; text-align: center; max-width: 500px; line-height: 1.5; }
+  .hero { width: 100%; max-width: 480px; border-radius: 18px; box-shadow: var(--shadow); margin: 0 0 18px; display: block; }
+
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; position:sticky; top:10px; z-index:70; }
+  .nav a, .nav button{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 16px; border-radius:9px; border:none; background:transparent; font-family:inherit; cursor:pointer; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+  .nav button:hover{ background:var(--accent-soft); color:var(--accent); }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; }
+  .seg button {
+    border:none; background:transparent; font-family:inherit; font-weight:800;
+    font-size:14.5px; padding:9px 16px; border-radius:10px; cursor:pointer; color:var(--muted);
+    transition: background .15s, color .15s;
+  }
+  .seg button.on { background:var(--accent); color:#fff; }
+  .seg.cats button { font-size:13px; padding:7px 12px; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .chip { background:#fff; border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color: var(--muted); font-weight:600; }
+  .chip.streak { color:#ea580c; }
+
+  .stage { width:100%; max-width:560px; }
+  .card { width:100%; background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:28px 24px; display:flex; flex-direction:column; align-items:center; }
+  .qprompt { color:var(--muted); font-size:14px; margin:0 0 16px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; text-align:center; }
+
+  /* Subject block (definition / question / country / right) */
+  .subject { text-align:center; margin-bottom:22px; width:100%; }
+  .subj-icon { font-size:56px; line-height:1; }
+  .subj-name { font-size:24px; font-weight:800; letter-spacing:-.3px; margin:8px 0 6px; }
+  .subj-tag { display:inline-block; font-size:12px; font-weight:800; color:var(--accent); background:var(--accent-soft); padding:4px 12px; border-radius:999px; text-transform:uppercase; letter-spacing:.4px; }
+  .subj-def { font-size:20px; font-weight:700; line-height:1.45; margin:4px auto 0; max-width:440px; }
+  .subj-question { font-size:20px; font-weight:800; line-height:1.4; margin:4px auto 0; max-width:460px; }
+  .subj-flag { font-size:60px; line-height:1; }
+  .subj-us { font-size:16px; font-weight:600; color:var(--ink); line-height:1.5; margin:12px auto 0; max-width:440px; background:#f8fafc; border:2px solid #e2e8f0; border-radius:14px; padding:12px 16px; }
+  .subj-us b { color:var(--accent); }
+
+  .choices { display:flex; flex-direction:column; gap:11px; width:100%; }
+  .choice { background:#fff; border:3px solid #e2e8f0; border-radius:16px; font-size:16.5px; font-weight:700; padding:14px 18px; color:var(--ink); cursor:pointer; text-align:left; display:flex; align-items:center; gap:10px; font-family:inherit; line-height:1.35; }
+  .choice .cico { font-size:22px; flex:none; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; color:var(--correct); }
+  .choice.wrong { border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
+  .choice:disabled { cursor:default; }
+
+  .feedback { min-height:26px; margin-top:18px; font-weight:700; font-size:17px; text-align:center; }
+  .feedback.good { color:var(--correct); }
+  .feedback.bad { color:var(--wrong); }
+
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.55; text-align:left; width:100%; margin:10px auto 4px; padding:14px 16px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; overflow:hidden; }
+  .rev-img { float:right; width:104px; height:104px; object-fit:cover; border-radius:12px; margin:0 0 8px 12px; border:2px solid #c7d2fe; }
+  .choice .cimg { width:46px; height:46px; object-fit:cover; border-radius:10px; flex:none; border:1.5px solid #e2e8f0; }
+  .reveal.hidden { display:none; }
+  .reveal .rev-title { font-size:18px; font-weight:800; margin-bottom:5px; color:#312e81; }
+  .reveal .rev-body { color:#1e1b4b; }
+  .reveal .rev-ex { margin-top:8px; color:#3730a3; font-style:italic; }
+  .reveal .rev-label { font-size:12px; font-weight:800; color:#312e81; text-transform:uppercase; letter-spacing:.4px; margin:12px 0 7px; }
+
+  /* World-rights comparison rows in the reveal */
+  .worldrow { display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-top:1px solid #c7d2fe; }
+  .worldrow:first-of-type { border-top:none; }
+  .worldrow .wflag { font-size:22px; flex:none; }
+  .worldrow .wc { font-weight:800; min-width:120px; flex:none; }
+  .worldrow .wn { color:#1e1b4b; }
+  .badge { display:inline-block; font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:999px; text-transform:uppercase; letter-spacing:.3px; margin-left:2px; }
+  .badge.strong { background:#dcfce7; color:#15803d; }
+  .badge.restricted { background:#fee2e2; color:#b91c1c; }
+  .badge.mixed, .badge.compulsory { background:#fef3c7; color:#b45309; }
+
+  .rev-src { display:inline-block; margin-top:12px; font-size:13px; font-weight:700; color:var(--accent); text-decoration:none; border-bottom:1.5px dotted var(--accent); }
+  .rev-src:hover { color:#312e81; }
+
+  button.act { font-family:inherit; font-size:16px; font-weight:700; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; transition:transform .1s, background .15s; }
+  button.act:active { transform:scale(.96); }
+  button.act:disabled { opacity:.55; cursor:default; transform:none; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#312e81; }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  /* ELI5 box in reveals */
+  .eli5 { margin-top:12px; background:#fefce8; border-left:3px solid #eab308; border-radius:8px; padding:10px 13px; font-size:14px; color:#713f12; line-height:1.5; }
+  .eli5 b { color:#854d0e; }
+
+  /* Order It!: picked steps + wrong-tap shake */
+  .choice.picked { border-color:var(--correct); background:#f0fdf4; color:var(--ink); cursor:default; }
+  .choice .stepnum { flex:none; width:26px; height:26px; border-radius:50%; background:var(--correct); color:#fff; font-size:14px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .choice.shake { animation:shake .4s; border-color:var(--wrong); }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+
+  /* Diagram links + popup */
+  .dia-link { display:inline-block; margin-top:12px; margin-right:10px; font-family:inherit; font-size:13px; font-weight:800; color:#fff; background:var(--accent); border:none; border-radius:999px; padding:7px 14px; cursor:pointer; }
+  .dia-link:hover { background:#312e81; }
+  .dia-tabs { display:flex; gap:6px; flex-wrap:wrap; margin:0 0 14px; }
+  .dia-tabs button { font-family:inherit; font-weight:800; font-size:13px; border:none; background:var(--accent-soft); color:#312e81; padding:8px 13px; border-radius:999px; cursor:pointer; }
+  .dia-tabs button.on { background:var(--accent); color:#fff; }
+  .dia-svg { width:100%; height:auto; display:block; }
+  .dia-caption { margin-top:12px; min-height:44px; background:var(--accent-soft); border-radius:10px; padding:10px 14px; font-size:14px; font-weight:600; color:#1e1b4b; line-height:1.5; }
+  .dia-note { color:var(--muted); font-size:13px; margin-top:10px; line-height:1.5; }
+  svg .arrow { cursor:pointer; }
+  svg .arrow path.vis { stroke:#94a3b8; transition:stroke .15s; }
+  svg .arrow:hover path.vis { stroke:#6366f1; }
+  svg .arrow.on path.vis { stroke:var(--accent); }
+  .bill-steps { display:flex; flex-direction:column; gap:8px; }
+  .bill-step { display:flex; gap:10px; align-items:flex-start; background:#f8fafc; border:2px solid #e2e8f0; border-radius:12px; padding:10px 13px; transition:background .2s, border-color .2s; }
+  .bill-step.hot { background:var(--accent-soft); border-color:var(--accent); }
+  .bill-step .bico { font-size:22px; flex:none; }
+  .bill-step .bt { font-weight:800; font-size:14.5px; }
+  .bill-step .bd { color:var(--muted); font-size:13px; line-height:1.4; margin-top:1px; }
+
+  /* Sources popup */
+  .modal { position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:80; display:flex; align-items:center; justify-content:center; padding:18px; }
+  .modal.hidden { display:none; }
+  .sheet { background:#fff; border-radius:22px; box-shadow:0 24px 60px rgba(49,46,129,.35); width:100%; max-width:600px; max-height:82vh; overflow-y:auto; padding:26px 24px 30px; position:relative; }
+  .sheet h2 { margin:0 0 4px; font-size:22px; letter-spacing:-.4px; }
+  .sheet .sheet-sub { color:var(--muted); font-size:14px; margin:0 0 18px; line-height:1.5; }
+  .closeBtn { position:sticky; float:right; top:0; width:34px; height:34px; border:none; border-radius:50%; background:var(--accent-soft); color:#312e81; font-size:17px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .closeBtn:hover { background:var(--accent); color:#fff; }
+  .srow { padding:12px 0; border-top:1px solid #e2e8f0; }
+  .srow:first-of-type { border-top:none; }
+  .srow a { font-weight:800; font-size:15.5px; color:var(--accent); text-decoration:none; }
+  .srow a:hover { text-decoration:underline; }
+  .srow .snote { color:var(--muted); font-size:13.5px; margin-top:3px; line-height:1.45; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner {
+    position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6);
+    background:linear-gradient(135deg,#6366f1,#4338ca); color:#fff; font-weight:900;
+    font-size:28px; padding:20px 38px; border-radius:22px; box-shadow:0 18px 50px rgba(67,56,202,.45);
+    z-index:60; opacity:0; pointer-events:none; text-align:center; white-space:nowrap;
+  }
+  #streakBanner.show { animation: banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner {
+    0%{opacity:0; transform:translate(-50%,-50%) scale(.6)}
+    15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)}
+    28%{transform:translate(-50%,-50%) scale(1)}
+    80%{opacity:1; transform:translate(-50%,-50%) scale(1)}
+    100%{opacity:0; transform:translate(-50%,-60%) scale(.95)}
+  }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button id="diaBtn" title="See how the government fits together">📖 Diagrams</button>
+    <button id="srcBtn" title="See where these facts come from">📚 Sources</button>
+  </div>
+  <h1>🏛️ Civic Nation</h1>
+  <p class="sub">Learn how the U.S. government works — the branches, the Constitution, your rights — and how other countries do things differently. Built on the Massachusetts Grade 8 Civics framework.</p>
+  <img class="hero" src="img/hero.webp" alt="Kids waving flags in front of the Capitol">
+
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="terms" class="on">🔑 Terms</button>
+      <button data-mode="constitution">📜 Constitution</button>
+      <button data-mode="world">🌍 World Governments</button>
+      <button data-mode="rights">⚖️ Your Rights</button>
+      <button data-mode="sorter">🦅 Branch Sorter</button>
+      <button data-mode="order">🔢 Order It!</button>
+    </div>
+    <div class="seg cats" id="catSeg"></div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="stage">
+    <div class="card">
+      <p class="qprompt" id="prompt"></p>
+      <div class="subject" id="subject"></div>
+      <div class="choices" id="choices"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="reveal hidden" id="reveal"></div>
+      <div class="btn-row" id="nextRow" style="display:none">
+        <button class="act btn-primary" id="nextBtn">Next ➡️</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="srcModal">
+    <div class="sheet" id="srcSheet"></div>
+  </div>
+
+  <div class="modal hidden" id="diaModal">
+    <div class="sheet" id="diaSheet"></div>
+  </div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const shuffle = arr => arr.slice().sort(()=>Math.random()-0.5);
+  const C = window.CIVICS;
+  const SRC = {}; C.SOURCES.forEach(s => SRC[s.key] = s);
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  let mode = 'terms';           // terms | constitution | world | rights
+  let cat = 'all';              // terms category filter
+  let correct = 0, total = 0, streak = 0;
+  let lastKey = null;
+  let answered = false, advanceReady = true;
+  let advanceTimer = null, countdownTimer = null;
+
+  function clearTimers(){
+    if (advanceTimer){ clearTimeout(advanceTimer); advanceTimer = null; }
+    if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
+  }
+  function updateScorebar(){
+    $('correctCount').textContent = correct;
+    $('totalCount').textContent = total;
+    $('streak').textContent = streak;
+  }
+  function resetProgress(){ correct = 0; total = 0; streak = 0; lastKey = null; updateScorebar(); }
+
+  function renderCats(){
+    const seg = $('catSeg'); seg.innerHTML = '';
+    seg.style.display = mode === 'terms' ? 'flex' : 'none';
+    if (mode !== 'terms') return;
+    C.TERM_CATS.forEach(([key, label]) => {
+      const b = document.createElement('button');
+      b.dataset.cat = key; b.textContent = label;
+      if (key === cat) b.classList.add('on');
+      seg.appendChild(b);
+    });
+  }
+
+  function srcLink(key){
+    const s = SRC[key]; if (!s) return '';
+    return `<a class="rev-src" href="${s.url}" target="_blank" rel="noopener">📚 Source: ${esc(s.name)} ↗</a>`;
+  }
+
+  const eli5Box = text => `<div class="eli5">🧒 <b>Simple Terms:</b> ${esc(text)}</div>`;
+  const diaLink = (key, label) => `<button class="dia-link" data-dia="${key}">📖 ${label || 'See the diagram'}</button>`;
+
+  // ---- Build a round object for the current mode ----
+  // Returns { prompt, subjectHTML, choices:[{html, val, correct}], revealHTML }
+  function buildRound(){
+    if (mode === 'terms')        return roundTerms();
+    if (mode === 'constitution') return roundConstitution();
+    if (mode === 'world')        return roundWorld();
+    if (mode === 'sorter')       return roundSorter();
+    return roundRights();
+  }
+
+  function roundTerms(){
+    const pool = cat === 'all' ? C.TERMS : C.TERMS.filter(t => t.cat === cat);
+    let t, tries = 0;
+    do { t = pick(pool); tries++; } while (pool.length > 1 && t.term === lastKey && tries < 30);
+    lastKey = t.term;
+    const distractors = shuffle(C.TERMS.filter(x => x.term !== t.term)).slice(0, 3).map(x => x.term);
+    const options = shuffle([t.term, ...distractors]);
+    return {
+      prompt: 'Which civics term means this?',
+      subjectHTML: `<div class="subj-def">“${esc(t.def)}”</div>`,
+      choices: options.map(o => ({ html: esc(o), val: o, correct: o === t.term })),
+      revealHTML:
+        (t.img ? `<img class="rev-img" src="${t.img}" alt="">` : '') +
+        `<div class="rev-title">${t.icon} ${esc(t.term)}</div>` +
+        `<div class="rev-body">${esc(t.kid)}</div>` +
+        `<div class="rev-ex">💡 Example: ${esc(t.ex)}</div>` +
+        eli5Box(t.eli5)
+    };
+  }
+
+  function roundConstitution(){
+    let q, tries = 0;
+    do { q = pick(C.CONSTITUTION); tries++; } while (C.CONSTITUTION.length > 1 && q.q === lastKey && tries < 30);
+    lastKey = q.q;
+    const correctText = q.choices[q.answer];
+    const options = shuffle(q.choices);
+    return {
+      prompt: 'Constitution & Government',
+      subjectHTML: `<div class="subj-question">${esc(q.q)}</div>`,
+      choices: options.map(o => ({ html: esc(o), val: o, correct: o === correctText })),
+      revealHTML:
+        `<div class="rev-body">${esc(q.explain)}</div>` +
+        eli5Box(q.eli5) +
+        (q.dia ? diaLink(q.dia) : '') +
+        srcLink(q.src)
+    };
+  }
+
+  function roundWorld(){
+    let c, tries = 0;
+    do { c = pick(C.GOV_COUNTRIES); tries++; } while (C.GOV_COUNTRIES.length > 1 && c.name === lastKey && tries < 30);
+    lastKey = c.name;
+    const allTypes = Object.keys(C.GOVTYPES);
+    const distractors = shuffle(allTypes.filter(t => t !== c.type)).slice(0, 3);
+    const options = shuffle([c.type, ...distractors]);
+    const gt = C.GOVTYPES[c.type];
+    return {
+      prompt: 'What type of government does this country have?',
+      subjectHTML:
+        `<div class="subj-flag">${c.flag}</div>` +
+        `<div class="subj-name">${esc(c.name)}</div>`,
+      choices: options.map(o => ({ html: `<span class="cico">${C.GOVTYPES[o].icon}</span>${esc(o)}`, val: o, correct: o === c.type })),
+      revealHTML:
+        `<div class="rev-title">${c.flag} ${esc(c.name)} — ${esc(c.type)}</div>` +
+        `<div class="rev-body">${esc(gt.desc)}</div>` +
+        `<div class="rev-ex">🏛️ Led by: ${esc(c.head)}</div>` +
+        `<div class="rev-body" style="margin-top:8px">${esc(c.fact)}</div>` +
+        eli5Box(gt.eli5) +
+        srcLink('factbook')
+    };
+  }
+
+  function roundRights(){
+    let r, tries = 0;
+    do { r = pick(C.RIGHTS); tries++; } while (C.RIGHTS.length > 1 && r.right === lastKey && tries < 30);
+    lastKey = r.right;
+    const allAmend = [...new Set(C.RIGHTS.map(x => x.amendment))];
+    const distractors = shuffle(allAmend.filter(a => a !== r.amendment)).slice(0, 3);
+    const options = shuffle([r.amendment, ...distractors]);
+    const worldRows = r.world.map(w =>
+      `<div class="worldrow"><span class="wflag">${w.flag}</span>` +
+      `<span class="wc">${esc(w.country)}<span class="badge ${w.status}">${esc(w.status)}</span></span>` +
+      `<span class="wn">${esc(w.note)}</span></div>`).join('');
+    return {
+      prompt: 'Which amendment protects this right in the U.S.?',
+      subjectHTML:
+        `<div class="subj-icon">${r.icon}</div>` +
+        `<div class="subj-name">${esc(r.right)}</div>` +
+        `<div class="subj-us"><b>In the U.S.:</b> ${esc(r.us)}</div>`,
+      choices: options.map(o => ({ html: esc(o), val: o, correct: o === r.amendment })),
+      revealHTML:
+        (r.img ? `<img class="rev-img" src="${r.img}" alt="">` : '') +
+        `<div class="rev-title">${r.icon} ${esc(r.right)} — ${esc(r.amendment)}</div>` +
+        eli5Box(r.eli5) +
+        `<div class="rev-label">🌍 How this right varies around the world</div>` +
+        worldRows +
+        srcLink('freedom')
+    };
+  }
+
+  // ---- Branch Sorter: which branch has this power? ----
+  const BRANCH_META = {
+    legislative: { icon: '🏛️', name: 'Legislative — Congress',      img: 'img/capitol.webp' },
+    executive:   { icon: '🦅', name: 'Executive — the President',   img: 'img/whitehouse.webp' },
+    judicial:    { icon: '⚖️', name: 'Judicial — the Courts',       img: 'img/supremecourt.webp' }
+  };
+  function roundSorter(){
+    let p, tries = 0;
+    do { p = pick(C.POWERS); tries++; } while (C.POWERS.length > 1 && p.text === lastKey && tries < 30);
+    lastKey = p.text;
+    const m = BRANCH_META[p.branch];
+    return {
+      prompt: 'Which branch of government has this power?',
+      subjectHTML:
+        `<div class="subj-icon">${p.icon}</div>` +
+        `<div class="subj-def">“${esc(p.text)}”</div>`,
+      // Buckets stay in a fixed L→E→J order, like real sorting bins.
+      choices: Object.keys(BRANCH_META).map(k => ({
+        html: `<img class="cimg" src="${BRANCH_META[k].img}" alt="">${esc(BRANCH_META[k].name)}`,
+        val: k, correct: k === p.branch
+      })),
+      revealHTML:
+        `<img class="rev-img" src="${m.img}" alt="">` +
+        `<div class="rev-title">${m.icon} ${esc(m.name)}</div>` +
+        `<div class="rev-body">${esc(p.why)}</div>` +
+        diaLink('checks', 'See how the branches check each other') +
+        srcLink('usagov')
+    };
+  }
+
+  let curReveal = '';
+  function newRound(){
+    if (mode === 'order'){ newOrderRound(); return; }
+    clearTimers();
+    advanceReady = true; answered = false;
+    $('feedback').textContent = ''; $('feedback').className = 'feedback';
+    $('reveal').className = 'reveal hidden'; $('reveal').innerHTML = '';
+    $('nextRow').style.display = 'none';
+
+    const round = buildRound();
+    curReveal = round.revealHTML;
+    $('prompt').textContent = round.prompt;
+    $('subject').innerHTML = round.subjectHTML;
+
+    const box = $('choices'); box.innerHTML = '';
+    round.choices.forEach(ch => {
+      const btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.innerHTML = ch.html;
+      btn.dataset.val = ch.val;
+      if (ch.correct) btn.dataset.correct = '1';
+      btn.onclick = () => answer(btn, ch.correct);
+      box.appendChild(btn);
+    });
+  }
+
+  function answer(btn, isCorrect){
+    if (answered) return;
+    answered = true;
+    total++;
+    if (isCorrect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+
+    // Lock all choices; always reveal the correct one; mark a wrong pick red.
+    [...$('choices').children].forEach(c => {
+      c.disabled = true;
+      if (c.dataset.correct === '1') c.classList.add('correct');
+    });
+    if (!isCorrect) btn.classList.add('wrong');
+
+    const fb = $('feedback');
+    if (isCorrect){ fb.textContent = pick(['🎉 Correct!','⭐ Nice!','✅ You got it!','🏛️ Well done!','🌟 Sharp!']); fb.className = 'feedback good'; }
+    else { fb.textContent = 'Not quite — here’s the answer:'; fb.className = 'feedback bad'; }
+
+    const rev = $('reveal');
+    rev.innerHTML = curReveal;
+    rev.className = 'reveal';
+
+    if (isCorrect && streak > 0 && streak % 5 === 0) celebrate(streak);
+    startReadLock();
+  }
+
+  // ---- Order It!: tap the steps in the correct order ----
+  let orderState = null;
+  function newOrderRound(){
+    clearTimers();
+    advanceReady = true; answered = false;
+    $('feedback').textContent = ''; $('feedback').className = 'feedback';
+    $('reveal').className = 'reveal hidden'; $('reveal').innerHTML = '';
+    $('nextRow').style.display = 'none';
+
+    let seq, tries = 0;
+    do { seq = pick(C.SEQUENCES); tries++; } while (C.SEQUENCES.length > 1 && seq.title === lastKey && tries < 20);
+    lastKey = seq.title;
+    orderState = { seq, expected: 0, mistakes: 0 };
+
+    $('prompt').textContent = seq.icon + ' ' + seq.title;
+    $('subject').innerHTML = '<div class="subj-def" style="font-size:16px;color:var(--muted)">Tap the steps in the correct order — first step first.</div>';
+
+    let idxs = seq.steps.map((_, i) => i), tries2 = 0;
+    do { idxs = shuffle(idxs); tries2++; } while (idxs.every((v, i) => v === i) && tries2 < 10);
+    const box = $('choices'); box.innerHTML = '';
+    idxs.forEach(i => {
+      const st = seq.steps[i];
+      const btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.innerHTML = `<span class="cico">${st.icon}</span>${esc(st.text)}`;
+      btn.onclick = () => orderPick(btn, i);
+      box.appendChild(btn);
+    });
+  }
+  function orderPick(btn, i){
+    if (answered) return;
+    const st = orderState;
+    if (i === st.expected){
+      st.expected++;
+      btn.classList.remove('shake');
+      btn.classList.add('picked'); btn.disabled = true;
+      btn.insertAdjacentHTML('afterbegin', `<span class="stepnum">${st.expected}</span>`);
+      if (st.expected === st.seq.steps.length) finishOrder();
+      else { $('feedback').textContent = ''; $('feedback').className = 'feedback'; }
+    } else {
+      st.mistakes++;
+      btn.classList.remove('shake'); void btn.offsetWidth; btn.classList.add('shake');
+      setTimeout(() => btn.classList.remove('shake'), 450);
+      const fb = $('feedback'); fb.textContent = 'Not that one yet — think about what happens next. 🤔'; fb.className = 'feedback bad';
+    }
+  }
+  function finishOrder(){
+    answered = true; total++;
+    const perfect = orderState.mistakes === 0;
+    if (perfect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+    const fb = $('feedback');
+    if (perfect){ fb.textContent = '🎉 Perfect order!'; fb.className = 'feedback good'; }
+    else { fb.textContent = `Done — with ${orderState.mistakes} wrong tap${orderState.mistakes > 1 ? 's' : ''}. Review the order below.`; fb.className = 'feedback bad'; }
+    const seq = orderState.seq;
+    $('reveal').innerHTML =
+      `<div class="rev-title">${seq.icon} ${esc(seq.title)}</div>` +
+      seq.steps.map((s, i) =>
+        `<div class="worldrow"><span class="wflag">${s.icon}</span>` +
+        `<span class="wc" style="min-width:24px">${i + 1}.</span>` +
+        `<span class="wn"><b>${esc(s.text)}.</b> ${esc(s.desc)}</span></div>`).join('') +
+      `<div class="rev-ex">${esc(seq.note)}</div>` +
+      (seq.dia ? diaLink(seq.dia) : '') +
+      srcLink(seq.src);
+    $('reveal').className = 'reveal';
+    if (perfect && streak > 0 && streak % 5 === 0) celebrate(streak);
+    startReadLock();
+  }
+
+  // 3s read-lock so the reveal actually gets read.
+  function startReadLock(){
+    advanceReady = false;
+    let secs = 3;
+    const nb = $('nextBtn');
+    nb.disabled = true; nb.textContent = `Read it… (${secs})`;
+    $('nextRow').style.display = 'flex';
+    countdownTimer = setInterval(() => {
+      secs--;
+      if (secs > 0) nb.textContent = `Read it… (${secs})`;
+      else { clearInterval(countdownTimer); countdownTimer = null; }
+    }, 1000);
+    advanceTimer = setTimeout(() => {
+      advanceReady = true; advanceTimer = null;
+      nb.disabled = false; nb.textContent = 'Next ➡️'; nb.focus();
+    }, 3000);
+  }
+  function tryAdvance(){ if (answered && advanceReady) newRound(); }
+
+  function celebrate(n){
+    const msgs = { 5:'🌟 5 in a row!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>You’re a great citizen!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    const colors = ['#4338ca','#6366f1','#f59e0b','#16a34a','#dc2626','#0ea5e9'];
+    const box = $('confetti');
+    for (let i = 0; i < 90; i++){
+      const c = document.createElement('div');
+      c.className = 'conf';
+      c.style.left = Math.random()*100 + 'vw';
+      c.style.background = colors[i % colors.length];
+      c.style.animationDuration = (1.6 + Math.random()*1.4) + 's';
+      c.style.animationDelay = (Math.random()*0.4) + 's';
+      c.style.transform = `rotate(${Math.random()*360}deg)`;
+      box.appendChild(c);
+      setTimeout(()=>c.remove(), 3400);
+    }
+  }
+
+  // ---- 📖 Diagrams popup ----
+  const CHECK_TEXT = {
+    EL: '🦅 → 🏛️ The President checks Congress: he or she can VETO bills that Congress passes.',
+    LE: '🏛️ → 🦅 Congress checks the President: it can OVERRIDE a veto with a two-thirds vote, and can IMPEACH and remove a President.',
+    EJ: '🦅 → ⚖️ The President checks the courts: he or she NOMINATES Supreme Court justices and can grant pardons.',
+    JE: '⚖️ → 🦅 The courts check the President: they can rule the President’s actions UNCONSTITUTIONAL.',
+    LJ: '🏛️ → ⚖️ Congress checks the courts: the Senate CONFIRMS or rejects judges, and Congress can impeach judges.',
+    JL: '⚖️ → 🏛️ The courts check Congress: they can STRIKE DOWN laws that violate the Constitution (judicial review).'
+  };
+  function diaChecks(){
+    const node = (x, y, w, img, label) =>
+      `<g><rect x="${x - w/2}" y="${y - 46}" rx="14" width="${w}" height="92" fill="#fdfbf3" stroke="#4338ca" stroke-width="2.5"/>` +
+      `<image href="${img}" x="${x - 24}" y="${y - 40}" width="48" height="48" preserveAspectRatio="xMidYMid slice"/>` +
+      `<text x="${x}" y="${y + 30}" text-anchor="middle" font-size="13.5" font-weight="800" fill="#1e1b4b">${label}</text></g>`;
+    const arrow = (key, x1, y1, x2, y2) =>
+      `<g class="arrow" data-key="${key}">` +
+      `<path class="vis" d="M ${x1} ${y1} L ${x2} ${y2}" stroke-width="4" fill="none" marker-end="url(#ah)"/>` +
+      `<path d="M ${x1} ${y1} L ${x2} ${y2}" stroke="transparent" stroke-width="24" fill="none"/></g>`;
+    return `<svg class="dia-svg" viewBox="0 0 560 430" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748b"/></marker></defs>
+      ${arrow('LE', 215, 122, 120, 298)}
+      ${arrow('EL', 145, 298, 240, 122)}
+      ${arrow('LJ', 345, 122, 440, 298)}
+      ${arrow('JL', 415, 298, 320, 122)}
+      ${arrow('EJ', 215, 362, 345, 362)}
+      ${arrow('JE', 345, 338, 215, 338)}
+      ${node(280, 70, 200, 'img/capitol.webp', 'Legislative (Congress)')}
+      ${node(120, 350, 185, 'img/whitehouse.webp', 'Executive (President)')}
+      ${node(440, 350, 185, 'img/supremecourt.webp', 'Judicial (Courts)')}
+    </svg>
+    <div class="dia-caption" id="diaCaption">👆 Tap any arrow to see how one branch checks another. Six arrows = six ways power stays balanced.</div>`;
+  }
+  function wireChecks(){
+    document.querySelectorAll('#diaBody .arrow').forEach(g => {
+      g.onclick = () => {
+        document.querySelectorAll('#diaBody .arrow').forEach(a => a.classList.toggle('on', a === g));
+        $('diaCaption').textContent = CHECK_TEXT[g.dataset.key];
+      };
+    });
+  }
+
+  let billTimer = null;
+  function diaBill(){
+    const seq = C.SEQUENCES.find(s => s.dia === 'bill');
+    const rows = seq.steps.map((s, i) =>
+      `<div class="bill-step" data-i="${i}"><span class="bico">${s.icon}</span>` +
+      `<span><span class="bt">${i + 1}. ${esc(s.text)}</span><div class="bd">${esc(s.desc)}</div></span></div>`).join('');
+    return `<button class="act btn-primary" id="billPlay" style="margin-bottom:12px">▶ Walk me through it</button>` +
+      `<div class="bill-steps">${rows}</div>` +
+      `<div class="dia-note">${esc(seq.note)}</div>`;
+  }
+  function wireBill(){
+    $('billPlay').onclick = () => {
+      if (billTimer){ clearInterval(billTimer); billTimer = null; }
+      const steps = [...document.querySelectorAll('#diaBody .bill-step')];
+      steps.forEach(s => s.classList.remove('hot'));
+      let i = 0;
+      steps[0].classList.add('hot');
+      billTimer = setInterval(() => {
+        steps[i] && steps[i].classList.remove('hot');
+        i++;
+        if (i >= steps.length){ clearInterval(billTimer); billTimer = null; return; }
+        steps[i].classList.add('hot');
+      }, 1100);
+    };
+  }
+
+  function diaVenn(){
+    const line = (x, y, t) => `<text x="${x}" y="${y}" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1e293b">${t}</text>`;
+    return `<svg class="dia-svg" viewBox="0 0 560 360" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="195" cy="195" r="150" fill="#818cf8" opacity="0.32"/>
+      <circle cx="365" cy="195" r="150" fill="#34d399" opacity="0.28"/>
+      <text x="120" y="30" text-anchor="middle" font-size="16" font-weight="800" fill="#312e81">🦅 National</text>
+      <text x="280" y="30" text-anchor="middle" font-size="16" font-weight="800" fill="#0f766e">🤝 Shared</text>
+      <text x="445" y="30" text-anchor="middle" font-size="16" font-weight="800" fill="#065f46">🏛️ State</text>
+      ${line(115, 140, '🪖 Military')}${line(115, 172, '💵 Print money')}${line(115, 204, '✉️ Post office')}${line(115, 236, '🛂 Immigration')}${line(115, 268, '🤝 Treaties')}
+      ${line(280, 140, '💰 Collect taxes')}${line(280, 172, '⚖️ Set up courts')}${line(280, 204, '🛣️ Build roads')}${line(280, 236, '🏦 Borrow money')}${line(280, 268, '📜 Make laws')}
+      ${line(447, 140, '🏫 Run schools')}${line(447, 172, '🚗 Driver’s licenses')}${line(447, 204, '🗳️ Run elections')}${line(447, 236, '👮 Local police')}${line(447, 268, '🏘️ Local governments')}
+    </svg>
+    <div class="dia-caption">Federalism: some powers belong to the whole nation, some to each state — and where the circles overlap, BOTH levels share the power.</div>`;
+  }
+
+  function diaPyramid(){
+    const t = (x, y, size, weight, fill, text, anchor) =>
+      `<text x="${x}" y="${y}" text-anchor="${anchor || 'start'}" font-size="${size}" font-weight="${weight}" fill="${fill}">${text}</text>`;
+    return `<svg class="dia-svg" viewBox="0 0 560 370" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="190,18 252,122 128,122" fill="#4338ca"/>
+      ${t(190, 105, 15, 800, '#fff', 'Federal', 'middle')}
+      <polygon points="112,134 268,134 298,236 82,236" fill="#6366f1"/>
+      ${t(190, 192, 16, 800, '#fff', 'State', 'middle')}
+      <polygon points="66,248 314,248 344,352 36,352" fill="#a5b4fc"/>
+      ${t(190, 306, 16, 800, '#1e1b4b', 'Local', 'middle')}
+      ${t(360, 55, 14.5, 800, '#312e81', '🦅 Federal — the whole country')}
+      ${t(360, 76, 12.5, 600, '#64748b', 'President · Congress · Supreme Court')}
+      ${t(360, 94, 12.5, 600, '#64748b', 'Military, money, immigration, treaties')}
+      ${t(360, 170, 14.5, 800, '#312e81', '🏛️ State — e.g. Massachusetts')}
+      ${t(360, 191, 12.5, 600, '#64748b', 'Governor · state legislature · state courts')}
+      ${t(360, 209, 12.5, 600, '#64748b', 'Schools, highways, driver’s licenses')}
+      ${t(360, 285, 14.5, 800, '#312e81', '🏘️ Local — your city or town')}
+      ${t(360, 306, 12.5, 600, '#64748b', 'Mayor or town meeting · council')}
+      ${t(360, 324, 12.5, 600, '#64748b', 'Parks, libraries, trash, local police')}
+    </svg>
+    <div class="dia-caption">Three levels of government — and most of the services you see every day (schools, parks, police) come from the state and local levels.</div>`;
+  }
+
+  const DIA = {
+    checks:  { label: '⚖️ Checks & Balances',   render: diaChecks,  wire: wireChecks },
+    bill:    { label: '📄 Bill → Law',           render: diaBill,    wire: wireBill },
+    venn:    { label: '🗺️ Federalism',           render: diaVenn },
+    pyramid: { label: '🏛️ Levels of Government', render: diaPyramid }
+  };
+  function openDiagrams(which){
+    const tabs = Object.keys(DIA).map(k =>
+      `<button data-dia-tab="${k}">${DIA[k].label}</button>`).join('');
+    $('diaSheet').innerHTML =
+      `<button class="closeBtn" id="closeDia" title="Close">✕</button>` +
+      `<h2>📖 Civics Diagrams</h2>` +
+      `<p class="sheet-sub">Pictures of how the government fits together.</p>` +
+      `<div class="dia-tabs" id="diaTabs">${tabs}</div><div id="diaBody"></div>`;
+    $('closeDia').onclick = closeDiagrams;
+    $('diaTabs').onclick = e => { const b = e.target.closest('button'); if (b) renderDia(b.dataset.diaTab); };
+    renderDia(which || 'checks');
+    $('diaModal').className = 'modal';
+    $('diaSheet').scrollTop = 0;
+  }
+  function renderDia(k){
+    if (billTimer){ clearInterval(billTimer); billTimer = null; }
+    [...$('diaTabs').children].forEach(b => b.classList.toggle('on', b.dataset.diaTab === k));
+    $('diaBody').innerHTML = DIA[k].render();
+    if (DIA[k].wire) DIA[k].wire();
+  }
+  function closeDiagrams(){
+    if (billTimer){ clearInterval(billTimer); billTimer = null; }
+    $('diaModal').className = 'modal hidden';
+  }
+
+  // ---- Sources popup ----
+  function openSources(){
+    const rows = C.SOURCES.map(s =>
+      `<div class="srow"><a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)} ↗</a>` +
+      `<div class="snote">${esc(s.note)}</div></div>`).join('');
+    $('srcSheet').innerHTML =
+      `<button class="closeBtn" id="closeSrc" title="Close">✕</button>` +
+      `<h2>📚 Where these facts come from</h2>` +
+      `<p class="sheet-sub">This game is aligned to the Massachusetts Grade 8 Civics framework. Every fact traces back to one of these trusted sources — click to read the real thing.</p>` +
+      rows;
+    $('srcModal').className = 'modal';
+    $('srcSheet').scrollTop = 0;
+    $('closeSrc').onclick = closeSources;
+  }
+  function closeSources(){ $('srcModal').className = 'modal hidden'; }
+
+  // ---- Wiring ----
+  $('modeSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.mode; cat = 'all';
+    [...$('modeSeg').children].forEach(x => x.classList.toggle('on', x === b));
+    renderCats(); resetProgress(); newRound();
+  });
+  $('catSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    cat = b.dataset.cat;
+    [...$('catSeg').children].forEach(x => x.classList.toggle('on', x === b));
+    resetProgress(); newRound();
+  });
+  $('nextBtn').onclick = tryAdvance;
+  $('srcBtn').onclick = openSources;
+  $('diaBtn').onclick = () => openDiagrams('checks');
+  $('srcModal').addEventListener('click', e => { if (e.target === $('srcModal')) closeSources(); });
+  $('diaModal').addEventListener('click', e => { if (e.target === $('diaModal')) closeDiagrams(); });
+  // "📖 See the diagram" buttons live inside reveal HTML — delegate.
+  document.addEventListener('click', e => {
+    const b = e.target.closest('.dia-link');
+    if (b) openDiagrams(b.dataset.dia);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape'){ closeSources(); closeDiagrams(); return; }
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (!$('srcModal').className.includes('hidden')){ closeSources(); return; }
+    if (!$('diaModal').className.includes('hidden')){ closeDiagrams(); return; }
+    if (answered) tryAdvance();
+  });
+
+  renderCats();
+  newRound();
+})();
+</script>
+</body>
+</html>
