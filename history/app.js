@@ -52,6 +52,13 @@
           if(!ok){ [...grid.children].forEach((x,i)=>{ if(options[i].name===answer.name) x.classList.add('correct'); }); }
           bump(ok);
           fb.textContent = ok?'🎉 Correct!':'That was '+answer.name+'.'; fb.className='feedback '+(ok?'good':'bad');
+          // reveal a short bio of the answer
+          const bioCard=el('div','revealbio');
+          bioCard.innerHTML = portrait(answer).replace('width:84px;height:84px','width:70px;height:70px')+
+            '<div class="rb-text"><div class="rb-nm">'+esc(answer.name)+'</div>'+
+            '<div class="rb-meta">'+answer.flag+' '+esc(answer.country)+' · '+esc(answer.eraLabel)+' · '+esc(answer.role)+'</div>'+
+            '<div class="rb-bio">'+esc(answer.bio)+'</div></div>';
+          card.insertBefore(bioCard, fb);
           ctr.innerHTML=''; ctr.appendChild(mkBtn('Next ▶',round)); ctr.appendChild(backBtn());
         };
         grid.appendChild(t);

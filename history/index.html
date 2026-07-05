@@ -58,6 +58,11 @@
   .person[disabled]{ opacity:.6; cursor:default; }
 
   .factbox{ background:var(--accent-soft); border-radius:14px; padding:18px 20px; font-size:19px; font-weight:700; text-align:center; margin-bottom:16px; line-height:1.4; }
+  .revealbio{ display:flex; gap:14px; align-items:flex-start; text-align:left; background:#fbf7ef; border:2px solid #ece3d3; border-radius:14px; padding:14px 16px; margin-top:14px; }
+  .revealbio img{ width:70px; height:70px; object-fit:cover; border-radius:12px; background:#f3ede2; flex:0 0 auto; }
+  .revealbio .rb-nm{ font-weight:900; font-size:17px; }
+  .revealbio .rb-meta{ color:var(--muted); font-weight:700; font-size:12px; margin:2px 0 6px; }
+  .revealbio .rb-bio{ font-size:14px; line-height:1.5; }
 
   /* flashcard */
   .flip{ perspective:1200px; max-width:460px; margin:0 auto 8px; }
@@ -117,6 +122,6 @@
   <div class="credit" id="credit"></div>
 
 <script src="library.js?v=1"></script>
-<script src="app.js?v=1"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>
