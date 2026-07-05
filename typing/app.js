@@ -100,7 +100,7 @@
       <g class="hgf" data-hand="${hand}" data-finger="${fname}">
         <rect x="${x-13}" y="${top}" width="26" height="${178-top}" rx="13" fill="var(${color})"/>
         <circle cx="${x}" cy="${top}" r="15" fill="var(${color})" stroke="#fff" stroke-width="2"/>
-        <text x="${x}" y="${top+5}" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">${key}</text>
+        <text class="hgtip" x="${x}" y="${top+5}" text-anchor="middle" font-size="15" font-weight="800" fill="#fff"></text>
       </g>`;
     const svg=`<svg viewBox="0 0 640 252" xmlns="http://www.w3.org/2000/svg">
       <rect x="96" y="158" width="134" height="62" rx="28" fill="#e2e8f0"/>
@@ -180,14 +180,17 @@
       kb.querySelectorAll('.key.next').forEach(x=>x.classList.remove('next'));
       const nx = target[pos] ? target[pos].toLowerCase() : null;
       if(nx){ const key=kb.querySelector('.key[data-k="'+(nx===' '?' ':cssKey(nx))+'"]'); if(key) key.classList.add('next'); }
-      // hand guide: light up the finger to use, fade the rest
+      // hand guide: light up the finger to use (showing the next letter), fade the rest
       handGuide.querySelectorAll('.hgf.active').forEach(g=>g.classList.remove('active'));
+      handGuide.querySelectorAll('.hgtip').forEach(t=>t.textContent='');
       const info = nx ? KEYINFO[nx] : null;
       if(info){
         handGuide.classList.add('armed');
         const sel = info.finger==='thumb' ? '.hgf[data-finger="thumb"]'
                   : '.hgf[data-hand="'+info.hand+'"][data-finger="'+info.finger+'"]';
-        const g = handGuide.querySelector(sel); if(g) g.classList.add('active');
+        const g = handGuide.querySelector(sel);
+        if(g){ g.classList.add('active');
+          const tip=g.querySelector('.hgtip'); if(tip) tip.textContent = target[pos].toUpperCase(); }
       } else { handGuide.classList.remove('armed'); }
       $('prog').textContent = Math.round(pos/target.length*100)+'%';
     }
