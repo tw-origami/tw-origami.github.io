@@ -262,7 +262,7 @@
     $('backOrigin').textContent = cur.origin;
     $('backPart').textContent = cur.part;
     $('backMeaning').textContent = '"' + cur.meaning + '"';
-    $('backEtym').textContent = cur.etym || '';
+    $('backEtym').textContent = cur.definition || cur.etym || '';
     $('backExamples').innerHTML = exampleHTML(cur);
     $('flashKnowRow').style.display = 'none';
     $('flashFlipRow').style.display = 'flex';
@@ -344,7 +344,7 @@
     const fb = $('feedback');
     if (isCorrect){ fb.textContent = pick(['🎉 Correct!','⭐ Nice work!','✅ You got it!','🚀 Great job!']); fb.className = 'feedback good'; }
     else { fb.textContent = `"${cur.part}" means "${cur.meaning}".`; fb.className = 'feedback bad'; }
-    $('quizEtym').textContent = cur.etym || '';
+    $('quizEtym').textContent = cur.definition || cur.etym || '';
     $('factoid').innerHTML = exampleHTML(cur);
     $('nextRow').style.display = 'flex';
 

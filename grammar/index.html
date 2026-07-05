@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Grammar Gym</title>
+<style>
+  :root {
+    --ink: #1e293b; --muted: #64748b; --accent: #0d9488; --accent-soft: #ccfbf1;
+    --correct: #16a34a; --wrong: #dc2626; --shadow: 0 10px 30px rgba(15, 82, 74, 0.14);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; color: var(--ink);
+    background: linear-gradient(160deg, #ecfeff, #f8fafc); min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; padding: 24px 16px 60px;
+  }
+  h1 { font-size: 26px; margin: 6px 0 2px; letter-spacing: -0.5px; }
+  .sub { color: var(--muted); margin: 0 0 18px; font-size: 15px; text-align: center; max-width: 480px; }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; }
+  .nav a{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 16px; border-radius:9px; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; }
+  .seg button {
+    border:none; background:transparent; font-family:inherit; font-weight:800;
+    font-size:15px; padding:9px 18px; border-radius:10px; cursor:pointer; color:var(--muted);
+    transition: background .15s, color .15s;
+  }
+  .seg button.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .chip { background:#fff; border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color: var(--muted); font-weight:600; }
+  .chip.streak { color:#ea580c; }
+
+  .stage { width:100%; max-width:540px; }
+  .card { width:100%; background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:30px 26px; display:flex; flex-direction:column; align-items:center; }
+  .qprompt { color:var(--muted); font-size:14px; margin:0 0 14px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; text-align:center; }
+  .sentence { font-size:27px; font-weight:700; line-height:1.5; text-align:center; margin:0 0 26px; max-width:460px; letter-spacing:-.3px; }
+  @media (max-width:560px){ .sentence { font-size:22px; } }
+
+  .target { background:var(--accent-soft); color:#0f766e; font-weight:800; padding:1px 9px; border-radius:8px; }
+  .hi { color:var(--accent); font-weight:800; text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:2px; }
+
+  .choices { display:flex; flex-direction:column; gap:11px; width:100%; }
+  .choice { background:#fff; border:3px solid #e2e8f0; border-radius:16px; font-size:17px; font-weight:700; padding:15px 18px; color:var(--ink); cursor:pointer; text-align:left; }
+  .choice:hover { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; color:var(--correct); }
+  .choice.wrong { border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
+  .choice:disabled { cursor:default; }
+
+  .feedback { min-height:26px; margin-top:18px; font-weight:700; font-size:17px; text-align:center; }
+  .feedback.good { color:var(--correct); }
+  .feedback.bad { color:var(--wrong); }
+
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.55; text-align:left; width:100%; max-width:400px; margin:8px auto 4px; padding:12px 15px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
+  .reveal.hidden { display:none; }
+  .reveal .fixed-line { font-size:18px; font-weight:700; margin-bottom:6px; color:var(--ink); }
+  .reveal .why { color:#0f766e; }
+  .reveal .rule b { color:#0f766e; }
+
+  button.act { font-family:inherit; font-size:16px; font-weight:700; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; transition:transform .1s, background .15s; }
+  button.act:active { transform:scale(.96); }
+  button.act:disabled { opacity:.55; cursor:default; transform:none; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#0b7d73; }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner {
+    position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6);
+    background:linear-gradient(135deg,#14b8a6,#0d9488); color:#fff; font-weight:900;
+    font-size:28px; padding:20px 38px; border-radius:22px; box-shadow:0 18px 50px rgba(13,148,136,.45);
+    z-index:60; opacity:0; pointer-events:none; text-align:center; white-space:nowrap;
+  }
+  #streakBanner.show { animation: banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner {
+    0%{opacity:0; transform:translate(-50%,-50%) scale(.6)}
+    15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)}
+    28%{transform:translate(-50%,-50%) scale(1)}
+    80%{opacity:1; transform:translate(-50%,-50%) scale(1)}
+    100%{opacity:0; transform:translate(-50%,-60%) scale(.95)}
+  }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+  </div>
+  <h1>🏋️ Grammar Gym</h1>
+  <p class="sub">Rapid reps for the mechanics of writing. Tag the parts of speech, then spot &amp; fix the mistake — until it's automatic.</p>
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="tag" class="on">🏷️ Tag It</button>
+      <button data-mode="fix">🔧 Fix It</button>
+    </div>
+    <div class="seg" id="catSeg"></div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="stage">
+    <div class="card">
+      <p class="qprompt" id="prompt"></p>
+      <div class="sentence" id="sentence"></div>
+      <div class="choices" id="choices"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="reveal hidden" id="reveal"></div>
+      <div class="btn-row" id="nextRow" style="display:none">
+        <button class="act btn-primary" id="nextBtn">Next round ➡️</button>
+      </div>
+    </div>
+  </div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const shuffle = arr => arr.slice().sort(()=>Math.random()-0.5);
+  const G = window.GRAMMAR;
+  const POS_LIST = Object.keys(G.POS_LABEL);
+
+  // Convert *marked* spans in a string to highlighted HTML.
+  function marked(str, cls){
+    return str.split('*').map((chunk, i) => i % 2 ? `<span class="${cls}">${chunk}</span>` : chunk).join('');
+  }
+
+  // Category filters per mode.
+  const CATS = {
+    tag: [['all','All'],['noun','Nouns'],['verb','Verbs'],['adjective','Adjectives'],['adverb','Adverbs']],
+    fix: [['all','All'],['Comma','Commas'],['Capitalization','Capitals'],['Run-on','Run-ons'],['Subject–verb agreement','Agreement']]
+  };
+
+  let mode = 'tag';
+  let cat = 'all';
+  let correct = 0, total = 0, streak = 0;
+  let cur = null, lastKey = null;
+  let answered = false, advanceReady = true;
+  let advanceTimer = null, countdownTimer = null;
+
+  function pool(){
+    if (mode === 'tag'){
+      return cat === 'all' ? G.POS_ITEMS : G.POS_ITEMS.filter(x => x.pos === cat);
+    }
+    return cat === 'all' ? G.FIX_ITEMS : G.FIX_ITEMS.filter(x => x.type === cat);
+  }
+
+  function pickItem(){
+    const p = pool();
+    let it, tries = 0;
+    do { it = pick(p); tries++; } while (p.length > 1 && (it.s || it.wrong) === lastKey && tries < 30);
+    lastKey = it.s || it.wrong;
+    return it;
+  }
+
+  function updateScorebar(){
+    $('correctCount').textContent = correct;
+    $('totalCount').textContent = total;
+    $('streak').textContent = streak;
+  }
+
+  function clearTimers(){
+    if (advanceTimer){ clearTimeout(advanceTimer); advanceTimer = null; }
+    if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
+  }
+
+  function renderCats(){
+    const seg = $('catSeg'); seg.innerHTML = '';
+    CATS[mode].forEach(([key, label]) => {
+      const b = document.createElement('button');
+      b.dataset.cat = key; b.textContent = label;
+      if (key === cat) b.classList.add('on');
+      seg.appendChild(b);
+    });
+  }
+
+  function newRound(){
+    clearTimers();
+    advanceReady = true;
+    cur = pickItem();
+    answered = false;
+    $('feedback').textContent = ''; $('feedback').className = 'feedback';
+    $('reveal').className = 'reveal hidden'; $('reveal').innerHTML = '';
+    $('nextRow').style.display = 'none';
+
+    let correctVal, opts;
+    if (mode === 'tag'){
+      $('prompt').textContent = 'What part of speech is the highlighted word?';
+      $('sentence').innerHTML = marked(cur.s, 'target');
+      correctVal = cur.pos;
+      const distractors = shuffle(POS_LIST.filter(p => p !== correctVal)).slice(0, 3);
+      opts = shuffle([correctVal, ...distractors]).map(v => [v, G.POS_LABEL[v]]);
+    } else {
+      $('prompt').textContent = "What's the mistake in this sentence?";
+      $('sentence').textContent = cur.wrong;
+      correctVal = cur.type;
+      const distractors = shuffle(G.FIX_TYPES.filter(t => t !== correctVal)).slice(0, 3);
+      opts = shuffle([correctVal, ...distractors]).map(v => [v, v]);
+    }
+
+    const box = $('choices'); box.innerHTML = '';
+    opts.forEach(([val, label]) => {
+      const btn = document.createElement('button');
+      btn.className = 'choice'; btn.textContent = label; btn.dataset.val = val;
+      btn.onclick = () => answer(btn, val, correctVal);
+      box.appendChild(btn);
+    });
+  }
+
+  function answer(btn, val, correctVal){
+    if (answered) return;
+    answered = true;
+    total++;
+    const isCorrect = val === correctVal;
+    if (isCorrect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+
+    [...$('choices').children].forEach(c => {
+      c.disabled = true;
+      if (c.dataset.val === correctVal) c.classList.add('correct');
+    });
+    if (!isCorrect) btn.classList.add('wrong');
+
+    const fb = $('feedback');
+    if (isCorrect){ fb.textContent = pick(['🎉 Correct!','⭐ Nice!','✅ You got it!','🚀 Great rep!']); fb.className = 'feedback good'; }
+    else { fb.textContent = mode === 'tag' ? `It's a ${G.POS_LABEL[correctVal].toLowerCase()}.` : `It's a ${correctVal.toLowerCase()} error.`; fb.className = 'feedback bad'; }
+
+    const rev = $('reveal');
+    if (mode === 'tag'){
+      rev.innerHTML = `<div class="rule"><b>${G.POS_LABEL[cur.pos]}.</b> ${G.POS_INFO[cur.pos]}</div>`;
+    } else {
+      rev.innerHTML = `<div class="fixed-line">✓ ${marked(cur.fixed, 'hi')}</div><div class="why">${cur.why}</div>`;
+    }
+    rev.className = 'reveal';
+
+    if (isCorrect && streak > 0 && streak % 5 === 0) celebrate(streak);
+
+    // 3s read-lock so they actually read the fix before moving on.
+    advanceReady = false;
+    let secs = 3;
+    const nb = $('nextBtn');
+    nb.disabled = true; nb.textContent = `Read it… (${secs})`;
+    $('nextRow').style.display = 'flex';
+    countdownTimer = setInterval(() => {
+      secs--;
+      if (secs > 0) nb.textContent = `Read it… (${secs})`;
+      else { clearInterval(countdownTimer); countdownTimer = null; }
+    }, 1000);
+    advanceTimer = setTimeout(() => {
+      advanceReady = true; advanceTimer = null;
+      nb.disabled = false; nb.textContent = 'Next round ➡️'; nb.focus();
+    }, 3000);
+  }
+
+  function tryAdvance(){ if (answered && advanceReady) newRound(); }
+
+  function celebrate(n){
+    const msgs = { 5:'🌟 5 in a row!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>Keep the reps going!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+
+    const colors = ['#14b8a6','#0d9488','#f59e0b','#3b82f6','#ec4899','#16a34a'];
+    const box = $('confetti');
+    for (let i = 0; i < 90; i++){
+      const c = document.createElement('div');
+      c.className = 'conf';
+      c.style.left = Math.random()*100 + 'vw';
+      c.style.background = colors[i % colors.length];
+      c.style.animationDuration = (1.6 + Math.random()*1.4) + 's';
+      c.style.animationDelay = (Math.random()*0.4) + 's';
+      c.style.transform = `rotate(${Math.random()*360}deg)`;
+      box.appendChild(c);
+      setTimeout(()=>c.remove(), 3400);
+    }
+  }
+
+  function resetProgress(){ correct = 0; total = 0; streak = 0; lastKey = null; updateScorebar(); }
+
+  $('modeSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.mode; cat = 'all';
+    [...$('modeSeg').children].forEach(x => x.classList.toggle('on', x === b));
+    renderCats(); resetProgress(); newRound();
+  });
+  $('catSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    cat = b.dataset.cat;
+    [...$('catSeg').children].forEach(x => x.classList.toggle('on', x === b));
+    resetProgress(); newRound();
+  });
+  $('nextBtn').onclick = tryAdvance;
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (answered) tryAdvance();
+  });
+
+  renderCats();
+  newRound();
+})();
+</script>
+</body>
+</html>
