@@ -129,81 +129,82 @@ window.COMICS = {
   },
 
   // ---- FINISH A COMIC: half the story is written; the kid fills the blanks ----
-  // Each panel has a scene (emoji), an optional caption, and bubbles. Bubbles
-  // are either GIVEN (text) or BLANK (the kid writes it; hint + idea help out).
+  // Each panel has drawn `art` (bg + cast + props, rendered by art.js), an
+  // optional caption, and bubbles. Bubbles are GIVEN (text) or BLANK (the kid
+  // writes it, helped by a hint + an "idea" suggestion).
   FINISH_STORIES: [
-    { id: 'ember', title: 'Ember the Dragon', emoji: '🐲',
+    { id: 'ember', title: 'Ember the Dragon', star: { kind: 'dragon', expr: 'happy' },
       panels: [
-        { bg: 'linear-gradient(160deg,#dbeafe,#eff6ff)', scene: '🐲🎂',
+        { art: { bg: 'grass', cast: [{ kind: 'dragon', expr: 'happy', shirt: '#5fb56b', x: 120, scale: 1.15 }], props: [{ kind: 'cake', x: 205, y: 118, scale: 1.1 }] },
           caption: 'Ember the dragon offered to light the birthday candles.',
           bubbles: [ { who: 'Ember', type: 'speech', text: 'Stand back, everyone — I’ve got this!' } ] },
-        { bg: 'linear-gradient(160deg,#fef3c7,#fffbeb)', scene: '🐲💨',
+        { art: { bg: 'grass', cast: [{ kind: 'dragon', expr: 'worried', shirt: '#5fb56b', x: 160, scale: 1.2 }], props: [] },
           sfx: 'POOF!',
           bubbles: [ { who: 'Ember', type: 'thought', blank: true, hint: 'Only smoke came out! How does Ember feel?', idea: 'Oh no… just smoke again. Not one spark!' } ] },
-        { bg: 'linear-gradient(160deg,#dcfce7,#f0fdf4)', scene: '🐲🧒',
+        { art: { bg: 'grass', cast: [{ kind: 'dragon', expr: 'sad', shirt: '#5fb56b', x: 105, scale: 1.05 }, { kind: 'kid', expr: 'happy', shirt: '#60a5fa', x: 215, scale: 1.05, flip: true }], props: [] },
           bubbles: [
             { who: 'Friend', type: 'speech', text: 'Hey, don’t worry about it!' },
             { who: 'Friend', type: 'speech', blank: true, hint: 'How does the friend turn the smoke into something good?', idea: 'Your smoke smells like toasted marshmallows — yum!' }
           ] },
-        { bg: 'linear-gradient(160deg,#fce7f3,#fdf2f8)', scene: '🐲🔥🍡',
+        { art: { bg: 'night', cast: [{ kind: 'dragon', expr: 'happy', shirt: '#5fb56b', x: 110, scale: 1.05 }, { kind: 'kid', expr: 'excited', shirt: '#60a5fa', x: 210, scale: 1.05, flip: true }], props: [{ kind: 'cake', x: 135, y: 120, scale: 0.8 }] },
           caption: { blank: true, hint: 'How does the story end? (This is the last panel!)', idea: 'So they toasted marshmallows in Ember’s smoke — the best party ever.' } }
       ] },
 
-    { id: 'astro', title: 'Astro’s Snack Emergency', emoji: '👩‍🚀',
+    { id: 'astro', title: 'Astro’s Snack Emergency', star: { kind: 'astro', expr: 'happy' },
       panels: [
-        { bg: 'linear-gradient(160deg,#e0e7ff,#eef2ff)', scene: '👩‍🚀🚀',
+        { art: { bg: 'space', cast: [{ kind: 'astro', expr: 'mad', shirt: '#f97316', x: 160, scale: 1.2 }], props: [{ kind: 'box', x: 40, y: 120, scale: 0.9 }] },
           caption: 'Far out in space, Astro opened her snack drawer…',
           bubbles: [ { who: 'Astro', type: 'speech', text: 'Empty?! Not a single cookie left!' } ] },
-        { bg: 'linear-gradient(160deg,#ede9fe,#f5f3ff)', scene: '👽🍪',
+        { art: { bg: 'space', cast: [{ kind: 'alien', expr: 'happy', shirt: '#a78bfa', x: 200, scale: 1.15 }], props: [{ kind: 'cookie', x: 120, y: 96, scale: 0.9 }] },
           bubbles: [ { who: 'Alien', type: 'speech', blank: true, hint: 'A friendly alien floats up holding a cookie. What does it say?', idea: 'Greetings, hungry human! Care for a fresh moon-cookie?' } ] },
-        { bg: 'linear-gradient(160deg,#cffafe,#ecfeff)', scene: '👩‍🚀👽',
+        { art: { bg: 'space', cast: [{ kind: 'astro', expr: 'happy', shirt: '#f97316', x: 108, scale: 1.05 }, { kind: 'alien', expr: 'happy', shirt: '#a78bfa', x: 212, scale: 1.05, flip: true }], props: [] },
           bubbles: [ { who: 'Astro', type: 'speech', blank: true, hint: 'What does Astro say back to her new friend?', idea: 'You’re a lifesaver! Want to be snack buddies forever?' } ] },
-        { bg: 'linear-gradient(160deg,#e0e7ff,#eef2ff)', scene: '👩‍🚀🪐👽',
+        { art: { bg: 'space', cast: [{ kind: 'astro', expr: 'happy', shirt: '#f97316', x: 110, scale: 1.05 }, { kind: 'alien', expr: 'happy', shirt: '#a78bfa', x: 205, scale: 1.05, flip: true }], props: [{ kind: 'planet', x: 240, y: 30, scale: 1 }] },
           caption: 'And that’s how Astro made a friend a million miles from home.' }
       ] },
 
-    { id: 'dot', title: 'Detective Dot & the Missing Homework', emoji: '🕵️',
+    { id: 'dot', title: 'Detective Dot & the Missing Homework', star: { kind: 'detective', expr: 'sly' },
       panels: [
-        { bg: 'linear-gradient(160deg,#f1f5f9,#f8fafc)', scene: '🕵️📄',
+        { art: { bg: 'room', cast: [{ kind: 'detective', expr: 'neutral', shirt: '#b45309', x: 150, scale: 1.2 }], props: [{ kind: 'magnifier', x: 220, y: 96, scale: 1 }] },
           caption: 'Detective Dot had a brand-new case: the missing math homework.',
           bubbles: [ { who: 'Dot', type: 'speech', text: 'Every clue matters. Let’s look closer…' } ] },
-        { bg: 'linear-gradient(160deg,#fef9c3,#fefce8)', scene: '🐶🎒',
+        { art: { bg: 'room', cast: [{ kind: 'detective', expr: 'sly', shirt: '#b45309', x: 105, scale: 1.05 }, { kind: 'dog', expr: 'worried', shirt: '#c8a06a', x: 215, scale: 1, flip: true }], props: [{ kind: 'backpack', x: 150, y: 120, scale: 0.8 }] },
           bubbles: [ { who: 'Dot', type: 'thought', blank: true, hint: 'Dot spots the dog by the backpack. What does she notice?', idea: 'Chew marks… and little paper crumbs. Interesting!' } ] },
-        { bg: 'linear-gradient(160deg,#ffe4e6,#fff1f2)', scene: '🐶😳',
+        { art: { bg: 'room', cast: [{ kind: 'dog', expr: 'worried', shirt: '#c8a06a', x: 160, scale: 1.2 }], props: [{ kind: 'backpack', x: 40, y: 118, scale: 0.9 }] },
           bubbles: [ { who: 'Dog', type: 'speech', blank: true, hint: 'The guilty dog confesses! What’s its silly excuse?', idea: 'I was just SO hungry for numbers, okay?!' } ] },
-        { bg: 'linear-gradient(160deg,#dbeafe,#eff6ff)', scene: '🕵️✅',
+        { art: { bg: 'room', cast: [{ kind: 'detective', expr: 'happy', shirt: '#b45309', x: 120, scale: 1.05 }, { kind: 'dog', expr: 'happy', shirt: '#c8a06a', x: 215, scale: 1, flip: true }], props: [] },
           caption: { blank: true, hint: 'How does Dot wrap up the case?', idea: 'Case closed! Dot helped redo the homework — and kept it up high after that.' } }
       ] },
 
-    { id: 'max', title: 'New Kid at Hero School', emoji: '🦸',
+    { id: 'max', title: 'New Kid at Hero School', star: { kind: 'hero', expr: 'happy' },
       panels: [
-        { bg: 'linear-gradient(160deg,#ede9fe,#f5f3ff)', scene: '🦸🏫',
+        { art: { bg: 'school', cast: [{ kind: 'hero', expr: 'worried', shirt: '#ef4444', x: 160, scale: 1.2 }], props: [] },
           caption: 'It was Max’s very first day at Hero School.',
           bubbles: [ { who: 'Max', type: 'thought', blank: true, hint: 'Everyone else can fly or lift cars. How does Max feel?', idea: 'Everyone here is amazing… what if MY power is boring?' } ] },
-        { bg: 'linear-gradient(160deg,#dbeafe,#eff6ff)', scene: '🦸‍♀️🙋',
+        { art: { bg: 'school', cast: [{ kind: 'hero', expr: 'worried', shirt: '#ef4444', x: 105, scale: 1.05 }, { kind: 'hero', expr: 'happy', shirt: '#22c55e', x: 215, scale: 1.05, flip: true }], props: [] },
           bubbles: [
             { who: 'Classmate', type: 'speech', text: 'Hi! What’s your superpower?' },
             { who: 'Max', type: 'speech', blank: true, hint: 'What does Max nervously say his power is?', idea: 'Um… I can talk to houseplants?' }
           ] },
-        { bg: 'linear-gradient(160deg,#dcfce7,#f0fdf4)', scene: '🌱🚨',
+        { art: { bg: 'school', cast: [{ kind: 'hero', expr: 'surprised', shirt: '#ef4444', x: 140, scale: 1.15 }], props: [{ kind: 'vine', x: 210, y: 110, scale: 1.2 }] },
           sfx: 'RUMBLE!',
           caption: 'Suddenly, a giant vine wrapped around the whole class!',
           bubbles: [ { who: 'Max', type: 'speech', blank: true, hint: 'Max uses his “boring” plant power to save everyone. What does he say?', idea: 'Leaves — please let my friends go!' } ] },
-        { bg: 'linear-gradient(160deg,#fef3c7,#fffbeb)', scene: '🦸🌱🎉',
+        { art: { bg: 'school', cast: [{ kind: 'hero', expr: 'happy', shirt: '#ef4444', x: 110, scale: 1.05 }, { kind: 'hero', expr: 'excited', shirt: '#22c55e', x: 210, scale: 1.05, flip: true }], props: [{ kind: 'plant', x: 145, y: 120, scale: 0.8 }] },
           caption: 'Turns out the “boring” power was exactly what they needed. Welcome, Max!' }
       ] },
 
-    { id: 'pixel', title: 'The Cat Who Wanted to Fly', emoji: '🐱',
+    { id: 'pixel', title: 'The Cat Who Wanted to Fly', star: { kind: 'cat', expr: 'excited' },
       panels: [
-        { bg: 'linear-gradient(160deg,#dbeafe,#eff6ff)', scene: '🐱🕊️',
+        { art: { bg: 'grass', cast: [{ kind: 'cat', expr: 'neutral', shirt: '#a855f7', x: 130, scale: 1.15 }], props: [{ kind: 'bird', x: 225, y: 40, scale: 0.9 }] },
           caption: 'Pixel the cat watched the birds soar every single day.',
           bubbles: [ { who: 'Pixel', type: 'thought', text: 'One day, I’ll be up there too.' } ] },
-        { bg: 'linear-gradient(160deg,#fef9c3,#fefce8)', scene: '🐱📦☂️',
+        { art: { bg: 'grass', cast: [{ kind: 'cat', expr: 'excited', shirt: '#a855f7', x: 140, scale: 1.15 }], props: [{ kind: 'box', x: 205, y: 120, scale: 0.8 }, { kind: 'umbrella', x: 40, y: 60, scale: 0.9 }] },
           bubbles: [ { who: 'Pixel', type: 'speech', blank: true, hint: 'What wild flying plan does Pixel come up with?', idea: 'A cardboard box plus an umbrella equals WINGS!' } ] },
-        { bg: 'linear-gradient(160deg,#e0e7ff,#eef2ff)', scene: '🐱💨',
+        { art: { bg: 'night', cast: [{ kind: 'cat', expr: 'surprised', shirt: '#a855f7', x: 160, scale: 1.2 }], props: [] },
           sfx: 'WHOOSH!',
           bubbles: [ { who: 'Pixel', type: 'thought', blank: true, hint: 'Pixel leaps off the fence! What happens?', idea: 'I’m flying! …okay, I’m falling. Still kind of fun!' } ] },
-        { bg: 'linear-gradient(160deg,#dcfce7,#f0fdf4)', scene: '🐱⭐',
+        { art: { bg: 'grass', cast: [{ kind: 'cat', expr: 'happy', shirt: '#a855f7', x: 150, scale: 1.15 }], props: [{ kind: 'star', x: 220, y: 34, scale: 0.7 }] },
           caption: { blank: true, hint: 'What does Pixel learn by the end?', idea: 'Maybe cats can’t fly — but dreaming big is still the best.' } }
       ] }
   ]

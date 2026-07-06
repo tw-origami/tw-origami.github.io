@@ -49,6 +49,24 @@
   #page { position:relative; width:100%; max-width:520px; aspect-ratio:800/1040; background:#fff; border-radius:10px; box-shadow:var(--shadow); touch-action:none; }
   #page canvas { position:absolute; inset:0; width:100%; height:100%; border-radius:10px; }
   #bubbleLayer { position:absolute; inset:0; pointer-events:none; }
+  #traceLayer { position:absolute; inset:0; pointer-events:none; opacity:.22; }
+  #traceLayer .tracefig { position:absolute; }
+  #traceLayer .tracefig svg { width:100%; height:100%; display:block; }
+
+  .page-nav { display:flex; align-items:center; gap:8px; justify-content:center; flex-wrap:wrap; }
+  .page-indicator { font-weight:800; font-size:14px; color:var(--ink); min-width:96px; text-align:center; }
+  .pagebtn { background:#f3f4f6; color:var(--ink); font-weight:800; padding:9px 14px; }
+  .pagebtn:hover { background:var(--accent-soft); }
+  .pagebtn.del:hover { background:#fee2e2; }
+  .pagebtn:disabled { opacity:.4; cursor:default; }
+
+  .trace-picker { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; background:#fff; border-radius:14px; box-shadow:var(--shadow); padding:12px; width:100%; max-width:520px; }
+  .trace-picker .tp-label { width:100%; text-align:center; font-size:12.5px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+  .trace-picker button { border:2px solid #e5e7eb; background:#fff; border-radius:12px; width:66px; height:76px; cursor:pointer; padding:4px; }
+  .trace-picker button:hover { border-color:var(--accent); background:var(--accent-soft); }
+  .trace-picker button svg { width:100%; height:56px; display:block; }
+  .trace-picker button span { font-size:10px; font-weight:800; color:var(--muted); }
+  .trace-picker .tp-clear { width:auto; height:auto; padding:8px 14px; font-family:inherit; font-weight:800; color:var(--wrong); border-color:#fecaca; }
 
   .bubble { position:absolute; pointer-events:auto; min-width:70px; max-width:70%; font-family:"Comic Sans MS","Comic Sans","Chalkboard SE","Bradley Hand",cursive; }
   .bubble .bhandle { display:flex; align-items:center; justify-content:space-between; gap:6px; background:var(--accent); border-radius:8px 8px 0 0; padding:2px 6px; cursor:grab; opacity:0; transition:opacity .12s; }
@@ -119,11 +137,15 @@
   .story-picker { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:16px; }
   .story-picker button { border:none; background:#fff; box-shadow:var(--shadow); font-family:inherit; font-weight:800; font-size:13.5px; color:var(--muted); padding:8px 14px; border-radius:999px; cursor:pointer; }
   .story-picker button.on { background:var(--accent); color:#fff; }
+  .story-picker button { display:inline-flex; align-items:center; gap:6px; }
+  .story-picker .pickface { width:22px; height:26px; display:inline-block; }
+  .story-picker .pickface svg { width:22px; height:26px; display:block; }
   .comic-strip { display:flex; flex-direction:column; gap:16px; max-width:520px; margin:0 auto; }
   .fpanel { border:3px solid #111; border-radius:14px; overflow:hidden; background:#fff; box-shadow:var(--shadow); }
   .fpanel .fcap { background:#fde68a; border-bottom:3px solid #111; padding:9px 13px; font-weight:700; font-style:italic; font-size:14px; line-height:1.4; }
   .fpanel .fcap.blankcap { background:#fff7ed; font-style:normal; }
-  .fpanel .fscene { position:relative; text-align:center; font-size:60px; line-height:1; padding:18px 10px; letter-spacing:6px; }
+  .fpanel .fscene { position:relative; line-height:0; }
+  .fpanel .fscene svg { border-bottom:3px solid #111; }
   .fpanel .fsfx { position:absolute; top:8px; right:10px; background:#facc15; color:#dc2626; font-weight:900; font-size:16px; border:2.5px solid #111; padding:5px 9px; transform:rotate(8deg); clip-path:polygon(50% 0,63% 20%,88% 12%,80% 36%,100% 50%,80% 64%,88% 88%,63% 80%,50% 100%,37% 80%,12% 88%,20% 64%,0 50%,20% 36%,12% 12%,37% 20%); }
   .fbubbles { padding:12px 14px 16px; display:flex; flex-direction:column; gap:12px; }
   .fbub .who { display:inline-block; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--accent); margin-bottom:3px; }
@@ -170,6 +192,7 @@
       <div class="tgroup">
         <span class="glabel">Tool</span>
         <button class="tool on" data-tool="pencil" id="pencilBtn">✏️ Draw</button>
+        <button class="tool" data-tool="fill" id="fillBtn">🪣 Fill</button>
         <button class="tool" data-tool="eraser" id="eraserBtn">🧽 Erase</button>
       </div>
       <div class="tgroup" id="colorGroup"><span class="glabel">Color</span></div>
@@ -182,13 +205,25 @@
         <button class="tool" data-bubble="sfx">💥</button>
       </div>
       <div class="tgroup">
+        <button class="tool" id="traceBtn">🔦 Trace</button>
         <button class="tool" id="undoBtn">↩️ Undo</button>
       </div>
+    </div>
+
+    <div class="trace-picker" id="tracePicker" style="display:none"></div>
+
+    <div class="page-nav">
+      <button class="btn pagebtn" id="prevPage" title="Previous page">◀</button>
+      <span class="page-indicator" id="pageIndicator">Page 1 of 1</span>
+      <button class="btn pagebtn" id="nextPage" title="Next page">▶</button>
+      <button class="btn btn-ghost" id="addPage">＋ Add page</button>
+      <button class="btn pagebtn del" id="delPage" title="Delete this page">🗑️</button>
     </div>
 
     <div class="page-shell">
       <div id="page">
         <canvas id="bg"></canvas>
+        <div id="traceLayer"></div>
         <canvas id="ink"></canvas>
         <div id="bubbleLayer"></div>
       </div>
@@ -202,14 +237,15 @@
       <button class="btn layoutbtn" data-layout="4">4</button>
       <button class="btn layoutbtn" data-layout="6">6</button>
       <button class="btn btn-ghost" id="clearBtn">🗑️ Clear page</button>
-      <button class="btn btn-primary" id="saveBtn">⬇️ Save my comic</button>
+      <button class="btn btn-primary" id="saveBtn">⬇️ Save comic</button>
     </div>
-    <p class="studio-hint">Draw in the panels, then tap a bubble (💬 💭 📃 💥) to add words. Drag a bubble by its purple bar, click its text to type. Changing the layout keeps your art!</p>
+    <p class="studio-hint">Draw in the panels, use 🪣 <b>Fill</b> to color inside your lines, and 🔦 <b>Trace</b> to copy a practice shape. Tap a bubble to add words. Make a whole book with <b>＋ Add page</b> — every page is saved!</p>
   </div>
 
   <!-- OTHER MODES render here -->
   <div id="otherWrap" style="display:none"></div>
 
+<script src="art.js"></script>
 <script src="data.js"></script>
 <script>
 (function(){
@@ -241,7 +277,7 @@
       const b = document.createElement('button');
       b.className = 'swatch' + (i===0?' on':''); b.style.background = c;
       b.dataset.color = c;
-      b.onclick = () => { color = c; tool = 'pencil'; syncTools();
+      b.onclick = () => { color = c; if (tool==='eraser'){ tool='pencil'; syncTools(); }
         [...cg.querySelectorAll('.swatch')].forEach(s=>s.classList.toggle('on', s===b)); };
       cg.appendChild(b);
     });
@@ -260,6 +296,7 @@
   function syncTools(){
     $('pencilBtn').classList.toggle('on', tool==='pencil');
     $('eraserBtn').classList.toggle('on', tool==='eraser');
+    $('fillBtn').classList.toggle('on', tool==='fill');
   }
 
   // ---- panel layouts (in 800x1040 canvas coords) ----
@@ -301,6 +338,7 @@
   ink.addEventListener('pointerdown', e => {
     const p = pos(e); const pan = panelAt(p.x,p.y);
     if (!pan) return;                       // ignore taps in the gutter
+    if (tool === 'fill'){ pushUndo(); floodFill(Math.round(p.x), Math.round(p.y), pan, color); return; }
     drawing = true; clip = pan;
     try { ink.setPointerCapture(e.pointerId); } catch(_){}
     pushUndo();
@@ -329,6 +367,43 @@
   };
   $('pencilBtn').onclick = () => { tool='pencil'; syncTools(); };
   $('eraserBtn').onclick = () => { tool='eraser'; syncTools(); };
+  $('fillBtn').onclick = () => { tool='fill'; syncTools(); };
+
+  // ---- flood fill (bounded to the panel, stops at drawn lines) ----
+  function floodFill(sx, sy, pan, hex){
+    const x0 = Math.max(0, Math.round(pan.x)), y0 = Math.max(0, Math.round(pan.y));
+    const x1 = Math.min(W, Math.round(pan.x+pan.w)), y1 = Math.min(H, Math.round(pan.y+pan.h));
+    const bw = x1-x0, bh = y1-y0;
+    if (sx<x0||sx>=x1||sy<y0||sy>=y1) return;
+    let img; try { img = ictx.getImageData(x0,y0,bw,bh); } catch(_){ return; }
+    const d = img.data;
+    const idx = (x,y) => ((y-y0)*bw + (x-x0))*4;
+    const si = idx(sx,sy);
+    const tr=d[si],tg=d[si+1],tb=d[si+2],ta=d[si+3];
+    // target must be an empty-ish area (not an existing dark line)
+    const fr=parseInt(hex.slice(1,3),16), fg=parseInt(hex.slice(3,5),16), fb=parseInt(hex.slice(5,7),16);
+    if (Math.abs(tr-fr)<8 && Math.abs(tg-fg)<8 && Math.abs(tb-fb)<8 && ta>200) return; // already that color
+    const match = (i) => {
+      const dr=d[i]-tr, dg=d[i+1]-tg, db=d[i+2]-tb, da=d[i+3]-ta;
+      return (dr*dr+dg*dg+db*db) < 2400 && Math.abs(da) < 60;   // similar to start pixel
+    };
+    const stack = [[sx,sy]];
+    while (stack.length){
+      const [x,y] = stack.pop();
+      let yy = y;
+      while (yy>=y0 && match(idx(x,yy))) yy--;   // move up to span top
+      yy++;
+      let up=false, dn=false;
+      while (yy<y1 && match(idx(x,yy))){
+        const i = idx(x,yy);
+        d[i]=fr; d[i+1]=fg; d[i+2]=fb; d[i+3]=255;
+        if (x>x0){ const li=idx(x-1,yy); if (!up && match(li)){ stack.push([x-1,yy]); up=true; } else if (up && !match(li)) up=false; }
+        if (x<x1-1){ const ri=idx(x+1,yy); if (!dn && match(ri)){ stack.push([x+1,yy]); dn=true; } else if (dn && !match(ri)) dn=false; }
+        yy++;
+      }
+    }
+    ictx.putImageData(img, x0, y0);
+  }
 
   // ---- bubbles ----
   let bubbleSeq = 0, selBubble = null;
@@ -338,6 +413,13 @@
   function selectBubble(b){
     if (selBubble) selBubble.classList.remove('sel');
     selBubble = b; if (b) b.classList.add('sel');
+  }
+  function wireBubble(b){
+    const txt = b.querySelector('.btext');
+    txt.addEventListener('pointerdown', e => e.stopPropagation());   // let clicks edit, not drag
+    txt.addEventListener('focus', () => selectBubble(b));
+    b.querySelector('.bdel').onclick = (e) => { e.stopPropagation(); if (selBubble===b) selBubble=null; b.remove(); };
+    makeDraggable(b, b.querySelector('.bhandle'));
   }
   function addBubble(type){
     const layer = $('bubbleLayer');
@@ -354,11 +436,8 @@
       (type==='speech' || type==='thought' ? `<div class="btail"></div>` : '');
     layer.appendChild(b); bubbleSeq++;
     selectBubble(b);
+    wireBubble(b);
     const txt = b.querySelector('.btext');
-    txt.addEventListener('pointerdown', e => e.stopPropagation());   // let clicks edit, not drag
-    txt.addEventListener('focus', () => selectBubble(b));
-    b.querySelector('.bdel').onclick = (e) => { e.stopPropagation(); if (selBubble===b) selBubble=null; b.remove(); };
-    makeDraggable(b, b.querySelector('.bhandle'));
     setTimeout(()=>{ txt.focus(); document.getSelection().selectAllChildren(txt); }, 10);
   }
   function makeDraggable(b, handle){
@@ -447,7 +526,96 @@
     for(let i=0;i<80;i++){ const c=document.createElement('div'); c.className='conf'; c.style.left=Math.random()*100+'vw'; c.style.background=colors[i%colors.length]; c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; c.style.animationDelay=(Math.random()*0.3)+'s'; box.appendChild(c); setTimeout(()=>c.remove(),3400); }
   }
 
+  // =====================================================================
+  //  MULTI-PAGE (make a whole comic book)
+  // =====================================================================
+  // Each page = { ink: dataURL, bubbles: HTML, layout: n }
+  let pages = [], pageIdx = 0;
+  function snapshotPage(){
+    pages[pageIdx] = { ink: ink.toDataURL('image/png'), bubbles: $('bubbleLayer').innerHTML, layout };
+  }
+  function updatePageNav(){
+    $('pageIndicator').textContent = `Page ${pageIdx+1} of ${pages.length}`;
+    $('prevPage').disabled = pageIdx===0;
+    $('nextPage').disabled = pageIdx===pages.length-1;
+    $('delPage').disabled = pages.length<=1;
+  }
+  function loadPage(i){
+    const pg = pages[i]; if (!pg) return;
+    pageIdx = i;
+    setLayout(pg.layout);                 // redraws bg borders
+    ictx.clearRect(0,0,W,H);
+    clearTrace();
+    undoStack = [];
+    // restore bubbles
+    const layer = $('bubbleLayer');
+    layer.innerHTML = pg.bubbles || '';
+    selBubble = null;
+    layer.querySelectorAll('.bubble').forEach(wireBubble);
+    // restore ink (async image)
+    if (pg.ink){ const im = new Image(); im.onload = () => ictx.drawImage(im,0,0,W,H); im.src = pg.ink; }
+    updatePageNav();
+  }
+  function gotoPage(i){
+    if (i<0 || i>=pages.length || i===pageIdx) return;
+    snapshotPage(); loadPage(i);
+  }
+  $('prevPage').onclick = () => gotoPage(pageIdx-1);
+  $('nextPage').onclick = () => gotoPage(pageIdx+1);
+  $('addPage').onclick = () => {
+    snapshotPage();
+    pages.splice(pageIdx+1, 0, { ink:'', bubbles:'', layout });
+    loadPage(pageIdx+1);
+  };
+  $('delPage').onclick = () => {
+    if (pages.length<=1) return;
+    if (!confirm('Delete this page? It can’t be undone.')) return;
+    pages.splice(pageIdx,1);
+    loadPage(Math.max(0, pageIdx-1));
+  };
+
+  // =====================================================================
+  //  TRACE (drop a faint reference to copy)
+  // =====================================================================
+  const TRACE_REFS = [
+    { label: 'Face', svg: () => faceStepSVG(6) },
+    { label: 'Happy', svg: () => faceSVG('Happy') },
+    { label: 'Surprised', svg: () => faceSVG('Surprised') },
+    { label: 'Body', svg: () => bodySVG('shapes') },
+    { label: 'Action', svg: () => bodySVG('action') },
+    { label: 'Kid', svg: () => COMICART.refFigure('kid','happy') },
+    { label: 'Dragon', svg: () => COMICART.refFigure('dragon','happy') },
+    { label: 'Cat', svg: () => COMICART.refFigure('cat','excited') }
+  ];
+  function clearTrace(){ $('traceLayer').innerHTML = ''; }
+  function placeTrace(svg){
+    const pan = panels[0];
+    const sx = 100/W, sy = 100/H;   // page display is %; use panel fractions
+    const left = (pan.x/W)*100, top = (pan.y/H)*100, wd = (pan.w/W)*100, ht = (pan.h/H)*100;
+    // fit reference to ~78% of the panel, centered
+    const fw = wd*0.72, fh = ht*0.82;
+    const fl = left + (wd-fw)/2, ft = top + (ht-fh)/2;
+    $('traceLayer').innerHTML = `<div class="tracefig" style="left:${fl}%;top:${ft}%;width:${fw}%;height:${fh}%">${svg}</div>`;
+  }
+  function buildTracePicker(){
+    const tp = $('tracePicker');
+    tp.innerHTML = `<div class="tp-label">Pick a shape to trace — it appears faintly in the first panel, draw over it, then clear it.</div>` +
+      TRACE_REFS.map((r,i)=>`<button data-trace="${i}">${r.svg()}<span>${r.label}</span></button>`).join('') +
+      `<button class="tp-clear" id="tpClear">✕ Clear trace</button>`;
+    tp.querySelectorAll('[data-trace]').forEach(b => b.onclick = () => { placeTrace(TRACE_REFS[+b.dataset.trace].svg()); });
+    $('tpClear').onclick = () => { clearTrace(); };
+  }
+  $('traceBtn').onclick = () => {
+    const tp = $('tracePicker');
+    const showing = tp.style.display !== 'none';
+    if (showing){ tp.style.display = 'none'; $('traceBtn').classList.remove('on'); }
+    else { if (!tp.childElementCount) buildTracePicker(); tp.style.display = 'flex'; $('traceBtn').classList.add('on'); }
+  };
+
+  // init: one blank page
   setLayout(1);
+  pages = [{ ink:'', bubbles:'', layout:1 }];
+  updatePageNav();
 
   // =====================================================================
   //  LEARN TO DRAW  (SVG figures generated here)
@@ -612,13 +780,13 @@
     const story = C.FINISH_STORIES[finishIdx];
     let html = `<div class="section-title">✍️ Finish the comic: <span style="color:var(--accent)">${story.title}</span></div>`;
     html += `<div class="section-sub">Half the story is already drawn and written. Fill the <b>blank bubbles</b> to finish it your way — there’s no single right answer!</div>`;
-    html += `<div class="story-picker">` + C.FINISH_STORIES.map((s,i)=>`<button data-story="${i}" class="${i===finishIdx?'on':''}">${s.emoji} ${s.title.split(/[ &]/)[0]}</button>`).join('') + `</div>`;
+    html += `<div class="story-picker">` + C.FINISH_STORIES.map((s,i)=>`<button data-story="${i}" class="${i===finishIdx?'on':''}"><span class="pickface">${COMICART.refFigure(s.star.kind, s.star.expr)}</span>${s.title.split(/[ &]/)[0]}</button>`).join('') + `</div>`;
     if (finishRead) html += `<div class="read-banner">📖 Your finished comic! Tap “Keep editing” to change anything.</div>`;
     html += `<div class="comic-strip">`;
     story.panels.forEach((p, pi) => {
       html += `<div class="fpanel">`;
       if (p.caption) html += captionHTML(story, pi, p.caption);
-      html += `<div class="fscene" style="background:${p.bg}">${p.scene}` + (p.sfx?`<span class="fsfx">${p.sfx}</span>`:``) + `</div>`;
+      html += `<div class="fscene">${COMICART.scene(p.art)}` + (p.sfx?`<span class="fsfx">${p.sfx}</span>`:``) + `</div>`;
       if (p.bubbles && p.bubbles.length){
         html += `<div class="fbubbles">` + p.bubbles.map((b,bi)=>bubbleHTML(story, pi, bi, b)).join('') + `</div>`;
       }
