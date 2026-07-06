@@ -66,11 +66,12 @@
 
       stage.innerHTML=
         `<div class="lvlbar"><span class="pill lvl" style="color:#dc2626">📺 Trade Videos</span></div>`+
-        `<div style="max-width:400px;margin:0 auto">`+
-          `<div style="position:relative;background:#000;border-radius:16px;overflow:hidden;box-shadow:var(--shadow)">`+
-            `<div id="${uid}" style="width:100%;aspect-ratio:9/16"></div>`+
+        `<div style="max-width:440px;margin:0 auto">`+
+          `<div style="position:relative;width:100%;aspect-ratio:9/16;background:#000;border-radius:16px;overflow:hidden;box-shadow:var(--shadow)">`+
+            `<div style="position:absolute;top:-13%;left:0;width:100%;height:126%">`+
+              `<div id="${uid}" style="width:100%;height:100%"></div>`+
+            `</div>`+
             `<div class="vtap" style="position:absolute;inset:0;cursor:pointer"></div>`+
-            `<div style="position:absolute;top:0;left:0;right:0;height:14%;background:#000;pointer-events:none"></div>`+
             `<div class="vbadge" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;background:rgba(220,38,38,.92);display:flex;align-items:center;justify-content:center;pointer-events:none">`+
               `<div style="border-left:22px solid #fff;border-top:13px solid transparent;border-bottom:13px solid transparent;margin-left:5px"></div>`+
             `</div>`+
@@ -93,10 +94,11 @@
       ensureAPI(()=>{
         if(!document.getElementById(uid)) return; // navigated away already
         player=new YT.Player(uid, {
+          width:'100%', height:'100%',
           videoId:ids[cur],
           playerVars:{ controls:0, modestbranding:1, rel:0, playsinline:1, fs:0, disablekb:1, iv_load_policy:3 },
           events:{
-            onReady:updateTitle,
+            onReady:()=>{ const f=player.getIframe(); if(f){ f.style.width='100%'; f.style.height='100%'; f.style.display='block'; } updateTitle(); },
             onStateChange:e=>{ if(badge) badge.style.display=(e.data===YT.PlayerState.PLAYING)?'none':'flex'; updateTitle(); }
           }
         });
