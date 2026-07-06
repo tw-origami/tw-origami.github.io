@@ -220,5 +220,78 @@ window.CARS = {
       action:'Get it checked soon. The worry is that the airbag might not inflate in a crash — or, rarely, could go off when it shouldn’t.',
       did:'Airbags work TOGETHER with seat belts, not instead of them. The belt holds you in place so the airbag can cushion you correctly.',
       choices:['The airbag system has a fault','The trunk is open','The oil is low','The wipers are on'], answer:0 }
-  ]
+  ],
+
+  // ---- QUICK VERSIONS: a one-line "short version" shown at the top of each
+  // reveal, so younger kids get the gist before the full explanation. ----
+  QUICK: {
+    part: {
+      engine:'Burns fuel to make the power that turns the wheels.',
+      battery:'Stores the electricity that starts the car.',
+      tire:'The rubber part that grips the road.',
+      brakes:'Squeezes the wheels to slow and stop the car.',
+      sparkplug:'Lights the fuel with a tiny spark.',
+      radiator:'Keeps the engine from overheating.',
+      oil:'Slippery liquid that protects the engine.',
+      alternator:'Recharges the battery while you drive.',
+      steering:'The wheel that turns the car left and right.',
+      seatbelt:'Holds you safely in your seat.',
+      headlight:'Lights up the road at night.',
+      transmission:'The gearbox that sends power to the wheels.',
+      exhaust:'Sends waste gases out the back — and quiets the engine.',
+      airfilter:'Cleans the air going into the engine.',
+      wiper:'Wipes rain and snow off the windshield.',
+      fuelpump:'Pushes gas from the tank up to the engine.'
+    },
+    diagram: {
+      engine:'The “heart” up front that makes the power.',
+      battery:'Front corner — it starts the car.',
+      radiator:'Very front — it cools the engine.',
+      headlight:'Front corners — they light the road.',
+      brakes:'Behind each wheel — they stop the car.',
+      fueltank:'Low in the back — it holds the gas.',
+      exhaust:'Runs underneath to the back.',
+      steering:'In the cabin, in front of the driver.'
+    },
+    work: [
+      'Tiny explosions push pistons that spin the wheels.',
+      'It starts the engine and powers the electronics.',
+      'Pads squeeze a disc — the rubbing slows the car.',
+      'It keeps engine parts slippery so they don’t grind.',
+      'It carries engine heat away and cools it with air.',
+      'It sparks to light the fuel at the perfect moment.',
+      'The engine spins it to recharge the battery.',
+      'Gears trade speed for power, like on a bike.',
+      'The grooves push rain away so tires keep their grip.',
+      'It pushes gas from the tank up to the engine.',
+      'A big battery pack powers electric motors.',
+      'It carries heat away to keep the engine cool.'
+    ],
+    fix: {
+      battery:'It’s the BATTERY — it’s dead or weak.',
+      brakes:'It’s the BRAKES — the pads are worn out.',
+      radiator:'It’s the RADIATOR — the engine is overheating.',
+      sparkplug:'It’s a SPARK PLUG — one cylinder is misfiring.',
+      oil:'It’s an OIL leak.',
+      headlight:'It’s a HEADLIGHT — a bulb burned out.',
+      alternator:'It’s the ALTERNATOR — it stopped charging.',
+      transmission:'It’s the TRANSMISSION — the gears are slipping.',
+      wiper:'It’s the WIPERS — the blades are worn out.',
+      tire:'It’s a TIRE — it’s out of balance.',
+      airfilter:'It’s the AIR FILTER — it’s clogged.',
+      fuelpump:'It’s the FUEL PUMP — no gas is reaching the engine.'
+    },
+    light: {
+      checkengine:'Get the engine checked soon.',
+      oil:'Low oil pressure — stop the engine now.',
+      battery:'The battery isn’t charging — check it soon.',
+      temp:'The engine is overheating — pull over now.',
+      tpms:'A tire is low on air — add some soon.',
+      brake:'The brakes need attention — check now.',
+      fuel:'You’re low on gas — fill up soon.',
+      seatbelt:'Buckle your seat belt before driving.',
+      abs:'The anti-skid brakes need checking.',
+      airbag:'The airbag system has a fault.'
+    }
+  }
 };

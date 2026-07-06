@@ -66,6 +66,9 @@
   .reveal.hidden { display:none; }
   .reveal .rev-title { display:flex; align-items:center; gap:10px; font-size:18px; font-weight:800; margin-bottom:6px; color:#991b1b; }
   .reveal .rev-title .ricon { width:38px; height:38px; flex:none; }
+  .reveal .rev-quick { font-size:16px; font-weight:800; color:var(--ink); background:#fff; border-radius:8px; padding:9px 13px; margin-bottom:10px; line-height:1.4; }
+  .reveal .rev-quick b { color:var(--accent); font-size:12px; text-transform:uppercase; letter-spacing:.4px; display:block; margin-bottom:2px; }
+  .reveal .rev-detail-label { font-size:11.5px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; }
   .reveal .rev-where { margin-top:8px; color:#7f1d1d; font-weight:700; font-size:13.5px; }
   .reveal .rev-fact { margin-top:9px; background:#fffbeb; border-radius:8px; padding:8px 12px; font-size:13.5px; color:#92400e; line-height:1.5; }
   .reveal .rev-fact b { color:#b45309; }
@@ -147,6 +150,7 @@
   const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const C = window.CARS, ART = window.CARART;
   const PART = {}; C.PARTS.forEach(p => PART[p.key] = p);
+  const quickLine = s => s ? `<div class="rev-quick"><b>⚡ In short</b>${esc(s)}</div>` : '';
 
   let mode = 'parts', cat = 'all';
   let correct = 0, total = 0, streak = 0;
@@ -212,7 +216,7 @@
     const opts = shuffle([p, ...distract]);
     $('prompt').textContent='What part is this?';
     $('subject').innerHTML=`<div class="part-icon">${ART.part(p.key)}</div>`;
-    curReveal = `<div class="rev-title"><span class="ricon">${ART.part(p.key)}</span>${esc(p.name)}</div><div>${esc(p.job)}</div><div class="rev-where">📍 ${esc(p.where)}</div>` + (p.fact?`<div class="rev-fact"><b>💡 Did you know?</b> ${esc(p.fact)}</div>`:'');
+    curReveal = `<div class="rev-title"><span class="ricon">${ART.part(p.key)}</span>${esc(p.name)}</div>` + quickLine(C.QUICK.part[p.key]) + `<div>${esc(p.job)}</div><div class="rev-where">📍 ${esc(p.where)}</div>` + (p.fact?`<div class="rev-fact"><b>💡 Did you know?</b> ${esc(p.fact)}</div>`:'');
     buildChoices(opts, p.key, x=>x.key, x=>esc(x.name), false);
   }
 
@@ -221,7 +225,7 @@
     const correctText=q.choices[q.answer]; const opts=shuffle(q.choices);
     $('prompt').textContent='How Cars Work';
     $('subject').innerHTML=`<div class="subj-q">${esc(q.q)}</div>`;
-    curReveal = `<div>${esc(q.explain)}</div>`;
+    curReveal = quickLine(C.QUICK.work[C.HOWITWORKS.indexOf(q)]) + `<div>${esc(q.explain)}</div>`;
     buildChoices(opts, correctText, x=>x, x=>esc(x), false);
   }
 
@@ -231,7 +235,7 @@
     $('prompt').textContent='Fix It Shop';
     $('subject').innerHTML=`<div class="ticket"><div class="thead">🔧 Repair Ticket</div><div class="sym">“${esc(f.symptom)}”</div><div class="ask">Which part needs to be fixed?</div></div>`;
     const ans = PART[f.answer];
-    curReveal = `<div class="rev-title"><span class="ricon">${ART.part(f.answer)}</span>${esc(ans.name)}</div><div>${esc(f.explain)}</div>`;
+    curReveal = `<div class="rev-title"><span class="ricon">${ART.part(f.answer)}</span>${esc(ans.name)}</div>` + quickLine(C.QUICK.fix[f.answer]) + `<div>${esc(f.explain)}</div>`;
     buildChoices(opts, f.answer, k=>k, k=>`<span class="cico">${ART.part(k)}</span>${esc(PART[k].name)}`, true);
   }
 
@@ -242,7 +246,7 @@
     $('prompt').textContent='Under the Hood';
     $('subject').innerHTML=`<div class="diagram">${ART.carDiagram()}</div><div class="subj-q" style="font-size:19px;margin-top:8px">Tap the <span style="color:var(--accent)">${esc(t.name)}</span>!</div><div class="hint-line">💡 ${esc(t.hint)}</div>`;
     $('choices').innerHTML=''; $('choices').className='choices';
-    curReveal = `<div class="rev-title"><span class="ricon">${ART.hasPart(t.key)?ART.part(t.key):''}</span>${esc(t.name)}</div><div>${esc(t.learn)}</div>`;
+    curReveal = `<div class="rev-title"><span class="ricon">${ART.hasPart(t.key)?ART.part(t.key):''}</span>${esc(t.name)}</div>` + quickLine(C.QUICK.diagram[t.key]) + `<div>${esc(t.learn)}</div>`;
     $('subject').querySelectorAll('.hot').forEach(h=>{
       h.addEventListener('click', ()=>{
         if(answered) return;
@@ -259,7 +263,7 @@
     const correctText=l.choices[l.answer]; const opts=shuffle(l.choices.slice());
     $('prompt').textContent='Dashboard Detective';
     $('subject').innerHTML=`<div class="dashlight">${ART.light(l.key)}</div><div class="subj-name">${esc(l.name)} light</div><div class="subj-q" style="font-size:17px;margin-top:8px">This light just came on. What does it mean?</div>`;
-    curReveal = `<div class="rev-title">${esc(l.name)}</div><div>${esc(l.meaning)}</div><div class="rev-action">🛠️ What to do: ${esc(l.action)}</div>` + (l.did?`<div class="rev-fact"><b>💡 Did you know?</b> ${esc(l.did)}</div>`:'') + `<div style="margin-top:8px"><span class="dash-urgency ${l.urgency}">${l.urgency==='now'?'⛔ Deal with it now':'⏳ Check it soon'}</span></div>`;
+    curReveal = `<div class="rev-title">${esc(l.name)}</div>` + quickLine(C.QUICK.light[l.key]) + `<div>${esc(l.meaning)}</div><div class="rev-action">🛠️ What to do: ${esc(l.action)}</div>` + (l.did?`<div class="rev-fact"><b>💡 Did you know?</b> ${esc(l.did)}</div>`:'') + `<div style="margin-top:8px"><span class="dash-urgency ${l.urgency}">${l.urgency==='now'?'⛔ Deal with it now':'⏳ Check it soon'}</span></div>`;
     buildChoices(opts, correctText, x=>x, x=>esc(x), false);
   }
 
