@@ -71,8 +71,12 @@
           `<div class="vl-by">${esc(L.by)}</div>`+
           `<div style="max-width:640px;margin:0 auto 6px;width:100%">`+
             `<div style="position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:16px;overflow:hidden">`+
-              `<div style="position:absolute;top:-17%;left:0;width:100%;height:134%"><div id="${uid}" style="width:100%;height:100%"></div></div>`+
+              `<div style="position:absolute;top:-25%;left:0;width:100%;height:150%"><div id="${uid}" style="width:100%;height:100%"></div></div>`+
               `<div class="vtap" data-uid="${uid}" style="position:absolute;inset:0;cursor:pointer"></div>`+
+              `<div class="vend" data-uid="${uid}" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:#0f172a;color:#fff;font-weight:800;cursor:pointer">`+
+                `<div style="width:64px;height:64px;border-radius:50%;background:rgba(220,38,38,.92);display:flex;align-items:center;justify-content:center"><div style="border-left:22px solid #fff;border-top:13px solid transparent;border-bottom:13px solid transparent;margin-left:5px"></div></div>`+
+                `<div>Watch again 🔁</div>`+
+              `</div>`+
               `<div class="vbadge" data-uid="${uid}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;background:rgba(220,38,38,.92);display:flex;align-items:center;justify-content:center;pointer-events:none">`+
                 `<div style="border-left:22px solid #fff;border-top:13px solid transparent;border-bottom:13px solid transparent;margin-left:5px"></div>`+
               `</div>`+
@@ -94,11 +98,18 @@
           if(!document.getElementById(L._uid)) return;
           players[L._uid]=new YT.Player(L._uid,{
             width:'100%', height:'100%', videoId:L.id,
-            playerVars:{ controls:0, modestbranding:1, rel:0, playsinline:1, fs:0, disablekb:1, iv_load_policy:3 },
+            host:'https://www.youtube-nocookie.com',
+            playerVars:{ controls:0, rel:0, playsinline:1, fs:0, disablekb:1, iv_load_policy:3 },
             events:{
               onReady:e=>{ const f=e.target.getIframe(); f.style.width='100%'; f.style.height='100%'; },
-              onStateChange:e=>{ const b=stageEl.querySelector('.vbadge[data-uid="'+L._uid+'"]');
-                if(b) b.style.display=(e.data===YT.PlayerState.PLAYING)?'none':'flex'; }
+              onStateChange:e=>{
+                const b=stageEl.querySelector('.vbadge[data-uid="'+L._uid+'"]');
+                const end=stageEl.querySelector('.vend[data-uid="'+L._uid+'"]');
+                const ended=e.data===YT.PlayerState.ENDED;
+                // ENDED shows YouTube's related-videos wall — cover it with our replay screen
+                if(end) end.style.display=ended?'flex':'none';
+                if(b) b.style.display=(e.data===YT.PlayerState.PLAYING||ended)?'none':'flex';
+              }
             }
           });
         });
@@ -107,6 +118,12 @@
         el.addEventListener('click',()=>{
           const p=players[el.getAttribute('data-uid')]; if(!p||!p.getPlayerState) return;
           if(p.getPlayerState()===1) p.pauseVideo(); else p.playVideo();
+        });
+      });
+      stageEl.querySelectorAll('.vend').forEach(el=>{
+        el.addEventListener('click',()=>{
+          const p=players[el.getAttribute('data-uid')]; if(!p||!p.seekTo) return;
+          el.style.display='none'; p.seekTo(0); p.playVideo();
         });
       });
 

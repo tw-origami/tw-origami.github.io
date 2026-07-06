@@ -72,6 +72,10 @@
               `<div id="${uid}" style="width:100%;height:100%"></div>`+
             `</div>`+
             `<div class="vtap" style="position:absolute;inset:0;cursor:pointer"></div>`+
+            `<div class="vend" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:#0f172a;color:#fff;font-weight:800;cursor:pointer">`+
+              `<div style="width:64px;height:64px;border-radius:50%;background:rgba(220,38,38,.92);display:flex;align-items:center;justify-content:center"><div style="border-left:22px solid #fff;border-top:13px solid transparent;border-bottom:13px solid transparent;margin-left:5px"></div></div>`+
+              `<div>Watch again 🔁</div>`+
+            `</div>`+
             `<div class="vbadge" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;background:rgba(220,38,38,.92);display:flex;align-items:center;justify-content:center;pointer-events:none">`+
               `<div style="border-left:22px solid #fff;border-top:13px solid transparent;border-bottom:13px solid transparent;margin-left:5px"></div>`+
             `</div>`+
@@ -89,17 +93,24 @@
         el.innerHTML = d.title ? esc(d.title)+(d.author?`<div style="color:var(--muted);font-weight:600;font-size:13px;margin-top:3px">${esc(d.author)}</div>`:'') : '';
       }
 
-      const badge=stage.querySelector('.vbadge');
+      const badge=stage.querySelector('.vbadge'), endCover=stage.querySelector('.vend');
       let player=null;
       ensureAPI(()=>{
         if(!document.getElementById(uid)) return; // navigated away already
         player=new YT.Player(uid, {
           width:'100%', height:'100%',
           videoId:ids[cur],
-          playerVars:{ controls:0, modestbranding:1, rel:0, playsinline:1, fs:0, disablekb:1, iv_load_policy:3 },
+          host:'https://www.youtube-nocookie.com',
+          playerVars:{ controls:0, rel:0, playsinline:1, fs:0, disablekb:1, iv_load_policy:3 },
           events:{
             onReady:()=>{ const f=player.getIframe(); if(f){ f.style.width='100%'; f.style.height='100%'; f.style.display='block'; } updateTitle(); },
-            onStateChange:e=>{ if(badge) badge.style.display=(e.data===YT.PlayerState.PLAYING)?'none':'flex'; updateTitle(); }
+            onStateChange:e=>{
+              const ended=e.data===YT.PlayerState.ENDED;
+              // ENDED shows YouTube's related-videos wall — cover it with our replay screen
+              if(endCover) endCover.style.display=ended?'flex':'none';
+              if(badge) badge.style.display=(e.data===YT.PlayerState.PLAYING||ended)?'none':'flex';
+              updateTitle();
+            }
           }
         });
       });
@@ -108,10 +119,15 @@
         if(!player||!player.getPlayerState) return;
         if(player.getPlayerState()===1) player.pauseVideo(); else player.playVideo();
       });
+      endCover.addEventListener('click',()=>{
+        if(!player||!player.seekTo) return;
+        endCover.style.display='none'; player.seekTo(0); player.playVideo();
+      });
       stage.querySelector('#vnext').addEventListener('click',()=>{
         if(!player||!player.loadVideoById) return;
         let n=cur; if(ids.length>1){ while(n===cur) n=Math.floor(Math.random()*ids.length); }
-        cur=n; player.loadVideoById(ids[cur]);  // user gesture → plays the next clip
+        cur=n; if(endCover) endCover.style.display='none';
+        player.loadVideoById(ids[cur]);  // user gesture → plays the next clip
         setTimeout(updateTitle, 600);
       });
     }
