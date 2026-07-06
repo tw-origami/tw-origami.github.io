@@ -25,16 +25,17 @@
       c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; c.style.animationDelay=(Math.random()*0.4)+'s'; box.appendChild(c); setTimeout(()=>c.remove(),3400); }
   }
 
+  function setTab(name){ document.querySelectorAll('#gametabs button').forEach(b=>b.classList.toggle('on', b.dataset.game===name)); }
   function showMenu(){
     stage.classList.add('hidden'); stage.innerHTML='';
     menu.classList.remove('hidden');
     $('scorebar').style.display='none';
     $('navMenu').classList.add('on');
-    $('subtitle').textContent='Pick a game to start!';
+    $('subtitle').textContent='Pick a game to start!'; setTab(null);
   }
   function openGame(name){
     menu.classList.add('hidden'); stage.classList.remove('hidden'); stage.innerHTML='';
-    $('scorebar').style.display='flex';
+    $('scorebar').style.display='flex'; setTab(name);
     GAMES[name]();
   }
   function backBtn(){ const b=el('button','btn btn-ghost','← Menu'); b.onclick=showMenu; return b; }
@@ -357,5 +358,9 @@
   const GAMES={ match:gameMatch, fuel:gameFuel, label:gameLabel, plate:gamePlate, swap:gameSwap };
 
   document.querySelectorAll('.gamecard').forEach(c=> c.onclick=()=>openGame(c.dataset.game));
+  // build the persistent game tabs from the menu cards
+  const TABMETA={ match:'🔗 What’s Inside?', fuel:'⚡ Best Fuel', label:'🏷️ Label Reader', plate:'🍽️ Complete the Meal', swap:'🔀 Healthier Swap' };
+  const gt=$('gametabs');
+  Object.keys(GAMES).forEach(k=>{ const b=document.createElement('button'); b.dataset.game=k; b.textContent=TABMETA[k]||k; b.onclick=()=>openGame(k); gt.appendChild(b); });
   $('navMenu').onclick=showMenu;
 })();

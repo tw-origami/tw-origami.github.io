@@ -263,6 +263,12 @@
 
   // ---- shell ----------------------------------------------------------------
   const GAMES={ count:countGame, change:changeGame, addup:addupGame, percent:percentGame };
+  const ORDER=['count','change','addup','percent'];
+  const tabsEl=$('gametabs');
+  ORDER.forEach(key=>{ const g=GAMES[key]; const b=document.createElement('button');
+    b.dataset.game=key; b.textContent=g.icon+' '+g.name; b.onclick=()=>openGame(key); tabsEl.appendChild(b);
+  });
+  function setTab(key){ tabsEl.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.game===key)); }
 
   function addNext(card, fn){
     const ctrl=card.querySelector('#ctrl') || (()=>{ const d=document.createElement('div'); d.className='controls'; card.appendChild(d); return d; })();
@@ -273,13 +279,13 @@
     const g=GAMES[key]; if(!g) return;
     menu.classList.add('hidden'); stage.classList.remove('hidden');
     scorebar.style.display='flex'; navMenu.classList.remove('on');
-    subtitle.textContent=g.icon+' '+g.name;
+    subtitle.textContent=g.icon+' '+g.name; setTab(key);
     g.mount();
     window.scrollTo({top:0,behavior:'smooth'});
   }
   function toMenu(){
     stage.classList.add('hidden'); stage.innerHTML=''; menu.classList.remove('hidden');
-    scorebar.style.display='none'; navMenu.classList.add('on'); subtitle.textContent=SUB;
+    scorebar.style.display='none'; navMenu.classList.add('on'); subtitle.textContent=SUB; setTab(null);
     window.scrollTo({top:0,behavior:'smooth'});
   }
   menu.querySelectorAll('.gcard').forEach(c=>c.addEventListener('click',()=>openGame(c.getAttribute('data-game'))));

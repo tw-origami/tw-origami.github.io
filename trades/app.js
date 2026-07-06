@@ -4,11 +4,19 @@
   const menu=$('menu'), stage=$('stage'), navMenu=$('navMenu'), subtitle=$('subtitle');
   const SUB_MENU='Pick a trade and learn it by building — hands on, no hard hat required.';
 
+  const ORDER=['electric','plumb','arch','build','watch'];
+  const tabsEl=$('gametabs');
+  ORDER.forEach(key=>{ const t=(window.TRADES||{})[key]; if(!t) return;
+    const b=document.createElement('button'); b.dataset.trade=key; b.textContent=t.icon+' '+t.name;
+    b.onclick=()=>openTrade(key); tabsEl.appendChild(b);
+  });
+  function setTab(key){ tabsEl.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.trade===key)); }
+
   function toMenu(){
     stage.classList.add('hidden'); stage.innerHTML='';
     menu.classList.remove('hidden');
     navMenu.classList.add('on');
-    subtitle.textContent=SUB_MENU;
+    subtitle.textContent=SUB_MENU; setTab(null);
     window.scrollTo({top:0,behavior:'smooth'});
   }
 
@@ -16,7 +24,7 @@
     const trade=(window.TRADES||{})[key]; if(!trade) return;
     menu.classList.add('hidden');
     stage.classList.remove('hidden');
-    subtitle.textContent=trade.icon+' '+trade.name;
+    subtitle.textContent=trade.icon+' '+trade.name; setTab(key);
     trade.mount(stage, { celebrate, toMenu });
     window.scrollTo({top:0,behavior:'smooth'});
   }
