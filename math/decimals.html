@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Decimal Den</title>
+<style>
+  :root {
+    --bg:#f0fdfa; --panel:#fff; --ink:#1e293b; --muted:#64748b;
+    --accent:#0d9488; --accent-soft:#ccfbf1; --correct:#16a34a; --wrong:#dc2626;
+    --line:#94a3b8; --shadow:0 10px 30px rgba(15,118,110,.14);
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#f0fdfa,#f8fafc); min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; padding:24px 16px 60px;
+  }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 18px; font-size:15px; text-align:center; max-width:520px; line-height:1.5; }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; flex-wrap:wrap; justify-content:center; max-width:640px; }
+  .nav a{ text-decoration:none; font-weight:800; font-size:13.5px; color:var(--muted); padding:8px 13px; border-radius:9px; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:var(--panel); border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; }
+  .seg button { border:none; background:transparent; font-family:inherit; font-weight:800; font-size:14.5px; padding:9px 16px; border-radius:10px; cursor:pointer; color:var(--muted); }
+  .seg button.on { background:var(--accent); color:#fff; }
+  .levels { display:flex; gap:8px; align-items:center; }
+  .levels .lbl { font-size:13px; color:var(--muted); font-weight:700; margin-right:2px; }
+  .lvl { width:38px; height:38px; border:none; border-radius:11px; font-weight:800; font-size:15px; cursor:pointer; background:var(--panel); color:var(--muted); box-shadow:var(--shadow); }
+  .lvl.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .chip { background:var(--panel); border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; }
+  .chip.streak { color:#ea580c; }
+
+  .layout { display:flex; gap:24px; width:100%; max-width:1000px; align-items:flex-start; flex-wrap:wrap; justify-content:center; }
+  .card { background:var(--panel); border-radius:24px; box-shadow:var(--shadow); padding:28px; }
+  .quiz { flex:1 1 360px; display:flex; flex-direction:column; align-items:center; min-height:420px; }
+  .visual { flex:1 1 360px; display:flex; flex-direction:column; align-items:center; }
+
+  .prompt { color:var(--muted); font-size:14px; margin:0 0 16px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; text-align:center; }
+
+  .choices { display:flex; flex-direction:column; gap:11px; width:100%; max-width:340px; margin-top:6px; }
+  .choice { background:#fff; border:3px solid #e2e8f0; border-radius:16px; font-size:20px; font-weight:800; padding:12px 18px; color:var(--ink); cursor:pointer; text-align:center; font-family:inherit; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; color:var(--correct); }
+  .choice.wrong { border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
+  .choice:disabled { cursor:default; }
+
+  .feedback { min-height:26px; margin-top:16px; font-weight:700; font-size:17px; text-align:center; }
+  .feedback.good { color:var(--correct); }
+  .feedback.bad { color:var(--wrong); }
+
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; text-align:left; width:100%; max-width:420px; margin:14px auto 4px; padding:13px 16px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
+  .reveal.hidden { display:none; }
+  .reveal b { color:#0f766e; }
+
+  button.act { font-family:inherit; font-size:16px; font-weight:700; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; }
+  button.act:disabled { opacity:.55; cursor:default; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#0f766e; }
+  .btn-ghost { background:var(--accent-soft); color:var(--accent); }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  /* Hundredths grid */
+  .gridwrap { display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .grid100 { display:grid; grid-template-columns:repeat(10, 1fr); gap:2px; width:180px; height:180px; border:2px solid var(--ink); border-radius:6px; padding:3px; }
+  .cell { border-radius:2px; background:#f1f5f9; }
+  .cell.on { background:var(--accent); }
+  .wholes { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; max-width:220px; }
+  .whole { width:36px; height:36px; border-radius:6px; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; box-shadow:inset 0 0 0 2px rgba(255,255,255,.4); }
+  .gridlabel { font-size:12.5px; font-weight:700; color:var(--muted); }
+  .decnum { font-size:40px; font-weight:800; margin:6px 0; }
+  .decnum .part { display:inline-block; }
+  .placeval { display:flex; gap:0; justify-content:center; margin:12px 0; }
+  .placeval .col { display:flex; flex-direction:column; align-items:center; min-width:52px; }
+  .placeval .col .digit { font-size:26px; font-weight:800; padding:6px 0; }
+  .placeval .col .name { font-size:10.5px; font-weight:800; color:var(--muted); text-transform:uppercase; }
+  .placeval .dot { display:flex; align-items:flex-end; padding-bottom:10px; font-size:26px; font-weight:900; }
+
+  .learn-panel { display:flex; flex-direction:column; align-items:center; gap:16px; width:100%; }
+  .stepper-row { display:flex; align-items:center; gap:16px; flex-wrap:wrap; justify-content:center; }
+  .stepper { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .stepper .lbl { font-size:12px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+  .stepper .row { display:flex; align-items:center; gap:8px; }
+  .stepbtn { width:34px; height:34px; border:none; border-radius:10px; background:var(--accent-soft); color:var(--accent); font-size:18px; font-weight:800; cursor:pointer; }
+  .stepbtn:hover { background:var(--accent); color:#fff; }
+  .stepval { min-width:30px; text-align:center; font-size:22px; font-weight:800; }
+  .readout { text-align:center; }
+  .readout .sentence { color:var(--muted); font-size:14.5px; max-width:340px; margin:8px auto 0; line-height:1.5; }
+
+  .decinput { font-size:32px; font-weight:800; text-align:center; width:160px; padding:10px; border:3px solid #e2e8f0; border-radius:16px; font-family:inherit; color:var(--ink); }
+  .decinput:focus { border-color:var(--accent); outline:none; box-shadow:0 0 0 4px var(--accent-soft); }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner { position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6); background:linear-gradient(135deg,#14b8a6,#0d9488); color:#fff; font-weight:900; font-size:28px; padding:20px 38px; border-radius:22px; box-shadow:0 18px 50px rgba(13,148,136,.45); z-index:60; opacity:0; pointer-events:none; text-align:center; white-space:nowrap; }
+  #streakBanner.show { animation: banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner { 0%{opacity:0; transform:translate(-50%,-50%) scale(.6)} 15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)} 28%{transform:translate(-50%,-50%) scale(1)} 80%{opacity:1; transform:translate(-50%,-50%) scale(1)} 100%{opacity:0; transform:translate(-50%,-60%) scale(.95)} }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <a href="index.html">📊 Blocks</a>
+    <a href="chart.html">🔢 Chart</a>
+    <a href="fractions.html">🍰 Fractions</a>
+    <a href="decimals.html" class="on">🔟 Decimals</a>
+    <a href="angles.html">📐 Angles</a>
+    <a href="algebra.html">🧩 Algebra</a>
+  </div>
+  <h1>🔟 Decimal Den</h1>
+  <p class="sub">Build decimals with place-value grids, then practice reading, comparing, and adding them.</p>
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="learn" class="on">🧱 Learn</button>
+      <button data-mode="read">🔍 Read It</button>
+      <button data-mode="compare">⚖️ Compare</button>
+      <button data-mode="addsub">➕ Add &amp; Subtract</button>
+    </div>
+    <div class="levels" id="levelSeg" style="display:none">
+      <span class="lbl">Level</span>
+      <button class="lvl on" data-lvl="1">1</button>
+      <button class="lvl" data-lvl="2">2</button>
+      <button class="lvl" data-lvl="3">3</button>
+      <button class="lvl" data-lvl="4">4</button>
+      <button class="lvl" data-lvl="5">5</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar" id="scorebar" style="display:none">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="layout" id="layout"></div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const rand = (lo,hi) => Math.floor(Math.random()*(hi-lo+1))+lo;
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const round2 = v => Math.round(v*100)/100;
+
+  let mode = 'learn';
+  let level = 1;
+  let correct = 0, total = 0, streak = 0;
+  let answered = false, advanceReady = true, advanceTimer = null, countdownTimer = null;
+  let cur = null, lastKey = null;
+
+  // Learn-mode state: ones.tenths hundredths
+  let learnOnes = 1, learnTenths = 3, learnHund = 5;
+
+  function clearTimers(){ if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;} if(countdownTimer){clearInterval(countdownTimer);countdownTimer=null;} }
+  function updateScorebar(){ $('correctCount').textContent=correct; $('totalCount').textContent=total; $('streak').textContent=streak; }
+  function resetProgress(){ correct=0; total=0; streak=0; lastKey=null; updateScorebar(); }
+
+  // ---------- Visuals ----------
+  function grid100HTML(filled){
+    let cells = '';
+    for (let i=0;i<100;i++) cells += `<div class="cell ${i<filled?'on':''}"></div>`;
+    return `<div class="grid100">${cells}</div>`;
+  }
+  function decimalVisual(ones, tenths, hund){
+    const filled = tenths*10 + hund;
+    let wholes = '';
+    for (let i=0;i<ones;i++) wholes += `<div class="whole">1.00</div>`;
+    return `<div class="gridwrap">
+      ${ones>0 ? `<div class="wholes">${wholes}</div><div class="gridlabel">+ this grid = 1 whole (100 hundredths)</div>` : ''}
+      ${grid100HTML(filled)}
+      <div class="gridlabel">${filled} of 100 squares shaded</div>
+    </div>`;
+  }
+  function placeValueHTML(ones, tenths, hund, withHund){
+    return `<div class="placeval">
+      <div class="col"><div class="digit">${ones}</div><div class="name">Ones</div></div>
+      <div class="dot">.</div>
+      <div class="col"><div class="digit">${tenths}</div><div class="name">Tenths</div></div>
+      ${withHund ? `<div class="col"><div class="digit">${hund}</div><div class="name">Hundredths</div></div>` : ''}
+    </div>`;
+  }
+  function fmtDec(v){ return round2(v).toString(); }
+
+  // ---------- LEARN mode ----------
+  function renderLearn(){
+    $('scorebar').style.display = 'none';
+    $('levelSeg').style.display = 'none';
+    const value = learnOnes + learnTenths/10 + learnHund/100;
+    $('layout').innerHTML = `
+      <div class="card visual" style="flex:1 1 320px">
+        ${decimalVisual(learnOnes, learnTenths, learnHund)}
+      </div>
+      <div class="card quiz" style="flex:1 1 320px; min-height:auto">
+        <div class="learn-panel">
+          <div class="stepper-row">
+            <div class="stepper"><div class="lbl">Ones</div><div class="row"><button class="stepbtn" id="onesDown">−</button><div class="stepval" id="onesVal">${learnOnes}</div><button class="stepbtn" id="onesUp">+</button></div></div>
+            <div class="stepper"><div class="lbl">Tenths</div><div class="row"><button class="stepbtn" id="tenthsDown">−</button><div class="stepval" id="tenthsVal">${learnTenths}</div><button class="stepbtn" id="tenthsUp">+</button></div></div>
+            <div class="stepper"><div class="lbl">Hundredths</div><div class="row"><button class="stepbtn" id="hundDown">−</button><div class="stepval" id="hundVal">${learnHund}</div><button class="stepbtn" id="hundUp">+</button></div></div>
+          </div>
+          ${placeValueHTML(learnOnes, learnTenths, learnHund, true)}
+          <div class="readout">
+            <div class="decnum">${fmtDec(value)}</div>
+            <p class="sentence">That’s <b>${learnOnes}</b> one${learnOnes===1?'':'s'}, <b>${learnTenths}</b> tenth${learnTenths===1?'':'s'} (${learnTenths}/10), and <b>${learnHund}</b> hundredth${learnHund===1?'':'s'} (${learnHund}/100) — or ${learnTenths*10+learnHund} hundredths in the grid.</p>
+          </div>
+          <div class="btn-row"><button class="act btn-ghost" id="randomizeBtn">🎲 Randomize</button></div>
+        </div>
+      </div>`;
+    $('onesDown').onclick = () => { learnOnes = Math.max(0, learnOnes-1); renderLearn(); };
+    $('onesUp').onclick = () => { learnOnes = Math.min(3, learnOnes+1); renderLearn(); };
+    $('tenthsDown').onclick = () => { learnTenths = Math.max(0, learnTenths-1); renderLearn(); };
+    $('tenthsUp').onclick = () => { learnTenths = Math.min(9, learnTenths+1); renderLearn(); };
+    $('hundDown').onclick = () => { learnHund = Math.max(0, learnHund-1); renderLearn(); };
+    $('hundUp').onclick = () => { learnHund = Math.min(9, learnHund+1); renderLearn(); };
+    $('randomizeBtn').onclick = () => { learnOnes = rand(0,3); learnTenths = rand(0,9); learnHund = rand(0,9); renderLearn(); };
+  }
+
+  // ---------- Shared quiz chrome ----------
+  function quizShell(prompt, subjectHTML, extraVisualHTML){
+    $('scorebar').style.display = 'flex';
+    $('levelSeg').style.display = 'flex';
+    $('layout').innerHTML = `
+      <div class="card quiz">
+        <p class="prompt">${prompt}</p>
+        <div id="subject">${subjectHTML}</div>
+        <div class="choices" id="choices"></div>
+        <div id="inputWrap"></div>
+        <div class="feedback" id="feedback"></div>
+        <div class="reveal hidden" id="reveal"></div>
+        <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">Next ➡️</button></div>
+      </div>
+      <div class="card visual">${extraVisualHTML || ''}</div>`;
+  }
+
+  function startReadLock(){
+    advanceReady = false;
+    let secs = 3;
+    const nb = $('nextBtn');
+    nb.disabled = true; nb.textContent = `Read it… (${secs})`;
+    $('nextRow').style.display = 'flex';
+    countdownTimer = setInterval(() => { secs--; if (secs>0) nb.textContent = `Read it… (${secs})`; else { clearInterval(countdownTimer); countdownTimer=null; } }, 1000);
+    advanceTimer = setTimeout(() => { advanceReady = true; advanceTimer = null; nb.disabled = false; nb.textContent = 'Next ➡️'; nb.focus(); }, 3000);
+  }
+  function tryAdvance(){ if (answered && advanceReady) newRound(); }
+
+  function celebrate(n){
+    const msgs = { 5:'🌟 5 in a row!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>Decimal expert!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    const colors = ['#0d9488','#14b8a6','#f59e0b','#16a34a','#0ea5e9','#8b5cf6'];
+    const box = $('confetti');
+    for (let i=0;i<90;i++){
+      const c = document.createElement('div'); c.className='conf';
+      c.style.left = Math.random()*100+'vw'; c.style.background = colors[i%colors.length];
+      c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; c.style.animationDelay=(Math.random()*0.4)+'s';
+      c.style.transform=`rotate(${Math.random()*360}deg)`;
+      box.appendChild(c); setTimeout(()=>c.remove(),3400);
+    }
+  }
+
+  function finishAnswer(isCorrect, revealHTML){
+    answered = true; total++;
+    if (isCorrect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+    const fb = $('feedback');
+    if (isCorrect){ fb.textContent = pick(['🎉 Correct!','⭐ Nice!','✅ You got it!','🔟 Perfect!']); fb.className='feedback good'; }
+    else { fb.textContent = 'Not quite — here’s how to solve it:'; fb.className='feedback bad'; }
+    const rev = $('reveal'); rev.innerHTML = revealHTML; rev.className = 'reveal';
+    if (isCorrect && streak > 0 && streak % 5 === 0) celebrate(streak);
+    startReadLock();
+  }
+
+  // ---------- READ IT ----------
+  function genDecimal(){
+    if (level === 1) return { ones:0, tenths:rand(1,9), hund:0 };
+    if (level === 2) return { ones:rand(0,2), tenths:rand(0,9), hund:0 };
+    if (level === 3) return { ones:0, tenths:rand(0,9), hund:rand(1,9) };
+    if (level === 4) return { ones:rand(0,3), tenths:rand(0,9), hund:rand(0,9) };
+    return { ones:rand(1,4), tenths:rand(0,9), hund:rand(0,9) };
+  }
+  function roundRead(){
+    let d, tries=0;
+    do { d = genDecimal(); tries++; } while (`${d.ones}.${d.tenths}${d.hund}` === lastKey && tries < 20);
+    lastKey = `${d.ones}.${d.tenths}${d.hund}`;
+    const value = d.ones + d.tenths/10 + d.hund/100;
+    cur = { ...d, value };
+    quizShell('What decimal number is shown?', `<div style="margin-top:6px">${decimalVisual(d.ones, d.tenths, d.hund)}</div>`);
+    const opts = new Set([fmtDec(value)]);
+    while (opts.size < 4){
+      const variants = [
+        fmtDec(d.tenths/100 + d.hund/10 + d.ones), // swapped tenths/hundredths
+        fmtDec(value + 0.1), fmtDec(Math.max(0,value - 0.1)),
+        fmtDec(d.ones + d.hund/10), fmtDec(value + 1)
+      ];
+      opts.add(pick(variants));
+    }
+    const box = $('choices');
+    [...opts].sort(()=>Math.random()-0.5).forEach(o => {
+      const btn = document.createElement('button'); btn.className='choice'; btn.textContent = o;
+      btn.onclick = () => answerRead(btn, o);
+      box.appendChild(btn);
+    });
+  }
+  function answerRead(btn, val){
+    if (answered) return;
+    const correctStr = fmtDec(cur.value);
+    const isCorrect = val === correctStr;
+    [...$('choices').children].forEach(c => { c.disabled = true; if (c.textContent === correctStr) c.classList.add('correct'); });
+    if (!isCorrect) btn.classList.add('wrong');
+    finishAnswer(isCorrect, `The grid shows <b>${cur.tenths*10+cur.hund}</b> of 100 squares shaded${cur.ones ? ` plus ${cur.ones} whole grid${cur.ones===1?'':'s'}` : ''} — that’s <b>${cur.tenths}</b> tenths and <b>${cur.hund}</b> hundredths, written as <b>${correctStr}</b>.`);
+  }
+
+  // ---------- COMPARE ----------
+  function roundCompare(){
+    let a, b, tries=0;
+    do { a = genDecimal(); b = genDecimal(); tries++; } while (`${a.ones}.${a.tenths}${a.hund}v${b.ones}.${b.tenths}${b.hund}` === lastKey && tries < 20);
+    lastKey = `${a.ones}.${a.tenths}${a.hund}v${b.ones}.${b.tenths}${b.hund}`;
+    const va = a.ones + a.tenths/10 + a.hund/100, vb = b.ones + b.tenths/10 + b.hund/100;
+    const answerKey = va > vb ? 'left' : (vb > va ? 'right' : 'equal');
+    cur = { a, b, va, vb, answerKey };
+    quizShell('Which decimal is bigger?', `
+      <div style="display:flex;gap:20px;justify-content:center;align-items:flex-start;flex-wrap:wrap">
+        <div style="text-align:center"><div class="decnum">${fmtDec(va)}</div>${grid100HTML(a.tenths*10+a.hund)}${a.ones ? `<div class="gridlabel">+ ${a.ones} whole${a.ones===1?'':'s'}</div>`:''}</div>
+        <div style="text-align:center"><div class="decnum">${fmtDec(vb)}</div>${grid100HTML(b.tenths*10+b.hund)}${b.ones ? `<div class="gridlabel">+ ${b.ones} whole${b.ones===1?'':'s'}</div>`:''}</div>
+      </div>`);
+    const box = $('choices');
+    [['left', `👈 ${fmtDec(va)} is bigger`], ['equal','⚖️ They’re equal'], ['right', `${fmtDec(vb)} is bigger 👉`]].forEach(([key,label]) => {
+      const btn = document.createElement('button'); btn.className='choice'; btn.textContent = label;
+      btn.onclick = () => answerCompare(btn, key);
+      box.appendChild(btn);
+    });
+  }
+  function answerCompare(btn, key){
+    if (answered) return;
+    const isCorrect = key === cur.answerKey;
+    [...$('choices').children].forEach(c => c.disabled = true);
+    btn.classList.add(isCorrect ? 'correct' : 'wrong');
+    const verdict = cur.answerKey === 'left' ? `${fmtDec(cur.va)} is bigger` : cur.answerKey === 'right' ? `${fmtDec(cur.vb)} is bigger` : 'they are equal';
+    finishAnswer(isCorrect, `Line up the place values: ${fmtDec(cur.va)} has <b>${cur.a.tenths}</b> tenths and <b>${cur.a.hund}</b> hundredths; ${fmtDec(cur.vb)} has <b>${cur.b.tenths}</b> tenths and <b>${cur.b.hund}</b> hundredths. Comparing digit by digit (ones, then tenths, then hundredths), ${verdict}. Tip: more digits doesn’t always mean bigger — 0.9 is bigger than 0.42!`);
+  }
+
+  // ---------- ADD & SUBTRACT ----------
+  function genAddSub(){
+    let a, b, op;
+    op = pick(['+','-']);
+    if (level <= 1){ a = round2(rand(1,9)/10); b = round2(rand(1,9)/10); }
+    else if (level === 2){ a = round2(rand(1,9) + rand(0,9)/10); b = round2(rand(1,9) + rand(0,9)/10); }
+    else if (level === 3){ a = round2(rand(1,99)/100); b = round2(rand(1,99)/100); }
+    else if (level === 4){ a = round2(rand(1,20) + rand(0,9)/10); b = round2(rand(1,99)/100); }
+    else { a = round2(rand(1,30) + rand(0,99)/100); b = round2(rand(1,30) + rand(0,99)/100); }
+    if (op === '-' && b > a){ const t=a; a=b; b=t; }
+    return { a, b, op };
+  }
+  function roundAddSub(){
+    let g, tries=0;
+    do { g = genAddSub(); tries++; } while (`${g.a}${g.op}${g.b}` === lastKey && tries < 20);
+    lastKey = `${g.a}${g.op}${g.b}`;
+    const result = round2(g.op === '+' ? g.a + g.b : g.a - g.b);
+    cur = { ...g, result };
+    quizShell(`Solve: ${fmtDec(g.a)} ${g.op} ${fmtDec(g.b)} = ?`, `
+      <div style="text-align:center">
+        <div style="font-family:monospace;font-size:30px;font-weight:800;line-height:1.5;display:inline-block;text-align:right">
+          &nbsp;&nbsp;${fmtDec(g.a)}<br>${g.op}&nbsp;${fmtDec(g.b)}<br><div style="border-top:3px solid var(--ink);margin-top:4px;padding-top:4px">?</div>
+        </div>
+        <p class="sentence" style="margin-top:14px">Line up the decimal points, then ${g.op==='+'?'add':'subtract'} column by column just like whole numbers.</p>
+      </div>`);
+    const wrap = $('inputWrap');
+    wrap.innerHTML = `<div style="text-align:center;margin-top:6px"><input type="number" step="0.01" class="decinput" id="ansInput" placeholder="?"></div>
+      <div class="btn-row"><button class="act btn-primary" id="checkDecBtn">Check</button></div>`;
+    $('checkDecBtn').onclick = checkAddSub;
+    $('ansInput').focus();
+  }
+  function checkAddSub(){
+    if (answered) return;
+    const val = parseFloat($('ansInput').value);
+    if (isNaN(val)) return;
+    const isCorrect = Math.abs(round2(val) - cur.result) < 0.005;
+    $('ansInput').disabled = true; $('checkDecBtn').style.display = 'none';
+    finishAnswer(isCorrect, `Line up the decimal points:<br><span style="font-family:monospace;font-size:16px">&nbsp;&nbsp;${fmtDec(cur.a)}<br>${cur.op} ${fmtDec(cur.b)}<br>——<br>&nbsp;&nbsp;<b>${fmtDec(cur.result)}</b></span><br>${cur.op==='+' ? 'Add' : 'Subtract'} each column the same way you would with whole numbers, carrying or borrowing as needed.`);
+  }
+
+  // ---------- Dispatcher ----------
+  function newRound(){
+    clearTimers(); advanceReady = true; answered = false;
+    if (mode === 'learn'){ renderLearn(); return; }
+    if (mode === 'read') roundRead();
+    else if (mode === 'compare') roundCompare();
+    else roundAddSub();
+  }
+
+  $('modeSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.mode;
+    [...$('modeSeg').children].forEach(x => x.classList.toggle('on', x===b));
+    resetProgress(); newRound();
+  });
+  $('levelSeg').addEventListener('click', e => {
+    const b = e.target.closest('button.lvl'); if (!b) return;
+    level = +b.dataset.lvl;
+    [...$('levelSeg').children].forEach(x => x.classList && x.classList.toggle('on', x===b));
+    resetProgress(); newRound();
+  });
+  document.addEventListener('click', e => { if (e.target && e.target.id === 'nextBtn') tryAdvance(); });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    if (mode === 'addsub' && !answered){ e.preventDefault(); checkAddSub(); return; }
+    if (answered){ e.preventDefault(); tryAdvance(); }
+  });
+
+  newRound();
+})();
+</script>
+</body>
+</html>

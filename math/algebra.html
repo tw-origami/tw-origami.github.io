@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Algebra Arcade</title>
+<style>
+  :root {
+    --bg:#f5f3ff; --panel:#fff; --ink:#1e293b; --muted:#64748b;
+    --accent:#7c3aed; --accent-soft:#ede9fe; --correct:#16a34a; --wrong:#dc2626;
+    --line:#94a3b8; --shadow:0 10px 30px rgba(91,33,182,.14);
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#f5f3ff,#f8fafc); min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; padding:24px 16px 60px;
+  }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 18px; font-size:15px; text-align:center; max-width:520px; line-height:1.5; }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; flex-wrap:wrap; justify-content:center; max-width:640px; }
+  .nav a{ text-decoration:none; font-weight:800; font-size:13.5px; color:var(--muted); padding:8px 13px; border-radius:9px; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:var(--panel); border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; }
+  .seg button { border:none; background:transparent; font-family:inherit; font-weight:800; font-size:14.5px; padding:9px 16px; border-radius:10px; cursor:pointer; color:var(--muted); }
+  .seg button.on { background:var(--accent); color:#fff; }
+  .levels { display:flex; gap:8px; align-items:center; }
+  .levels .lbl { font-size:13px; color:var(--muted); font-weight:700; margin-right:2px; }
+  .lvl { width:38px; height:38px; border:none; border-radius:11px; font-weight:800; font-size:15px; cursor:pointer; background:var(--panel); color:var(--muted); box-shadow:var(--shadow); }
+  .lvl.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .chip { background:var(--panel); border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; }
+  .chip.streak { color:#ea580c; }
+
+  .layout { display:flex; gap:24px; width:100%; max-width:1000px; align-items:flex-start; flex-wrap:wrap; justify-content:center; }
+  .card { background:var(--panel); border-radius:24px; box-shadow:var(--shadow); padding:28px; }
+  .quiz { flex:1 1 360px; display:flex; flex-direction:column; align-items:center; min-height:420px; }
+  .visual { flex:1 1 360px; display:flex; flex-direction:column; align-items:center; }
+
+  .prompt { color:var(--muted); font-size:14px; margin:0 0 16px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; text-align:center; }
+  .eqn { font-size:32px; font-weight:800; text-align:center; margin:6px 0 14px; }
+  .eqn .x { color:var(--accent); }
+
+  .choices { display:flex; flex-direction:column; gap:11px; width:100%; max-width:340px; margin-top:6px; }
+  .choice { background:#fff; border:3px solid #e2e8f0; border-radius:16px; font-size:18px; font-weight:700; padding:12px 18px; color:var(--ink); cursor:pointer; text-align:center; font-family:inherit; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; color:var(--correct); }
+  .choice.wrong { border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
+  .choice:disabled { cursor:default; }
+
+  .feedback { min-height:26px; margin-top:16px; font-weight:700; font-size:17px; text-align:center; }
+  .feedback.good { color:var(--correct); }
+  .feedback.bad { color:var(--wrong); }
+
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; text-align:left; width:100%; max-width:420px; margin:14px auto 4px; padding:13px 16px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
+  .reveal.hidden { display:none; }
+  .reveal b { color:#5b21b6; }
+  .steps { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:10px; }
+  .stepchip { background:#fff; border:2px solid var(--accent); border-radius:10px; padding:6px 10px; font-weight:800; font-size:14px; color:var(--accent); }
+
+  button.act { font-family:inherit; font-size:16px; font-weight:700; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; }
+  button.act:disabled { opacity:.55; cursor:default; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#6d28d9; }
+  .btn-ghost { background:var(--accent-soft); color:var(--accent); }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  /* Balance visual (simplified two-pan / equals depiction) */
+  .balance { display:flex; align-items:center; justify-content:center; gap:14px; flex-wrap:wrap; }
+  .pan { width:130px; min-height:90px; border:3px solid var(--ink); border-radius:16px; display:flex; flex-wrap:wrap; align-content:flex-start; justify-content:center; gap:6px; padding:10px; background:#fff; }
+  .pan .panlabel { width:100%; text-align:center; font-size:10.5px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:2px; }
+  .eqsign { font-size:30px; font-weight:900; color:var(--ink); }
+  .chipbox { width:36px; height:36px; border-radius:9px; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px; box-shadow:inset 0 0 0 2px rgba(255,255,255,.35); }
+  .chipweight { width:36px; height:36px; border-radius:50%; background:#f59e0b; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; box-shadow:inset 0 0 0 2px rgba(255,255,255,.35); }
+  .chipweight.neg { background:#dc2626; }
+  .balance-title { text-align:center; color:var(--muted); font-size:12.5px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; margin-bottom:10px; }
+
+  .numinput { font-size:30px; font-weight:800; text-align:center; width:130px; padding:10px; border:3px solid #e2e8f0; border-radius:16px; font-family:inherit; color:var(--ink); }
+  .numinput:focus { border-color:var(--accent); outline:none; box-shadow:0 0 0 4px var(--accent-soft); }
+  .sentence { color:var(--muted); font-size:14px; max-width:320px; text-align:center; margin:8px auto 0; line-height:1.5; }
+
+  .stepper-row { display:flex; align-items:center; gap:20px; flex-wrap:wrap; justify-content:center; }
+  .stepper { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .stepper .lbl { font-size:12px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+  .stepper .row { display:flex; align-items:center; gap:8px; }
+  .stepbtn { width:34px; height:34px; border:none; border-radius:10px; background:var(--accent-soft); color:var(--accent); font-size:18px; font-weight:800; cursor:pointer; }
+  .stepbtn:hover { background:var(--accent); color:#fff; }
+  .stepval { min-width:30px; text-align:center; font-size:22px; font-weight:800; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner { position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6); background:linear-gradient(135deg,#a78bfa,#7c3aed); color:#fff; font-weight:900; font-size:28px; padding:20px 38px; border-radius:22px; box-shadow:0 18px 50px rgba(124,58,237,.45); z-index:60; opacity:0; pointer-events:none; text-align:center; white-space:nowrap; }
+  #streakBanner.show { animation: banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner { 0%{opacity:0; transform:translate(-50%,-50%) scale(.6)} 15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)} 28%{transform:translate(-50%,-50%) scale(1)} 80%{opacity:1; transform:translate(-50%,-50%) scale(1)} 100%{opacity:0; transform:translate(-50%,-60%) scale(.95)} }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <a href="index.html">📊 Blocks</a>
+    <a href="chart.html">🔢 Chart</a>
+    <a href="fractions.html">🍰 Fractions</a>
+    <a href="decimals.html">🔟 Decimals</a>
+    <a href="angles.html">📐 Angles</a>
+    <a href="algebra.html" class="on">🧩 Algebra</a>
+  </div>
+  <h1>🧩 Algebra Arcade</h1>
+  <p class="sub">Balance the scale to build equation sense, then practice solving for x, evaluating expressions, and finding patterns.</p>
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="learn" class="on">⚖️ Learn</button>
+      <button data-mode="solve">🔍 Solve for X</button>
+      <button data-mode="evaluate">🧮 Evaluate</button>
+      <button data-mode="pattern">🔢 Patterns</button>
+    </div>
+    <div class="levels" id="levelSeg" style="display:none">
+      <span class="lbl">Level</span>
+      <button class="lvl on" data-lvl="1">1</button>
+      <button class="lvl" data-lvl="2">2</button>
+      <button class="lvl" data-lvl="3">3</button>
+      <button class="lvl" data-lvl="4">4</button>
+      <button class="lvl" data-lvl="5">5</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar" id="scorebar" style="display:none">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="layout" id="layout"></div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const rand = (lo,hi) => Math.floor(Math.random()*(hi-lo+1))+lo;
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+
+  let mode = 'learn';
+  let level = 1;
+  let correct = 0, total = 0, streak = 0;
+  let answered = false, advanceReady = true, advanceTimer = null, countdownTimer = null;
+  let cur = null, lastKey = null;
+  let learnA = 3, learnB = 10; // x + a = b
+
+  function clearTimers(){ if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;} if(countdownTimer){clearInterval(countdownTimer);countdownTimer=null;} }
+  function updateScorebar(){ $('correctCount').textContent=correct; $('totalCount').textContent=total; $('streak').textContent=streak; }
+  function resetProgress(){ correct=0; total=0; streak=0; lastKey=null; updateScorebar(); }
+
+  // ---------- Balance visual ----------
+  function chip(item){
+    if (item.type === 'box') return `<div class="chipbox">x</div>`;
+    const neg = item.val < 0;
+    return `<div class="chipweight ${neg?'neg':''}">${neg?'−':''}${Math.abs(item.val)}</div>`;
+  }
+  function balanceHTML(left, right, title){
+    return `
+      ${title ? `<div class="balance-title">${title}</div>` : ''}
+      <div class="balance">
+        <div class="pan"><div class="panlabel">Left side</div>${left.map(chip).join('')}</div>
+        <div class="eqsign">=</div>
+        <div class="pan"><div class="panlabel">Right side</div>${right.map(chip).join('')}</div>
+      </div>`;
+  }
+
+  // ---------- LEARN mode ----------
+  function renderLearn(){
+    $('scorebar').style.display = 'none';
+    $('levelSeg').style.display = 'none';
+    const answer = learnB - learnA;
+    $('layout').innerHTML = `
+      <div class="card visual" style="flex:1 1 320px">
+        ${balanceHTML([{type:'box'},{type:'weight',val:learnA}], [{type:'weight',val:learnB}], `x + ${learnA} = ${learnB}`)}
+        <div id="solvedBox" style="margin-top:22px"></div>
+      </div>
+      <div class="card quiz" style="flex:1 1 320px; min-height:auto">
+        <div style="text-align:center">
+          <div class="eqn">x + <span class="x">${learnA}</span> = ${learnB}</div>
+          <div class="stepper-row">
+            <div class="stepper"><div class="lbl">a</div><div class="row"><button class="stepbtn" id="aDown">−</button><div class="stepval" id="aVal">${learnA}</div><button class="stepbtn" id="aUp">+</button></div></div>
+            <div class="stepper"><div class="lbl">b</div><div class="row"><button class="stepbtn" id="bDown">−</button><div class="stepval" id="bVal">${learnB}</div><button class="stepbtn" id="bUp">+</button></div></div>
+          </div>
+          <p class="sentence">Whatever you do to one side, you must do to the <b>other</b> side too — that keeps the scale balanced. To get x alone, subtract ${learnA} from both sides.</p>
+          <div class="btn-row"><button class="act btn-primary" id="solveBtn">Subtract ${learnA} from both sides</button></div>
+        </div>
+      </div>`;
+    $('aDown').onclick = () => { learnA = Math.max(1, learnA-1); if (learnA >= learnB) learnB = learnA+1; renderLearn(); };
+    $('aUp').onclick = () => { learnA = learnA+1; if (learnA >= learnB) learnB = learnA+1; renderLearn(); };
+    $('bDown').onclick = () => { learnB = Math.max(learnA+1, learnB-1); renderLearn(); };
+    $('bUp').onclick = () => { learnB = Math.min(30, learnB+1); renderLearn(); };
+    $('solveBtn').onclick = () => {
+      $('solvedBox').innerHTML = balanceHTML([{type:'box'}], [{type:'weight', val: answer}], `Now: x = ${answer}`);
+    };
+  }
+
+  // ---------- Shared quiz chrome ----------
+  function quizShell(prompt, subjectHTML, extraVisualHTML){
+    $('scorebar').style.display = 'flex';
+    $('levelSeg').style.display = 'flex';
+    $('layout').innerHTML = `
+      <div class="card quiz">
+        <p class="prompt">${prompt}</p>
+        <div id="subject">${subjectHTML}</div>
+        <div class="choices" id="choices"></div>
+        <div id="inputWrap"></div>
+        <div class="feedback" id="feedback"></div>
+        <div class="reveal hidden" id="reveal"></div>
+        <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">Next ➡️</button></div>
+      </div>
+      <div class="card visual">${extraVisualHTML || ''}</div>`;
+  }
+
+  function startReadLock(){
+    advanceReady = false;
+    let secs = 3;
+    const nb = $('nextBtn');
+    nb.disabled = true; nb.textContent = `Read it… (${secs})`;
+    $('nextRow').style.display = 'flex';
+    countdownTimer = setInterval(() => { secs--; if (secs>0) nb.textContent = `Read it… (${secs})`; else { clearInterval(countdownTimer); countdownTimer=null; } }, 1000);
+    advanceTimer = setTimeout(() => { advanceReady = true; advanceTimer = null; nb.disabled = false; nb.textContent = 'Next ➡️'; nb.focus(); }, 3000);
+  }
+  function tryAdvance(){ if (answered && advanceReady) newRound(); }
+
+  function celebrate(n){
+    const msgs = { 5:'🌟 5 in a row!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>Algebra ace!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    const colors = ['#7c3aed','#a78bfa','#f59e0b','#16a34a','#0ea5e9','#ec4899'];
+    const box = $('confetti');
+    for (let i=0;i<90;i++){
+      const c = document.createElement('div'); c.className='conf';
+      c.style.left = Math.random()*100+'vw'; c.style.background = colors[i%colors.length];
+      c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; c.style.animationDelay=(Math.random()*0.4)+'s';
+      c.style.transform=`rotate(${Math.random()*360}deg)`;
+      box.appendChild(c); setTimeout(()=>c.remove(),3400);
+    }
+  }
+
+  function finishAnswer(isCorrect, revealHTML){
+    answered = true; total++;
+    if (isCorrect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+    const fb = $('feedback');
+    if (isCorrect){ fb.textContent = pick(['🎉 Correct!','⭐ Nice!','✅ You got it!','🧩 Solved it!']); fb.className='feedback good'; }
+    else { fb.textContent = 'Not quite — here’s how to solve it:'; fb.className='feedback bad'; }
+    const rev = $('reveal'); rev.innerHTML = revealHTML; rev.className = 'reveal';
+    if (isCorrect && streak > 0 && streak % 5 === 0) celebrate(streak);
+    startReadLock();
+  }
+
+  // ---------- SOLVE FOR X ----------
+  function genEquation(){
+    if (level === 1){ const a = rand(1,10), x = rand(1,15); return { type:'add', a, x, b: x+a }; }
+    if (level === 2){ const a = rand(1,10), x = rand(1,15); return { type:'sub', a, x, b: x-a }; }
+    if (level === 3){ const a = rand(2,6), x = rand(2,9); return { type:'mul', a, x, b: a*x }; }
+    if (level === 4){ const a = rand(2,6), b = rand(2,9); return { type:'div', a, x: a*b, b }; } // pick a,b first so x = a*b divides evenly
+    const a = rand(2,5), c = rand(1,10), x = rand(2,9); return { type:'twostep', a, c, x, b: a*x + c };
+  }
+  function roundSolve(){
+    let g, tries=0;
+    do { g = genEquation(); tries++; } while (JSON.stringify(g) === lastKey && tries < 20);
+    lastKey = JSON.stringify(g);
+    cur = g;
+    let eqnHTML, left, right;
+    if (g.type === 'add'){ eqnHTML = `x + ${g.a} = ${g.b}`; left = [{type:'box'},{type:'weight',val:g.a}]; right=[{type:'weight',val:g.b}]; }
+    else if (g.type === 'sub'){ eqnHTML = `x − ${g.a} = ${g.b}`; left = [{type:'box'},{type:'weight',val:-g.a}]; right=[{type:'weight',val:g.b}]; }
+    else if (g.type === 'mul'){ eqnHTML = `${g.a}x = ${g.b}`; left = Array(g.a).fill({type:'box'}); right=[{type:'weight',val:g.b}]; }
+    else if (g.type === 'div'){ eqnHTML = `x ÷ ${g.a} = ${g.b}`; left = [{type:'box'}]; right = Array(g.a).fill({type:'weight',val:g.b}); }
+    else { eqnHTML = `${g.a}x + ${g.c} = ${g.b}`; left = [...Array(g.a).fill({type:'box'}), {type:'weight',val:g.c}]; right=[{type:'weight',val:g.b}]; }
+    quizShell('Solve for x', `<div class="eqn">${eqnHTML}</div>`, balanceHTML(left, right));
+    const wrap = $('inputWrap');
+    wrap.innerHTML = `<div style="text-align:center;margin-top:6px">x = <input type="number" class="numinput" id="ansInput" placeholder="?" style="width:100px"></div>
+      <div class="btn-row"><button class="act btn-primary" id="checkBtn">Check</button></div>`;
+    $('checkBtn').onclick = checkSolve;
+    $('ansInput').focus();
+  }
+  function checkSolve(){
+    if (answered) return;
+    const val = parseFloat($('ansInput').value);
+    if (isNaN(val)) return;
+    const isCorrect = Math.abs(val - cur.x) < 0.001;
+    $('ansInput').disabled = true; $('checkBtn').style.display = 'none';
+    let steps;
+    if (cur.type === 'add') steps = `Subtract ${cur.a} from both sides: x = ${cur.b} − ${cur.a} = <b>${cur.x}</b>.`;
+    else if (cur.type === 'sub') steps = `Add ${cur.a} to both sides: x = ${cur.b} + ${cur.a} = <b>${cur.x}</b>.`;
+    else if (cur.type === 'mul') steps = `Divide both sides by ${cur.a}: x = ${cur.b} ÷ ${cur.a} = <b>${cur.x}</b>.`;
+    else if (cur.type === 'div') steps = `Multiply both sides by ${cur.a}: x = ${cur.b} × ${cur.a} = <b>${cur.x}</b>.`;
+    else steps = `First subtract ${cur.c} from both sides: ${cur.a}x = ${cur.b} − ${cur.c} = ${cur.b-cur.c}. Then divide both sides by ${cur.a}: x = ${cur.b-cur.c} ÷ ${cur.a} = <b>${cur.x}</b>.`;
+    finishAnswer(isCorrect, steps);
+  }
+
+  // ---------- EVALUATE ----------
+  function genExpr(){
+    if (level === 1){ const a=rand(1,12), x=rand(1,12); return { a, op:'+', x, result: x+a, text:`x + ${a}` }; }
+    if (level === 2){ const a=rand(1,10), x=rand(a,15); return { a, op:'-', x, result: x-a, text:`x − ${a}` }; }
+    if (level === 3){ const a=rand(2,9), x=rand(1,10); return { a, op:'*', x, result: a*x, text:`${a}x` }; }
+    if (level === 4){ const a=rand(2,8), c=rand(1,10), x=rand(1,10); return { a, c, op:'*+', x, result: a*x+c, text:`${a}x + ${c}` }; }
+    const a=rand(2,8), c=rand(1,15), x=rand(2,10); return { a, c, op:'*-', x, result: a*x-c, text:`${a}x − ${c}` };
+  }
+  function roundEvaluate(){
+    let g, tries=0;
+    do { g = genExpr(); tries++; } while (JSON.stringify(g) === lastKey && tries < 20);
+    lastKey = JSON.stringify(g);
+    cur = g;
+    quizShell(`Evaluate the expression`, `<div class="eqn">${g.text.replace('x', `<span class="x">x</span>`)}</div><p class="sentence">If <b>x = ${g.x}</b>, what does this expression equal?</p>`);
+    const opts = new Set([g.result]);
+    while (opts.size < 4) opts.add(g.result + pick([-5,-3,-2,-1,1,2,3,5]));
+    const box = $('choices');
+    [...opts].sort(()=>Math.random()-0.5).forEach(o => {
+      const btn = document.createElement('button'); btn.className='choice'; btn.textContent = o;
+      btn.onclick = () => answerEvaluate(btn, o);
+      box.appendChild(btn);
+    });
+  }
+  function answerEvaluate(btn, val){
+    if (answered) return;
+    const isCorrect = val === cur.result;
+    [...$('choices').children].forEach(c => { c.disabled = true; if (+c.textContent === cur.result) c.classList.add('correct'); });
+    if (!isCorrect) btn.classList.add('wrong');
+    let stepsHTML;
+    if (cur.op === '+') stepsHTML = `Substitute x = ${cur.x}: ${cur.x} + ${cur.a} = <b>${cur.result}</b>.`;
+    else if (cur.op === '-') stepsHTML = `Substitute x = ${cur.x}: ${cur.x} − ${cur.a} = <b>${cur.result}</b>.`;
+    else if (cur.op === '*') stepsHTML = `Substitute x = ${cur.x}: ${cur.a} × ${cur.x} = <b>${cur.result}</b>.`;
+    else if (cur.op === '*+') stepsHTML = `Substitute x = ${cur.x}: ${cur.a} × ${cur.x} = ${cur.a*cur.x}, then + ${cur.c} = <b>${cur.result}</b>. (Multiply before you add!)`;
+    else stepsHTML = `Substitute x = ${cur.x}: ${cur.a} × ${cur.x} = ${cur.a*cur.x}, then − ${cur.c} = <b>${cur.result}</b>. (Multiply before you subtract!)`;
+    const substText = cur.op === '+' ? `${cur.x} + ${cur.a}`
+      : cur.op === '-' ? `${cur.x} − ${cur.a}`
+      : cur.op === '*' ? `${cur.a} × ${cur.x}`
+      : cur.op === '*+' ? `${cur.a} × ${cur.x} + ${cur.c}`
+      : `${cur.a} × ${cur.x} − ${cur.c}`;
+    finishAnswer(isCorrect, `<div class="steps"><span class="stepchip">x = ${cur.x}</span><span class="stepchip">→</span><span class="stepchip">${substText}</span><span class="stepchip">→</span><span class="stepchip">${cur.result}</span></div><p style="margin-top:10px">${stepsHTML}</p>`);
+  }
+
+  // ---------- PATTERNS ----------
+  function genPattern(){
+    if (level <= 2){ const start = rand(1, level===1?10:20), step = rand(1, level===1?5:10); return { start, step, kind:'arith' }; }
+    if (level === 3){ const step = -rand(2,8); const start = rand(30,60); return { start, step, kind:'arith' }; }
+    if (level === 4){ const step = pick([5,10,-5,-10])* rand(1,3); const start = rand(10,60); return { start, step, kind:'arith' }; }
+    const start = rand(1,4), ratio = pick([2,3]); return { start, ratio, kind:'geo' };
+  }
+  function seqTerms(g, n){
+    const arr = [];
+    for (let i=0;i<n;i++) arr.push(g.kind==='arith' ? g.start + g.step*i : g.start * Math.pow(g.ratio, i));
+    return arr;
+  }
+  function roundPattern(){
+    let g, tries=0;
+    do { g = genPattern(); tries++; } while (JSON.stringify(g) === lastKey && tries < 20);
+    lastKey = JSON.stringify(g);
+    const terms = seqTerms(g, 5);
+    const shown = terms.slice(0,4), next = terms[4];
+    cur = { g, shown, next };
+    quizShell('What comes next in the pattern?', `<div class="eqn" style="font-size:28px">${shown.join(',  ')},  ?</div>`);
+    const wrap = $('inputWrap');
+    wrap.innerHTML = `<div style="text-align:center;margin-top:6px"><input type="number" class="numinput" id="ansInput" placeholder="?"></div>
+      <div class="btn-row"><button class="act btn-primary" id="checkBtn">Check</button></div>`;
+    $('checkBtn').onclick = checkPattern;
+    $('ansInput').focus();
+  }
+  function checkPattern(){
+    if (answered) return;
+    const val = parseFloat($('ansInput').value);
+    if (isNaN(val)) return;
+    const isCorrect = val === cur.next;
+    $('ansInput').disabled = true; $('checkBtn').style.display = 'none';
+    const ruleText = cur.g.kind === 'arith'
+      ? `The rule is <b>${cur.g.step >= 0 ? 'add ' + cur.g.step : 'subtract ' + Math.abs(cur.g.step)}</b> each time.`
+      : `The rule is <b>multiply by ${cur.g.ratio}</b> each time.`;
+    finishAnswer(isCorrect, `${ruleText} So after ${cur.shown[cur.shown.length-1]}, the next term is <b>${cur.next}</b>.`);
+  }
+
+  // ---------- Dispatcher ----------
+  function newRound(){
+    clearTimers(); advanceReady = true; answered = false;
+    if (mode === 'learn'){ renderLearn(); return; }
+    if (mode === 'solve') roundSolve();
+    else if (mode === 'evaluate') roundEvaluate();
+    else roundPattern();
+  }
+
+  $('modeSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.mode;
+    [...$('modeSeg').children].forEach(x => x.classList.toggle('on', x===b));
+    resetProgress(); newRound();
+  });
+  $('levelSeg').addEventListener('click', e => {
+    const b = e.target.closest('button.lvl'); if (!b) return;
+    level = +b.dataset.lvl;
+    [...$('levelSeg').children].forEach(x => x.classList && x.classList.toggle('on', x===b));
+    resetProgress(); newRound();
+  });
+  document.addEventListener('click', e => { if (e.target && e.target.id === 'nextBtn') tryAdvance(); });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    if (!answered){
+      if (mode === 'solve'){ e.preventDefault(); checkSolve(); return; }
+      if (mode === 'pattern'){ e.preventDefault(); checkPattern(); return; }
+    } else { e.preventDefault(); tryAdvance(); }
+  });
+
+  newRound();
+})();
+</script>
+</body>
+</html>

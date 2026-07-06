@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Angle Academy</title>
+<style>
+  :root {
+    --bg:#fff7ed; --panel:#fff; --ink:#1e293b; --muted:#64748b;
+    --accent:#ea580c; --accent-soft:#ffedd5; --correct:#16a34a; --wrong:#dc2626;
+    --line:#94a3b8; --shadow:0 10px 30px rgba(154,52,18,.14);
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#fff7ed,#f8fafc); min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; padding:24px 16px 60px;
+  }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 18px; font-size:15px; text-align:center; max-width:520px; line-height:1.5; }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; flex-wrap:wrap; justify-content:center; max-width:640px; }
+  .nav a{ text-decoration:none; font-weight:800; font-size:13.5px; color:var(--muted); padding:8px 13px; border-radius:9px; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:var(--panel); border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; }
+  .seg button { border:none; background:transparent; font-family:inherit; font-weight:800; font-size:14.5px; padding:9px 16px; border-radius:10px; cursor:pointer; color:var(--muted); }
+  .seg button.on { background:var(--accent); color:#fff; }
+  .levels { display:flex; gap:8px; align-items:center; }
+  .levels .lbl { font-size:13px; color:var(--muted); font-weight:700; margin-right:2px; }
+  .lvl { width:38px; height:38px; border:none; border-radius:11px; font-weight:800; font-size:15px; cursor:pointer; background:var(--panel); color:var(--muted); box-shadow:var(--shadow); }
+  .lvl.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .chip { background:var(--panel); border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; }
+  .chip.streak { color:#ea580c; }
+
+  .layout { display:flex; gap:24px; width:100%; max-width:1000px; align-items:flex-start; flex-wrap:wrap; justify-content:center; }
+  .card { background:var(--panel); border-radius:24px; box-shadow:var(--shadow); padding:28px; }
+  .quiz { flex:1 1 360px; display:flex; flex-direction:column; align-items:center; min-height:420px; }
+  .visual { flex:1 1 360px; display:flex; flex-direction:column; align-items:center; }
+
+  .prompt { color:var(--muted); font-size:14px; margin:0 0 16px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; text-align:center; }
+
+  .choices { display:flex; flex-direction:column; gap:11px; width:100%; max-width:340px; margin-top:6px; }
+  .choices.grid5 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .choice { background:#fff; border:3px solid #e2e8f0; border-radius:16px; font-size:17px; font-weight:700; padding:12px 14px; color:var(--ink); cursor:pointer; text-align:center; font-family:inherit; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; color:var(--correct); }
+  .choice.wrong { border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
+  .choice:disabled { cursor:default; }
+
+  .feedback { min-height:26px; margin-top:16px; font-weight:700; font-size:17px; text-align:center; }
+  .feedback.good { color:var(--correct); }
+  .feedback.bad { color:var(--wrong); }
+
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; text-align:left; width:100%; max-width:420px; margin:14px auto 4px; padding:13px 16px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
+  .reveal.hidden { display:none; }
+  .reveal b { color:#9a3412; }
+
+  button.act { font-family:inherit; font-size:16px; font-weight:700; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; }
+  button.act:disabled { opacity:.55; cursor:default; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#c2410c; }
+  .btn-ghost { background:var(--accent-soft); color:var(--accent); }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  .angsvg { touch-action:none; }
+  .deg-readout { font-size:34px; font-weight:800; margin:8px 0 2px; }
+  .type-badge { display:inline-block; font-size:13px; font-weight:800; padding:5px 14px; border-radius:999px; text-transform:uppercase; letter-spacing:.4px; }
+  .type-badge.acute { background:#dbeafe; color:#1d4ed8; }
+  .type-badge.right { background:#dcfce7; color:#15803d; }
+  .type-badge.obtuse { background:#fef3c7; color:#b45309; }
+  .type-badge.straight { background:#fce7f3; color:#9d174d; }
+  .type-badge.reflex { background:#ede9fe; color:#6d28d9; }
+  .sentence { color:var(--muted); font-size:14px; max-width:320px; text-align:center; margin:8px auto 0; line-height:1.5; }
+  .numinput { font-size:30px; font-weight:800; text-align:center; width:130px; padding:10px; border:3px solid #e2e8f0; border-radius:16px; font-family:inherit; color:var(--ink); }
+  .numinput:focus { border-color:var(--accent); outline:none; box-shadow:0 0 0 4px var(--accent-soft); }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner { position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6); background:linear-gradient(135deg,#fb923c,#ea580c); color:#fff; font-weight:900; font-size:28px; padding:20px 38px; border-radius:22px; box-shadow:0 18px 50px rgba(234,88,12,.45); z-index:60; opacity:0; pointer-events:none; text-align:center; white-space:nowrap; }
+  #streakBanner.show { animation: banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner { 0%{opacity:0; transform:translate(-50%,-50%) scale(.6)} 15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)} 28%{transform:translate(-50%,-50%) scale(1)} 80%{opacity:1; transform:translate(-50%,-50%) scale(1)} 100%{opacity:0; transform:translate(-50%,-60%) scale(.95)} }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <a href="index.html">📊 Blocks</a>
+    <a href="chart.html">🔢 Chart</a>
+    <a href="fractions.html">🍰 Fractions</a>
+    <a href="decimals.html">🔟 Decimals</a>
+    <a href="angles.html" class="on">📐 Angles</a>
+    <a href="algebra.html">🧩 Algebra</a>
+  </div>
+  <h1>📐 Angle Academy</h1>
+  <p class="sub">Drag a ray to build angles, then practice classifying, measuring, and finding missing angles.</p>
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="learn" class="on">🖐️ Learn</button>
+      <button data-mode="classify">🔍 Classify</button>
+      <button data-mode="measure">📏 Measure</button>
+      <button data-mode="missing">🧩 Missing Angle</button>
+    </div>
+    <div class="levels" id="levelSeg" style="display:none">
+      <span class="lbl">Level</span>
+      <button class="lvl on" data-lvl="1">1</button>
+      <button class="lvl" data-lvl="2">2</button>
+      <button class="lvl" data-lvl="3">3</button>
+      <button class="lvl" data-lvl="4">4</button>
+      <button class="lvl" data-lvl="5">5</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar" id="scorebar" style="display:none">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="layout" id="layout"></div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const rand = (lo,hi) => Math.floor(Math.random()*(hi-lo+1))+lo;
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const SVGNS = "http://www.w3.org/2000/svg";
+
+  let mode = 'learn';
+  let level = 1;
+  let correct = 0, total = 0, streak = 0;
+  let answered = false, advanceReady = true, advanceTimer = null, countdownTimer = null;
+  let cur = null, lastKey = null;
+  let learnDeg = 60;
+
+  function clearTimers(){ if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;} if(countdownTimer){clearInterval(countdownTimer);countdownTimer=null;} }
+  function updateScorebar(){ $('correctCount').textContent=correct; $('totalCount').textContent=total; $('streak').textContent=streak; }
+  function resetProgress(){ correct=0; total=0; streak=0; lastKey=null; updateScorebar(); }
+
+  function classify(deg){
+    if (deg === 90) return 'right';
+    if (deg === 180) return 'straight';
+    if (deg > 180) return 'reflex';
+    if (deg < 90) return 'acute';
+    return 'obtuse';
+  }
+  const TYPE_LABEL = { acute:'Acute', right:'Right', obtuse:'Obtuse', straight:'Straight', reflex:'Reflex' };
+  const TYPE_DESC = {
+    acute: 'less than 90°',
+    right: 'exactly 90° — a perfect corner',
+    obtuse: 'between 90° and 180°',
+    straight: 'exactly 180° — a straight line',
+    reflex: 'more than 180°'
+  };
+
+  // ---------- Angle SVG ----------
+  function polar(cx,cy,r,deg){ const rad = deg*Math.PI/180; return { x: cx + r*Math.cos(rad), y: cy - r*Math.sin(rad) }; }
+  function angleSVG(deg, opts){
+    opts = opts || {};
+    const size = opts.size || 260, cx = 40, cy = size - 40, r = opts.rayLen || (size - 80), arcR = 34, color = opts.color || 'var(--accent)';
+    const p1 = polar(cx,cy,r,0);
+    const p2 = polar(cx,cy,r,deg);
+    const large = deg > 180 ? 1 : 0;
+    const a1 = polar(cx,cy,arcR,0), a2 = polar(cx,cy,arcR,deg);
+    const arcPath = `M ${a1.x} ${a1.y} A ${arcR} ${arcR} 0 ${large} 0 ${a2.x} ${a2.y}`;
+    const labelPos = polar(cx,cy,arcR+22, deg/2 <= 180 ? deg/2 : (deg/2)%360);
+    let extra = '';
+    if (opts.tickMarks){
+      let ticks = '';
+      for (let t=0;t<=180;t+=10){
+        const isMajor = t % 30 === 0;
+        const tp1 = polar(cx,cy,r+2,t), tp2 = polar(cx,cy,r+(isMajor?12:7),t);
+        ticks += `<line x1="${tp1.x}" y1="${tp1.y}" x2="${tp2.x}" y2="${tp2.y}" stroke="#94a3b8" stroke-width="${isMajor?2:1}"/>`;
+        if (isMajor){
+          const tl = polar(cx,cy,r+24,t);
+          ticks += `<text x="${tl.x}" y="${tl.y}" text-anchor="middle" font-size="10" font-weight="700" fill="#64748b">${t}</text>`;
+        }
+      }
+      extra += `<path d="M ${polar(cx,cy,r,0).x} ${polar(cx,cy,r,0).y} A ${r} ${r} 0 0 0 ${polar(cx,cy,r,180).x} ${polar(cx,cy,r,180).y}" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3,3"/>${ticks}`;
+    }
+    return `<svg class="angsvg" id="angSvg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="${SVGNS}">
+      ${extra}
+      <path d="${arcPath}" fill="none" stroke="${color}" stroke-width="3"/>
+      <line x1="${cx}" y1="${cy}" x2="${p1.x}" y2="${p1.y}" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+      <line x1="${cx}" y1="${cy}" x2="${p2.x}" y2="${p2.y}" stroke="${color}" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="${cx}" cy="${cy}" r="5" fill="var(--ink)"/>
+      ${opts.handle ? `<circle id="angHandle" cx="${p2.x}" cy="${p2.y}" r="12" fill="#fff" stroke="${color}" stroke-width="3" style="cursor:grab"/>` : ''}
+      <text x="${labelPos.x}" y="${labelPos.y}" text-anchor="middle" font-size="13" font-weight="800" fill="${color}">${deg}°</text>
+    </svg>`;
+  }
+
+  // ---------- LEARN mode (draggable) ----------
+  function renderLearn(){
+    $('scorebar').style.display = 'none';
+    $('levelSeg').style.display = 'none';
+    const type = classify(learnDeg);
+    $('layout').innerHTML = `
+      <div class="card visual" style="flex:1 1 320px">
+        ${angleSVG(learnDeg, { handle:true, tickMarks:true })}
+      </div>
+      <div class="card quiz" style="flex:1 1 320px; min-height:auto">
+        <div style="text-align:center">
+          <div class="deg-readout">${learnDeg}°</div>
+          <span class="type-badge ${type}">${TYPE_LABEL[type]}</span>
+          <p class="sentence">A <b>${TYPE_LABEL[type].toLowerCase()}</b> angle is ${TYPE_DESC[type]}. Drag the orange dot around the vertex to change the angle and watch the type change.</p>
+          <div class="btn-row"><button class="act btn-ghost" id="randomizeBtn">🎲 Random angle</button></div>
+        </div>
+      </div>`;
+    const svg = $('angSvg');
+    const handle = $('angHandle');
+    const cx = 40, cy = 260 - 40;
+    let dragging = false;
+    function angleFromEvent(e){
+      const rect = svg.getBoundingClientRect();
+      const scaleX = 260 / rect.width, scaleY = 260 / rect.height;
+      const x = (e.clientX - rect.left) * scaleX, y = (e.clientY - rect.top) * scaleY;
+      let deg = Math.atan2(-(y-cy), x-cx) * 180/Math.PI;
+      if (deg < 0) deg += 360;
+      return Math.round(deg);
+    }
+    handle.addEventListener('pointerdown', e => { dragging = true; try{handle.setPointerCapture(e.pointerId);}catch(_){} });
+    handle.addEventListener('pointermove', e => { if (!dragging) return; learnDeg = Math.max(1, Math.min(359, angleFromEvent(e))); renderLearn(); });
+    handle.addEventListener('pointerup', () => dragging = false);
+    handle.addEventListener('pointercancel', () => dragging = false);
+    $('randomizeBtn').onclick = () => { learnDeg = rand(5, 355); renderLearn(); };
+  }
+
+  // ---------- Shared quiz chrome ----------
+  function quizShell(prompt, subjectHTML, extraVisualHTML){
+    $('scorebar').style.display = 'flex';
+    $('levelSeg').style.display = 'flex';
+    $('layout').innerHTML = `
+      <div class="card quiz">
+        <p class="prompt">${prompt}</p>
+        <div id="subject">${subjectHTML}</div>
+        <div class="choices" id="choices"></div>
+        <div id="inputWrap"></div>
+        <div class="feedback" id="feedback"></div>
+        <div class="reveal hidden" id="reveal"></div>
+        <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">Next ➡️</button></div>
+      </div>
+      <div class="card visual">${extraVisualHTML || ''}</div>`;
+  }
+
+  function startReadLock(){
+    advanceReady = false;
+    let secs = 3;
+    const nb = $('nextBtn');
+    nb.disabled = true; nb.textContent = `Read it… (${secs})`;
+    $('nextRow').style.display = 'flex';
+    countdownTimer = setInterval(() => { secs--; if (secs>0) nb.textContent = `Read it… (${secs})`; else { clearInterval(countdownTimer); countdownTimer=null; } }, 1000);
+    advanceTimer = setTimeout(() => { advanceReady = true; advanceTimer = null; nb.disabled = false; nb.textContent = 'Next ➡️'; nb.focus(); }, 3000);
+  }
+  function tryAdvance(){ if (answered && advanceReady) newRound(); }
+
+  function celebrate(n){
+    const msgs = { 5:'🌟 5 in a row!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>Angle expert!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    const colors = ['#ea580c','#fb923c','#f59e0b','#16a34a','#0ea5e9','#8b5cf6'];
+    const box = $('confetti');
+    for (let i=0;i<90;i++){
+      const c = document.createElement('div'); c.className='conf';
+      c.style.left = Math.random()*100+'vw'; c.style.background = colors[i%colors.length];
+      c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; c.style.animationDelay=(Math.random()*0.4)+'s';
+      c.style.transform=`rotate(${Math.random()*360}deg)`;
+      box.appendChild(c); setTimeout(()=>c.remove(),3400);
+    }
+  }
+
+  function finishAnswer(isCorrect, revealHTML){
+    answered = true; total++;
+    if (isCorrect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+    const fb = $('feedback');
+    if (isCorrect){ fb.textContent = pick(['🎉 Correct!','⭐ Nice!','✅ You got it!','📐 Sharp eye!']); fb.className='feedback good'; }
+    else { fb.textContent = 'Not quite — here’s how to solve it:'; fb.className='feedback bad'; }
+    const rev = $('reveal'); rev.innerHTML = revealHTML; rev.className = 'reveal';
+    if (isCorrect && streak > 0 && streak % 5 === 0) celebrate(streak);
+    startReadLock();
+  }
+
+  // ---------- CLASSIFY ----------
+  function genAngleForLevel(){
+    if (level === 1) return rand(1,89) === 90 ? 45 : pick([rand(10,80), 90, rand(100,170)]);
+    if (level === 2) return pick([rand(5,85), 90, rand(95,175), 180]);
+    if (level === 3) return pick([rand(5,85), 90, rand(95,175), 180, rand(190,270)]);
+    if (level === 4) return pick([rand(1,89), 90, rand(91,179), 180, rand(181,350)]);
+    return pick([rand(1,10), 89, 90, 91, 179, 180, 181, rand(200,350)]); // tricky boundary values
+  }
+  function roundClassify(){
+    let deg, tries=0;
+    do { deg = genAngleForLevel(); tries++; } while (deg === lastKey && tries < 20);
+    lastKey = deg;
+    cur = { deg, type: classify(deg) };
+    quizShell('What type of angle is this?', `<div style="display:flex;justify-content:center">${angleSVG(deg, { tickMarks:true })}</div>`, '');
+    const box = $('choices'); box.className = 'choices grid5';
+    Object.keys(TYPE_LABEL).forEach(key => {
+      const btn = document.createElement('button'); btn.className = 'choice'; btn.textContent = TYPE_LABEL[key];
+      if (key === 'reflex') btn.style.gridColumn = '1 / span 2';
+      btn.onclick = () => answerClassify(btn, key);
+      box.appendChild(btn);
+    });
+  }
+  function answerClassify(btn, key){
+    if (answered) return;
+    const isCorrect = key === cur.type;
+    [...$('choices').children].forEach(c => { c.disabled = true; if (c.textContent === TYPE_LABEL[cur.type]) c.classList.add('correct'); });
+    if (!isCorrect) btn.classList.add('wrong');
+    finishAnswer(isCorrect, `This angle measures <b>${cur.deg}°</b>, which is ${TYPE_DESC[cur.type]} — so it’s <b>${TYPE_LABEL[cur.type]}</b>.`);
+  }
+
+  // ---------- MEASURE ----------
+  function roundMeasure(){
+    const maxDeg = level <= 2 ? 170 : level === 3 ? 180 : level === 4 ? 270 : 350;
+    let deg, tries=0;
+    do { deg = rand(10, maxDeg); deg = Math.round(deg/5)*5; tries++; } while (deg === lastKey && tries < 20);
+    lastKey = deg;
+    cur = { deg };
+    quizShell('Use the protractor marks — what’s the measure of this angle?', `<div style="display:flex;justify-content:center">${angleSVG(Math.min(deg,180), { tickMarks:true })}</div>${deg>180 ? '<p class="sentence">This ray has gone past a straight line — remember, a reflex angle is more than 180°. The marks show the angle up to 180°; the actual angle continues around.</p>' : ''}`);
+    const correctVal = deg;
+    const opts = new Set([correctVal]);
+    while (opts.size < 4){
+      const cand = correctVal + pick([-30,-20,-10,10,20,30]);
+      if (cand > 0 && cand < 360) opts.add(cand);
+    }
+    const box = $('choices');
+    [...opts].sort(()=>Math.random()-0.5).forEach(o => {
+      const btn = document.createElement('button'); btn.className='choice'; btn.textContent = o + '°';
+      btn.onclick = () => answerMeasure(btn, o);
+      box.appendChild(btn);
+    });
+  }
+  function answerMeasure(btn, val){
+    if (answered) return;
+    const isCorrect = val === cur.deg;
+    [...$('choices').children].forEach(c => { c.disabled = true; if (parseInt(c.textContent) === cur.deg) c.classList.add('correct'); });
+    if (!isCorrect) btn.classList.add('wrong');
+    finishAnswer(isCorrect, `Counting the tick marks from the base ray (each small mark is 10°, each labeled mark is 30°) lands on <b>${cur.deg}°</b>.`);
+  }
+
+  // ---------- MISSING ANGLE (complementary / supplementary) ----------
+  function roundMissing(){
+    let total90 = level <= 2 || (level <= 4 && Math.random()<0.5);
+    const targetSum = level === 3 ? 180 : (total90 ? 90 : (level >=4 ? pick([90,180]) : 90));
+    let known;
+    if (targetSum === 90) known = rand(10, 80);
+    else known = rand(10, 170);
+    let tries=0;
+    while (`${known}-${targetSum}` === lastKey && tries < 10){ known = targetSum===90?rand(10,80):rand(10,170); tries++; }
+    lastKey = `${known}-${targetSum}`;
+    const missingVal = targetSum - known;
+    cur = { known, targetSum, missingVal };
+    const relLabel = targetSum === 90 ? 'complementary (sum to 90°)' : 'supplementary (sum to 180°)';
+    quizShell(`These two angles are ${relLabel}. What’s the missing angle?`, `
+      <div style="display:flex;justify-content:center">${angleSVG(known, { tickMarks:false, color:'var(--accent)' })}</div>
+      <p class="sentence">One angle is <b>${known}°</b>. Together they make a ${targetSum === 90 ? 'right angle (90°)' : 'straight line (180°)'}.</p>`);
+    const wrap = $('inputWrap');
+    wrap.innerHTML = `<div style="text-align:center;margin-top:6px"><input type="number" class="numinput" id="ansInput" placeholder="?">°</div>
+      <div class="btn-row"><button class="act btn-primary" id="checkBtn">Check</button></div>`;
+    $('checkBtn').onclick = checkMissing;
+    $('ansInput').focus();
+  }
+  function checkMissing(){
+    if (answered) return;
+    const val = parseInt($('ansInput').value, 10);
+    if (isNaN(val)) return;
+    const isCorrect = val === cur.missingVal;
+    $('ansInput').disabled = true; $('checkBtn').style.display = 'none';
+    finishAnswer(isCorrect, `${cur.targetSum}° − ${cur.known}° = <b>${cur.missingVal}°</b>. ${cur.targetSum===90 ? 'Complementary' : 'Supplementary'} angles always add up to ${cur.targetSum}°.`);
+  }
+
+  // ---------- Dispatcher ----------
+  function newRound(){
+    clearTimers(); advanceReady = true; answered = false;
+    if (mode === 'learn'){ renderLearn(); return; }
+    if (mode === 'classify') roundClassify();
+    else if (mode === 'measure') roundMeasure();
+    else roundMissing();
+  }
+
+  $('modeSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.mode;
+    [...$('modeSeg').children].forEach(x => x.classList.toggle('on', x===b));
+    resetProgress(); newRound();
+  });
+  $('levelSeg').addEventListener('click', e => {
+    const b = e.target.closest('button.lvl'); if (!b) return;
+    level = +b.dataset.lvl;
+    [...$('levelSeg').children].forEach(x => x.classList && x.classList.toggle('on', x===b));
+    resetProgress(); newRound();
+  });
+  document.addEventListener('click', e => { if (e.target && e.target.id === 'nextBtn') tryAdvance(); });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    if (mode === 'missing' && !answered){ e.preventDefault(); checkMissing(); return; }
+    if (answered){ e.preventDefault(); tryAdvance(); }
+  });
+
+  newRound();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Fraction Lab</title>
+<style>
+  :root {
+    --bg:#fdf2f8; --panel:#fff; --ink:#1e293b; --muted:#64748b;
+    --accent:#db2777; --accent-soft:#fce7f3; --correct:#16a34a; --wrong:#dc2626;
+    --line:#94a3b8; --shadow:0 10px 30px rgba(157,23,77,.14);
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#fdf2f8,#f8fafc); min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; padding:24px 16px 60px;
+  }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 18px; font-size:15px; text-align:center; max-width:520px; line-height:1.5; }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; flex-wrap:wrap; justify-content:center; max-width:640px; }
+  .nav a{ text-decoration:none; font-weight:800; font-size:13.5px; color:var(--muted); padding:8px 13px; border-radius:9px; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:var(--panel); border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; }
+  .seg button { border:none; background:transparent; font-family:inherit; font-weight:800; font-size:14.5px; padding:9px 16px; border-radius:10px; cursor:pointer; color:var(--muted); }
+  .seg button.on { background:var(--accent); color:#fff; }
+  .levels { display:flex; gap:8px; align-items:center; }
+  .levels .lbl { font-size:13px; color:var(--muted); font-weight:700; margin-right:2px; }
+  .lvl { width:38px; height:38px; border:none; border-radius:11px; font-weight:800; font-size:15px; cursor:pointer; background:var(--panel); color:var(--muted); box-shadow:var(--shadow); }
+  .lvl.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .chip { background:var(--panel); border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; }
+  .chip.streak { color:#ea580c; }
+
+  .layout { display:flex; gap:24px; width:100%; max-width:1000px; align-items:flex-start; flex-wrap:wrap; justify-content:center; }
+  .card { background:var(--panel); border-radius:24px; box-shadow:var(--shadow); padding:28px; }
+  .quiz { flex:1 1 360px; display:flex; flex-direction:column; align-items:center; min-height:420px; }
+  .visual { flex:1 1 360px; display:flex; flex-direction:column; align-items:center; }
+
+  .prompt { color:var(--muted); font-size:14px; margin:0 0 16px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; text-align:center; }
+
+  /* Fraction display */
+  .frac { display:inline-flex; flex-direction:column; align-items:center; line-height:1; font-weight:800; vertical-align:middle; }
+  .frac .fn, .frac .fd { padding:2px 8px; }
+  .frac .fn { border-bottom:3px solid currentColor; }
+  .frac.big { font-size:34px; }
+  .frac.med { font-size:22px; }
+
+  .choices { display:flex; flex-direction:column; gap:11px; width:100%; max-width:340px; margin-top:6px; }
+  .choice { background:#fff; border:3px solid #e2e8f0; border-radius:16px; font-size:17px; font-weight:700; padding:12px 18px; color:var(--ink); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; font-family:inherit; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; color:var(--correct); }
+  .choice.wrong { border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
+  .choice:disabled { cursor:default; }
+
+  .fracinput { display:flex; align-items:center; gap:14px; margin:10px 0 4px; }
+  .fracinput .fbox { width:84px; font-size:30px; font-weight:800; text-align:center; border:3px solid #e2e8f0; border-radius:14px; padding:10px 4px; font-family:inherit; color:var(--ink); }
+  .fracinput .fbox:focus { border-color:var(--accent); outline:none; box-shadow:0 0 0 4px var(--accent-soft); }
+  .fracinput .fline { width:56px; height:4px; background:var(--ink); border-radius:2px; }
+
+  .feedback { min-height:26px; margin-top:16px; font-weight:700; font-size:17px; text-align:center; }
+  .feedback.good { color:var(--correct); }
+  .feedback.bad { color:var(--wrong); }
+
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; text-align:left; width:100%; max-width:420px; margin:14px auto 4px; padding:13px 16px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
+  .reveal.hidden { display:none; }
+  .reveal b { color:#9d174d; }
+
+  button.act { font-family:inherit; font-size:16px; font-weight:700; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; }
+  button.act:disabled { opacity:.55; cursor:default; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#be185d; }
+  .btn-ghost { background:var(--accent-soft); color:var(--accent); }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  /* Bar model */
+  .bar { display:flex; width:100%; max-width:320px; height:52px; border-radius:10px; overflow:hidden; border:3px solid var(--ink); }
+  .bar .seg { flex:1; border-right:2px solid rgba(255,255,255,.6); }
+  .bar .seg:last-child { border-right:none; }
+  .bar .seg.on { background:var(--accent); }
+  .bar .seg.off { background:#f1f5f9; }
+  .barwrap { display:flex; flex-direction:column; align-items:center; gap:8px; margin:10px 0; }
+  .barlabel { font-size:13px; font-weight:700; color:var(--muted); }
+
+  .learn-panel { display:flex; flex-direction:column; align-items:center; gap:18px; width:100%; }
+  .stepper-row { display:flex; align-items:center; gap:20px; flex-wrap:wrap; justify-content:center; }
+  .stepper { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .stepper .lbl { font-size:12.5px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+  .stepper .row { display:flex; align-items:center; gap:10px; }
+  .stepbtn { width:38px; height:38px; border:none; border-radius:11px; background:var(--accent-soft); color:var(--accent); font-size:20px; font-weight:800; cursor:pointer; }
+  .stepbtn:hover { background:var(--accent); color:#fff; }
+  .stepval { min-width:44px; text-align:center; font-size:26px; font-weight:800; }
+  .readout { text-align:center; }
+  .readout .eqline { font-size:26px; font-weight:800; margin:8px 0; }
+  .readout .sentence { color:var(--muted); font-size:14.5px; max-width:340px; margin:0 auto; line-height:1.5; }
+  .readout .simplify-note { margin-top:10px; font-size:14px; font-weight:700; color:#9d174d; background:var(--accent-soft); border-radius:10px; padding:8px 14px; display:inline-block; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner { position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6); background:linear-gradient(135deg,#ec4899,#db2777); color:#fff; font-weight:900; font-size:28px; padding:20px 38px; border-radius:22px; box-shadow:0 18px 50px rgba(219,39,119,.45); z-index:60; opacity:0; pointer-events:none; text-align:center; white-space:nowrap; }
+  #streakBanner.show { animation: banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner { 0%{opacity:0; transform:translate(-50%,-50%) scale(.6)} 15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)} 28%{transform:translate(-50%,-50%) scale(1)} 80%{opacity:1; transform:translate(-50%,-50%) scale(1)} 100%{opacity:0; transform:translate(-50%,-60%) scale(.95)} }
+
+  @media (max-width:720px){ .frac.big{font-size:26px} }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <a href="index.html">📊 Blocks</a>
+    <a href="chart.html">🔢 Chart</a>
+    <a href="fractions.html" class="on">🍰 Fractions</a>
+    <a href="decimals.html">🔟 Decimals</a>
+    <a href="angles.html">📐 Angles</a>
+    <a href="algebra.html">🧩 Algebra</a>
+  </div>
+  <h1>🍰 Fraction Lab</h1>
+  <p class="sub">See fractions as pies and bars, then practice naming, comparing, and adding them.</p>
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="learn" class="on">🍰 Learn</button>
+      <button data-mode="name">🔍 Name It</button>
+      <button data-mode="compare">⚖️ Compare</button>
+      <button data-mode="addsub">➕ Add &amp; Subtract</button>
+    </div>
+    <div class="levels" id="levelSeg" style="display:none">
+      <span class="lbl">Level</span>
+      <button class="lvl on" data-lvl="1">1</button>
+      <button class="lvl" data-lvl="2">2</button>
+      <button class="lvl" data-lvl="3">3</button>
+      <button class="lvl" data-lvl="4">4</button>
+      <button class="lvl" data-lvl="5">5</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar" id="scorebar" style="display:none">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="layout" id="layout"></div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const rand = (lo,hi) => Math.floor(Math.random()*(hi-lo+1))+lo;
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const gcd = (a,b) => b === 0 ? a : gcd(b, a % b);
+  const lcm = (a,b) => (a*b)/gcd(a,b);
+  const simplify = (n,d) => { const g = gcd(n,d) || 1; return [n/g, d/g]; };
+
+  let mode = 'learn';
+  let level = 1;
+  let correct = 0, total = 0, streak = 0;
+  let answered = false, advanceReady = true, advanceTimer = null, countdownTimer = null;
+  let cur = null, lastKey = null;
+
+  // Learn-mode state
+  let learnN = 3, learnD = 4;
+
+  const DEN_MAX = { 1:4, 2:6, 3:8, 4:10, 5:12 };
+
+  function clearTimers(){ if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;} if(countdownTimer){clearInterval(countdownTimer);countdownTimer=null;} }
+  function updateScorebar(){ $('correctCount').textContent=correct; $('totalCount').textContent=total; $('streak').textContent=streak; }
+  function resetProgress(){ correct=0; total=0; streak=0; lastKey=null; updateScorebar(); }
+
+  function fracHTML(n,d,cls){ return `<span class="frac ${cls||'med'}"><span class="fn">${n}</span><span class="fd">${d}</span></span>`; }
+
+  // ---------- Visuals ----------
+  function pieSVG(n,d,size,color){
+    size = size || 200;
+    const r = size/2 - 6, cx = size/2, cy = size/2;
+    const polar = (ang) => { const a=(ang-90)*Math.PI/180; return {x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)}; };
+    let paths = '';
+    for (let i=0;i<d;i++){
+      const start = i*(360/d), end = (i+1)*(360/d);
+      const p1 = polar(start), p2 = polar(end);
+      const large = (end-start) > 180 ? 1 : 0;
+      const on = i < n;
+      paths += `<path d="M ${cx} ${cy} L ${p1.x} ${p1.y} A ${r} ${r} 0 ${large} 1 ${p2.x} ${p2.y} Z" fill="${on ? color : '#f1f5f9'}" stroke="#fff" stroke-width="2.5"/>`;
+    }
+    return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${paths}<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="3"/></svg>`;
+  }
+  function barHTML(n,d,color){
+    let segs = '';
+    for (let i=0;i<d;i++){ segs += `<div class="seg ${i<n?'on':'off'}" style="${i<n?`background:${color}`:''}"></div>`; }
+    return `<div class="bar">${segs}</div>`;
+  }
+
+  // ---------- LEARN mode ----------
+  function renderLearn(){
+    $('scorebar').style.display = 'none';
+    $('levelSeg').style.display = 'none';
+    const [sn, sd] = simplify(learnN, learnD);
+    const simplified = sd !== learnD;
+    const dec = (learnN/learnD);
+    $('layout').innerHTML = `
+      <div class="card visual" style="flex:1 1 320px">
+        <div class="learn-panel">
+          ${pieSVG(learnN, learnD, 200, 'var(--accent)')}
+          <div class="barwrap"><div class="barlabel">Same fraction, as a bar</div>${barHTML(learnN, learnD, 'var(--accent)')}</div>
+        </div>
+      </div>
+      <div class="card quiz" style="flex:1 1 320px; min-height:auto">
+        <div class="learn-panel">
+          <div class="stepper-row">
+            <div class="stepper">
+              <div class="lbl">Numerator</div>
+              <div class="row"><button class="stepbtn" id="numDown">−</button><div class="stepval" id="numVal">${learnN}</div><button class="stepbtn" id="numUp">+</button></div>
+            </div>
+            <div class="stepper">
+              <div class="lbl">Denominator</div>
+              <div class="row"><button class="stepbtn" id="denDown">−</button><div class="stepval" id="denVal">${learnD}</div><button class="stepbtn" id="denUp">+</button></div>
+            </div>
+          </div>
+          <div class="readout">
+            <div class="eqline">${fracHTML(learnN,learnD,'big')} &nbsp;=&nbsp; ${dec.toFixed(2)} &nbsp;=&nbsp; ${Math.round(dec*100)}%</div>
+            <p class="sentence"><b>${learnN}</b> out of <b>${learnD}</b> equal parts are shaded. That's the same as saying ${learnN}/${learnD} of the whole.</p>
+            ${simplified ? `<div class="simplify-note">🔽 In lowest terms, this is ${fracHTML(sn,sd,'med')}</div>` : `<div class="simplify-note">✅ ${fracHTML(learnN,learnD,'med')} is already in lowest terms</div>`}
+          </div>
+          <div class="btn-row"><button class="act btn-ghost" id="randomizeBtn">🎲 Randomize</button></div>
+        </div>
+      </div>`;
+    $('numDown').onclick = () => { learnN = Math.max(1, learnN-1); renderLearn(); };
+    $('numUp').onclick = () => { learnN = Math.min(learnD, learnN+1); renderLearn(); };
+    $('denDown').onclick = () => { learnD = Math.max(2, learnD-1); learnN = Math.min(learnN, learnD); renderLearn(); };
+    $('denUp').onclick = () => { learnD = Math.min(12, learnD+1); renderLearn(); };
+    $('randomizeBtn').onclick = () => { learnD = rand(2,10); learnN = rand(1, learnD); renderLearn(); };
+  }
+
+  // ---------- Shared quiz chrome ----------
+  function quizShell(prompt, subjectHTML, extraVisualHTML){
+    $('scorebar').style.display = 'flex';
+    $('levelSeg').style.display = 'flex';
+    $('layout').innerHTML = `
+      <div class="card quiz">
+        <p class="prompt">${prompt}</p>
+        <div id="subject">${subjectHTML}</div>
+        <div class="choices" id="choices"></div>
+        <div id="fracInputWrap"></div>
+        <div class="feedback" id="feedback"></div>
+        <div class="reveal hidden" id="reveal"></div>
+        <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">Next ➡️</button></div>
+      </div>
+      <div class="card visual">${extraVisualHTML || ''}</div>`;
+  }
+
+  function startReadLock(){
+    advanceReady = false;
+    let secs = 3;
+    const nb = $('nextBtn');
+    nb.disabled = true; nb.textContent = `Read it… (${secs})`;
+    $('nextRow').style.display = 'flex';
+    countdownTimer = setInterval(() => { secs--; if (secs>0) nb.textContent = `Read it… (${secs})`; else { clearInterval(countdownTimer); countdownTimer=null; } }, 1000);
+    advanceTimer = setTimeout(() => { advanceReady = true; advanceTimer = null; nb.disabled = false; nb.textContent = 'Next ➡️'; nb.focus(); }, 3000);
+  }
+  function tryAdvance(){ if (answered && advanceReady) newRound(); }
+
+  function celebrate(n){
+    const msgs = { 5:'🌟 5 in a row!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>Fraction master!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    const colors = ['#db2777','#ec4899','#f59e0b','#16a34a','#0ea5e9','#8b5cf6'];
+    const box = $('confetti');
+    for (let i=0;i<90;i++){
+      const c = document.createElement('div'); c.className='conf';
+      c.style.left = Math.random()*100+'vw'; c.style.background = colors[i%colors.length];
+      c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; c.style.animationDelay=(Math.random()*0.4)+'s';
+      c.style.transform=`rotate(${Math.random()*360}deg)`;
+      box.appendChild(c); setTimeout(()=>c.remove(),3400);
+    }
+  }
+
+  function finishAnswer(isCorrect, revealHTML){
+    answered = true; total++;
+    if (isCorrect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+    const fb = $('feedback');
+    if (isCorrect){ fb.textContent = pick(['🎉 Correct!','⭐ Nice!','✅ You got it!','🍰 Sweet!']); fb.className='feedback good'; }
+    else { fb.textContent = 'Not quite — here’s how to solve it:'; fb.className='feedback bad'; }
+    const rev = $('reveal'); rev.innerHTML = revealHTML; rev.className = 'reveal';
+    if (isCorrect && streak > 0 && streak % 5 === 0) celebrate(streak);
+    startReadLock();
+  }
+
+  // ---------- NAME IT ----------
+  function roundName(){
+    const maxD = DEN_MAX[level];
+    let d, n, tries=0;
+    do { d = rand(2, maxD); n = rand(1, d-1); tries++; } while (`${n}/${d}` === lastKey && tries < 20);
+    lastKey = `${n}/${d}`;
+    cur = { n, d };
+    const shape = pick(['pie','bar']);
+    const visual = shape === 'pie' ? pieSVG(n,d,200,'var(--accent)') : `<div style="margin-top:30px">${barHTML(n,d,'var(--accent)')}</div>`;
+    quizShell('What fraction is shaded?', `<div style="display:flex;justify-content:center;margin-bottom:10px">${visual}</div>`);
+    const opts = new Set([`${n}/${d}`]);
+    while (opts.size < 4){
+      const variants = [ `${d}/${n <= 0 ? 1 : n}`, `${Math.max(1,n-1)}/${d}`, `${Math.min(d-1,n+1)}/${d}`, `${n}/${Math.max(n+1,d-1)}`, `${n}/${d+1}` ];
+      opts.add(pick(variants));
+    }
+    const box = $('choices');
+    [...opts].sort(()=>Math.random()-0.5).forEach(o => {
+      const [on, od] = o.split('/').map(Number);
+      const btn = document.createElement('button'); btn.className='choice';
+      btn.innerHTML = fracHTML(on, od, 'med');
+      btn.onclick = () => answerName(btn, on, od, n, d);
+      box.appendChild(btn);
+    });
+  }
+  function answerName(btn, on, od, n, d){
+    if (answered) return;
+    const isCorrect = on === n && od === d;
+    [...$('choices').children].forEach(c => c.disabled = true);
+    if (isCorrect) btn.classList.add('correct'); else { btn.classList.add('wrong'); [...$('choices').children].find(c=>c.textContent.includes(`${n}`) && c!==btn); }
+    if (!isCorrect){
+      [...$('choices').children].forEach(c => { if (c.innerHTML.includes(`>${n}<`) && c.innerHTML.includes(`>${d}<`)) c.classList.add('correct'); });
+    }
+    const dec = n/d;
+    finishAnswer(isCorrect, `<b>${n} out of ${d}</b> equal parts are shaded, so the fraction is ${fracHTML(n,d,'med')}. As a decimal that’s <b>${dec.toFixed(2)}</b>, or <b>${Math.round(dec*100)}%</b>.`);
+  }
+
+  // ---------- COMPARE ----------
+  function roundCompare(){
+    const maxD = DEN_MAX[level];
+    let d1,n1,d2,n2,tries=0;
+    do {
+      d1 = rand(2,maxD); n1 = rand(1,d1-1);
+      d2 = rand(2,maxD); n2 = rand(1,d2-1);
+      tries++;
+    } while (`${n1}/${d1}-${n2}/${d2}` === lastKey && tries < 20);
+    lastKey = `${n1}/${d1}-${n2}/${d2}`;
+    const v1 = n1/d1, v2 = n2/d2;
+    let answerKey = v1 > v2 ? 'left' : (v2 > v1 ? 'right' : 'equal');
+    cur = { n1,d1,n2,d2,answerKey };
+    quizShell('Which fraction is bigger?', `
+      <div style="display:flex;gap:22px;justify-content:center;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+        <div style="text-align:center">${fracHTML(n1,d1,'big')}<div style="margin-top:10px">${barHTML(n1,d1,'#db2777')}</div></div>
+        <div style="font-size:28px;font-weight:800;color:var(--muted)">vs</div>
+        <div style="text-align:center">${fracHTML(n2,d2,'big')}<div style="margin-top:10px">${barHTML(n2,d2,'#0ea5e9')}</div></div>
+      </div>`);
+    const box = $('choices');
+    [['left', `👈 ${fracHTML(n1,d1,'med')} is bigger`], ['equal','⚖️ They’re equal'], ['right', `${fracHTML(n2,d2,'med')} is bigger 👉`]].forEach(([key,label]) => {
+      const btn = document.createElement('button'); btn.className='choice'; btn.innerHTML = label;
+      btn.onclick = () => answerCompare(btn, key);
+      box.appendChild(btn);
+    });
+  }
+  function answerCompare(btn, key){
+    if (answered) return;
+    const isCorrect = key === cur.answerKey;
+    [...$('choices').children].forEach(c => c.disabled = true);
+    btn.classList.add(isCorrect ? 'correct' : 'wrong');
+    const L = lcm(cur.d1, cur.d2);
+    const e1 = cur.n1 * (L/cur.d1), e2 = cur.n2 * (L/cur.d2);
+    const verdict = cur.answerKey === 'left' ? `${fracHTML(cur.n1,cur.d1,'med')} is bigger` : cur.answerKey === 'right' ? `${fracHTML(cur.n2,cur.d2,'med')} is bigger` : 'they are equal';
+    finishAnswer(isCorrect, `Give both fractions the same (common) denominator of <b>${L}</b>: ${fracHTML(cur.n1,cur.d1,'med')} = ${fracHTML(e1,L,'med')} and ${fracHTML(cur.n2,cur.d2,'med')} = ${fracHTML(e2,L,'med')}. Since ${e1} ${e1===e2?'=':e1>e2?'>':'<'} ${e2}, ${verdict}.`);
+  }
+
+  // ---------- ADD & SUBTRACT ----------
+  const SMALL_DENS = [2,3,4,5,6,8,10,12];
+  function roundAddSub(){
+    let d1,d2,n1,n2,op,tries=0;
+    do {
+      if (level <= 2){ d1 = d2 = pick(SMALL_DENS.slice(1,5)); }
+      else { d1 = pick(SMALL_DENS); do { d2 = pick(SMALL_DENS); } while (d2 === d1 && SMALL_DENS.length>1); }
+      n1 = rand(1, d1-1); n2 = rand(1, d2-1);
+      op = pick(['+','-']);
+      if (op === '-'){
+        // ensure nonnegative result: compare via common denom
+        const L = lcm(d1,d2); const e1 = n1*(L/d1), e2 = n2*(L/d2);
+        if (e2 > e1) { const t1=n1,t2=d1; n1=n2; d1=d2; n2=t1; d2=t2; }
+      }
+      tries++;
+    } while (`${n1}/${d1}${op}${n2}/${d2}` === lastKey && tries < 20);
+    lastKey = `${n1}/${d1}${op}${n2}/${d2}`;
+    const L = lcm(d1,d2);
+    const e1 = n1*(L/d1), e2 = n2*(L/d2);
+    const resultNum = op === '+' ? e1+e2 : e1-e2;
+    const [sn, sd] = simplify(resultNum, L);
+    cur = { n1,d1,n2,d2,op,L,e1,e2,resultNum,sn,sd };
+    quizShell(`Solve: what is ${fracHTML(n1,d1,'med')} ${op} ${fracHTML(n2,d2,'med')} ?`, `
+      <div style="display:flex;gap:16px;justify-content:center;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+        <div style="text-align:center">${fracHTML(n1,d1,'big')}<div style="margin-top:8px">${barHTML(n1,d1,'#db2777')}</div></div>
+        <div style="font-size:30px;font-weight:800;color:var(--muted)">${op}</div>
+        <div style="text-align:center">${fracHTML(n2,d2,'big')}<div style="margin-top:8px">${barHTML(n2,d2,'#0ea5e9')}</div></div>
+      </div>
+      <p style="text-align:center;color:var(--muted);font-size:13px;margin-top:4px">Type your answer as a fraction below (it doesn’t need to be simplified).</p>`);
+    const wrap = $('fracInputWrap');
+    wrap.innerHTML = `
+      <div class="fracinput">
+        <input type="number" class="fbox" id="ansNum" inputmode="numeric" placeholder="?">
+        <div class="fline"></div>
+        <input type="number" class="fbox" id="ansDen" inputmode="numeric" placeholder="?">
+      </div>
+      <div class="btn-row"><button class="act btn-primary" id="checkFracBtn">Check</button></div>`;
+    $('checkFracBtn').onclick = checkAddSub;
+    document.getElementById('ansNum').focus();
+  }
+  function checkAddSub(){
+    if (answered) return;
+    const un = parseInt($('ansNum').value, 10), ud = parseInt($('ansDen').value, 10);
+    if (isNaN(un) || isNaN(ud) || ud === 0) return;
+    const isCorrect = un * cur.L === cur.resultNum * ud; // cross-multiply vs common-denom result (un/ud == resultNum/L)
+    $('ansNum').disabled = true; $('ansDen').disabled = true;
+    $('checkFracBtn').style.display = 'none';
+    const stepText = cur.d1 === cur.d2
+      ? `Same denominator, so just ${cur.op === '+' ? 'add' : 'subtract'} the top numbers: ${cur.n1} ${cur.op} ${cur.n2} = ${cur.resultNum}, over ${cur.L}.`
+      : `Different denominators, so first rewrite both over the common denominator <b>${cur.L}</b>: ${fracHTML(cur.n1,cur.d1,'med')} = ${fracHTML(cur.e1,cur.L,'med')} and ${fracHTML(cur.n2,cur.d2,'med')} = ${fracHTML(cur.e2,cur.L,'med')}. Then ${cur.op === '+' ? 'add' : 'subtract'}: ${cur.e1} ${cur.op} ${cur.e2} = ${cur.resultNum}.`;
+    const simplifyText = cur.sd !== cur.L ? ` In lowest terms, that’s ${fracHTML(cur.sn,cur.sd,'med')}.` : ' That’s already in lowest terms.';
+    finishAnswer(isCorrect, `${stepText}${simplifyText} <br>Full answer: ${fracHTML(cur.resultNum, cur.L, 'med')} = ${fracHTML(cur.sn,cur.sd,'med')}`);
+  }
+
+  // ---------- Dispatcher ----------
+  function newRound(){
+    clearTimers(); advanceReady = true; answered = false;
+    if (mode === 'learn'){ renderLearn(); return; }
+    if (mode === 'name') roundName();
+    else if (mode === 'compare') roundCompare();
+    else roundAddSub();
+  }
+
+  $('modeSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.mode;
+    [...$('modeSeg').children].forEach(x => x.classList.toggle('on', x===b));
+    resetProgress(); newRound();
+  });
+  $('levelSeg').addEventListener('click', e => {
+    const b = e.target.closest('button.lvl'); if (!b) return;
+    level = +b.dataset.lvl;
+    [...$('levelSeg').children].forEach(x => x.classList && x.classList.toggle('on', x===b));
+    resetProgress(); newRound();
+  });
+  document.addEventListener('click', e => { if (e.target && e.target.id === 'nextBtn') tryAdvance(); });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    if (mode === 'addsub' && !answered){ e.preventDefault(); checkAddSub(); return; }
+    if (answered){ e.preventDefault(); tryAdvance(); }
+  });
+
+  newRound();
+})();
+</script>
+</body>
+</html>
