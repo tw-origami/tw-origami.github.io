@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Trade Town</title>
+<style>
+  :root{
+    --ink:#1f2a37; --muted:#64748b; --accent:#0d9488; --accent-soft:#ccfbf1;
+    --accent2:#f59e0b; --correct:#16a34a; --wrong:#dc2626;
+    --wire:#94a3b8; --live:#f59e0b;
+    --shadow:0 10px 30px rgba(15,60,80,.14);
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#f0fdfa,#eef2f7); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:20px 14px 60px; }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; }
+  .nav a,.nav button{ text-decoration:none; font-family:inherit; font-weight:800; font-size:14px; color:var(--muted); padding:8px 14px; border-radius:9px; border:none; background:transparent; cursor:pointer; }
+  .nav a.on,.nav button.on{ background:var(--accent); color:#fff; }
+  h1{ font-size:28px; margin:4px 0 2px; letter-spacing:-.5px; }
+  .sub{ color:var(--muted); margin:0 0 16px; font-size:15px; text-align:center; max-width:520px; }
+
+  .menu{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:18px; width:100%; max-width:820px; }
+  .tradecard{ text-align:left; background:#fff; border-radius:20px; box-shadow:var(--shadow); padding:22px; cursor:pointer; border:2px solid transparent; transition:transform .12s, border-color .12s; position:relative; }
+  .tradecard:hover{ transform:translateY(-3px); border-color:var(--accent); }
+  .tradecard.soon{ opacity:.65; cursor:default; }
+  .tradecard.soon:hover{ transform:none; border-color:transparent; }
+  .tradecard .icon{ font-size:34px; }
+  .tradecard h3{ margin:8px 0 4px; font-size:19px; }
+  .tradecard p{ margin:0; color:var(--muted); font-size:14px; line-height:1.4; }
+  .tradecard .badge{ position:absolute; top:16px; right:16px; font-size:11px; font-weight:800; color:var(--accent2); background:#fef3c7; padding:4px 10px; border-radius:999px; }
+
+  .stage{ width:100%; max-width:640px; }
+  .hidden{ display:none !important; }
+
+  .lvlbar{ display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; justify-content:center; }
+  .pill{ background:#fff; border-radius:999px; padding:7px 14px; font-weight:800; font-size:13px; box-shadow:var(--shadow); }
+  .pill.lvl{ color:var(--accent); }
+
+  .card{ background:#fff; border-radius:22px; box-shadow:var(--shadow); padding:22px; }
+  .goal{ background:var(--accent-soft); border-radius:14px; padding:12px 16px; font-weight:700; font-size:15.5px; line-height:1.45; margin-bottom:8px; display:flex; gap:8px; align-items:flex-start; }
+  .goal .g-ic{ font-size:20px; }
+  .teach{ color:var(--muted); font-size:14px; line-height:1.55; margin:0 0 14px; padding:0 4px; }
+
+  svg.board{ width:100%; display:block; touch-action:manipulation; }
+  .comp-label{ font-size:12px; font-weight:800; }
+
+  .controls{ display:flex; gap:10px; justify-content:center; margin-top:14px; flex-wrap:wrap; }
+  .btn{ font-family:inherit; font-size:15px; font-weight:800; border:none; border-radius:13px; padding:12px 20px; cursor:pointer; transition:transform .1s, background .15s; }
+  .btn:active{ transform:scale(.96); }
+  .btn-primary{ background:var(--accent); color:#fff; } .btn-primary:hover{ background:#0f766e; }
+  .btn-ghost{ background:#f1f5f9; color:var(--muted); }
+  .btn-gold{ background:var(--accent2); color:#fff; }
+
+  .feedback{ min-height:24px; margin-top:12px; font-weight:800; font-size:16px; text-align:center; }
+  .feedback.good{ color:var(--correct); } .feedback.bad{ color:var(--wrong); }
+  .hintline{ text-align:center; color:var(--muted); font-size:13.5px; margin-top:4px; min-height:18px; }
+
+  #confetti{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf{ position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; animation:fall linear forwards; }
+  @keyframes fall{ to{ transform:translateY(105vh) rotate(720deg); } }
+  @keyframes flow{ to{ stroke-dashoffset:-24; } }
+  .live-flow{ stroke-dasharray:8 4; animation:flow .5s linear infinite; }
+
+  .credit{ margin-top:24px; color:var(--muted); font-size:11px; text-align:center; max-width:520px; }
+</style>
+</head>
+<body>
+  <div id="confetti"></div>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button id="navMenu" class="on">🔧 Trades</button>
+  </div>
+  <h1>🔧 Trade Town</h1>
+  <p class="sub" id="subtitle">Pick a trade and learn it by building — hands on, no hard hat required.</p>
+
+  <div class="menu" id="menu">
+    <button class="tradecard" data-trade="electric">
+      <div class="icon">⚡</div><h3>Electrician</h3>
+      <p>Wire up circuits until the bulb lights. Learn switches, conductors, and series vs. parallel.</p>
+    </button>
+    <div class="tradecard soon">
+      <div class="badge">Next up</div>
+      <div class="icon">🚿</div><h3>Plumber</h3>
+      <p>Run pipes from the tank to the faucet and get the water flowing without leaks.</p>
+    </div>
+    <div class="tradecard soon">
+      <div class="badge">Coming</div>
+      <div class="icon">📐</div><h3>Architect</h3>
+      <p>Draw a floor plan on a scaled grid — rooms, doors, and load-bearing walls.</p>
+    </div>
+    <div class="tradecard soon">
+      <div class="badge">Coming</div>
+      <div class="icon">🏠</div><h3>Builder</h3>
+      <p>Raise a whole house in the right order: foundation, framing, roof, and finish.</p>
+    </div>
+  </div>
+
+  <div class="stage hidden" id="stage"></div>
+  <div class="credit" id="credit"></div>
+
+<script src="electric.js?v=1"></script>
+<script src="app.js?v=1"></script>
+</body>
+</html>
