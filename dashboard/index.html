@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Learning Dashboard · The Learn Zone</title>
+<style>
+  :root{
+    --ink:#1e293b; --muted:#64748b; --accent:#4f46e5; --accent-soft:#eef2ff;
+    --shadow:0 10px 30px rgba(30,41,99,.12);
+    --g4:#16a34a; --g4-soft:#dcfce7; --g6:#4f46e5; --g6-soft:#eef2ff;
+    --both:#0f766e; --both-soft:#ccfbf1; --warn:#d97706; --warn-soft:#fef3c7;
+    --line:#e2e8f0;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#eef2ff,#f8fafc); min-height:100vh; padding:28px 18px 60px;
+  }
+  .wrap{ max-width:960px; margin:0 auto; }
+  .top{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+  .back{ text-decoration:none; color:var(--accent); font-weight:800; font-size:14px; background:#fff; padding:8px 14px; border-radius:999px; box-shadow:var(--shadow); }
+  h1{ font-size:28px; margin:0; letter-spacing:-.5px; }
+  .today-date{ color:var(--muted); font-size:14px; margin-top:2px; }
+
+  .stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:22px; }
+  .stat{ background:#fff; border-radius:18px; box-shadow:var(--shadow); padding:16px 18px; }
+  .stat .k{ font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); }
+  .stat .v{ font-size:26px; font-weight:800; margin-top:4px; }
+  .stat .sub{ font-size:12px; color:var(--muted); }
+  .bar{ height:8px; border-radius:999px; background:var(--line); margin-top:10px; overflow:hidden; }
+  .bar > i{ display:block; height:100%; background:var(--accent); border-radius:999px; transition:width .3s; }
+
+  .card{ background:#fff; border-radius:22px; box-shadow:var(--shadow); padding:22px; margin-bottom:20px; }
+  .card h2{ margin:0 0 4px; font-size:20px; }
+  .card .hint{ color:var(--muted); font-size:13px; margin:0 0 16px; }
+  .weeknav{ display:flex; align-items:center; gap:10px; }
+  .weeknav button{ border:none; background:var(--accent-soft); color:var(--accent); font-weight:800; width:34px; height:34px; border-radius:10px; cursor:pointer; font-size:16px; }
+  .weeknav button:disabled{ opacity:.35; cursor:default; }
+  .daypills{ display:flex; gap:8px; flex-wrap:wrap; margin:14px 0 4px; }
+  .pill{ flex:1; min-width:110px; text-align:left; border:2px solid var(--line); border-radius:14px; padding:10px 12px; cursor:pointer; background:#fff; transition:.15s; }
+  .pill:hover{ border-color:var(--accent); }
+  .pill.active{ border-color:var(--accent); background:var(--accent-soft); }
+  .pill .d{ font-weight:800; font-size:14px; }
+  .pill .m{ font-size:12px; color:var(--muted); }
+  .pill .p{ font-size:12px; font-weight:700; margin-top:4px; }
+
+  .cols{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media(max-width:680px){ .cols{ grid-template-columns:1fr; } .stats{ grid-template-columns:1fr; } }
+  .col h3{ margin:0 0 10px; font-size:15px; display:flex; align-items:center; gap:8px; }
+  .dot{ width:12px; height:12px; border-radius:4px; display:inline-block; }
+  .lesson{ display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border-radius:14px; margin-bottom:8px; cursor:pointer; border:1px solid var(--line); background:#fff; transition:.12s; }
+  .lesson:hover{ border-color:#cbd5e1; }
+  .lesson.done{ opacity:.55; }
+  .lesson.done .topic{ text-decoration:line-through; }
+  .check{ width:22px; height:22px; border-radius:7px; border:2px solid #cbd5e1; flex:none; display:flex; align-items:center; justify-content:center; font-size:14px; color:#fff; margin-top:1px; }
+  .lesson.done .check{ background:var(--accent); border-color:var(--accent); }
+  .subj{ font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; }
+  .topic{ font-size:14px; line-height:1.35; }
+  .mat{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .g4 .subj{ color:var(--g4); } .g6 .subj{ color:var(--g6); } .both .subj{ color:var(--both); }
+  .both-wrap{ margin-top:16px; }
+  .empty{ color:var(--muted); font-size:14px; padding:8px 2px; }
+
+  .catch .lesson{ border-color:var(--warn-soft); background:var(--warn-soft); }
+  .catch .when{ font-size:11px; color:var(--warn); font-weight:800; }
+  .badge{ display:inline-block; background:var(--warn); color:#fff; font-size:12px; font-weight:800; border-radius:999px; padding:2px 9px; margin-left:8px; }
+  .foot{ color:var(--muted); font-size:12px; text-align:center; margin-top:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>📚 Learning Dashboard</h1>
+      <div class="today-date" id="todayDate"></div>
+    </div>
+    <a class="back" href="../index.html">← The Learn Zone</a>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="k">Focused day</div><div class="v" id="stDay">–</div><div class="sub" id="stDaySub"></div><div class="bar"><i id="stDayBar"></i></div></div>
+    <div class="stat"><div class="k">This week</div><div class="v" id="stWeek">–</div><div class="sub" id="stWeekSub"></div><div class="bar"><i id="stWeekBar"></i></div></div>
+    <div class="stat"><div class="k">Catch-up</div><div class="v" id="stCatch">–</div><div class="sub">lessons still to do</div><div class="bar"><i id="stCatchBar" style="background:var(--warn)"></i></div></div>
+  </div>
+
+  <!-- FOCUSED DAY -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <div><h2 id="dayTitle">Today</h2><p class="hint" id="dayHint">Tick each lesson as it's finished — it saves automatically.</p></div>
+      <div class="weeknav"><button id="prevWk" title="Previous week">‹</button><span id="wkLabel" style="font-weight:800;color:var(--muted);font-size:14px;"></span><button id="nextWk" title="Next week">›</button></div>
+    </div>
+    <div class="daypills" id="dayPills"></div>
+    <div class="cols" style="margin-top:16px;">
+      <div class="col"><h3><span class="dot" style="background:var(--g4)"></span> 4th Grade</h3><div id="col4"></div></div>
+      <div class="col"><h3><span class="dot" style="background:var(--g6)"></span> 6th Grade</h3><div id="col6"></div></div>
+    </div>
+    <div class="both-wrap"><h3><span class="dot" style="background:var(--both)"></span> Both / Together</h3><div id="colBoth"></div></div>
+  </div>
+
+  <!-- CATCH UP -->
+  <div class="card catch" id="catchCard" style="display:none;">
+    <h2>🔁 Catch-up <span class="badge" id="catchBadge"></span></h2>
+    <p class="hint">Lessons from earlier that aren't checked off yet. Do them whenever there's time, or tell me to reschedule them.</p>
+    <div id="catchList"></div>
+  </div>
+
+  <div class="foot" id="foot"></div>
+  <div class="foot" id="syncStatus" style="font-weight:700;color:var(--accent);"></div>
+</div>
+
+<script src="schedule.js"></script>
+<script>
+// ==== Cloud sync (Google Apps Script web app) ====
+// Paste the /exec URL you get after deploying (see SETUP-Google-Sync.md). Empty = local-only.
+const SYNC_URL = "";
+
+const DATA = window.SCHEDULE || [];
+const META = window.SCHEDULE_META || {};
+const SUBJ_ICON = {"Math":"🧮","Language Arts":"📖","Science":"🔬","History":"🏛️","Art":"🎨","Life Skills":"🧭","Electives":"✨"};
+const KEY = id => "lz_done_"+id;
+const isDone = id => localStorage.getItem(KEY(id))==="1";
+const setDone = (id,v) => v?localStorage.setItem(KEY(id),"1"):localStorage.removeItem(KEY(id));
+
+function toISO(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function parseISO(s){ const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); }
+function pretty(s){ return parseISO(s).toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"}); }
+function shortDay(s){ return parseISO(s).toLocaleDateString(undefined,{weekday:"short"}); }
+
+const DATES = [...new Set(DATA.map(x=>x.date))].sort();
+const TODAY = toISO(new Date());
+
+// pick focused date: today if scheduled, else next school day, else clamp
+function pickFocus(){
+  if(DATES.includes(TODAY)) return TODAY;
+  const next = DATES.find(d=>d>=TODAY);
+  if(next) return next;
+  return DATES[DATES.length-1];
+}
+let focus = pickFocus();
+
+function weekOf(dateStr){ const it=DATA.find(x=>x.date===dateStr); return it?it.week:1; }
+const WEEKS = [...new Set(DATA.map(x=>x.week))].sort((a,b)=>a-b);
+function weekDates(wk){ return [...new Set(DATA.filter(x=>x.week===wk).map(x=>x.date))].sort(); }
+
+function lessonsOn(dateStr, who){ return DATA.filter(x=>x.date===dateStr && (who?x.who===who:true)); }
+function prog(items){ const d=items.filter(x=>isDone(x.id)).length; return {done:d,total:items.length,pct:items.length?Math.round(d/items.length*100):0}; }
+
+function lessonHTML(l){
+  const cls = l.who==="4th"?"g4":l.who==="6th"?"g6":"both";
+  const done = isDone(l.id)?" done":"";
+  const icon = SUBJ_ICON[l.subject]||"•";
+  const mat = l.materials?`<div class="mat">${l.materials}</div>`:"";
+  return `<div class="lesson ${cls}${done}" data-id="${l.id}">
+    <div class="check">${isDone(l.id)?"✓":""}</div>
+    <div><div class="subj">${icon} ${l.subject}</div><div class="topic">${l.topic}</div>${mat}</div>
+  </div>`;
+}
+function catchHTML(l){
+  const icon = SUBJ_ICON[l.subject]||"•";
+  const whoLbl = l.who==="Both"?"Both":l.who+" grade";
+  return `<div class="lesson" data-id="${l.id}">
+    <div class="check">${isDone(l.id)?"✓":""}</div>
+    <div><div class="when">${shortDay(l.date)} ${l.date.slice(5)} · ${whoLbl}</div>
+    <div class="subj">${icon} ${l.subject}</div><div class="topic">${l.topic}</div></div>
+  </div>`;
+}
+
+function render(){
+  document.getElementById("todayDate").textContent = "Today is "+pretty(TODAY);
+  const wk = weekOf(focus);
+  document.getElementById("wkLabel").textContent = "Week "+wk;
+  document.getElementById("prevWk").disabled = wk<=WEEKS[0];
+  document.getElementById("nextWk").disabled = wk>=WEEKS[WEEKS.length-1];
+
+  // day pills for this week
+  const wd = weekDates(wk);
+  document.getElementById("dayPills").innerHTML = wd.map(d=>{
+    const p=prog(lessonsOn(d));
+    const act = d===focus?" active":"";
+    const isToday = d===TODAY?" · today":"";
+    return `<div class="pill${act}" data-date="${d}"><div class="d">${shortDay(d)}${isToday}</div><div class="m">${d.slice(5)}</div><div class="p" style="color:${p.pct===100?'var(--g4)':'var(--muted)'}">${p.done}/${p.total} done</div></div>`;
+  }).join("");
+
+  // titles
+  document.getElementById("dayTitle").textContent = focus===TODAY ? "Today" : pretty(focus);
+  document.getElementById("dayHint").textContent = focus===TODAY
+    ? "Tick each lesson as it's finished — it saves automatically."
+    : (focus>TODAY?"Coming up. ":"") + "Tick each lesson as it's finished — it saves automatically.";
+
+  // columns
+  const l4=lessonsOn(focus,"4th"), l6=lessonsOn(focus,"6th"), lb=lessonsOn(focus,"Both");
+  document.getElementById("col4").innerHTML = l4.length?l4.map(lessonHTML).join(""):'<div class="empty">Nothing scheduled.</div>';
+  document.getElementById("col6").innerHTML = l6.length?l6.map(lessonHTML).join(""):'<div class="empty">Nothing scheduled.</div>';
+  document.getElementById("colBoth").innerHTML = lb.length?lb.map(lessonHTML).join(""):'<div class="empty">Nothing scheduled.</div>';
+
+  // stats
+  const dp=prog(lessonsOn(focus));
+  document.getElementById("stDay").textContent = dp.done+"/"+dp.total;
+  document.getElementById("stDaySub").textContent = focus===TODAY?"done today":shortDay(focus)+" "+focus.slice(5);
+  document.getElementById("stDayBar").style.width = dp.pct+"%";
+  const wp=prog(DATA.filter(x=>x.week===wk));
+  document.getElementById("stWeek").textContent = wp.done+"/"+wp.total;
+  document.getElementById("stWeekSub").textContent = "Week "+wk+" · "+wp.pct+"%";
+  document.getElementById("stWeekBar").style.width = wp.pct+"%";
+
+  // catch-up: past-due, not done
+  const overdue = DATA.filter(x=>x.date<TODAY && !isDone(x.id)).sort((a,b)=>a.date.localeCompare(b.date));
+  document.getElementById("stCatch").textContent = overdue.length;
+  document.getElementById("stCatchBar").style.width = Math.min(100, overdue.length*8)+"%";
+  const cc=document.getElementById("catchCard");
+  if(overdue.length){ cc.style.display="block";
+    document.getElementById("catchBadge").textContent = overdue.length;
+    document.getElementById("catchList").innerHTML = overdue.map(catchHTML).join("");
+  } else cc.style.display="none";
+
+  document.getElementById("foot").textContent = "Showing "+DATA.length+" lessons · "+META.start+" to "+META.end+". Ask Claude to update the plan anytime.";
+}
+
+// ==== cloud sync helpers ====
+function pushCloud(id, val){
+  if(!SYNC_URL) return;
+  const u = SYNC_URL + (SYNC_URL.includes("?")?"&":"?") + "action=set&id="+encodeURIComponent(id)+"&done="+(val?1:0);
+  fetch(u,{method:"GET",mode:"cors"}).catch(()=>{});
+}
+async function loadCloud(){
+  if(!SYNC_URL) return;
+  setStatus("syncing…");
+  try{
+    const r = await fetch(SYNC_URL,{method:"GET",mode:"cors"});
+    const j = await r.json();
+    if(j && j.done){
+      const keys = Object.keys(j.done);
+      if(keys.length===0){
+        // first time: seed cloud from anything already ticked locally
+        DATA.forEach(l=>{ if(isDone(l.id)) pushCloud(l.id,true); });
+      } else {
+        // cloud is the source of truth across devices
+        DATA.forEach(l=>{ if(j.done[l.id]) localStorage.setItem(KEY(l.id),"1"); else localStorage.removeItem(KEY(l.id)); });
+      }
+      render();
+      setStatus("synced ✓");
+    }
+  }catch(e){ setStatus("offline — saved on this device"); }
+}
+function setStatus(t){ const el=document.getElementById("syncStatus"); if(el) el.textContent = SYNC_URL ? t : ""; }
+
+// interactions
+document.addEventListener("click", e=>{
+  const les=e.target.closest(".lesson");
+  if(les){ const id=+les.dataset.id; const nv=!isDone(id); setDone(id,nv); pushCloud(id,nv); render(); return; }
+  const pill=e.target.closest(".pill");
+  if(pill){ focus=pill.dataset.date; render(); return; }
+});
+document.getElementById("prevWk").onclick=()=>{ const wk=weekOf(focus); const wd=weekDates(wk-1); if(wd.length){ focus=wd[0]; render(); } };
+document.getElementById("nextWk").onclick=()=>{ const wk=weekOf(focus); const wd=weekDates(wk+1); if(wd.length){ focus=wd[0]; render(); } };
+
+render();
+loadCloud();
+setInterval(loadCloud, 60000);              // pick up other devices' changes
+window.addEventListener("focus", loadCloud); // refresh when you switch back to the tab
+</script>
+</body>
+</html>

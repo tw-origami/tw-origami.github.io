@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Science Lab</title>
+<style>
+  :root {
+    --ink:#0f2e2a; --muted:#5b7b76; --accent:#0d9488; --accent-soft:#ccfbf1;
+    --correct:#16a34a; --wrong:#dc2626; --shadow:0 10px 30px rgba(13,148,136,.16);
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#ecfdf5,#f0fdfa); min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; padding:24px 16px 60px;
+  }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 14px; font-size:15px; text-align:center; max-width:540px; line-height:1.5; }
+  .hero { width:100%; max-width:480px; border-radius:18px; box-shadow:var(--shadow); margin:0 0 18px; display:block; }
+
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; position:sticky; top:10px; z-index:70; }
+  .nav a, .nav button{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 16px; border-radius:9px; border:none; background:transparent; font-family:inherit; cursor:pointer; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+  .nav button:hover{ background:var(--accent-soft); color:var(--accent); }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; }
+  .seg button {
+    border:none; background:transparent; font-family:inherit; font-weight:800;
+    font-size:14.5px; padding:9px 15px; border-radius:10px; cursor:pointer; color:var(--muted);
+    transition:background .15s, color .15s;
+  }
+  .seg button.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .chip { background:#fff; border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; }
+  .chip.streak { color:#ea580c; }
+
+  .stage { width:100%; max-width:580px; }
+  .card { width:100%; background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:28px 24px; display:flex; flex-direction:column; align-items:center; }
+  .qprompt { color:var(--muted); font-size:14px; margin:0 0 16px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; text-align:center; }
+
+  .subject { text-align:center; margin-bottom:22px; width:100%; }
+  .subj-icon { font-size:52px; line-height:1; }
+  .subj-tag { display:inline-block; font-size:12px; font-weight:800; color:var(--accent); background:var(--accent-soft); padding:4px 12px; border-radius:999px; text-transform:uppercase; letter-spacing:.4px; margin-bottom:8px; }
+  .subj-def { font-size:20px; font-weight:700; line-height:1.5; margin:4px auto 0; max-width:490px; }
+  .subj-question { font-size:19px; font-weight:800; line-height:1.45; margin:4px auto 0; max-width:500px; }
+
+  /* clue box for Label It */
+  .cluebox { font-size:17px; font-weight:700; line-height:1.5; margin:0 auto 14px; max-width:480px; background:var(--accent-soft); border-radius:14px; padding:14px 18px; color:#134e48; }
+  .cluebox b { color:var(--accent); }
+
+  /* diagram + hotspots */
+  .diagram { width:100%; max-width:360px; margin:0 auto; }
+  .diagram svg { width:100%; height:auto; display:block; touch-action:manipulation; }
+  svg .hot { fill:#fff; stroke:var(--accent); stroke-width:3; cursor:pointer; opacity:.92; animation:pulse 1.6s ease-in-out infinite; }
+  svg .hot:hover { fill:var(--accent-soft); }
+  svg .hot.correct { fill:#16a34a; stroke:#166534; animation:none; }
+  svg .hot.wrong { fill:#dc2626; stroke:#991b1b; animation:none; }
+  svg .hot.dim { animation:none; opacity:.6; }
+  svg .hotlabel { font-size:13px; font-weight:800; fill:#0f2e2a; paint-order:stroke; stroke:#fff; stroke-width:4; stroke-linejoin:round; }
+  @keyframes pulse { 0%,100%{ r:13 } 50%{ r:16 } }
+
+  .choices { display:flex; flex-direction:column; gap:11px; width:100%; }
+  .choice { background:#fff; border:3px solid #d5f0ec; border-radius:16px; font-size:16.5px; font-weight:700; padding:14px 18px; color:var(--ink); cursor:pointer; text-align:left; display:flex; align-items:center; gap:11px; font-family:inherit; line-height:1.4; }
+  .choice .cico { font-size:24px; flex:none; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.has-sub { align-items:flex-start; }
+  .choice.has-sub .cico { margin-top:1px; }
+  .choice-text { display:flex; flex-direction:column; gap:3px; }
+  .choice-label { font-weight:800; }
+  .choice-sub { font-size:12.5px; font-weight:600; color:var(--muted); line-height:1.4; }
+  .choice.correct .choice-sub, .choice.wrong .choice-sub { color:inherit; opacity:.85; }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; color:var(--correct); }
+  .choice.wrong { border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
+  .choice:disabled { cursor:default; }
+
+  /* Order It picked steps + shake */
+  .choice.picked { border-color:var(--correct); background:#f0fdf4; color:var(--ink); cursor:default; }
+  .choice .stepnum { flex:none; width:26px; height:26px; border-radius:50%; background:var(--correct); color:#fff; font-size:14px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .choice.shake { animation:shake .4s; border-color:var(--wrong); }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+
+  /* Cloze */
+  .cloze-text { font-size:18px; line-height:2.1; text-align:left; width:100%; max-width:500px; margin:0 auto 18px; color:var(--ink); font-weight:600; }
+  .blank { display:inline-block; min-width:96px; border-bottom:3px solid var(--accent); text-align:center; font-weight:800; color:var(--accent); padding:0 6px; margin:0 2px; }
+  .blank.cur { background:var(--accent-soft); border-radius:6px 6px 0 0; }
+  .blank.filled { color:var(--correct); border-color:var(--correct); }
+  .wordbank { display:flex; flex-wrap:wrap; gap:9px; justify-content:center; width:100%; }
+  .word { font-family:inherit; font-weight:800; font-size:15px; border:3px solid #d5f0ec; background:#fff; color:var(--ink); border-radius:12px; padding:9px 15px; cursor:pointer; }
+  .word:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .word:disabled { opacity:.35; cursor:default; }
+  .word.shake { animation:shake .4s; border-color:var(--wrong); }
+
+  .feedback { min-height:26px; margin-top:18px; font-weight:800; font-size:17px; text-align:center; }
+  .feedback.good { color:var(--correct); }
+  .feedback.bad { color:var(--wrong); }
+
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; text-align:left; width:100%; margin:10px auto 4px; padding:16px 18px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; overflow:hidden; }
+  .reveal.hidden { display:none; }
+  .reveal .rev-title { font-size:18px; font-weight:800; margin-bottom:6px; color:#0f766e; }
+  .reveal .rev-body { color:#134e48; }
+  .reveal .rev-ex { margin-top:10px; color:#0f766e; font-style:italic; }
+  .reveal .rev-label { font-size:12px; font-weight:800; color:#0f766e; text-transform:uppercase; letter-spacing:.4px; margin:14px 0 7px; }
+  .rev-thumb { float:right; width:96px; height:96px; object-fit:cover; border-radius:12px; margin:0 0 8px 12px; border:2px solid #99f6e4; }
+  .beatrow { display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-top:1px solid #99f6e4; }
+  .beatrow:first-of-type { border-top:none; }
+  .beatrow .bico { font-size:22px; flex:none; }
+  .beatrow .bnum { font-weight:800; min-width:22px; flex:none; color:#0f766e; }
+  .beatrow .bn { color:#134e48; }
+
+  .eli5 { margin-top:14px; background:#fffbeb; border-left:3px solid #eab308; border-radius:8px; padding:10px 13px; font-size:14px; color:#713f12; line-height:1.55; }
+  .eli5 b { color:#854d0e; }
+  .rev-src { display:inline-block; margin-top:14px; font-size:13px; font-weight:700; color:var(--accent); text-decoration:none; border-bottom:1.5px dotted var(--accent); }
+  .rev-src:hover { color:#0f766e; }
+  .real-btn { display:inline-block; margin-top:12px; margin-right:12px; font-family:inherit; font-size:13px; font-weight:800; color:#fff; background:var(--accent); border:none; border-radius:999px; padding:7px 14px; cursor:pointer; }
+  .real-btn:hover { background:#0f766e; }
+  .real-img { width:100%; border-radius:14px; display:block; }
+  .real-credit { font-size:12.5px; color:var(--muted); margin-top:10px; line-height:1.5; }
+  .real-credit a { color:var(--accent); font-weight:700; text-decoration:none; }
+
+  button.act { font-family:inherit; font-size:16px; font-weight:700; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; transition:transform .1s, background .15s; }
+  button.act:active { transform:scale(.96); }
+  button.act:disabled { opacity:.55; cursor:default; transform:none; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#0f766e; }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  .modal { position:fixed; inset:0; background:rgba(6,40,36,.45); z-index:80; display:flex; align-items:center; justify-content:center; padding:18px; }
+  .modal.hidden { display:none; }
+  .sheet { background:#fff; border-radius:22px; box-shadow:0 24px 60px rgba(13,148,136,.35); width:100%; max-width:600px; max-height:82vh; overflow-y:auto; padding:26px 24px 30px; position:relative; }
+  .sheet h2 { margin:0 0 4px; font-size:22px; letter-spacing:-.4px; }
+  .sheet .sheet-sub { color:var(--muted); font-size:14px; margin:0 0 18px; line-height:1.5; }
+  .closeBtn { position:sticky; float:right; top:0; width:34px; height:34px; border:none; border-radius:50%; background:var(--accent-soft); color:#0f766e; font-size:17px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .closeBtn:hover { background:var(--accent); color:#fff; }
+  .srow { padding:12px 0; border-top:1px solid #d5f0ec; }
+  .srow:first-of-type { border-top:none; }
+  .srow a { font-weight:800; font-size:15.5px; color:var(--accent); text-decoration:none; }
+  .srow a:hover { text-decoration:underline; }
+  .srow .snote { color:var(--muted); font-size:13.5px; margin-top:3px; line-height:1.45; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner {
+    position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6);
+    background:linear-gradient(135deg,#2dd4bf,#0d9488); color:#fff; font-weight:900;
+    font-size:28px; padding:20px 38px; border-radius:22px; box-shadow:0 18px 50px rgba(13,148,136,.45);
+    z-index:60; opacity:0; pointer-events:none; text-align:center; white-space:nowrap;
+  }
+  #streakBanner.show { animation:banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner {
+    0%{opacity:0; transform:translate(-50%,-50%) scale(.6)}
+    15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)}
+    28%{transform:translate(-50%,-50%) scale(1)}
+    80%{opacity:1; transform:translate(-50%,-50%) scale(1)}
+    100%{opacity:0; transform:translate(-50%,-60%) scale(.95)}
+  }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button id="srcBtn" title="Where these facts come from">📚 Sources</button>
+  </div>
+  <h1>🔬 Science Lab</h1>
+  <p class="sub">Explore the human body, plants, Earth, space, cells and ecosystems — by labeling diagrams, ordering processes, filling in the science, predicting what happens, and sorting things into groups.</p>
+  <img class="hero" src="img/hero.png" alt="Kids exploring science" onerror="this.style.display='none'">
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="label" class="on">🔍 Label It</button>
+      <button data-mode="sequence">🔢 Sequence It</button>
+      <button data-mode="cloze">📝 Fill the Blank</button>
+      <button data-mode="cause">⚡ Cause &amp; Effect</button>
+      <button data-mode="sort">🗂️ Sort It</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="stage">
+    <div class="card">
+      <p class="qprompt" id="prompt"></p>
+      <div class="subject" id="subject"></div>
+      <div class="choices" id="choices"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="reveal hidden" id="reveal"></div>
+      <div class="btn-row" id="nextRow" style="display:none">
+        <button class="act btn-primary" id="nextBtn">Next ➡️</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="srcModal"><div class="sheet" id="srcSheet"></div></div>
+  <div class="modal hidden" id="imgModal"><div class="sheet" id="imgSheet"></div></div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const shuffle = arr => arr.slice().sort(()=>Math.random()-0.5);
+  const S = window.SCI;
+  const SRC = {}; S.SOURCES.forEach(s => SRC[s.key] = s);
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  let mode = 'label';   // label | sequence | cloze | cause | sort
+  let correct = 0, total = 0, streak = 0;
+  let lastKey = null;
+  let answered = false, advanceReady = true;
+  let advanceTimer = null, countdownTimer = null;
+
+  function clearTimers(){
+    if (advanceTimer){ clearTimeout(advanceTimer); advanceTimer = null; }
+    if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
+  }
+  function updateScorebar(){
+    $('correctCount').textContent = correct;
+    $('totalCount').textContent = total;
+    $('streak').textContent = streak;
+  }
+  function resetProgress(){ correct = 0; total = 0; streak = 0; lastKey = null; updateScorebar(); }
+
+  const srcLink = key => {
+    const s = SRC[key]; if (!s) return '';
+    return `<a class="rev-src" href="${s.url}" target="_blank" rel="noopener">📚 Source: ${esc(s.name)} ↗</a>`;
+  };
+  const eli5Box = text => `<div class="eli5">💡 <b>Test tip:</b> ${esc(text)}</div>`;
+  function topicThumb(topic){
+    const t = S.TOPICS[topic];
+    if (!t || !t.img) return '';
+    return `<img class="rev-thumb" src="${t.img}" alt="" onerror="this.style.display='none'">`;
+  }
+
+  // ---------- MCQ modes (cause, sort) ----------
+  function buildRound(){
+    if (mode === 'cause') return roundCause();
+    return roundSort();
+  }
+  function roundCause(){
+    let c, tries = 0;
+    do { c = pick(S.CAUSE); tries++; } while (S.CAUSE.length > 1 && c.q === lastKey && tries < 30);
+    lastKey = c.q;
+    const options = shuffle([c.correct, ...c.distractors]);
+    return {
+      prompt:'⚡ What happens next?',
+      subjectHTML:
+        `<div class="subj-tag">${S.TOPICS[c.topic] ? S.TOPICS[c.topic].icon + ' ' + esc(S.TOPICS[c.topic].name) : 'Science'}</div>` +
+        `<div class="subj-question">${esc(c.q)}</div>`,
+      choices: options.map(o => ({ html:esc(o), val:o, correct:o === c.correct })),
+      revealHTML:
+        topicThumb(c.topic) +
+        `<div class="rev-title">✅ ${esc(c.correct)}</div>` +
+        `<div class="rev-body">${esc(c.why)}</div>`
+    };
+  }
+  function roundSort(){
+    let it, tries = 0;
+    do { it = pick(S.SORT); tries++; } while (S.SORT.length > 1 && it.item === lastKey && tries < 30);
+    lastKey = it.item;
+    const options = shuffle(it.cats.slice());
+    return {
+      prompt:'🗂️ Which group does this belong to?',
+      subjectHTML:
+        `<div class="subj-tag">Sort it</div>` +
+        `<div class="subj-def" style="font-size:24px">${esc(it.item)}</div>`,
+      choices: options.map(o => ({ html:esc(o), val:o, correct:o === it.answer })),
+      revealHTML:
+        `<div class="rev-title">✅ ${esc(it.item)} → ${esc(it.answer)}</div>` +
+        `<div class="rev-body">${esc(it.why)}</div>`
+    };
+  }
+
+  let curReveal = '';
+  function newRound(){
+    if (mode === 'label'){ newLabelRound(); return; }
+    if (mode === 'sequence'){ newSequenceRound(); return; }
+    if (mode === 'cloze'){ newClozeRound(); return; }
+    clearTimers();
+    advanceReady = true; answered = false;
+    $('feedback').textContent = ''; $('feedback').className = 'feedback';
+    $('reveal').className = 'reveal hidden'; $('reveal').innerHTML = '';
+    $('nextRow').style.display = 'none';
+
+    const round = buildRound();
+    curReveal = round.revealHTML;
+    $('prompt').textContent = round.prompt;
+    $('subject').innerHTML = round.subjectHTML;
+
+    const box = $('choices'); box.innerHTML = '';
+    round.choices.forEach(ch => {
+      const btn = document.createElement('button');
+      btn.className = ch.cls ? 'choice ' + ch.cls : 'choice';
+      btn.innerHTML = ch.html;
+      btn.dataset.val = ch.val;
+      if (ch.correct) btn.dataset.correct = '1';
+      btn.onclick = () => answer(btn, ch.correct);
+      box.appendChild(btn);
+    });
+  }
+
+  function answer(btn, isCorrect){
+    if (answered) return;
+    answered = true;
+    total++;
+    if (isCorrect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+    [...$('choices').children].forEach(c => {
+      c.disabled = true;
+      if (c.dataset.correct === '1') c.classList.add('correct');
+    });
+    if (!isCorrect) btn.classList.add('wrong');
+    const fb = $('feedback');
+    if (isCorrect){ fb.textContent = pick(['🎉 Correct!','⭐ Nice!','✅ You got it!','🔬 Sharp!','🌟 Great!']); fb.className = 'feedback good'; }
+    else { fb.textContent = 'Not quite — here’s the science:'; fb.className = 'feedback bad'; }
+    const rev = $('reveal'); rev.innerHTML = curReveal; rev.className = 'reveal';
+    if (isCorrect && streak > 0 && streak % 5 === 0) celebrate(streak);
+    startReadLock();
+  }
+
+  // ---------- GAME 1 · LABEL IT ----------
+  let labelState = null;
+  function newLabelRound(){
+    clearTimers();
+    advanceReady = true; answered = false;
+    $('feedback').textContent = ''; $('feedback').className = 'feedback';
+    $('reveal').className = 'reveal hidden'; $('reveal').innerHTML = '';
+    $('nextRow').style.display = 'none';
+    $('choices').innerHTML = '';
+
+    let d, tries = 0;
+    do { d = pick(S.DIAGRAMS); tries++; } while (S.DIAGRAMS.length > 1 && d.key === (lastKey||'').split('|')[0] && tries < 20);
+    const target = Math.floor(Math.random() * d.parts.length);
+    lastKey = d.key + '|' + target;
+    labelState = { d, target };
+
+    $('prompt').textContent = '🔍 ' + d.title + ' — tap the right part';
+    const dots = d.parts.map((p,i) =>
+      `<circle class="hot" data-i="${i}" cx="${p.x}" cy="${p.y}" r="13"></circle>`).join('');
+    $('subject').innerHTML =
+      `<div class="cluebox">👉 Tap the part that: <b>${esc(d.parts[target].clue)}</b></div>` +
+      `<div class="diagram"><svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">${d.svg}${dots}</svg></div>`;
+    $('subject').querySelector('svg').addEventListener('click', e => {
+      const dot = e.target.closest('.hot'); if (dot) labelPick(parseInt(dot.dataset.i,10));
+    });
+  }
+  function labelPick(i){
+    if (answered) return;
+    answered = true; total++;
+    const { d, target } = labelState;
+    const isCorrect = i === target;
+    if (isCorrect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+    const svg = $('subject').querySelector('svg');
+    // mark dots + reveal every part's name
+    d.parts.forEach((p, k) => {
+      const dot = svg.querySelector(`.hot[data-i="${k}"]`);
+      if (k === target) dot.classList.add('correct');
+      else if (k === i) dot.classList.add('wrong');
+      else dot.classList.add('dim');
+      const anchor = p.x > 300 ? 'end' : p.x < 100 ? 'start' : 'middle';
+      const ty = p.y < 40 ? p.y + 26 : p.y - 20;
+      svg.insertAdjacentHTML('beforeend',
+        `<text class="hotlabel" x="${p.x}" y="${ty}" text-anchor="${anchor}">${esc(p.name)}</text>`);
+    });
+    const fb = $('feedback');
+    if (isCorrect){ fb.textContent = pick(['🎉 Correct!','⭐ Nice!','✅ You got it!','🔬 Sharp!']); fb.className = 'feedback good'; }
+    else { fb.textContent = `Not quite — that was the ${esc(d.parts[target].name)}:`; fb.className = 'feedback bad'; }
+    const tp = d.parts[target];
+    $('reveal').innerHTML =
+      topicThumb(d.topic) +
+      `<div class="rev-title">${esc(tp.name)}</div>` +
+      `<div class="rev-body">${esc(tp.fact)}</div>` +
+      `<div class="rev-ex">🧭 ${esc(d.note)}</div>` +
+      (d.real ? `<div><button class="real-btn" data-real="${d.key}">📷 See the real diagram</button></div>` : '') +
+      srcLink(d.src);
+    $('reveal').className = 'reveal';
+    if (isCorrect && streak > 0 && streak % 5 === 0) celebrate(streak);
+    startReadLock();
+  }
+
+  // ---------- GAME 2 · SEQUENCE IT (Order It!) ----------
+  let orderState = null;
+  function newSequenceRound(){
+    clearTimers();
+    advanceReady = true; answered = false;
+    $('feedback').textContent = ''; $('feedback').className = 'feedback';
+    $('reveal').className = 'reveal hidden'; $('reveal').innerHTML = '';
+    $('nextRow').style.display = 'none';
+
+    let seq, tries = 0;
+    do { seq = pick(S.SEQUENCES); tries++; } while (S.SEQUENCES.length > 1 && seq.title === lastKey && tries < 20);
+    lastKey = seq.title;
+    orderState = { seq, expected:0, mistakes:0 };
+
+    $('prompt').textContent = seq.icon + ' ' + seq.title;
+    $('subject').innerHTML = `<div class="subj-def" style="font-size:16px;color:var(--muted);font-weight:600">Tap the stages in the correct order — first stage first.</div>`;
+
+    let idxs = seq.steps.map((_,i)=>i), t2 = 0;
+    do { idxs = shuffle(idxs); t2++; } while (idxs.every((v,i)=>v===i) && t2 < 10);
+    const box = $('choices'); box.innerHTML = '';
+    idxs.forEach(i => {
+      const st = seq.steps[i];
+      const btn = document.createElement('button');
+      btn.className = 'choice has-sub';
+      btn.innerHTML = `<span class="cico">${st.icon}</span><span class="choice-text"><span class="choice-label">${esc(st.text)}</span><span class="choice-sub">${esc(st.desc)}</span></span>`;
+      btn.onclick = () => orderPick(btn, i);
+      box.appendChild(btn);
+    });
+  }
+  function orderPick(btn, i){
+    if (answered) return;
+    const st = orderState;
+    if (i === st.expected){
+      st.expected++;
+      btn.classList.remove('shake');
+      btn.classList.add('picked'); btn.disabled = true;
+      btn.insertAdjacentHTML('afterbegin', `<span class="stepnum">${st.expected}</span>`);
+      if (st.expected === st.seq.steps.length) finishOrder();
+      else { $('feedback').textContent = ''; $('feedback').className = 'feedback'; }
+    } else {
+      st.mistakes++;
+      btn.classList.remove('shake'); void btn.offsetWidth; btn.classList.add('shake');
+      setTimeout(() => btn.classList.remove('shake'), 450);
+      const fb = $('feedback'); fb.textContent = 'Not that stage yet — what comes next? 🤔'; fb.className = 'feedback bad';
+    }
+  }
+  function finishOrder(){
+    answered = true; total++;
+    const perfect = orderState.mistakes === 0;
+    if (perfect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+    const fb = $('feedback');
+    if (perfect){ fb.textContent = '🎉 Perfect order!'; fb.className = 'feedback good'; }
+    else { fb.textContent = `Done — with ${orderState.mistakes} wrong tap${orderState.mistakes>1?'s':''}. Review the order below.`; fb.className = 'feedback bad'; }
+    const seq = orderState.seq;
+    $('reveal').innerHTML =
+      topicThumb(seq.topic) +
+      `<div class="rev-title">${seq.icon} ${esc(seq.title)}</div>` +
+      seq.steps.map((s,i) =>
+        `<div class="beatrow"><span class="bico">${s.icon}</span><span class="bnum">${i+1}.</span>` +
+        `<span class="bn"><b>${esc(s.text)}.</b> ${esc(s.desc)}</span></div>`).join('') +
+      `<div class="rev-ex">🧭 ${esc(seq.note)}</div>` +
+      srcLink(seq.src);
+    $('reveal').className = 'reveal';
+    if (perfect && streak > 0 && streak % 5 === 0) celebrate(streak);
+    startReadLock();
+  }
+
+  // ---------- GAME 3 · FILL THE BLANK ----------
+  let clozeState = null;
+  function newClozeRound(){
+    clearTimers();
+    advanceReady = true; answered = false;
+    $('feedback').textContent = ''; $('feedback').className = 'feedback';
+    $('reveal').className = 'reveal hidden'; $('reveal').innerHTML = '';
+    $('choices').innerHTML = '';
+    $('nextRow').style.display = 'none';
+
+    let cz, tries = 0;
+    do { cz = pick(S.CLOZE); tries++; } while (S.CLOZE.length > 1 && cz.title === lastKey && tries < 20);
+    lastKey = cz.title;
+    clozeState = { cz, cur:0, mistakes:0 };
+
+    $('prompt').textContent = '📝 ' + cz.title + ' — fill in the blanks';
+    const parts = cz.text.split('___');
+    let html = '<div class="cloze-text">';
+    parts.forEach((seg, i) => {
+      html += esc(seg);
+      if (i < parts.length - 1) html += `<span class="blank${i===0?' cur':''}" data-b="${i}"></span>`;
+    });
+    html += '</div><div class="wordbank" id="wordbank"></div>';
+    $('subject').innerHTML = html;
+    const bank = $('subject').querySelector('#wordbank');
+    shuffle(cz.bank).forEach(w => {
+      const b = document.createElement('button');
+      b.className = 'word'; b.textContent = w; b.dataset.word = w;
+      b.onclick = () => clozePick(b, w);
+      bank.appendChild(b);
+    });
+  }
+  function clozePick(btn, w){
+    if (answered) return;
+    const st = clozeState;
+    const want = st.cz.answers[st.cur];
+    if (w === want){
+      const blank = $('subject').querySelector(`.blank[data-b="${st.cur}"]`);
+      blank.textContent = w; blank.classList.remove('cur'); blank.classList.add('filled');
+      btn.disabled = true;
+      st.cur++;
+      if (st.cur === st.cz.answers.length) finishCloze();
+      else {
+        $('subject').querySelector(`.blank[data-b="${st.cur}"]`).classList.add('cur');
+        $('feedback').textContent = ''; $('feedback').className = 'feedback';
+      }
+    } else {
+      st.mistakes++;
+      btn.classList.remove('shake'); void btn.offsetWidth; btn.classList.add('shake');
+      setTimeout(() => btn.classList.remove('shake'), 450);
+      const fb = $('feedback'); fb.textContent = 'Not that word here — try another. 🤔'; fb.className = 'feedback bad';
+    }
+  }
+  function finishCloze(){
+    answered = true; total++;
+    const perfect = clozeState.mistakes === 0;
+    if (perfect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+    const fb = $('feedback');
+    if (perfect){ fb.textContent = '🎉 All correct!'; fb.className = 'feedback good'; }
+    else { fb.textContent = `Filled in — with ${clozeState.mistakes} wrong tap${clozeState.mistakes>1?'s':''}.`; fb.className = 'feedback bad'; }
+    const cz = clozeState.cz;
+    $('reveal').innerHTML =
+      topicThumb(cz.topic) +
+      `<div class="rev-title">📝 ${esc(cz.title)}</div>` +
+      `<div class="rev-body">${esc(cz.note)}</div>` +
+      srcLink(cz.src);
+    $('reveal').className = 'reveal';
+    if (perfect && streak > 0 && streak % 5 === 0) celebrate(streak);
+    startReadLock();
+  }
+
+  // ---------- shared: read-lock, advance, celebrate ----------
+  function startReadLock(){
+    advanceReady = false;
+    let secs = 3;
+    const nb = $('nextBtn');
+    nb.disabled = true; nb.textContent = `Read it… (${secs})`;
+    $('nextRow').style.display = 'flex';
+    countdownTimer = setInterval(() => {
+      secs--;
+      if (secs > 0) nb.textContent = `Read it… (${secs})`;
+      else { clearInterval(countdownTimer); countdownTimer = null; }
+    }, 1000);
+    advanceTimer = setTimeout(() => {
+      advanceReady = true; advanceTimer = null;
+      nb.disabled = false; nb.textContent = 'Next ➡️'; nb.focus();
+    }, 3000);
+  }
+  function tryAdvance(){ if (answered && advanceReady) newRound(); }
+
+  function celebrate(n){
+    const msgs = { 5:'🌟 5 in a row!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>You’re a real scientist!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    const colors = ['#0d9488','#2dd4bf','#f59e0b','#16a34a','#8b5cf6','#0ea5e9'];
+    const box = $('confetti');
+    for (let i = 0; i < 90; i++){
+      const c = document.createElement('div');
+      c.className = 'conf';
+      c.style.left = Math.random()*100 + 'vw';
+      c.style.background = colors[i % colors.length];
+      c.style.animationDuration = (1.6 + Math.random()*1.4) + 's';
+      c.style.animationDelay = (Math.random()*0.4) + 's';
+      c.style.transform = `rotate(${Math.random()*360}deg)`;
+      box.appendChild(c);
+      setTimeout(()=>c.remove(), 3400);
+    }
+  }
+
+  // ---------- Real-diagram image viewer ----------
+  function openRealImage(key){
+    const d = S.DIAGRAMS.find(x => x.key === key);
+    if (!d || !d.real) return;
+    const r = d.real;
+    $('imgSheet').innerHTML =
+      `<button class="closeBtn" id="closeImg" title="Close">✕</button>` +
+      `<h2>📷 ${esc(d.title)}</h2>` +
+      `<p class="sheet-sub">A real, fully-labeled diagram — see how it compares to what you just tapped.</p>` +
+      `<img class="real-img" src="${r.img}" alt="Labeled diagram of ${esc(d.title)}">` +
+      `<div class="real-credit">Image: ${esc(r.credit)} · ${esc(r.license)} · ` +
+      `<a href="${r.url}" target="_blank" rel="noopener">source ↗</a></div>`;
+    $('closeImg').onclick = closeRealImage;
+    $('imgModal').className = 'modal';
+    $('imgSheet').scrollTop = 0;
+  }
+  function closeRealImage(){ $('imgModal').className = 'modal hidden'; }
+
+  // ---------- Sources popup ----------
+  function openSources(){
+    const rows = S.SOURCES.map(s =>
+      `<div class="srow"><a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)} ↗</a>` +
+      `<div class="snote">${esc(s.note)}</div></div>`).join('');
+    const credits = S.IMAGE_CREDITS.map(c =>
+      `<div class="srow"><a href="${c.url}" target="_blank" rel="noopener">${esc(c.title)} ↗</a>` +
+      `<div class="snote">${esc(c.credit)} · ${esc(c.license)}</div></div>`).join('');
+    $('srcSheet').innerHTML =
+      `<button class="closeBtn" id="closeSrc" title="Close">✕</button>` +
+      `<h2>📚 Where these facts come from</h2>` +
+      `<p class="sheet-sub">This app covers junior-high (grades 6–8) science aligned to the NGSS standards most tests use. Every fact traces back to a trusted source — tap to read more.</p>` +
+      rows +
+      `<h2 style="margin-top:22px">🖼️ Real diagram credits</h2>` +
+      `<p class="sheet-sub">The "See the real diagram" images come from these freely-licensed sources.</p>` +
+      credits;
+    $('srcModal').className = 'modal';
+    $('srcSheet').scrollTop = 0;
+    $('closeSrc').onclick = closeSources;
+  }
+  function closeSources(){ $('srcModal').className = 'modal hidden'; }
+
+  // ---------- Wiring ----------
+  $('modeSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.mode;
+    [...$('modeSeg').children].forEach(x => x.classList.toggle('on', x === b));
+    resetProgress(); newRound();
+  });
+  $('nextBtn').onclick = tryAdvance;
+  $('srcBtn').onclick = openSources;
+  $('srcModal').addEventListener('click', e => { if (e.target === $('srcModal')) closeSources(); });
+  $('imgModal').addEventListener('click', e => { if (e.target === $('imgModal')) closeRealImage(); });
+  // "📷 See the real diagram" buttons live inside reveal HTML — delegate.
+  document.addEventListener('click', e => {
+    const b = e.target.closest('.real-btn');
+    if (b) openRealImage(b.dataset.real);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape'){ closeSources(); closeRealImage(); return; }
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (!$('imgModal').className.includes('hidden')){ closeRealImage(); return; }
+    if (!$('srcModal').className.includes('hidden')){ closeSources(); return; }
+    if (answered) tryAdvance();
+  });
+
+  newRound();
+})();
+</script>
+</body>
+</html>

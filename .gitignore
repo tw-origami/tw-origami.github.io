@@ -1,4 +1,7 @@
 .DS_Store
 
+# local Claude Code tooling config (dev-server + local permissions)
+.claude/
+
 # large source image pack (only slim foodimg/ is used)
 nutrition/food_emoji_pack_high_res_300/
