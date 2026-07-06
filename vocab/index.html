@@ -248,7 +248,16 @@
   function fitFlash(){
     if (mode !== 'flash') return;
     const face = document.querySelector(flashFlipped ? '.face.back' : '.face.front');
-    $('flash').style.height = face.scrollHeight + 'px';
+    // The faces are position:absolute/inset:0, so scrollHeight just echoes the
+    // container's current height. Briefly float the face into normal flow to
+    // read its true content height, then restore.
+    const ph = face.style.position, hh = face.style.height;
+    face.style.position = 'relative';
+    face.style.height = 'auto';
+    const h = face.offsetHeight;
+    face.style.position = ph;
+    face.style.height = hh;
+    $('flash').style.height = h + 'px';
   }
 
   function newFlashcard(){
