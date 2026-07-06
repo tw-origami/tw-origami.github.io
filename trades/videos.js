@@ -66,7 +66,7 @@
 
       stage.innerHTML=
         `<div class="lvlbar"><span class="pill lvl" style="color:#dc2626">📺 Trade Videos</span></div>`+
-        `<div style="max-width:300px;margin:0 auto">`+
+        `<div style="max-width:400px;margin:0 auto">`+
           `<div style="position:relative;background:#000;border-radius:16px;overflow:hidden;box-shadow:var(--shadow)">`+
             `<div id="${uid}" style="width:100%;aspect-ratio:9/16"></div>`+
             `<div class="vtap" style="position:absolute;inset:0;cursor:pointer"></div>`+
