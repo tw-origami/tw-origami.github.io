@@ -133,37 +133,6 @@
   .idea-box .lbl { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); }
   .idea-box .val { font-size:18px; font-weight:800; margin-top:6px; color:var(--ink); min-height:24px; }
 
-  /* ---------- FINISH A COMIC ---------- */
-  .story-picker { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:16px; }
-  .story-picker button { border:none; background:#fff; box-shadow:var(--shadow); font-family:inherit; font-weight:800; font-size:13.5px; color:var(--muted); padding:8px 14px; border-radius:999px; cursor:pointer; }
-  .story-picker button.on { background:var(--accent); color:#fff; }
-  .story-picker button { display:inline-flex; align-items:center; gap:6px; }
-  .story-picker .pickface { width:22px; height:26px; display:inline-block; }
-  .story-picker .pickface svg { width:22px; height:26px; display:block; }
-  .comic-strip { display:flex; flex-direction:column; gap:16px; max-width:520px; margin:0 auto; }
-  .fpanel { border:3px solid #111; border-radius:14px; overflow:hidden; background:#fff; box-shadow:var(--shadow); }
-  .fpanel .fcap { background:#fde68a; border-bottom:3px solid #111; padding:9px 13px; font-weight:700; font-style:italic; font-size:14px; line-height:1.4; }
-  .fpanel .fcap.blankcap { background:#fff7ed; font-style:normal; }
-  .fpanel .fscene { position:relative; line-height:0; }
-  .fpanel .fscene svg { border-bottom:3px solid #111; }
-  .fpanel .fsfx { position:absolute; top:8px; right:10px; background:#facc15; color:#dc2626; font-weight:900; font-size:16px; border:2.5px solid #111; padding:5px 9px; transform:rotate(8deg); clip-path:polygon(50% 0,63% 20%,88% 12%,80% 36%,100% 50%,80% 64%,88% 88%,63% 80%,50% 100%,37% 80%,12% 88%,20% 64%,0 50%,20% 36%,12% 12%,37% 20%); }
-  .fbubbles { padding:12px 14px 16px; display:flex; flex-direction:column; gap:12px; }
-  .fbub .who { display:inline-block; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--accent); margin-bottom:3px; }
-  .fbub .btxt { border:3px solid #111; border-radius:16px; padding:9px 13px; font-size:15px; font-weight:700; line-height:1.35; font-family:"Comic Sans MS","Comic Sans","Chalkboard SE",cursive; }
-  .fbub.thought .btxt { border-radius:26px; }
-  .fbub .btxt.given { background:#fff; }
-  .fblank .prompt { font-size:12.5px; font-weight:700; color:#9a3412; background:#fff7ed; border-radius:8px; padding:5px 10px; margin-bottom:6px; display:inline-block; }
-  .fblank .btxt.editable { background:#fffdf7; border-style:dashed; border-color:var(--accent); outline:none; min-height:42px; color:var(--ink); }
-  .fblank .btxt.editable:empty:before { content:'Type here…'; color:#c4b5fd; }
-  .fblank .btxt.editable:focus { box-shadow:0 0 0 3px var(--accent-soft); border-style:solid; }
-  .fblank .ideabtn { border:none; background:var(--accent-soft); color:var(--accent); font-family:inherit; font-weight:800; font-size:12px; border-radius:999px; padding:5px 11px; cursor:pointer; margin-top:7px; }
-  .fblank .ideabtn:hover { background:#e9d5ff; }
-  .fblank.read .prompt, .fblank.read .ideabtn { display:none; }
-  .fblank.read .btxt.editable { border-style:solid; background:#fff; }
-  .fblank.read .btxt.editable:empty:before { content:'…'; }
-  .finish-controls { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin:18px auto 0; }
-  .read-banner { text-align:center; max-width:520px; margin:0 auto 14px; background:var(--accent-soft); border-radius:12px; padding:12px 16px; font-weight:800; color:var(--accent); }
-
   #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
   .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
   @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
@@ -178,7 +147,6 @@
 
   <div class="seg" id="modeSeg">
     <button data-mode="studio" class="on">✏️ Studio</button>
-    <button data-mode="finish">✍️ Finish a Comic</button>
     <button data-mode="draw">🎨 Learn to Draw</button>
     <button data-mode="story">📖 Tell Stories</button>
     <button data-mode="ideas">💡 Get Ideas</button>
@@ -741,81 +709,6 @@
   }
 
   // =====================================================================
-  //  FINISH A COMIC
-  // =====================================================================
-  let finishIdx = 0, finishRead = false;
-  const finishAnswers = {};   // key "story:panel:bubble" -> typed text (survives re-render)
-
-  function harvestAnswers(){
-    $('otherWrap').querySelectorAll('.btxt.editable').forEach(el => {
-      finishAnswers[el.dataset.key] = el.innerText.trim();
-    });
-  }
-  function bubbleHTML(story, pi, bi, b){
-    if (!b.blank){
-      return `<div class="fbub ${b.type}"><span class="who">${b.who} 💬</span><div class="btxt given">${b.text}</div></div>`;
-    }
-    const key = `${story.id}:${pi}:${bi}`;
-    const saved = finishAnswers[key] || '';
-    return `<div class="fblank fbub ${b.type}${finishRead?' read':''}">` +
-      `<span class="who">${b.who} 💬</span>` +
-      `<div class="prompt">✍️ Your turn: ${b.hint}</div>` +
-      `<div class="btxt editable" contenteditable="${finishRead?'false':'true'}" spellcheck="false" data-key="${key}" data-idea="${encodeURIComponent(b.idea)}">${saved}</div>` +
-      `<button class="ideabtn" data-ideafor="${key}">💡 Stuck? See an idea</button>` +
-      `</div>`;
-  }
-  function captionHTML(story, pi, cap){
-    if (typeof cap === 'string') return `<div class="fcap">${cap}</div>`;
-    // blank caption (narration the kid writes)
-    const key = `${story.id}:${pi}:cap`;
-    const saved = finishAnswers[key] || '';
-    return `<div class="fcap blankcap">` +
-      `<div class="fblank${finishRead?' read':''}" style="display:block">` +
-        `<div class="prompt" style="margin-bottom:6px">✍️ Your turn: ${cap.hint}</div>` +
-        `<div class="btxt editable" contenteditable="${finishRead?'false':'true'}" spellcheck="false" data-key="${key}" data-idea="${encodeURIComponent(cap.idea)}" style="font-style:normal">${saved}</div>` +
-        `<button class="ideabtn" data-ideafor="${key}">💡 Stuck? See an idea</button>` +
-      `</div></div>`;
-  }
-  function renderFinish(){
-    const story = C.FINISH_STORIES[finishIdx];
-    let html = `<div class="section-title">✍️ Finish the comic: <span style="color:var(--accent)">${story.title}</span></div>`;
-    html += `<div class="section-sub">Half the story is already drawn and written. Fill the <b>blank bubbles</b> to finish it your way — there’s no single right answer!</div>`;
-    html += `<div class="story-picker">` + C.FINISH_STORIES.map((s,i)=>`<button data-story="${i}" class="${i===finishIdx?'on':''}"><span class="pickface">${COMICART.refFigure(s.star.kind, s.star.expr)}</span>${s.title.split(/[ &]/)[0]}</button>`).join('') + `</div>`;
-    if (finishRead) html += `<div class="read-banner">📖 Your finished comic! Tap “Keep editing” to change anything.</div>`;
-    html += `<div class="comic-strip">`;
-    story.panels.forEach((p, pi) => {
-      html += `<div class="fpanel">`;
-      if (p.caption) html += captionHTML(story, pi, p.caption);
-      html += `<div class="fscene">${COMICART.scene(p.art)}` + (p.sfx?`<span class="fsfx">${p.sfx}</span>`:``) + `</div>`;
-      if (p.bubbles && p.bubbles.length){
-        html += `<div class="fbubbles">` + p.bubbles.map((b,bi)=>bubbleHTML(story, pi, bi, b)).join('') + `</div>`;
-      }
-      html += `</div>`;
-    });
-    html += `</div>`;
-    html += `<div class="finish-controls">`;
-    if (!finishRead) html += `<button class="btn btn-primary" id="readComic">📖 Read my finished comic</button>`;
-    else html += `<button class="btn btn-primary" id="editComic">✏️ Keep editing</button>`;
-    html += `<button class="btn btn-ghost" id="fillIdeas">💡 Fill every blank with ideas</button>`;
-    html += `</div>`;
-    $('otherWrap').innerHTML = html;
-
-    // wire
-    $('otherWrap').querySelectorAll('[data-story]').forEach(b => b.onclick = () => { harvestAnswers(); finishIdx = +b.dataset.story; finishRead = false; renderFinish(); });
-    $('otherWrap').querySelectorAll('.ideabtn').forEach(b => b.onclick = () => {
-      const el = $('otherWrap').querySelector(`.btxt.editable[data-key="${CSS.escape(b.dataset.ideafor)}"]`);
-      if (el){ el.innerText = decodeURIComponent(el.dataset.idea); finishAnswers[el.dataset.key] = el.innerText; }
-    });
-    const rb = $('readComic'); if (rb) rb.onclick = () => { harvestAnswers(); finishRead = true; renderFinish(); burst(); };
-    const eb = $('editComic'); if (eb) eb.onclick = () => { harvestAnswers(); finishRead = false; renderFinish(); };
-    $('fillIdeas').onclick = () => {
-      harvestAnswers();
-      $('otherWrap').querySelectorAll('.btxt.editable').forEach(el => { finishAnswers[el.dataset.key] = decodeURIComponent(el.dataset.idea); });
-      renderFinish();
-    };
-  }
-
-  // =====================================================================
   //  MODE ROUTER
   // =====================================================================
   function setMode(m){
@@ -827,7 +720,6 @@
     if (m==='draw') renderDraw();
     else if (m==='story') renderStory();
     else if (m==='ideas') renderIdeas();
-    else if (m==='finish') renderFinish();
   }
   $('modeSeg').addEventListener('click', e => { const b=e.target.closest('button'); if(b) setMode(b.dataset.mode); });
 
