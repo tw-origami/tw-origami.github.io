@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Startup Studio</title>
+<style>
+  :root {
+    --ink:#1f2937; --muted:#78716c; --accent:#d97706; --accent-soft:#fef3c7;
+    --correct:#16a34a; --wrong:#dc2626; --money:#15803d; --shadow:0 10px 30px rgba(180,120,20,.16);
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#fffbeb,#fef7ed); min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; padding:24px 16px 60px;
+  }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 14px; font-size:15px; text-align:center; max-width:540px; line-height:1.5; }
+  .hero { width:100%; max-width:480px; border-radius:18px; box-shadow:var(--shadow); margin:0 0 18px; display:block; }
+
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; position:sticky; top:10px; z-index:70; }
+  .nav a, .nav button{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 16px; border-radius:9px; border:none; background:transparent; font-family:inherit; cursor:pointer; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+  .nav button:hover{ background:var(--accent-soft); color:var(--accent); }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; }
+  .seg button {
+    border:none; background:transparent; font-family:inherit; font-weight:800;
+    font-size:14.5px; padding:9px 15px; border-radius:10px; cursor:pointer; color:var(--muted);
+    transition:background .15s, color .15s;
+  }
+  .seg button.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .chip { background:#fff; border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; }
+  .chip.streak { color:#ea580c; }
+
+  .stage { width:100%; max-width:600px; }
+  .card { width:100%; background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:28px 24px; display:flex; flex-direction:column; align-items:center; }
+  .qprompt { color:var(--muted); font-size:14px; margin:0 0 16px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; text-align:center; }
+
+  .subject { text-align:center; margin-bottom:22px; width:100%; }
+  .subj-tag { display:inline-block; font-size:12px; font-weight:800; color:var(--accent); background:var(--accent-soft); padding:4px 12px; border-radius:999px; text-transform:uppercase; letter-spacing:.4px; margin-bottom:8px; }
+  .subj-question { font-size:19px; font-weight:800; line-height:1.45; margin:4px auto 0; max-width:500px; }
+  .subj-money { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:8px; }
+  .mstat { background:#f8fafc; border:2px solid #e7e5e4; border-radius:14px; padding:12px 20px; min-width:130px; }
+  .mstat .ml { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); }
+  .mstat .mv { font-size:24px; font-weight:900; margin-top:2px; }
+  .mstat.rev .mv { color:var(--money); }
+  .mstat.cost .mv { color:var(--wrong); }
+
+  .choices { display:flex; flex-direction:column; gap:11px; width:100%; }
+  .choice { background:#fff; border:3px solid #f0e6cf; border-radius:16px; font-size:16.5px; font-weight:700; padding:14px 18px; color:var(--ink); cursor:pointer; text-align:left; display:flex; align-items:center; gap:11px; font-family:inherit; line-height:1.4; }
+  .choice .cico { font-size:24px; flex:none; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.has-sub { align-items:flex-start; }
+  .choice.has-sub .cico { margin-top:1px; }
+  .choice-text { display:flex; flex-direction:column; gap:3px; }
+  .choice-label { font-weight:800; }
+  .choice-sub { font-size:12.5px; font-weight:600; color:var(--muted); line-height:1.4; }
+  .choice.correct .choice-sub, .choice.wrong .choice-sub { color:inherit; opacity:.85; }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; color:var(--correct); }
+  .choice.wrong { border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
+  .choice:disabled { cursor:default; }
+
+  .feedback { min-height:26px; margin-top:18px; font-weight:800; font-size:17px; text-align:center; }
+  .feedback.good { color:var(--correct); }
+  .feedback.bad { color:var(--wrong); }
+
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; text-align:left; width:100%; margin:10px auto 4px; padding:16px 18px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
+  .reveal.hidden { display:none; }
+  .reveal .rev-title { font-size:18px; font-weight:800; margin-bottom:6px; color:#b45309; }
+  .reveal .rev-body { color:#5b3d09; }
+  .eli5 { margin-top:14px; background:#eff6ff; border-left:3px solid #3b82f6; border-radius:8px; padding:10px 13px; font-size:14px; color:#1e3a8a; line-height:1.55; }
+  .eli5 b { color:#1d4ed8; }
+  .rev-src { display:inline-block; margin-top:14px; font-size:13px; font-weight:700; color:var(--accent); text-decoration:none; border-bottom:1.5px dotted var(--accent); }
+
+  button.act { font-family:inherit; font-size:16px; font-weight:700; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; transition:transform .1s, background .15s; }
+  button.act:active { transform:scale(.96); }
+  button.act:disabled { opacity:.5; cursor:default; transform:none; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#b45309; }
+  .btn-ghost { background:var(--accent-soft); color:#b45309; }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  /* ---------- SIM ---------- */
+  .sim-head { display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom:6px; gap:10px; flex-wrap:wrap; }
+  .sim-biz { font-size:19px; font-weight:900; }
+  .sim-cash { font-size:22px; font-weight:900; color:var(--money); }
+  .sim-cash.neg { color:var(--wrong); }
+  .sim-day { font-size:13px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+  .daybar { display:flex; gap:5px; width:100%; margin:8px 0 16px; }
+  .daybar span { flex:1; height:7px; border-radius:4px; background:#eee; }
+  .daybar span.done { background:var(--money); }
+  .daybar span.now { background:var(--accent); }
+
+  .startup-grid { display:flex; flex-direction:column; gap:12px; width:100%; }
+  .startup { text-align:left; background:#fff; border:3px solid #f0e6cf; border-radius:18px; padding:16px 18px; cursor:pointer; font-family:inherit; display:flex; gap:14px; align-items:flex-start; }
+  .startup:hover { border-color:var(--accent); background:var(--accent-soft); }
+  .startup .su-emoji { font-size:40px; flex:none; }
+  .startup .su-name { font-size:18px; font-weight:900; }
+  .startup .su-blurb { font-size:13.5px; color:var(--muted); line-height:1.5; margin:3px 0 8px; }
+  .startup .su-stats { display:flex; gap:8px; flex-wrap:wrap; }
+  .su-pill { font-size:11.5px; font-weight:800; background:#f8fafc; border:1.5px solid #e7e5e4; border-radius:999px; padding:3px 9px; color:#57534e; }
+
+  .event-card { width:100%; background:linear-gradient(135deg,#fff7ed,#ffedd5); border:2px solid #fed7aa; border-radius:16px; padding:14px 16px; display:flex; gap:12px; align-items:center; margin-bottom:16px; }
+  .event-card .ev-ico { font-size:34px; flex:none; }
+  .event-card .ev-text { font-weight:800; font-size:15px; line-height:1.4; }
+  .event-card .ev-tip { font-size:12.5px; color:#b45309; font-weight:700; margin-top:3px; }
+
+  .decision { width:100%; display:flex; flex-direction:column; gap:12px; }
+  .drow { background:#fafaf9; border:2px solid #eee; border-radius:14px; padding:12px 14px; }
+  .drow .dl { font-size:13px; font-weight:800; color:var(--ink); }
+  .drow .dhint { font-size:12px; color:var(--muted); font-weight:600; }
+  .stepper { display:flex; align-items:center; gap:12px; margin-top:8px; }
+  .stepper button { width:40px; height:40px; border-radius:12px; border:none; background:var(--accent-soft); color:#b45309; font-size:22px; font-weight:900; cursor:pointer; font-family:inherit; flex:none; }
+  .stepper button:hover { background:var(--accent); color:#fff; }
+  .stepper .sval { font-size:20px; font-weight:900; min-width:120px; text-align:center; }
+  .stepper .sval small { display:block; font-size:12px; font-weight:700; color:var(--muted); }
+
+  .summary { width:100%; background:#f8fafc; border-radius:14px; padding:14px 16px; margin-top:4px; }
+  .sumrow { display:flex; justify-content:space-between; font-size:14.5px; padding:4px 0; }
+  .sumrow.tot { border-top:2px solid #e7e5e4; margin-top:6px; padding-top:8px; font-weight:900; font-size:16px; }
+  .sumrow .pos { color:var(--money); font-weight:800; }
+  .sumrow .neg { color:var(--wrong); font-weight:800; }
+  .warn { color:var(--wrong); font-weight:800; font-size:13px; text-align:center; margin-top:8px; }
+
+  .result-profit { font-size:34px; font-weight:900; text-align:center; margin:6px 0; }
+  .result-profit.pos { color:var(--money); }
+  .result-profit.neg { color:var(--wrong); }
+  .endgrade { font-size:54px; font-weight:900; text-align:center; }
+  .endline { text-align:center; font-size:17px; font-weight:800; margin:2px 0 4px; }
+
+  .modal { position:fixed; inset:0; background:rgba(60,40,10,.45); z-index:80; display:flex; align-items:center; justify-content:center; padding:18px; }
+  .modal.hidden { display:none; }
+  .sheet { background:#fff; border-radius:22px; box-shadow:0 24px 60px rgba(180,120,20,.35); width:100%; max-width:600px; max-height:82vh; overflow-y:auto; padding:26px 24px 30px; position:relative; }
+  .sheet h2 { margin:0 0 4px; font-size:22px; letter-spacing:-.4px; }
+  .sheet .sheet-sub { color:var(--muted); font-size:14px; margin:0 0 18px; line-height:1.5; }
+  .closeBtn { position:sticky; float:right; top:0; width:34px; height:34px; border:none; border-radius:50%; background:var(--accent-soft); color:#b45309; font-size:17px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .closeBtn:hover { background:var(--accent); color:#fff; }
+  .srow { padding:12px 0; border-top:1px solid #f0e6cf; }
+  .srow:first-of-type { border-top:none; }
+  .srow a { font-weight:800; font-size:15.5px; color:var(--accent); text-decoration:none; }
+  .trow { padding:11px 0; border-top:1px solid #f0e6cf; }
+  .trow:first-of-type { border-top:none; }
+  .trow .tt { font-weight:900; font-size:15.5px; color:var(--ink); }
+  .trow .td { font-size:14px; color:#57534e; line-height:1.5; margin-top:2px; }
+  .trow .te { font-size:13px; color:var(--accent); font-weight:700; margin-top:4px; }
+  .srow .snote { color:var(--muted); font-size:13.5px; margin-top:3px; line-height:1.45; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner {
+    position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6);
+    background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-weight:900;
+    font-size:26px; padding:20px 34px; border-radius:22px; box-shadow:0 18px 50px rgba(217,119,6,.45);
+    z-index:60; opacity:0; pointer-events:none; text-align:center; white-space:nowrap;
+  }
+  #streakBanner.show { animation:banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner {
+    0%{opacity:0; transform:translate(-50%,-50%) scale(.6)}
+    15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)}
+    28%{transform:translate(-50%,-50%) scale(1)}
+    80%{opacity:1; transform:translate(-50%,-50%) scale(1)}
+    100%{opacity:0; transform:translate(-50%,-60%) scale(.95)}
+  }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button id="dictBtn" title="Business words explained">📖 Dictionary</button>
+    <button id="srcBtn" title="Where these ideas come from">📚 Sources</button>
+  </div>
+  <h1>📈 Startup Studio</h1>
+  <p class="sub">Run your own company and learn how business really works — profit and pricing, customers and marketing, the teams that run it, and smart moves when things go sideways.</p>
+  <img class="hero" src="img/hero.png" alt="Kid entrepreneurs running a startup" onerror="this.style.display='none'">
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="run" class="on">🚀 Run It</button>
+      <button data-mode="profit">💰 Profit or Loss?</button>
+      <button data-mode="price">🏷️ Price It Right</button>
+      <button data-mode="depts">🗂️ Who Does What?</button>
+      <button data-mode="boss">💡 Boss Moves</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar" id="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="stage">
+    <!-- quiz modes -->
+    <div class="card" id="quizCard">
+      <p class="qprompt" id="prompt"></p>
+      <div class="subject" id="subject"></div>
+      <div class="choices" id="choices"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="reveal hidden" id="reveal"></div>
+      <div class="btn-row" id="nextRow" style="display:none">
+        <button class="act btn-primary" id="nextBtn">Next ➡️</button>
+      </div>
+    </div>
+    <!-- sim mode -->
+    <div class="card" id="simCard" style="display:none"></div>
+  </div>
+
+  <div class="modal hidden" id="srcModal"><div class="sheet" id="srcSheet"></div></div>
+  <div class="modal hidden" id="dictModal"><div class="sheet" id="dictSheet"></div></div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const shuffle = arr => arr.slice().sort(()=>Math.random()-0.5);
+  const B = window.BIZ;
+  const SRC = {}; B.SOURCES.forEach(s => SRC[s.key] = s);
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const money = n => (n<0?'−$':'$') + (Math.round(Math.abs(n)*100)/100).toLocaleString();
+
+  let mode = 'run';
+  let correct = 0, total = 0, streak = 0, lastKey = null;
+  let answered = false, advanceReady = true, advanceTimer = null, countdownTimer = null;
+
+  function clearTimers(){
+    if (advanceTimer){ clearTimeout(advanceTimer); advanceTimer = null; }
+    if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
+  }
+  function updateScorebar(){ $('correctCount').textContent = correct; $('totalCount').textContent = total; $('streak').textContent = streak; }
+  function resetProgress(){ correct = 0; total = 0; streak = 0; lastKey = null; updateScorebar(); }
+  const srcLink = key => { const s = SRC[key]; return s ? `<a class="rev-src" href="${s.url}" target="_blank" rel="noopener">📚 Source: ${esc(s.name)} ↗</a>` : ''; };
+  const eli5Box = (label,text) => `<div class="eli5">📘 <b>${esc(label)}:</b> ${esc(text)}</div>`;
+  const termByName = n => B.TERMS.find(t => t.term.split(' ')[0].toLowerCase() === n.toLowerCase());
+
+  /* ============ QUIZ MODES ============ */
+  function buildRound(){
+    if (mode === 'profit') return roundProfit();
+    if (mode === 'price')  return roundPrice();
+    if (mode === 'depts')  return roundDepts();
+    return roundBoss();
+  }
+  function roundProfit(){
+    let p, tries=0;
+    do { p = pick(B.PROFITLOSS); tries++; } while (B.PROFITLOSS.length>1 && p.biz===lastKey && tries<30);
+    lastKey = p.biz;
+    const profit = p.rev - p.cost;
+    const pool = [p.rev + p.cost, -profit, p.cost, p.rev].filter(v => v !== profit);
+    const distractors = shuffle([...new Set(pool)]).slice(0, 3);
+    const options = [profit, ...distractors].sort((a,b) => b - a);
+    return {
+      prompt:'💰 Did this business profit or lose — and how much?',
+      subjectHTML:
+        `<div class="subj-tag">${esc(p.biz)}</div>` +
+        `<div class="subj-money">` +
+          `<div class="mstat rev"><div class="ml">Revenue (money in)</div><div class="mv">${money(p.rev)}</div></div>` +
+          `<div class="mstat cost"><div class="ml">Costs (money out)</div><div class="mv">${money(p.cost)}</div></div>` +
+        `</div>`,
+      choices: options.map(v => ({ html:money(v), val:v, correct:v===profit })),
+      revealHTML:
+        `<div class="rev-title">${profit>=0?'📈 Profit':'📉 Loss'} of ${money(Math.abs(profit))}</div>` +
+        `<div class="rev-body">${esc(p.why)}</div>` +
+        eli5Box('Remember','Profit = Revenue − Costs. Revenue is ALL the money in; profit is what’s left after you pay for everything.') +
+        srcLink('investopedia')
+    };
+  }
+  function roundPrice(){
+    let p, tries=0;
+    do { p = pick(B.PRICING); tries++; } while (B.PRICING.length>1 && p.q===lastKey && tries<30);
+    lastKey = p.q;
+    const options = shuffle([p.correct, ...p.distractors]);
+    return {
+      prompt:'🏷️ What’s the smart pricing move?',
+      subjectHTML:`<div class="subj-tag">Pricing</div><div class="subj-question">${esc(p.q)}</div>`,
+      choices: options.map(o => ({ html:esc(o), val:o, correct:o===p.correct })),
+      revealHTML:`<div class="rev-title">✅ ${esc(p.correct)}</div><div class="rev-body">${esc(p.why)}</div>` + srcLink('sba')
+    };
+  }
+  function roundDepts(){
+    let it, tries=0;
+    do { it = pick(B.DEPT_ITEMS); tries++; } while (B.DEPT_ITEMS.length>1 && it.task===lastKey && tries<30);
+    lastKey = it.task;
+    const all = Object.keys(B.DEPARTMENTS);
+    const distractors = shuffle(all.filter(d => d!==it.dept)).slice(0,3);
+    const options = shuffle([it.dept, ...distractors]);
+    const d = B.DEPARTMENTS[it.dept];
+    return {
+      prompt:'🗂️ Which team handles this job?',
+      subjectHTML:`<div class="subj-tag">Whose job is it?</div><div class="subj-question">“${esc(it.task)}”</div>`,
+      choices: options.map(o => ({
+        html:`<span class="cico">${B.DEPARTMENTS[o].icon}</span><span class="choice-text"><span class="choice-label">${esc(o)}</span></span>`,
+        val:o, correct:o===it.dept, cls:'has-sub'
+      })),
+      revealHTML:`<div class="rev-title">${d.icon} ${esc(it.dept)}</div><div class="rev-body">${esc(d.desc)}</div>` + srcLink('ja')
+    };
+  }
+  function roundBoss(){
+    let p, tries=0;
+    do { p = pick(B.STRATEGY); tries++; } while (B.STRATEGY.length>1 && p.q===lastKey && tries<30);
+    lastKey = p.q;
+    const options = shuffle([p.correct, ...p.distractors]);
+    return {
+      prompt:'💡 You’re the boss — what’s the smart move?',
+      subjectHTML:`<div class="subj-tag">Boss move</div><div class="subj-question">${esc(p.q)}</div>`,
+      choices: options.map(o => ({ html:esc(o), val:o, correct:o===p.correct })),
+      revealHTML:`<div class="rev-title">✅ ${esc(p.correct)}</div><div class="rev-body">${esc(p.why)}</div>` + srcLink('khan')
+    };
+  }
+
+  let curReveal = '';
+  function newRound(){
+    clearTimers();
+    advanceReady = true; answered = false;
+    $('feedback').textContent=''; $('feedback').className='feedback';
+    $('reveal').className='reveal hidden'; $('reveal').innerHTML='';
+    $('nextRow').style.display='none';
+    const round = buildRound();
+    curReveal = round.revealHTML;
+    $('prompt').textContent = round.prompt;
+    $('subject').innerHTML = round.subjectHTML;
+    const box = $('choices'); box.innerHTML='';
+    round.choices.forEach(ch => {
+      const btn = document.createElement('button');
+      btn.className = ch.cls ? 'choice '+ch.cls : 'choice';
+      btn.innerHTML = ch.html; btn.dataset.val = ch.val;
+      if (ch.correct) btn.dataset.correct='1';
+      btn.onclick = () => answer(btn, ch.correct);
+      box.appendChild(btn);
+    });
+  }
+  function answer(btn, isCorrect){
+    if (answered) return;
+    answered = true; total++;
+    if (isCorrect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+    [...$('choices').children].forEach(c => { c.disabled=true; if (c.dataset.correct==='1') c.classList.add('correct'); });
+    if (!isCorrect) btn.classList.add('wrong');
+    const fb = $('feedback');
+    if (isCorrect){ fb.textContent = pick(['🎉 Correct!','⭐ Smart!','✅ Nice call!','📈 Boss move!','💡 Sharp!']); fb.className='feedback good'; }
+    else { fb.textContent = 'Not quite — here’s the thinking:'; fb.className='feedback bad'; }
+    $('reveal').innerHTML = curReveal; $('reveal').className='reveal';
+    if (isCorrect && streak>0 && streak%5===0) celebrate(streak);
+    startReadLock();
+  }
+  function startReadLock(){
+    advanceReady = false;
+    let secs = 3; const nb = $('nextBtn');
+    nb.disabled = true; nb.textContent = `Read it… (${secs})`;
+    $('nextRow').style.display='flex';
+    countdownTimer = setInterval(() => { secs--; if (secs>0) nb.textContent=`Read it… (${secs})`; else { clearInterval(countdownTimer); countdownTimer=null; } }, 1000);
+    advanceTimer = setTimeout(() => { advanceReady=true; advanceTimer=null; nb.disabled=false; nb.textContent='Next ➡️'; nb.focus(); }, 3000);
+  }
+  function tryAdvance(){ if (answered && advanceReady) newRound(); }
+
+  /* ============ GAME 1 · RUN IT (sim) ============ */
+  let sim = null;
+  function unitStep(s){ return s.unitCost < 5 ? 5 : s.unitCost < 20 ? 2 : 1; }
+  function priceStep(s){ return s.sugPrice <= 5 ? 0.5 : s.sugPrice <= 20 ? 1 : 5; }
+  function adStep(s){ return s.mkScale >= 40 ? 10 : 5; }
+
+  function renderSetup(){
+    let html = `<div class="qprompt">🚀 Start your company</div>` +
+      `<p class="sub" style="margin:0 0 16px">Pick a business to run for ${B.SIM.days} days. Each day you’ll buy stock, set a price, spend on ads — then open for business and see your profit!</p>` +
+      `<div class="startup-grid">`;
+    B.SIM.startups.forEach(s => {
+      html += `<button class="startup" data-startup="${s.id}">` +
+        `<span class="su-emoji">${s.emoji}</span><span>` +
+        `<div class="su-name">${esc(s.name)}</div>` +
+        `<div class="su-blurb">${esc(s.blurb)}</div>` +
+        `<div class="su-stats">` +
+          `<span class="su-pill">💵 Start: ${money(s.startCash)}</span>` +
+          `<span class="su-pill">🏭 Cost: ${money(s.unitCost)}/${s.unit}</span>` +
+          `<span class="su-pill">🏷️ Sells ~${money(s.sugPrice)}</span>` +
+          `<span class="su-pill">🏠 Rent: ${money(s.rent)}/day</span>` +
+        `</div></span></button>`;
+    });
+    html += `</div>`;
+    $('simCard').innerHTML = html;
+    $('simCard').querySelectorAll('[data-startup]').forEach(b => b.onclick = () => startSim(b.dataset.startup));
+  }
+  function startSim(id){
+    const s = B.SIM.startups.find(x => x.id===id);
+    sim = { s, day:1, cash:s.startCash, log:[], phase:'day', units:s.baseDemand, price:s.sugPrice, ads:0, event:null, lastEvent:null };
+    nextEvent();
+    renderDay();
+  }
+  function nextEvent(){
+    let e, tries=0;
+    do { e = pick(B.SIM.events); tries++; } while (sim.lastEvent && e.text===sim.lastEvent && tries<10);
+    sim.lastEvent = e.text; sim.event = e;
+  }
+  function dayBar(){
+    let h = '<div class="daybar">';
+    for (let d=1; d<=B.SIM.days; d++) h += `<span class="${d<sim.day?'done':d===sim.day?'now':''}"></span>`;
+    return h + '</div>';
+  }
+  function simHead(){
+    return `<div class="sim-head"><div class="sim-biz">${sim.s.emoji} ${esc(sim.s.name)}</div>` +
+      `<div><div class="sim-day">Day ${sim.day} of ${B.SIM.days}</div>` +
+      `<div class="sim-cash${sim.cash<0?' neg':''}">${money(sim.cash)}</div></div></div>` + dayBar();
+  }
+  function renderDay(){
+    const s = sim.s, e = sim.event;
+    const uCost = Math.round(s.unitCost * (e.costMul||1) * 100)/100;
+    const spend = sim.units*uCost + sim.ads;
+    const afford = spend <= sim.cash;
+    let html = simHead();
+    html += `<div class="event-card"><span class="ev-ico">${e.icon}</span><span><div class="ev-text">${esc(e.text)}</div><div class="ev-tip">💡 ${esc(e.tip)}</div></span></div>`;
+    html += `<div class="decision">`;
+    // inventory
+    html += drow('📦 Buy inventory', `You pay for all stock you buy — leftovers are wasted. ${e.costMul?`⚠️ Supplier price is up: ${money(uCost)}/${s.unit} today.`:`${money(uCost)} per ${s.unit}.`}`,
+      stepper('units', `${sim.units}`, `= ${money(sim.units*uCost)}`));
+    // price
+    html += drow('🏷️ Set your price', `Suggested around ${money(s.sugPrice)}. Higher price = more per sale but fewer buyers.`,
+      stepper('price', money(sim.price), `each`));
+    // ads
+    html += drow('📣 Marketing / ads', `Spending on ads brings in more customers (with diminishing returns).`,
+      stepper('ads', money(sim.ads), sim.ads===0?'no ads':'boost'));
+    html += `</div>`;
+    // summary
+    html += `<div class="summary">` +
+      `<div class="sumrow"><span>Stock: ${sim.units} ${s.unit}${sim.units===1?'':'s'} × ${money(uCost)}</span><span class="neg">−${money(sim.units*uCost)}</span></div>` +
+      `<div class="sumrow"><span>Marketing</span><span class="neg">−${money(sim.ads)}</span></div>` +
+      `<div class="sumrow"><span>Rent (fixed, paid at day’s end)</span><span class="neg">−${money(s.rent)}</span></div>` +
+      `<div class="sumrow tot"><span>Cash now: ${money(sim.cash)} → after buying</span><span>${money(sim.cash - spend)}</span></div>` +
+      `</div>`;
+    if (!afford) html += `<div class="warn">⚠️ You can’t spend more than your cash on stock + ads. Lower something.</div>`;
+    html += `<div class="btn-row"><button class="act btn-primary" id="openBtn"${afford?'':' disabled'}>▶ Open for business!</button></div>`;
+    $('simCard').innerHTML = html;
+    wireSteppers();
+    $('openBtn').onclick = runDay;
+  }
+  function drow(label, hint, inner){
+    return `<div class="drow"><div class="dl">${label}</div><div class="dhint">${hint}</div>${inner}</div>`;
+  }
+  function stepper(key, val, sub){
+    return `<div class="stepper" data-step="${key}">` +
+      `<button data-dir="-1">−</button>` +
+      `<div class="sval">${val}<small>${sub}</small></div>` +
+      `<button data-dir="1">＋</button></div>`;
+  }
+  function wireSteppers(){
+    $('simCard').querySelectorAll('.stepper').forEach(st => {
+      const key = st.dataset.step;
+      st.querySelectorAll('button').forEach(b => b.onclick = () => {
+        const dir = +b.dataset.dir, s = sim.s;
+        if (key==='units'){ sim.units = Math.max(0, sim.units + dir*unitStep(s)); }
+        else if (key==='price'){ sim.price = Math.max(priceStep(s), Math.round((sim.price + dir*priceStep(s))*100)/100); }
+        else if (key==='ads'){ sim.ads = Math.max(0, sim.ads + dir*adStep(s)); }
+        renderDay();
+      });
+    });
+  }
+  function runDay(){
+    const s = sim.s, e = sim.event;
+    const uCost = Math.round(s.unitCost * (e.costMul||1) * 100)/100;
+    const priceRatio = sim.price / s.sugPrice;
+    let priceFactor = 1 - 1.3*(priceRatio - 1);
+    priceFactor = Math.max(0, Math.min(2.2, priceFactor));
+    const mkFactor = 1 + 0.45*(sim.ads/(sim.ads + s.mkScale));
+    const noise = 0.9 + Math.random()*0.2;
+    let demand = Math.max(0, Math.round(s.baseDemand * priceFactor * mkFactor * e.dmd * noise));
+    const sold = Math.min(sim.units, demand);
+    const leftover = sim.units - sold;
+    const revenue = Math.round(sold * sim.price * 100)/100;
+    const cogs = Math.round(sim.units * uCost * 100)/100;
+    const profit = Math.round((revenue - cogs - sim.ads - s.rent)*100)/100;
+    const cashBefore = sim.cash;
+    sim.cash = Math.round((sim.cash + profit)*100)/100;
+    sim.log.push({ day:sim.day, profit, revenue });
+    sim.result = { e, uCost, demand, sold, leftover, revenue, cogs, ads:sim.ads, rent:s.rent, profit, cashBefore };
+    sim.phase = 'result';
+    if (profit > 0 && sold >= demand && demand > 0) { /* sold out or met demand */ }
+    renderResult();
+  }
+  function renderResult(){
+    const r = sim.result, s = sim.s;
+    let html = simHead();
+    const pc = r.profit >= 0 ? 'pos' : 'neg';
+    html += `<div class="qprompt" style="margin-bottom:6px">📊 Day ${sim.day} results</div>`;
+    html += `<div class="event-card"><span class="ev-ico">${r.e.icon}</span><span class="ev-text">${esc(r.e.text)}</span></div>`;
+    let soldNote = '';
+    if (r.demand > sim.units) soldNote = `You sold out! ${r.demand - sim.units} more customers wanted one — you missed those sales.`;
+    else if (r.leftover > 0) soldNote = `${r.leftover} ${s.unit}${r.leftover===1?'':'s'} went unsold and were wasted.`;
+    else soldNote = `You had just enough — nice planning.`;
+    html += `<div class="summary">` +
+      `<div class="sumrow"><span>Customers who wanted one</span><span>${r.demand}</span></div>` +
+      `<div class="sumrow"><span>Actually sold (had ${sim.units})</span><span><b>${r.sold}</b></span></div>` +
+      `<div class="sumrow"><span>Revenue: ${r.sold} × ${money(sim.price)}</span><span class="pos">+${money(r.revenue)}</span></div>` +
+      `<div class="sumrow"><span>Cost of stock: ${sim.units} × ${money(r.uCost)}</span><span class="neg">−${money(r.cogs)}</span></div>` +
+      `<div class="sumrow"><span>Marketing</span><span class="neg">−${money(r.ads)}</span></div>` +
+      `<div class="sumrow"><span>Rent</span><span class="neg">−${money(r.rent)}</span></div>` +
+      `<div class="sumrow tot"><span>Profit today</span><span class="${r.profit>=0?'pos':'neg'}">${r.profit>=0?'+':''}${money(r.profit)}</span></div>` +
+      `</div>`;
+    html += `<div class="result-profit ${pc}">${r.profit>=0?'📈 +':'📉 '}${money(r.profit)}</div>`;
+    html += `<p class="sub" style="margin:2px 0 0">${esc(soldNote)}</p>`;
+    html += `<p class="sub" style="margin:8px 0 0">💵 Cash: ${money(r.cashBefore)} → <b>${money(sim.cash)}</b></p>`;
+    html += `<div class="btn-row">` +
+      (sim.day < B.SIM.days
+        ? `<button class="act btn-primary" id="nextDayBtn">Next day ➡️</button>`
+        : `<button class="act btn-primary" id="endBtn">See final results 🏁</button>`) +
+      `</div>`;
+    $('simCard').innerHTML = html;
+    const nd = $('nextDayBtn'); if (nd) nd.onclick = () => { sim.day++; sim.phase='day'; nextEvent(); renderDay(); };
+    const eb = $('endBtn'); if (eb) eb.onclick = renderEnd;
+    if (r.profit > 0) burstSmall();
+  }
+  function renderEnd(){
+    const s = sim.s;
+    const net = Math.round((sim.cash - s.startCash)*100)/100;
+    const ratio = sim.cash / s.startCash;
+    let grade, line, emoji;
+    if (sim.cash <= 0){ grade='💀'; line='Out of business! You ran out of money.'; }
+    else if (ratio >= 2){ grade='🏆 A+'; line='Tycoon! You more than doubled your money.'; }
+    else if (ratio >= 1.5){ grade='🌟 A'; line='Excellent — a thriving business!'; }
+    else if (ratio >= 1.15){ grade='✅ B'; line='Solid work — a real profit.'; }
+    else if (ratio >= 1.0){ grade='😊 C'; line='You survived and came out ahead… barely.'; }
+    else { grade='📉 D'; line='You lost money this time — try new prices and stock.'; }
+    let html = `<div class="qprompt">🏁 ${sim.s.emoji} ${esc(s.name)} — 7 days done</div>`;
+    html += `<div class="endgrade">${grade}</div><div class="endline">${esc(line)}</div>`;
+    html += `<div class="summary">` +
+      `<div class="sumrow"><span>Started with</span><span>${money(s.startCash)}</span></div>` +
+      `<div class="sumrow"><span>Ended with</span><span><b>${money(sim.cash)}</b></span></div>` +
+      `<div class="sumrow tot"><span>Total profit</span><span class="${net>=0?'pos':'neg'}">${net>=0?'+':''}${money(net)}</span></div>` +
+      `</div>`;
+    // per-day mini recap
+    html += `<div class="summary" style="margin-top:10px">` +
+      sim.log.map(l => `<div class="sumrow"><span>Day ${l.day}</span><span class="${l.profit>=0?'pos':'neg'}">${l.profit>=0?'+':''}${money(l.profit)}</span></div>`).join('') +
+      `</div>`;
+    html += eli5Box('What you practiced','Revenue − Costs = Profit. Reading demand (events), pricing right, not overstocking, and spending on ads only when it pays off.');
+    html += `<div class="btn-row"><button class="act btn-primary" id="againBtn">🔄 Run another business</button></div>`;
+    $('simCard').innerHTML = `<div class="reveal" style="border:none;background:transparent;padding:0;width:100%">${html}</div>`;
+    $('againBtn').onclick = renderSetup;
+    if (net > 0) celebrate(5);
+  }
+
+  /* ============ shared FX ============ */
+  function celebrate(n){
+    const msgs = { 5:'🌟 Nice run!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>Smart entrepreneur!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    burst(90);
+  }
+  function burstSmall(){ burst(28); }
+  function burst(count){
+    const colors = ['#d97706','#f59e0b','#16a34a','#facc15','#8b5cf6','#0ea5e9'];
+    const box = $('confetti');
+    for (let i=0;i<count;i++){
+      const c = document.createElement('div'); c.className='conf';
+      c.style.left = Math.random()*100+'vw';
+      c.style.background = colors[i%colors.length];
+      c.style.animationDuration = (1.6+Math.random()*1.4)+'s';
+      c.style.animationDelay = (Math.random()*0.4)+'s';
+      c.style.transform = `rotate(${Math.random()*360}deg)`;
+      box.appendChild(c); setTimeout(()=>c.remove(), 3400);
+    }
+  }
+
+  /* ============ popups ============ */
+  function openDict(){
+    const rows = B.TERMS.map(t =>
+      `<div class="trow"><div class="tt">${esc(t.term)}</div><div class="td">${esc(t.def)}</div><div class="te">💬 ${esc(t.ex)}</div></div>`).join('');
+    $('dictSheet').innerHTML =
+      `<button class="closeBtn" id="closeDict" title="Close">✕</button>` +
+      `<h2>📖 Startup Dictionary</h2>` +
+      `<p class="sheet-sub">The business words you’ll meet on tests and in the games — in plain English, each with an example.</p>` + rows;
+    $('closeDict').onclick = closeDict;
+    $('dictModal').className='modal'; $('dictSheet').scrollTop=0;
+  }
+  function closeDict(){ $('dictModal').className='modal hidden'; }
+  function openSources(){
+    const rows = B.SOURCES.map(s => `<div class="srow"><a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)} ↗</a><div class="snote">${esc(s.note)}</div></div>`).join('');
+    $('srcSheet').innerHTML =
+      `<button class="closeBtn" id="closeSrc" title="Close">✕</button>` +
+      `<h2>📚 Where these ideas come from</h2>` +
+      `<p class="sheet-sub">Real entrepreneurship and business-basics sources — the same ideas taught in school business classes.</p>` + rows;
+    $('closeSrc').onclick = closeSources;
+    $('srcModal').className='modal'; $('srcSheet').scrollTop=0;
+  }
+  function closeSources(){ $('srcModal').className='modal hidden'; }
+
+  /* ============ router ============ */
+  function setMode(m){
+    mode = m;
+    [...$('modeSeg').children].forEach(b => b.classList.toggle('on', b.dataset.mode===m));
+    const isRun = m==='run';
+    $('quizCard').style.display = isRun ? 'none' : 'flex';
+    $('simCard').style.display = isRun ? 'flex' : 'none';
+    $('scorebar').style.display = isRun ? 'none' : 'flex';
+    clearTimers();
+    if (isRun){ if (!sim) renderSetup(); }
+    else { resetProgress(); newRound(); }
+  }
+  $('modeSeg').addEventListener('click', e => { const b=e.target.closest('button'); if (b) setMode(b.dataset.mode); });
+  $('nextBtn').onclick = tryAdvance;
+  $('dictBtn').onclick = openDict;
+  $('srcBtn').onclick = openSources;
+  $('srcModal').addEventListener('click', e => { if (e.target===$('srcModal')) closeSources(); });
+  $('dictModal').addEventListener('click', e => { if (e.target===$('dictModal')) closeDict(); });
+  document.addEventListener('keydown', e => {
+    if (e.key==='Escape'){ closeSources(); closeDict(); return; }
+    if (e.key==='Enter' && mode!=='run'){ e.preventDefault();
+      if (!$('srcModal').className.includes('hidden')){ closeSources(); return; }
+      if (!$('dictModal').className.includes('hidden')){ closeDict(); return; }
+      if (answered) tryAdvance();
+    }
+  });
+
+  setMode('run');
+})();
+</script>
+</body>
+</html>

@@ -163,19 +163,20 @@
       function round(){
         const shopping=Math.random()<.6;
         const names=shuffle(shopping?GROCERIES:BILLKINDS).slice(0, rnd(3,4));
-        const items=names.map(n=>({n, c: shopping ? rnd(75,899) : rnd(1500,9900)}));
+        // whole-dollar amounts only — no pennies
+        const items=names.map(n=>({n, c: (shopping ? rnd(1,15) : rnd(15,99)) * 100}));
         const total=items.reduce((s,i)=>s+i.c,0);
         const leftover = !shopping && Math.random()<.5;
-        const budget = leftover ? total + rnd(500,6000) : 0;
+        const budget = leftover ? total + rnd(5,60)*100 : 0;
 
         const rows=items.map(i=>`<div class="ln"><span>${i.n}</span><span>${money(i.c)}</span></div>`).join('');
         let promptTxt, answer, spreads;
         if(leftover){ promptTxt=`You have ${money(budget)}. After paying these, how much is left?`; answer=budget-total; spreads=[100,-100,500,-500,1000,total>500?-total:100]; }
-        else { promptTxt='What is the total?'; answer=total; spreads=[100,-100,50,-50,500,-500,1000]; }
+        else { promptTxt='What is the total?'; answer=total; spreads=[100,-100,200,-200,500,-500,1000]; }
 
         stage.innerHTML=`<div class="card">
           <div class="gtitle"><span class="pill">➕ Add It Up</span></div>
-          <p class="teach">Add the dollars first, then the cents. Line them up and total them.</p>
+          <p class="teach">Line up the amounts and add them up, one dollar amount at a time.</p>
           <div class="receipt">${rows}${leftover?`<div class="ln tot"><span>You have</span><span>${money(budget)}</span></div>`:`<div class="ln tot"><span>Total</span><span>?</span></div>`}</div>
         </div>`;
         const card=stage.querySelector('.card');
