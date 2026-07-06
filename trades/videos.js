@@ -21,10 +21,11 @@
     mount(stage){
       const ids=LIST.map(vidId).filter(Boolean);
       const cards = ids.map(id=>
-        `<div style="background:#000;border-radius:16px;overflow:hidden;box-shadow:var(--shadow)">`+
-          `<iframe src="https://www.youtube-nocookie.com/embed/${id}?rel=0&playsinline=1" `+
+        `<div style="position:relative;background:#000;border-radius:16px;overflow:hidden;box-shadow:var(--shadow)">`+
+          `<iframe src="https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1&playsinline=1" `+
             `style="width:100%;aspect-ratio:9/16;border:0;display:block" `+
             `allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`+
+          `<div style="position:absolute;top:0;left:0;right:0;height:56px;background:#000" aria-hidden="true"></div>`+
         `</div>`).join('');
       stage.innerHTML=
         `<div class="lvlbar"><span class="pill lvl" style="color:#dc2626">📺 Trade Videos</span></div>`+
