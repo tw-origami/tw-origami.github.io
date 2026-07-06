@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Story Lab</title>
+<style>
+  :root {
+    --ink:#2a1a3e; --muted:#6b5b8a; --accent:#7c3aed; --accent-soft:#f0e9ff;
+    --correct:#16a34a; --wrong:#dc2626; --shadow:0 10px 30px rgba(76,29,149,.14);
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#f5f0ff,#fdf7f0); min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; padding:24px 16px 60px;
+  }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 14px; font-size:15px; text-align:center; max-width:520px; line-height:1.5; }
+
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; position:sticky; top:10px; z-index:70; }
+  .nav a, .nav button{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 16px; border-radius:9px; border:none; background:transparent; font-family:inherit; cursor:pointer; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+  .nav button:hover{ background:var(--accent-soft); color:var(--accent); }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; }
+  .seg button {
+    border:none; background:transparent; font-family:inherit; font-weight:800;
+    font-size:14.5px; padding:9px 15px; border-radius:10px; cursor:pointer; color:var(--muted);
+    transition:background .15s, color .15s;
+  }
+  .seg button.on { background:var(--accent); color:#fff; }
+  .seg.sub2 button { font-size:13px; padding:7px 13px; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .chip { background:#fff; border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; }
+  .chip.streak { color:#ea580c; }
+
+  .stage { width:100%; max-width:580px; }
+  .card { width:100%; background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:28px 24px; display:flex; flex-direction:column; align-items:center; }
+  .qprompt { color:var(--muted); font-size:14px; margin:0 0 16px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; text-align:center; }
+
+  .subject { text-align:center; margin-bottom:22px; width:100%; }
+  .subj-icon { font-size:56px; line-height:1; }
+  .subj-name { font-size:24px; font-weight:800; letter-spacing:-.3px; margin:8px 0 6px; }
+  .subj-def { font-size:20px; font-weight:700; line-height:1.5; margin:4px auto 0; max-width:480px; }
+  .subj-question { font-size:20px; font-weight:800; line-height:1.45; margin:4px auto 0; max-width:490px; }
+  .subj-tag { display:inline-block; font-size:12px; font-weight:800; color:var(--accent); background:var(--accent-soft); padding:4px 12px; border-radius:999px; text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px; }
+  .subj-note { font-size:14px; font-weight:600; color:var(--muted); margin:12px auto 0; max-width:460px; line-height:1.5; }
+
+  /* Good/Bad two-version panels */
+  .versus { display:flex; flex-direction:column; gap:14px; width:100%; margin:4px 0 0; }
+  .vlabel { font-size:13px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:12px; text-align:center; }
+
+  .choices { display:flex; flex-direction:column; gap:11px; width:100%; }
+  .choice { background:#fff; border:3px solid #ece4fb; border-radius:16px; font-size:16.5px; font-weight:700; padding:14px 18px; color:var(--ink); cursor:pointer; text-align:left; display:flex; align-items:center; gap:11px; font-family:inherit; line-height:1.4; }
+  .choice .cico { font-size:24px; flex:none; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.has-sub { align-items:flex-start; }
+  .choice.has-sub .cico { margin-top:1px; }
+  .choice-text { display:flex; flex-direction:column; gap:3px; }
+  .choice-label { font-weight:800; }
+  .choice-sub { font-size:12.5px; font-weight:600; color:var(--muted); line-height:1.4; }
+  .choice.correct .choice-sub, .choice.wrong .choice-sub { color:inherit; opacity:.85; }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; color:var(--correct); }
+  .choice.wrong { border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
+  .choice:disabled { cursor:default; }
+  /* story-quote style choices for good/bad */
+  .choice.quote { font-weight:600; font-style:italic; font-size:16px; line-height:1.5; }
+
+  .feedback { min-height:26px; margin-top:18px; font-weight:800; font-size:17px; text-align:center; }
+  .feedback.good { color:var(--correct); }
+  .feedback.bad { color:var(--wrong); }
+
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; text-align:left; width:100%; margin:10px auto 4px; padding:16px 18px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; overflow:hidden; }
+  .reveal.hidden { display:none; }
+  .reveal .rev-title { font-size:18px; font-weight:800; margin-bottom:6px; color:#5b21b6; }
+  .reveal .rev-body { color:#3b1d6e; }
+  .reveal .rev-ex { margin-top:10px; color:#6d28d9; font-style:italic; }
+  .reveal .rev-label { font-size:12px; font-weight:800; color:#5b21b6; text-transform:uppercase; letter-spacing:.4px; margin:14px 0 7px; }
+
+  /* arc beat rows in reveal */
+  .beatrow { display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-top:1px solid #d9c9f7; }
+  .beatrow:first-of-type { border-top:none; }
+  .beatrow .bico { font-size:22px; flex:none; }
+  .beatrow .bnum { font-weight:800; min-width:22px; flex:none; color:#5b21b6; }
+  .beatrow .bn { color:#3b1d6e; }
+  /* example story cards inside reveal */
+  .exrow { display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-top:1px solid #d9c9f7; }
+  .exrow:first-of-type { border-top:none; }
+  .exrow .ext { font-weight:800; color:#5b21b6; }
+  /* family "recipe" tag list */
+  .taglist { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .ttag { font-size:12px; font-weight:700; color:#5b21b6; background:#fff; border:1.5px solid #d9c9f7; padding:4px 10px; border-radius:999px; }
+
+  .eli5 { margin-top:14px; background:#fffbeb; border-left:3px solid #eab308; border-radius:8px; padding:10px 13px; font-size:14px; color:#713f12; line-height:1.55; }
+  .eli5 b { color:#854d0e; }
+
+  .rev-src { display:inline-block; margin-top:14px; font-size:13px; font-weight:700; color:var(--accent); text-decoration:none; border-bottom:1.5px dotted var(--accent); }
+  .rev-src:hover { color:#5b21b6; }
+
+  button.act { font-family:inherit; font-size:16px; font-weight:700; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; transition:transform .1s, background .15s; }
+  button.act:active { transform:scale(.96); }
+  button.act:disabled { opacity:.55; cursor:default; transform:none; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#5b21b6; }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  /* Order It! picked steps + shake */
+  .choice.picked { border-color:var(--correct); background:#f0fdf4; color:var(--ink); cursor:default; }
+  .choice .stepnum { flex:none; width:26px; height:26px; border-radius:50%; background:var(--correct); color:#fff; font-size:14px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .choice.shake { animation:shake .4s; border-color:var(--wrong); }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+
+  /* Sources / Map popups */
+  .modal { position:fixed; inset:0; background:rgba(30,10,50,.45); z-index:80; display:flex; align-items:center; justify-content:center; padding:18px; }
+  .modal.hidden { display:none; }
+  .sheet { background:#fff; border-radius:22px; box-shadow:0 24px 60px rgba(76,29,149,.35); width:100%; max-width:600px; max-height:82vh; overflow-y:auto; padding:26px 24px 30px; position:relative; }
+  .sheet h2 { margin:0 0 4px; font-size:22px; letter-spacing:-.4px; }
+  .sheet .sheet-sub { color:var(--muted); font-size:14px; margin:0 0 18px; line-height:1.5; }
+  .closeBtn { position:sticky; float:right; top:0; width:34px; height:34px; border:none; border-radius:50%; background:var(--accent-soft); color:#5b21b6; font-size:17px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .closeBtn:hover { background:var(--accent); color:#fff; }
+  .srow { padding:12px 0; border-top:1px solid #ece4fb; }
+  .srow:first-of-type { border-top:none; }
+  .srow a { font-weight:800; font-size:15.5px; color:var(--accent); text-decoration:none; }
+  .srow a:hover { text-decoration:underline; }
+  .srow .snote { color:var(--muted); font-size:13.5px; margin-top:3px; line-height:1.45; }
+  /* map of families */
+  .famcard { display:flex; gap:12px; align-items:flex-start; padding:14px 0; border-top:1px solid #ece4fb; }
+  .famcard:first-of-type { border-top:none; }
+  .famcard .fico { font-size:34px; flex:none; line-height:1; }
+  .famcard .fname { font-weight:800; font-size:16px; color:var(--ink); }
+  .famcard .ftag { font-size:12px; font-weight:800; color:var(--accent); text-transform:uppercase; letter-spacing:.3px; }
+  .famcard .fdesc { font-size:13.5px; color:var(--muted); line-height:1.5; margin-top:4px; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner {
+    position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6);
+    background:linear-gradient(135deg,#a855f7,#7c3aed); color:#fff; font-weight:900;
+    font-size:28px; padding:20px 38px; border-radius:22px; box-shadow:0 18px 50px rgba(124,58,237,.45);
+    z-index:60; opacity:0; pointer-events:none; text-align:center; white-space:nowrap;
+  }
+  #streakBanner.show { animation:banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner {
+    0%{opacity:0; transform:translate(-50%,-50%) scale(.6)}
+    15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)}
+    28%{transform:translate(-50%,-50%) scale(1)}
+    80%{opacity:1; transform:translate(-50%,-50%) scale(1)}
+    100%{opacity:0; transform:translate(-50%,-60%) scale(.95)}
+  }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button id="mapBtn" title="See the map of storytelling families">🗺️ Story Map</button>
+    <button id="srcBtn" title="Where these ideas come from">📚 Sources</button>
+  </div>
+  <h1>📖 Story Lab</h1>
+  <p class="sub">Learn to tell stories like the pros. Find the right kind of story, give it a shape, hook a reader, make it exciting, and fix a story that isn’t working — based on the Storyteller Tactics deck.</p>
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="compass" class="on">🧭 Story Compass</button>
+      <button data-mode="shapes">🏗️ Story Shapes</button>
+      <button data-mode="goodbad">✨ Good / Bad Story</button>
+      <button data-mode="hooks">🎣 Hook the Reader</button>
+      <button data-mode="doctor">🩺 Story Doctor</button>
+    </div>
+    <div class="seg sub2" id="subSeg"></div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="stage">
+    <div class="card">
+      <p class="qprompt" id="prompt"></p>
+      <div class="subject" id="subject"></div>
+      <div class="choices" id="choices"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="reveal hidden" id="reveal"></div>
+      <div class="btn-row" id="nextRow" style="display:none">
+        <button class="act btn-primary" id="nextBtn">Next ➡️</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="srcModal"><div class="sheet" id="srcSheet"></div></div>
+  <div class="modal hidden" id="mapModal"><div class="sheet" id="mapSheet"></div></div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const shuffle = arr => arr.slice().sort(()=>Math.random()-0.5);
+  const S = window.STORY;
+  const SRC = {}; S.SOURCES.forEach(s => SRC[s.key] = s);
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  let mode = 'compass';         // compass | shapes | goodbad | doctor
+  let sub  = 'guess';           // shapes sub-mode: guess | order
+  let correct = 0, total = 0, streak = 0;
+  let lastKey = null;
+  let answered = false, advanceReady = true;
+  let advanceTimer = null, countdownTimer = null;
+
+  function clearTimers(){
+    if (advanceTimer){ clearTimeout(advanceTimer); advanceTimer = null; }
+    if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
+  }
+  function updateScorebar(){
+    $('correctCount').textContent = correct;
+    $('totalCount').textContent = total;
+    $('streak').textContent = streak;
+  }
+  function resetProgress(){ correct = 0; total = 0; streak = 0; lastKey = null; updateScorebar(); }
+
+  function renderSub(){
+    const seg = $('subSeg'); seg.innerHTML = '';
+    seg.style.display = mode === 'shapes' ? 'flex' : 'none';
+    if (mode !== 'shapes') return;
+    [['guess','🔎 Guess the Shape'],['order','🧩 Order the Beats']].forEach(([key,label])=>{
+      const b = document.createElement('button');
+      b.dataset.sub = key; b.textContent = label;
+      if (key === sub) b.classList.add('on');
+      seg.appendChild(b);
+    });
+  }
+
+  const srcLink = key => {
+    const s = SRC[key]; if (!s) return '';
+    return `<a class="rev-src" href="${s.url}" target="_blank" rel="noopener">📚 Source: ${esc(s.name)} ↗</a>`;
+  };
+  const eli5Box = text => `<div class="eli5">🧒 <b>In plain words:</b> ${esc(text)}</div>`;
+
+  // ---- Build a round for the current mode ----
+  function buildRound(){
+    if (mode === 'compass') return roundCompass();
+    if (mode === 'shapes')  return sub === 'order' ? null : roundShapesGuess();
+    if (mode === 'goodbad') return roundGoodBad();
+    if (mode === 'hooks')   return roundHooks();
+    return roundDoctor();
+  }
+
+  // GAME 1 · Story Compass — problem → which family?
+  function roundCompass(){
+    let p, tries = 0;
+    do { p = pick(S.COMPASS); tries++; } while (S.COMPASS.length > 1 && p.q === lastKey && tries < 30);
+    lastKey = p.q;
+    const famKeys = Object.keys(S.FAMILIES);
+    const distractors = shuffle(famKeys.filter(k => k !== p.family)).slice(0,3);
+    const options = shuffle([p.family, ...distractors]);
+    const fam = S.FAMILIES[p.family];
+    return {
+      prompt:'A young storyteller has this problem…',
+      subjectHTML:`<div class="subj-tag">Which family of tactics helps?</div>` +
+                  `<div class="subj-question">${esc(p.q)}</div>`,
+      choices: options.map(k => ({
+        html:`<span class="cico">${S.FAMILIES[k].icon}</span>` +
+             `<span class="choice-text"><span class="choice-label">${esc(S.FAMILIES[k].name)}</span>` +
+             `<span class="choice-sub">${esc(S.FAMILIES[k].tag)}</span></span>`,
+        val:k, correct:k === p.family, cls:'has-sub'
+      })),
+      revealHTML:
+        `<div class="rev-title">${fam.icon} ${esc(fam.name)} — ${esc(fam.tag)}</div>` +
+        `<div class="rev-body">${esc(p.why)}</div>` +
+        eli5Box(fam.eli5) +
+        `<div class="rev-label">🃏 Tactics in this family</div>` +
+        `<div class="taglist">${fam.examples.map(e => `<span class="ttag">${esc(e)}</span>`).join('')}</div>` +
+        srcLink('system')
+    };
+  }
+
+  // GAME 2a · Story Shapes — example → which arc?
+  function roundShapesGuess(){
+    let arc, tries = 0;
+    do { arc = pick(S.ARCS); tries++; } while (S.ARCS.length > 1 && arc.key === lastKey && tries < 30);
+    lastKey = arc.key;
+    const ex = pick(arc.examples);
+    const distractors = shuffle(S.ARCS.filter(a => a.key !== arc.key)).slice(0,3);
+    const options = shuffle([arc, ...distractors]);
+    return {
+      prompt:'What SHAPE is this story?',
+      subjectHTML:
+        `<div class="subj-tag">Story example</div>` +
+        `<div class="subj-name">${esc(ex.t)}</div>` +
+        `<div class="subj-def" style="font-size:17px;font-weight:600">${esc(ex.d)}</div>`,
+      choices: options.map(a => ({
+        html:`<span class="cico">${a.icon}</span>` +
+             `<span class="choice-text"><span class="choice-label">${esc(a.name)}</span>` +
+             `<span class="choice-sub">${esc(a.line)}</span></span>`,
+        val:a.key, correct:a.key === arc.key, cls:'has-sub'
+      })),
+      revealHTML:
+        `<div class="rev-title">${arc.icon} ${esc(arc.name)} &nbsp;<span style="font-size:14px;color:#6d28d9">${esc(arc.shape)}</span></div>` +
+        `<div class="rev-body">${esc(arc.idea)}</div>` +
+        eli5Box(arc.eli5) +
+        `<div class="rev-label">📈 The beats, in order</div>` +
+        arc.beats.map((b,i) =>
+          `<div class="beatrow"><span class="bico">${b.icon}</span>` +
+          `<span class="bnum">${i+1}.</span>` +
+          `<span class="bn"><b>${esc(b.text)}.</b> ${esc(b.desc)}</span></div>`).join('') +
+        `<div class="rev-label">🎬 More stories with this shape</div>` +
+        arc.examples.map(e =>
+          `<div class="exrow"><span class="ext">${esc(e.t)}</span> — ${esc(e.d)}</div>`).join('') +
+        `<div class="rev-ex">💡 ${esc(arc.note)}</div>` +
+        srcLink(arc.src)
+    };
+  }
+
+  // GAME 3 · Good / Bad Story
+  function roundGoodBad(){
+    let g, tries = 0;
+    do { g = pick(S.GOODBAD); tries++; } while (S.GOODBAD.length > 1 && g.setup === lastKey && tries < 30);
+    lastKey = g.setup;
+    // present A and B in random order; correct is whichever is the "good" one
+    const items = shuffle([
+      { key:'a', text:g.a, good:g.good === 'a' },
+      { key:'b', text:g.b, good:g.good === 'b' }
+    ]);
+    return {
+      prompt:'Which telling is the STRONGER story?',
+      subjectHTML:
+        `<div class="subj-tag">Both say the same thing…</div>` +
+        `<div class="subj-def" style="font-size:18px">📝 ${esc(g.setup)}</div>` +
+        `<div class="subj-note">Two writers tell it different ways. Pick the one that pulls you in.</div>`,
+      choices: items.map((it,idx) => ({
+        html:`<span class="cico">${idx===0?'①':'②'}</span><span class="choice-text">“${esc(it.text)}”</span>`,
+        val:it.key, correct:it.good, cls:'quote'
+      })),
+      revealHTML:
+        `<div class="rev-title">✨ Winning tactic: ${esc(g.tactic)}</div>` +
+        `<div class="rev-body">${esc(g.why)}</div>` +
+        eli5Box(g.eli5) +
+        srcLink('storyteller')
+    };
+  }
+
+  // GAME 5 · Hook the Reader — opening line → which hook type?
+  function roundHooks(){
+    let ln, tries = 0;
+    do { ln = pick(S.HOOKS.LINES); tries++; } while (S.HOOKS.LINES.length > 1 && ln.line === lastKey && tries < 30);
+    lastKey = ln.line;
+    const typeKeys = Object.keys(S.HOOKS.TYPES);
+    const distractors = shuffle(typeKeys.filter(k => k !== ln.type)).slice(0,3);
+    const options = shuffle([ln.type, ...distractors]);
+    const ty = S.HOOKS.TYPES[ln.type];
+    return {
+      prompt:'What kind of HOOK grabs you here?',
+      subjectHTML:
+        `<div class="subj-icon">🎣</div>` +
+        `<div class="subj-tag">Opening line</div>` +
+        `<div class="subj-def" style="font-size:19px">“${esc(ln.line)}”</div>`,
+      choices: options.map(k => ({
+        html:`<span class="cico">${S.HOOKS.TYPES[k].icon}</span>` +
+             `<span class="choice-text"><span class="choice-label">${esc(S.HOOKS.TYPES[k].name)}</span>` +
+             `<span class="choice-sub">${esc(S.HOOKS.TYPES[k].blurb)}</span></span>`,
+        val:k, correct:k === ln.type, cls:'has-sub'
+      })),
+      revealHTML:
+        `<div class="rev-title">${ty.icon} ${esc(ty.name)}</div>` +
+        `<div class="rev-body">${esc(ln.why)}</div>` +
+        eli5Box(ty.eli5) +
+        `<div class="rev-label">🎣 The six kinds of hook</div>` +
+        `<div class="taglist">${typeKeys.map(k => `<span class="ttag">${S.HOOKS.TYPES[k].icon} ${esc(S.HOOKS.TYPES[k].name)}</span>`).join('')}</div>` +
+        srcLink('ted')
+    };
+  }
+
+  // GAME 4 · Story Doctor — symptom → which tactic cures it?
+  function roundDoctor(){
+    let d, tries = 0;
+    do { d = pick(S.DOCTOR); tries++; } while (S.DOCTOR.length > 1 && d.symptom === lastKey && tries < 30);
+    lastKey = d.symptom;
+    const options = shuffle([d.cures, ...d.distractors]);
+    const fam = S.FAMILIES[d.family];
+    return {
+      prompt:'🩺 Diagnose the story — which tactic is the cure?',
+      subjectHTML:
+        `<div class="subj-icon">🤒</div>` +
+        `<div class="subj-tag">The story’s symptom</div>` +
+        `<div class="subj-def" style="font-size:18px;font-weight:600">${esc(d.symptom)}</div>`,
+      choices: options.map(o => ({ html:`💊 ${esc(o)}`, val:o, correct:o === d.cures })),
+      revealHTML:
+        `<div class="rev-title">💊 The cure: ${esc(d.cures)} <span style="font-size:13px;color:#6d28d9">(${fam.icon} ${esc(fam.name)})</span></div>` +
+        `<div class="rev-body">${esc(d.why)}</div>` +
+        eli5Box('A "Recipe" is just the right mix of tactics for the job. Great storytellers match the fix to the problem — exactly like a doctor matches medicine to a symptom.') +
+        srcLink('storyteller')
+    };
+  }
+
+  let curReveal = '';
+  function newRound(){
+    if (mode === 'shapes' && sub === 'order'){ newOrderRound(); return; }
+    clearTimers();
+    advanceReady = true; answered = false;
+    $('feedback').textContent = ''; $('feedback').className = 'feedback';
+    $('reveal').className = 'reveal hidden'; $('reveal').innerHTML = '';
+    $('nextRow').style.display = 'none';
+
+    const round = buildRound();
+    curReveal = round.revealHTML;
+    $('prompt').textContent = round.prompt;
+    $('subject').innerHTML = round.subjectHTML;
+
+    const box = $('choices'); box.innerHTML = '';
+    round.choices.forEach(ch => {
+      const btn = document.createElement('button');
+      btn.className = ch.cls ? 'choice ' + ch.cls : 'choice';
+      btn.innerHTML = ch.html;
+      btn.dataset.val = ch.val;
+      if (ch.correct) btn.dataset.correct = '1';
+      btn.onclick = () => answer(btn, ch.correct);
+      box.appendChild(btn);
+    });
+  }
+
+  function answer(btn, isCorrect){
+    if (answered) return;
+    answered = true;
+    total++;
+    if (isCorrect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+
+    [...$('choices').children].forEach(c => {
+      c.disabled = true;
+      if (c.dataset.correct === '1') c.classList.add('correct');
+    });
+    if (!isCorrect) btn.classList.add('wrong');
+
+    const fb = $('feedback');
+    if (isCorrect){ fb.textContent = pick(['🎉 Correct!','⭐ Nice!','✅ You got it!','📖 Well told!','🌟 Sharp!']); fb.className = 'feedback good'; }
+    else { fb.textContent = 'Not quite — here’s the answer:'; fb.className = 'feedback bad'; }
+
+    const rev = $('reveal');
+    rev.innerHTML = curReveal;
+    rev.className = 'reveal';
+
+    if (isCorrect && streak > 0 && streak % 5 === 0) celebrate(streak);
+    startReadLock();
+  }
+
+  // GAME 2b · Order the Beats (reuses the Order It! mechanic)
+  let orderState = null;
+  function newOrderRound(){
+    clearTimers();
+    advanceReady = true; answered = false;
+    $('feedback').textContent = ''; $('feedback').className = 'feedback';
+    $('reveal').className = 'reveal hidden'; $('reveal').innerHTML = '';
+    $('nextRow').style.display = 'none';
+
+    let arc, tries = 0;
+    do { arc = pick(S.ARCS); tries++; } while (S.ARCS.length > 1 && arc.key === lastKey && tries < 20);
+    lastKey = arc.key;
+    orderState = { arc, expected:0, mistakes:0 };
+
+    $('prompt').textContent = arc.icon + ' ' + arc.name + '  ' + arc.shape;
+    $('subject').innerHTML =
+      `<div class="subj-tag">${esc(arc.line)}</div>` +
+      `<div class="subj-def" style="font-size:16px;color:var(--muted);font-weight:600">Tap the beats in the right order — first beat first.</div>`;
+
+    let idxs = arc.beats.map((_,i)=>i), t2 = 0;
+    do { idxs = shuffle(idxs); t2++; } while (idxs.every((v,i)=>v===i) && t2 < 10);
+    const box = $('choices'); box.innerHTML = '';
+    idxs.forEach(i => {
+      const b = arc.beats[i];
+      const btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.innerHTML = `<span class="cico">${b.icon}</span><span class="choice-text"><span class="choice-label">${esc(b.text)}</span><span class="choice-sub">${esc(b.desc)}</span></span>`;
+      btn.classList.add('has-sub');
+      btn.onclick = () => orderPick(btn, i);
+      box.appendChild(btn);
+    });
+  }
+  function orderPick(btn, i){
+    if (answered) return;
+    const st = orderState;
+    if (i === st.expected){
+      st.expected++;
+      btn.classList.remove('shake');
+      btn.classList.add('picked'); btn.disabled = true;
+      btn.insertAdjacentHTML('afterbegin', `<span class="stepnum">${st.expected}</span>`);
+      if (st.expected === st.arc.beats.length) finishOrder();
+      else { $('feedback').textContent = ''; $('feedback').className = 'feedback'; }
+    } else {
+      st.mistakes++;
+      btn.classList.remove('shake'); void btn.offsetWidth; btn.classList.add('shake');
+      setTimeout(() => btn.classList.remove('shake'), 450);
+      const fb = $('feedback'); fb.textContent = 'Not that beat yet — what happens next in the story? 🤔'; fb.className = 'feedback bad';
+    }
+  }
+  function finishOrder(){
+    answered = true; total++;
+    const perfect = orderState.mistakes === 0;
+    if (perfect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+    const fb = $('feedback');
+    if (perfect){ fb.textContent = '🎉 Perfect order!'; fb.className = 'feedback good'; }
+    else { fb.textContent = `Done — with ${orderState.mistakes} wrong tap${orderState.mistakes>1?'s':''}. Review the shape below.`; fb.className = 'feedback bad'; }
+    const arc = orderState.arc;
+    $('reveal').innerHTML =
+      `<div class="rev-title">${arc.icon} ${esc(arc.name)} &nbsp;<span style="font-size:14px;color:#6d28d9">${esc(arc.shape)}</span></div>` +
+      `<div class="rev-body">${esc(arc.idea)}</div>` +
+      arc.beats.map((b,i) =>
+        `<div class="beatrow"><span class="bico">${b.icon}</span>` +
+        `<span class="bnum">${i+1}.</span>` +
+        `<span class="bn"><b>${esc(b.text)}.</b> ${esc(b.desc)}</span></div>`).join('') +
+      `<div class="rev-ex">💡 ${esc(arc.note)}</div>` +
+      srcLink(arc.src);
+    $('reveal').className = 'reveal';
+    if (perfect && streak > 0 && streak % 5 === 0) celebrate(streak);
+    startReadLock();
+  }
+
+  // 3s read-lock so the reveal actually gets read.
+  function startReadLock(){
+    advanceReady = false;
+    let secs = 3;
+    const nb = $('nextBtn');
+    nb.disabled = true; nb.textContent = `Read it… (${secs})`;
+    $('nextRow').style.display = 'flex';
+    countdownTimer = setInterval(() => {
+      secs--;
+      if (secs > 0) nb.textContent = `Read it… (${secs})`;
+      else { clearInterval(countdownTimer); countdownTimer = null; }
+    }, 1000);
+    advanceTimer = setTimeout(() => {
+      advanceReady = true; advanceTimer = null;
+      nb.disabled = false; nb.textContent = 'Next ➡️'; nb.focus();
+    }, 3000);
+  }
+  function tryAdvance(){ if (answered && advanceReady) newRound(); }
+
+  function celebrate(n){
+    const msgs = { 5:'🌟 5 in a row!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>You’re a real storyteller!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    const colors = ['#7c3aed','#a855f7','#f59e0b','#16a34a','#ec4899','#0ea5e9'];
+    const box = $('confetti');
+    for (let i = 0; i < 90; i++){
+      const c = document.createElement('div');
+      c.className = 'conf';
+      c.style.left = Math.random()*100 + 'vw';
+      c.style.background = colors[i % colors.length];
+      c.style.animationDuration = (1.6 + Math.random()*1.4) + 's';
+      c.style.animationDelay = (Math.random()*0.4) + 's';
+      c.style.transform = `rotate(${Math.random()*360}deg)`;
+      box.appendChild(c);
+      setTimeout(()=>c.remove(), 3400);
+    }
+  }
+
+  // ---- 🗺️ Story Map popup (the family overview) ----
+  function openMap(){
+    const rows = Object.keys(S.FAMILIES).map(k => {
+      const f = S.FAMILIES[k];
+      return `<div class="famcard"><span class="fico">${f.icon}</span><div>` +
+        `<span class="fname">${esc(f.name)}</span> · <span class="ftag">${esc(f.tag)}</span>` +
+        `<div class="fdesc">${esc(f.short)}</div>` +
+        `<div class="taglist">${f.examples.map(e => `<span class="ttag">${esc(e)}</span>`).join('')}</div>` +
+        `</div></div>`;
+    }).join('');
+    $('mapSheet').innerHTML =
+      `<button class="closeBtn" id="closeMap" title="Close">✕</button>` +
+      `<h2>🗺️ The Story Map</h2>` +
+      `<p class="sheet-sub">Every storytelling trick fits into one of these families. When your story is stuck, ask "which of these do I need?" — that’s the whole idea behind the Story Compass game.</p>` +
+      rows;
+    $('closeMap').onclick = closeMap;
+    $('mapModal').className = 'modal';
+    $('mapSheet').scrollTop = 0;
+  }
+  function closeMap(){ $('mapModal').className = 'modal hidden'; }
+
+  // ---- 📚 Sources popup ----
+  function openSources(){
+    const rows = S.SOURCES.map(s =>
+      `<div class="srow"><a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)} ↗</a>` +
+      `<div class="snote">${esc(s.note)}</div></div>`).join('');
+    $('srcSheet').innerHTML =
+      `<button class="closeBtn" id="closeSrc" title="Close">✕</button>` +
+      `<h2>📚 Where these ideas come from</h2>` +
+      `<p class="sheet-sub">This app is built on the "Storyteller Tactics" card deck and the classic story-shape research behind it. Tap through to explore the real thing.</p>` +
+      rows;
+    $('srcModal').className = 'modal';
+    $('srcSheet').scrollTop = 0;
+    $('closeSrc').onclick = closeSources;
+  }
+  function closeSources(){ $('srcModal').className = 'modal hidden'; }
+
+  // ---- Wiring ----
+  $('modeSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.mode; sub = 'guess';
+    [...$('modeSeg').children].forEach(x => x.classList.toggle('on', x === b));
+    renderSub(); resetProgress(); newRound();
+  });
+  $('subSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    sub = b.dataset.sub;
+    [...$('subSeg').children].forEach(x => x.classList.toggle('on', x === b));
+    resetProgress(); newRound();
+  });
+  $('nextBtn').onclick = tryAdvance;
+  $('mapBtn').onclick = openMap;
+  $('srcBtn').onclick = openSources;
+  $('srcModal').addEventListener('click', e => { if (e.target === $('srcModal')) closeSources(); });
+  $('mapModal').addEventListener('click', e => { if (e.target === $('mapModal')) closeMap(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape'){ closeSources(); closeMap(); return; }
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (!$('srcModal').className.includes('hidden')){ closeSources(); return; }
+    if (!$('mapModal').className.includes('hidden')){ closeMap(); return; }
+    if (answered) tryAdvance();
+  });
+
+  renderSub();
+  newRound();
+})();
+</script>
+</body>
+</html>
