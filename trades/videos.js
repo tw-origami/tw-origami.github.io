@@ -46,7 +46,7 @@
         `</div>`).join('');
       stage.innerHTML=
         `<div class="lvlbar"><span class="pill lvl" style="color:#dc2626">📺 Trade Videos</span></div>`+
-        `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;max-width:640px;margin:0 auto">`+
+        `<div style="display:grid;grid-template-columns:1fr;gap:18px;max-width:300px;margin:0 auto">`+
           cards+
         `</div>`;
 
