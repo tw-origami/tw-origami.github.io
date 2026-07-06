@@ -75,6 +75,10 @@
   .reveal.hidden { display:none; }
   .reveal .rev-title { font-size:18px; font-weight:800; margin-bottom:6px; color:#b45309; }
   .reveal .rev-body { color:#5b3d09; }
+  .reveal .rev-more { color:#5b3d09; font-size:13.5px; line-height:1.6; margin-top:8px; padding-top:8px; border-top:1px solid rgba(180,83,9,.25); }
+  .reveal .rev-ex { margin-top:10px; font-size:13px; color:#5b3d09; }
+  .reveal .rev-ex b { display:block; margin-bottom:5px; color:#b45309; font-size:12px; text-transform:uppercase; letter-spacing:.4px; }
+  .reveal .rev-ex-item { background:rgba(255,255,255,.55); border-radius:8px; padding:6px 9px; margin-top:5px; line-height:1.45; }
   .eli5 { margin-top:14px; background:#eff6ff; border-left:3px solid #3b82f6; border-radius:8px; padding:10px 13px; font-size:14px; color:#1e3a8a; line-height:1.55; }
   .eli5 b { color:#1d4ed8; }
   .rev-src { display:inline-block; margin-top:14px; font-size:13px; font-weight:700; color:var(--accent); text-decoration:none; border-bottom:1.5px dotted var(--accent); }
@@ -222,7 +226,7 @@
   <div class="modal hidden" id="srcModal"><div class="sheet" id="srcSheet"></div></div>
   <div class="modal hidden" id="dictModal"><div class="sheet" id="dictSheet"></div></div>
 
-<script src="data.js?v=2"></script>
+<script src="data.js?v=3"></script>
 <script>
 (function(){
   const $ = id => document.getElementById(id);
@@ -305,7 +309,10 @@
         html:`<span class="cico">${B.DEPARTMENTS[o].icon}</span><span class="choice-text"><span class="choice-label">${esc(o)}</span></span>`,
         val:o, correct:o===it.dept, cls:'has-sub'
       })),
-      revealHTML:`<div class="rev-title">${d.icon} ${esc(it.dept)}</div><div class="rev-body">${esc(d.desc)}</div>` + srcLink('ja')
+      revealHTML:`<div class="rev-title">${d.icon} ${esc(it.dept)}</div><div class="rev-body">${esc(d.desc)}</div>`
+        + (d.more?`<div class="rev-more">${esc(d.more)}</div>`:``)
+        + (d.ex?`<div class="rev-ex"><b>Same job, different businesses:</b>${d.ex.map(e=>`<div class="rev-ex-item">${esc(e)}</div>`).join('')}</div>`:``)
+        + srcLink('ja')
     };
   }
   function roundBoss(){

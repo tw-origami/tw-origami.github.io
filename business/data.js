@@ -139,13 +139,27 @@ window.BIZ = {
 
   /* ───────── GAME 4 · WHO DOES WHAT? (departments) ───────── */
   DEPARTMENTS: {
-    Marketing:{ icon:'📣', desc:'Gets people to notice and want your product — ads, social media, branding.' },
-    Sales:{ icon:'🤝', desc:'Actually closes deals and convinces customers or stores to buy.' },
-    Finance:{ icon:'💰', desc:'Handles the money — tracking profit, paying bills, budgeting, taxes.' },
-    Operations:{ icon:'⚙️', desc:'Makes the day-to-day run — producing, stocking, and shipping products.' },
-    'Human Resources':{ icon:'🧑‍🤝‍🧑', desc:'Takes care of the people — hiring, training and supporting the team.' },
-    'Customer Service':{ icon:'🎧', desc:'Helps customers after the sale — questions, problems, refunds.' },
-    'Product / R&D':{ icon:'🔧', desc:'Designs and improves the product itself and invents new ones.' }
+    Marketing:{ icon:'📣', desc:'Builds demand — figures out who the customer is, what message will grab them, and gets the product in front of them through ads, social media, and branding.',
+      more:'Marketers research the target market, run campaigns, and track what actually works (like which ad gets the most clicks) so money isn’t wasted. Real job titles: marketing manager, social media manager, brand designer. Without marketing, even a great product stays invisible.',
+      ex:['🥤 Smoothie cart: posts a photo of a frosty smoothie with today’s park location on a hot day.','👕 T-shirt brand: runs an Instagram ad aimed at fans of a certain style.','👟 Sneaker resale: builds hype with countdown posts before a limited drop.'] },
+    Sales:{ icon:'🤝', desc:'Turns interest into actual money — talks to customers, stores, or other businesses and gets them to say yes and buy.',
+      more:'Salespeople build relationships, answer objections like “it’s too expensive,” negotiate deals, and hit targets. Picture a rep pitching your drink to a store’s buyer, or someone closing a bulk order. Marketing brings people to the door; sales gets them to pull out their wallet.',
+      ex:['🥤 Smoothie cart: talks a passing family into the 3-for-2 deal.','👕 T-shirt brand: convinces a local boutique to stock the shirts.','👟 Sneaker resale: negotiates the final price with a buyer in the DMs.'] },
+    Finance:{ icon:'💰', desc:'Guards and plans the money — tracks every dollar in and out, sets budgets, pays bills and taxes, and tells the boss what the company can actually afford.',
+      more:'Finance produces the reports (revenue, profit, cash flow), forecasts next month, and warns when cash is running low. Roles: accountant, bookkeeper, CFO (Chief Financial Officer). A busy company can still collapse if finance loses control of the cash.',
+      ex:['🥤 Smoothie cart: tracks daily cash and works out how much fruit to buy tomorrow.','👕 T-shirt brand: sets a budget for a print run and a price that covers it.','👟 Sneaker resale: decides if there’s enough cash to buy the next pair to flip.'] },
+    Operations:{ icon:'⚙️', desc:'Makes the whole thing actually happen — producing the product, keeping enough stock, and getting orders out the door on time.',
+      more:'Operations manages suppliers, inventory, equipment, and shipping so nothing runs out or ships late. Roles: operations manager, supply-chain / logistics coordinator. When your order shows up fast and correct, that’s operations doing its job well.',
+      ex:['🥤 Smoothie cart: keeps fruit stocked and the blender clean and working.','👕 T-shirt brand: runs the printer and packs orders to mail out.','👟 Sneaker resale: stores pairs safely and ships them so they arrive perfect.'] },
+    'Human Resources':{ icon:'🧑‍🤝‍🧑', desc:'Takes care of the people — finding and hiring the right employees, training them, handling pay and problems, and keeping the team working well together.',
+      more:'HR writes job posts, interviews, runs onboarding, sorts out schedules and benefits, and steps in when there’s conflict. Roles: HR manager, recruiter. A company’s people are its biggest asset — HR’s job is to find them and keep them.',
+      ex:['🥤 Smoothie cart: hires and trains a helper for the busy weekend rush.','👕 T-shirt brand: schedules the print-shop crew so shifts are covered.','👟 Sneaker resale: brings on a friend to help pack and pays them fairly.'] },
+    'Customer Service':{ icon:'🎧', desc:'Looks after customers after they’ve bought — answering questions, fixing problems, and handling returns or refunds so people stay happy and come back.',
+      more:'Reps handle emails, calls, and chats, solve complaints, and turn an angry customer back into a loyal one. A quick refund can save a customer who’s worth far more over the years. Roles: support rep, customer success manager.',
+      ex:['🥤 Smoothie cart: cheerfully remakes a drink a kid dropped.','👕 T-shirt brand: handles a wrong-size exchange without a fuss.','👟 Sneaker resale: answers “is it legit?” and sorts out a shipping delay.'] },
+    'Product / R&D':{ icon:'🔧', desc:'Designs, builds, and improves the product itself — and researches brand-new ones. (R&D stands for Research and Development.)',
+      more:'This team gathers feedback, tests prototypes, fixes flaws, and invents new features or flavors. Roles: product manager, designer, engineer. They decide WHAT gets made; operations then handles making it at full scale.',
+      ex:['🥤 Smoothie cart: invents a new seasonal flavor and taste-tests it.','👕 T-shirt brand: designs next season’s graphics.','👟 Sneaker resale: researches which models will resell for the most.'] }
   },
   DEPT_ITEMS: [
     { task:'Designing an eye-catching ad for Instagram', dept:'Marketing' },
