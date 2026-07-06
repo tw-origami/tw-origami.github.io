@@ -9,6 +9,8 @@
     'https://www.youtube.com/shorts/qSNGtAtRpTc',
     'https://www.youtube.com/shorts/nZJ9IOklB5M',
     'https://www.youtube.com/shorts/9Zy6YZislOE',
+    'https://www.youtube.com/shorts/u_CWAz5ygTs',
+    'https://www.youtube.com/shorts/za1xCbZIr2A',
   ];
 
   function vidId(u){ u=String(u||'').trim();
