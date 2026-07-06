@@ -149,7 +149,9 @@
   .trow:first-of-type { border-top:none; }
   .trow .tt { font-weight:900; font-size:15.5px; color:var(--ink); }
   .trow .td { font-size:14px; color:#57534e; line-height:1.5; margin-top:2px; }
-  .trow .te { font-size:13px; color:var(--accent); font-weight:700; margin-top:4px; }
+  .trow .ts { font-size:13.5px; color:#3730a3; line-height:1.55; margin-top:6px; background:#eef2ff; border-left:3px solid #6366f1; border-radius:0 8px 8px 0; padding:8px 11px; }
+  .trow .ts b { color:#312e81; }
+  .trow .te { font-size:13px; color:var(--accent); font-weight:700; margin-top:6px; }
   .srow .snote { color:var(--muted); font-size:13.5px; margin-top:3px; line-height:1.45; }
 
   #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
@@ -179,7 +181,7 @@
     <button id="srcBtn" title="Where these ideas come from">📚 Sources</button>
   </div>
   <h1>📈 Startup Studio</h1>
-  <p class="sub">Run your own company and learn how business really works — profit and pricing, customers and marketing, the teams that run it, and smart moves when things go sideways.</p>
+  <p class="sub">Run your own company for a week and find out how a business actually makes money — or loses it. You’ll buy supplies, set your prices, spend on ads to pull in customers, and try to end up with more money than you started with. Along the way you’ll pick up the real ideas behind every business — profit, pricing, marketing, the different teams that keep a company running, and what a smart boss does when things go wrong. Every idea is explained twice: the proper definition, and then the same thing in plain, simple terms so it actually clicks. Tap 📖 <b>Dictionary</b> any time to look a word up.</p>
   <img class="hero" src="img/hero.png" alt="Kid entrepreneurs running a startup" onerror="this.style.display='none'">
 
   <div class="controls">
@@ -220,7 +222,7 @@
   <div class="modal hidden" id="srcModal"><div class="sheet" id="srcSheet"></div></div>
   <div class="modal hidden" id="dictModal"><div class="sheet" id="dictSheet"></div></div>
 
-<script src="data.js"></script>
+<script src="data.js?v=2"></script>
 <script>
 (function(){
   const $ = id => document.getElementById(id);
@@ -572,11 +574,13 @@
   /* ============ popups ============ */
   function openDict(){
     const rows = B.TERMS.map(t =>
-      `<div class="trow"><div class="tt">${esc(t.term)}</div><div class="td">${esc(t.def)}</div><div class="te">💬 ${esc(t.ex)}</div></div>`).join('');
+      `<div class="trow"><div class="tt">${esc(t.term)}</div><div class="td">${esc(t.def)}</div>`+
+      (t.simple?`<div class="ts">💡 <b>In simple terms:</b> ${esc(t.simple)}</div>`:``)+
+      `<div class="te">💬 ${esc(t.ex)}</div></div>`).join('');
     $('dictSheet').innerHTML =
       `<button class="closeBtn" id="closeDict" title="Close">✕</button>` +
       `<h2>📖 Startup Dictionary</h2>` +
-      `<p class="sheet-sub">The business words you’ll meet on tests and in the games — in plain English, each with an example.</p>` + rows;
+      `<p class="sheet-sub">The business words you’ll meet on tests and in the games — first the textbook definition, then the same idea in plain, simple terms, plus an example.</p>` + rows;
     $('closeDict').onclick = closeDict;
     $('dictModal').className='modal'; $('dictSheet').scrollTop=0;
   }
