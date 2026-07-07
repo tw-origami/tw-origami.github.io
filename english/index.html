@@ -36,7 +36,22 @@
 
   .stage { width:100%; max-width:600px; }
   .card { width:100%; background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:24px; }
-  .qprompt { color:var(--muted); font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; text-align:center; margin:0 0 14px; }
+  .qprompt { color:var(--muted); font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; text-align:center; margin:0 0 10px; }
+  .howto { background:#f1eefc; border-radius:12px; padding:10px 14px; font-size:13.5px; color:#5b21b6; font-weight:600; text-align:center; margin:0 0 16px; line-height:1.5; }
+  .howto b { font-weight:800; }
+
+  /* Teacher Guide */
+  .teacher { width:100%; max-width:600px; margin-top:22px; background:#fffdf5; border:1px solid #eee6cf; border-radius:18px; box-shadow:var(--shadow); overflow:hidden; }
+  .teacher summary { list-style:none; cursor:pointer; padding:15px 20px; display:flex; align-items:center; gap:9px; font-weight:800; font-size:15px; color:#8a6d1f; }
+  .teacher summary::-webkit-details-marker { display:none; }
+  .teacher summary .chev { margin-left:auto; transition:transform .2s; color:#b89b45; font-size:13px; }
+  .teacher[open] summary .chev { transform:rotate(180deg); }
+  .teacher .tg-body { padding:0 20px 18px; }
+  .tg-item { margin-bottom:12px; }
+  .tg-item .k { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:#b8860b; margin-bottom:3px; }
+  .tg-item .v { font-size:14px; line-height:1.6; color:#4b4658; }
+  .tg-explore { background:var(--accent-soft); border-radius:12px; padding:12px 14px; font-size:13.5px; color:#5b21b6; line-height:1.6; }
+  .tg-explore .k { color:var(--accent); }
   .feedback { min-height:24px; margin-top:14px; font-weight:800; font-size:16px; text-align:center; }
   .feedback.good { color:var(--correct); } .feedback.bad { color:var(--wrong); }
   .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; margin:12px 0 2px; padding:14px 16px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
@@ -164,10 +179,15 @@
 
   <div class="stage" id="stage"></div>
 
+  <details class="teacher" id="teacher" open>
+    <summary>👩‍🏫 Teacher Guide <span class="chev">▲</span></summary>
+    <div class="tg-body" id="tgBody"></div>
+  </details>
+
   <div class="modal hidden" id="dictModal"><div class="sheet" id="dictSheet"></div></div>
   <div class="modal hidden" id="srcModal"><div class="sheet" id="srcSheet"></div></div>
 
-<script src="data.js?v=2"></script>
+<script src="data.js?v=3"></script>
 <script>
 (function(){
   const $ = id => document.getElementById(id);
@@ -179,6 +199,14 @@
   const sample = (a,n) => shuffle(a).slice(0,n);
   const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
   const stage = $('stage');
+  const howBar = () => `<div class="howto">▶ <b>How to play:</b> ${esc(L.TEACHER[mode].how)}</div>`;
+  function renderTeacher(){
+    const t = L.TEACHER[mode];
+    $('tgBody').innerHTML =
+      `<div class="tg-item"><div class="k">🎯 The point of this game</div><div class="v">${esc(t.point)}</div></div>`+
+      `<div class="tg-item"><div class="k">📘 What your student practices</div><div class="v">${esc(t.learn)}</div></div>`+
+      `<div class="tg-explore"><div class="k">🔎 Explore &amp; ask more</div>${esc(t.explore)}</div>`;
+  }
 
   let mode = 'detective';
   let correct = 0, total = 0, streak = 0;
@@ -210,7 +238,7 @@
     const devices = shuffle([...new Set(p.parts.filter(x=>typeof x==='object').map(x=>x.d))]);
     let ti = 0; const found = new Set();
 
-    let html = '<div class="card"><p class="qprompt">🕵️ Device Detective</p>';
+    let html = '<div class="card"><p class="qprompt">🕵️ Device Detective</p>' + howBar();
     html += '<div class="hunt-target" id="huntTarget"></div>';
     html += '<div class="passage" id="passage">';
     p.parts.forEach((x,i) => {
@@ -258,7 +286,7 @@
   function mountForge(){
     const S = forgeState;
     stage.innerHTML = `<div class="card">
-      <p class="qprompt">⚒️ Figurative Forge — build your own figurative language</p>
+      <p class="qprompt">⚒️ Figurative Forge — build your own figurative language</p>${howBar()}
       <div class="forge-reels">
         <div class="reel"><div class="rlabel">Subject</div><div class="rval" id="rSubj"></div><button class="dice" id="diceSubj" title="Random subject">🎲</button></div>
         <div class="reel"><div class="rlabel">Image</div><div class="rval" id="rImg"></div><button class="dice" id="diceImg" title="Random image">🎲</button></div>
@@ -325,7 +353,7 @@
     toneState = { tmpl, target, slotKeys, pools, chosen:{} };
 
     stage.innerHTML = `<div class="card">
-      <p class="qprompt">🎚️ Tone Rewriter — make the sentence sound…</p>
+      <p class="qprompt">🎚️ Tone Rewriter — make the sentence sound…</p>${howBar()}
       <div class="tone-picker" id="tonePicker"></div>
       <div class="tone-sentence" id="toneSentence"></div>
       <div id="slots"></div>
@@ -402,7 +430,7 @@
     let step = 1, clueOK = true;
 
     stage.innerHTML = `<div class="card">
-      <p class="qprompt" id="tprompt">💡 Tap the sentence that reveals the theme</p>
+      <p class="qprompt" id="tprompt">💡 Theme Detective</p>${howBar()}
       <div class="story"><div class="story-title">${esc(it.title)}</div><div id="slines"></div></div>
       <div class="choices" id="choices" style="display:none"></div>
       <div class="feedback" id="fb"></div>
@@ -452,6 +480,7 @@
   const MOUNTS = { detective:mountDetective, forge:mountForge, tone:mountTone, theme:mountTheme };
   function newRound(){
     $('scorebar').classList.toggle('hidden', mode==='forge');
+    renderTeacher();
     MOUNTS[mode]();
   }
 

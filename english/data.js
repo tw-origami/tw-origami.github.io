@@ -7,6 +7,34 @@
  */
 window.LIT = {
 
+  /* ───── Teacher Guide — shown at the bottom, updates per game ───── */
+  TEACHER: {
+    detective: {
+      how:'Read the passage. When the game asks you to find a device (like a simile or personification), tap the exact phrase in the text that matches. Find all of them to finish the passage.',
+      point:'Literary devices don’t show up on a neat list in real life — they’re woven into sentences. This game trains the eye to spot them in the wild.',
+      learn:'Telling apart similes, metaphors, personification, hyperbole, alliteration, onomatopoeia, idioms, oxymorons, allusions, and irony by how they actually work in a sentence.',
+      explore:'Ask your student: “Why did the writer pick that device right there?” Then challenge them to find the same devices in a song lyric or the book they’re reading now.'
+    },
+    forge: {
+      how:'Pick a Subject and an Image (or tap 🎲 to spin them). Choose “is like” to make a simile or “is” to make a metaphor. Read the line you just built, then ⭐ save your favorites.',
+      point:'The leap from recognizing figurative language to CREATING it is where real understanding happens. This is a sandbox — there are no wrong answers, only vivid ones.',
+      learn:'How a simile and a metaphor are constructed, and how one good comparison can pack a whole feeling into a few words.',
+      explore:'Ask: “Which comparison is the most surprising?” Great writers love unexpected pairings. Have them forge one about something in their own room, then explain why it fits.'
+    },
+    tone: {
+      how:'The game names a target mood (like Eerie or Cheerful). Tap one word for each blank so the whole sentence matches that mood. Watch the meter climb — reach 100% and press “Lock it in.”',
+      point:'Kids often think the meaning of a sentence is fixed. This shows them that a single swapped word (“crept” vs. “strolled”) can flip the entire feeling.',
+      learn:'Diction (word choice) and how it creates tone and mood — a skill that powers both careful reading and strong writing.',
+      explore:'Ask: “How would a news report describe this scene versus a horror story?” Have them rewrite a text they sent today in a completely different tone.'
+    },
+    theme: {
+      how:'Read the short story. First, tap the ONE sentence that best reveals the lesson. Then choose the theme — the big-picture message — from the options.',
+      point:'The hardest jump in English class is separating what HAPPENS in a story from what it MEANS. This breaks that skill into two clear steps.',
+      learn:'Finding the central message (theme) of a story by first locating the key piece of evidence — a task on nearly every reading test.',
+      explore:'Ask: “What would you title this story’s lesson?” Then have them name the theme of their favorite movie and point to the scene that proves it.'
+    }
+  },
+
   SOURCES: [
     { key:'litcharts', name:'LitCharts — Literary Devices & Terms',
       url:'https://www.litcharts.com/literary-devices-and-terms',
