@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Lit Devices Lab</title>
+<style>
+  :root {
+    --ink:#2a1e3a; --muted:#6b6480; --accent:#7c3aed; --accent-soft:#ede9fe;
+    --correct:#16a34a; --wrong:#dc2626; --shadow:0 10px 30px rgba(76,29,149,.15);
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#f5f3ff,#faf8ff); min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; padding:22px 16px 60px;
+  }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 16px; font-size:15px; text-align:center; max-width:540px; line-height:1.5; }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; position:sticky; top:10px; z-index:70; }
+  .nav a, .nav button{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 15px; border-radius:9px; border:none; background:transparent; font-family:inherit; cursor:pointer; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+  .nav button:hover{ background:var(--accent-soft); color:var(--accent); }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; max-width:660px; }
+  .seg button { border:none; background:transparent; font-family:inherit; font-weight:800; font-size:14.5px; padding:9px 15px; border-radius:10px; cursor:pointer; color:var(--muted); transition:background .15s, color .15s; }
+  .seg button.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .scorebar.hidden { display:none; }
+  .chip { background:#fff; border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; }
+  .chip.streak { color:#ea580c; }
+
+  .stage { width:100%; max-width:600px; }
+  .card { width:100%; background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:24px; }
+  .qprompt { color:var(--muted); font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; text-align:center; margin:0 0 14px; }
+  .feedback { min-height:24px; margin-top:14px; font-weight:800; font-size:16px; text-align:center; }
+  .feedback.good { color:var(--correct); } .feedback.bad { color:var(--wrong); }
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; margin:12px 0 2px; padding:14px 16px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
+  .reveal .rev-title { font-weight:900; font-size:16px; margin-bottom:4px; color:#5b21b6; }
+  .rev-src { display:inline-block; margin-top:12px; font-size:13px; font-weight:700; color:var(--accent); text-decoration:none; border-bottom:1.5px dotted var(--accent); }
+  button.act { font-family:inherit; font-size:16px; font-weight:800; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; }
+  .btn-primary { background:var(--accent); color:#fff; } .btn-primary:hover { background:#6d28d9; }
+  .btn-ghost { background:var(--accent-soft); color:var(--accent); }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  /* ---- Device Detective ---- */
+  .hunt-target { text-align:center; font-size:19px; font-weight:800; margin:2px 0 16px; }
+  .hunt-target b { color:var(--accent); }
+  .passage { font-size:19px; line-height:2.1; font-family:Georgia,"Times New Roman",serif; }
+  .dev { cursor:pointer; border-bottom:2.5px dotted #c4b5fd; border-radius:4px; padding:1px 3px; transition:background .12s; }
+  .dev:hover { background:var(--accent-soft); }
+  .dev.found { background:#dcfce7; border-bottom-color:var(--correct); color:#166534; cursor:default; font-weight:700; }
+  .dev.miss { background:#fee2e2; border-bottom-color:var(--wrong); animation:shake .35s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+  .dchips { display:flex; flex-wrap:wrap; gap:7px; justify-content:center; margin-top:18px; }
+  .dchip { font-size:12.5px; font-weight:800; padding:6px 12px; border-radius:999px; background:#f1eefc; color:#6b6480; }
+  .dchip.done { background:#dcfce7; color:#166534; }
+  .dchip.now { background:var(--accent); color:#fff; }
+
+  /* ---- Figurative Forge ---- */
+  .forge-reels { display:flex; flex-direction:column; gap:12px; }
+  .reel { background:#faf8ff; border:2px solid #ece7fb; border-radius:16px; padding:12px 14px; display:flex; align-items:center; gap:12px; }
+  .reel .rlabel { font-size:11px; font-weight:800; color:var(--accent); text-transform:uppercase; letter-spacing:.5px; flex:0 0 68px; }
+  .reel .rval { flex:1; font-size:18px; font-weight:700; }
+  .reel .dice { border:none; background:var(--accent-soft); color:var(--accent); font-size:20px; width:44px; height:44px; border-radius:12px; cursor:pointer; flex:0 0 auto; }
+  .reel .dice:hover { background:var(--accent); color:#fff; }
+  .toggle { display:flex; background:#f1eefc; border-radius:12px; padding:4px; margin:14px auto 0; width:max-content; }
+  .toggle button { border:none; background:transparent; font-family:inherit; font-weight:800; font-size:14px; padding:9px 18px; border-radius:9px; cursor:pointer; color:var(--muted); }
+  .toggle button.on { background:var(--accent); color:#fff; }
+  .forge-line { font-family:Georgia,"Times New Roman",serif; font-style:italic; font-size:24px; line-height:1.45; text-align:center; margin:20px 8px; min-height:70px; display:flex; align-items:center; justify-content:center; }
+  .forge-line.pop { animation:pop .4s cubic-bezier(.2,.9,.3,1.3); }
+  @keyframes pop { 0%{transform:scale(.9); opacity:.4} 100%{transform:scale(1); opacity:1} }
+  .forge-note { text-align:center; color:var(--muted); font-size:14.5px; line-height:1.55; max-width:440px; margin:0 auto; }
+  .forge-note b { color:var(--accent); }
+  .saved-wrap { margin-top:20px; }
+  .saved-wrap h3 { font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin:0 0 8px; }
+  .saved-line { font-family:Georgia,serif; font-style:italic; font-size:15px; background:#faf8ff; border-left:3px solid var(--accent); border-radius:0 8px 8px 0; padding:8px 12px; margin-bottom:7px; }
+  .saved-line .tag { font-family:-apple-system,system-ui,sans-serif; font-style:normal; font-size:10px; font-weight:800; text-transform:uppercase; color:#fff; background:var(--accent); padding:2px 7px; border-radius:999px; margin-right:8px; vertical-align:middle; }
+
+  /* ---- Tone Rewriter ---- */
+  .tone-picker { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:16px; }
+  .tone-btn { border:2px solid #ece7fb; background:#fff; font-family:inherit; font-weight:800; font-size:14px; padding:9px 14px; border-radius:12px; cursor:pointer; color:var(--muted); }
+  .tone-btn.on { color:#fff; }
+  .tone-sentence { font-family:Georgia,serif; font-size:22px; line-height:1.7; text-align:center; margin:6px 8px 18px; min-height:66px; }
+  .tblank { display:inline-block; min-width:70px; border-bottom:3px solid #c4b5fd; margin:0 2px; font-weight:700; color:#c4b5fd; text-align:center; }
+  .tblank.filled { color:var(--accent); border-color:var(--accent); }
+  .slotgroup { margin-bottom:12px; }
+  .slotgroup .slbl { font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px; text-align:center; }
+  .slotchips { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  .wchip { border:2px solid #ece7fb; background:#fff; font-family:inherit; font-weight:700; font-size:15px; padding:9px 15px; border-radius:12px; cursor:pointer; }
+  .wchip:hover { border-color:var(--accent); }
+  .wchip.picked { border-color:var(--accent); background:var(--accent-soft); color:var(--accent); }
+  .meter-wrap { margin:16px 0 4px; }
+  .meter-lbl { display:flex; justify-content:space-between; font-size:12px; font-weight:800; color:var(--muted); margin-bottom:5px; }
+  .meter { height:12px; background:#f1eefc; border-radius:999px; overflow:hidden; }
+  .meter .fill { height:100%; width:0; border-radius:999px; transition:width .35s cubic-bezier(.2,.9,.3,1.3); }
+
+  /* ---- Theme Detective ---- */
+  .story { background:#faf8ff; border-radius:16px; padding:8px; margin-bottom:6px; }
+  .story-title { font-weight:900; font-size:14px; color:var(--accent); text-transform:uppercase; letter-spacing:.5px; margin:6px 10px 8px; }
+  .sline { font-size:16px; line-height:1.5; padding:11px 13px; border-radius:11px; cursor:pointer; border:2px solid transparent; transition:background .12s; }
+  .sline:hover { background:#f1eefc; }
+  .sline.found { background:#dcfce7; border-color:var(--correct); cursor:default; }
+  .sline.miss { background:#fee2e2; border-color:var(--wrong); animation:shake .35s; }
+  .sline.locked { cursor:default; }
+  .choices { display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+  .choice { background:#fff; border:3px solid #ece7fb; border-radius:14px; font-size:16px; font-weight:700; padding:13px 16px; color:var(--ink); cursor:pointer; text-align:left; font-family:inherit; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; color:var(--correct); }
+  .choice.wrong { border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
+  .choice:disabled { cursor:default; }
+
+  /* popups */
+  .modal{ position:fixed; inset:0; z-index:90; background:rgba(42,30,58,.5); display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; }
+  .modal.hidden{ display:none; }
+  .sheet{ background:#fff; border-radius:20px; max-width:560px; width:100%; padding:26px 24px; position:relative; box-shadow:0 24px 60px rgba(42,30,58,.4); }
+  .sheet h2{ margin:0 0 6px; font-size:20px; } .sheet-sub{ color:var(--muted); font-size:14px; margin:0 0 18px; line-height:1.5; }
+  .closeBtn{ position:absolute; top:14px; right:14px; border:none; background:#f1eefc; color:var(--accent); width:34px; height:34px; border-radius:50%; font-size:16px; font-weight:800; cursor:pointer; }
+  .trow{ padding:11px 0; border-top:1px solid #f0ecfb; } .trow:first-of-type{ border-top:none; }
+  .trow .tt{ font-weight:900; font-size:15.5px; } .trow .td{ font-size:14px; color:#57506b; line-height:1.5; margin-top:2px; }
+  .trow .ts{ font-size:13.5px; color:#5b21b6; line-height:1.55; margin-top:6px; background:#f3f0fd; border-left:3px solid var(--accent); border-radius:0 8px 8px 0; padding:8px 11px; }
+  .trow .te{ font-size:13px; color:var(--accent); font-weight:700; margin-top:6px; font-style:italic; }
+  .srow{ padding:10px 0; border-top:1px solid #f0ecfb; } .srow a{ color:var(--accent); font-weight:800; text-decoration:none; } .snote{ color:var(--muted); font-size:13px; margin-top:3px; line-height:1.5; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner { position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6); background:linear-gradient(135deg,#a78bfa,#7c3aed); color:#fff; font-weight:900; font-size:28px; padding:20px 38px; border-radius:22px; box-shadow:0 18px 50px rgba(124,58,237,.45); z-index:95; opacity:0; pointer-events:none; text-align:center; white-space:nowrap; }
+  #streakBanner.show { animation: banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner { 0%{opacity:0; transform:translate(-50%,-50%) scale(.6)} 15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)} 28%{transform:translate(-50%,-50%) scale(1)} 80%{opacity:1; transform:translate(-50%,-50%) scale(1)} 100%{opacity:0; transform:translate(-50%,-60%) scale(.95)} }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button id="dictBtn" title="Literary terms glossary">📖 Glossary</button>
+    <button id="srcBtn" title="Where these ideas come from">📚 Sources</button>
+  </div>
+  <h1>📚 Lit Devices Lab</h1>
+  <p class="sub">Hunt hidden devices, forge your own metaphors, rewrite a sentence’s whole mood, and crack a story’s theme — the way high-school English actually works.</p>
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="detective" class="on">🕵️ Device Detective</button>
+      <button data-mode="forge">⚒️ Figurative Forge</button>
+      <button data-mode="tone">🎚️ Tone Rewriter</button>
+      <button data-mode="theme">💡 Theme Detective</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar" id="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="stage" id="stage"></div>
+
+  <div class="modal hidden" id="dictModal"><div class="sheet" id="dictSheet"></div></div>
+  <div class="modal hidden" id="srcModal"><div class="sheet" id="srcSheet"></div></div>
+
+<script src="data.js?v=2"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const L = window.LIT;
+  const SRC = {}; L.SOURCES.forEach(s => SRC[s.key] = s);
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const pick = a => a[Math.floor(Math.random()*a.length)];
+  const shuffle = a => a.slice().sort(()=>Math.random()-0.5);
+  const sample = (a,n) => shuffle(a).slice(0,n);
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+  const stage = $('stage');
+
+  let mode = 'detective';
+  let correct = 0, total = 0, streak = 0;
+
+  function updateScore(){ $('correctCount').textContent=correct; $('totalCount').textContent=total; $('streak').textContent=streak; }
+  function score(ok){ total++; if(ok){ correct++; streak++; } else streak=0; updateScore(); if(ok && streak>0 && streak%5===0) celebrate(streak); }
+  function resetProgress(){ correct=0; total=0; streak=0; updateScore(); }
+  const srcLink = key => { const s=SRC[key]; return s ? `<a class="rev-src" href="${s.url}" target="_blank" rel="noopener">📚 Source: ${esc(s.name)} ↗</a>` : ''; };
+
+  function celebrate(n){
+    const msgs = { 5:'🌟 5 in a row!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>Word wizard!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    const colors = ['#7c3aed','#a78bfa','#f59e0b','#16a34a','#0ea5e9','#ec4899'];
+    const box = $('confetti');
+    for (let i=0;i<80;i++){ const c=document.createElement('div'); c.className='conf';
+      c.style.left=Math.random()*100+'vw'; c.style.background=colors[i%colors.length];
+      c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; c.style.animationDelay=(Math.random()*0.4)+'s';
+      c.style.transform=`rotate(${Math.random()*360}deg)`; box.appendChild(c); setTimeout(()=>c.remove(),3400); }
+  }
+
+  // ============ GAME 1 · DEVICE DETECTIVE ============
+  let lastPassage = null;
+  function mountDetective(){
+    let p, tries=0;
+    do { p = pick(L.DETECTIVE); tries++; } while (L.DETECTIVE.length>1 && p===lastPassage && tries<20);
+    lastPassage = p;
+    const devices = shuffle([...new Set(p.parts.filter(x=>typeof x==='object').map(x=>x.d))]);
+    let ti = 0; const found = new Set();
+
+    let html = '<div class="card"><p class="qprompt">🕵️ Device Detective</p>';
+    html += '<div class="hunt-target" id="huntTarget"></div>';
+    html += '<div class="passage" id="passage">';
+    p.parts.forEach((x,i) => {
+      if (typeof x === 'string') html += esc(x);
+      else html += `<span class="dev" data-i="${i}" data-dev="${esc(x.d)}">${esc(x.p)}</span>`;
+    });
+    html += '</div>';
+    html += '<div class="dchips" id="dchips"></div>';
+    html += '<div class="feedback" id="fb"></div>';
+    html += '<div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">Next passage ➡️</button></div>';
+    html += '</div>';
+    stage.innerHTML = html;
+
+    function renderChips(){
+      $('dchips').innerHTML = devices.map((d,i)=>
+        `<span class="dchip ${found.has(d)?'done':(i===ti?'now':'')}">${found.has(d)?'✓ ':''}${esc(d)}</span>`).join('');
+    }
+    function setTarget(){
+      if (ti >= devices.length){
+        $('huntTarget').innerHTML = '🎉 All devices found!';
+        $('fb').textContent=''; $('nextRow').style.display='flex'; $('nextBtn').focus();
+        return;
+      }
+      $('huntTarget').innerHTML = `Find the <b>${esc(devices[ti])}</b>`;
+      renderChips();
+    }
+    stage.querySelectorAll('.dev').forEach(el => el.addEventListener('click', () => {
+      if (el.classList.contains('found') || ti>=devices.length) return;
+      const dev = el.dataset.dev;
+      if (dev === devices[ti]){
+        el.classList.add('found'); found.add(dev);
+        score(true); $('fb').textContent = pick(['🎉 Found it!','⭐ Nice eye!','✅ Got it!']); $('fb').className='feedback good';
+        ti++; setTimeout(setTarget, 250);
+      } else {
+        score(false); el.classList.add('miss'); setTimeout(()=>el.classList.remove('miss'),400);
+        $('fb').textContent = `That’s ${dev==='?'?'not it':'the '+dev+', not the '+devices[ti]}. Look again!`; $('fb').className='feedback bad';
+      }
+    }));
+    $('nextBtn').onclick = mountDetective;
+    setTarget();
+  }
+
+  // ============ GAME 2 · FIGURATIVE FORGE ============
+  let forgeState = { si:0, ii:0, type:'simile', saved:[] };
+  function mountForge(){
+    const S = forgeState;
+    stage.innerHTML = `<div class="card">
+      <p class="qprompt">⚒️ Figurative Forge — build your own figurative language</p>
+      <div class="forge-reels">
+        <div class="reel"><div class="rlabel">Subject</div><div class="rval" id="rSubj"></div><button class="dice" id="diceSubj" title="Random subject">🎲</button></div>
+        <div class="reel"><div class="rlabel">Image</div><div class="rval" id="rImg"></div><button class="dice" id="diceImg" title="Random image">🎲</button></div>
+      </div>
+      <div class="toggle" id="typeToggle">
+        <button data-t="simile" class="${S.type==='simile'?'on':''}">…is like… (simile)</button>
+        <button data-t="metaphor" class="${S.type==='metaphor'?'on':''}">…is… (metaphor)</button>
+      </div>
+      <div class="forge-line" id="forgeLine"></div>
+      <div class="forge-note" id="forgeNote"></div>
+      <div class="btn-row">
+        <button class="act btn-ghost" id="spinBoth">🎲 Spin both</button>
+        <button class="act btn-primary" id="saveBtn">⭐ Save this line</button>
+      </div>
+      <div class="saved-wrap" id="savedWrap" style="display:none"><h3>⭐ Your collection</h3><div id="savedList"></div></div>
+    </div>`;
+    function render(anim){
+      const subj = L.FORGE_SUBJECTS[S.si], im = L.FORGE_IMAGES[S.ii];
+      $('rSubj').textContent = subj;
+      $('rImg').textContent = im.img;
+      const line = `${cap(subj)} ${S.type==='simile'?'is like':'is'} ${im.img}.`;
+      const el = $('forgeLine'); el.textContent = `“${line}”`;
+      if (anim){ el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+      $('forgeNote').innerHTML = `You built a <b>${S.type}</b>! It paints “${esc(subj)}” as <b>${esc(im.q)}</b>.`;
+    }
+    function renderSaved(){
+      const w = $('savedWrap');
+      if (!S.saved.length){ w.style.display='none'; return; }
+      w.style.display='';
+      $('savedList').innerHTML = S.saved.map(s => `<div class="saved-line"><span class="tag">${s.type}</span>${esc(s.line)}</div>`).join('');
+    }
+    $('diceSubj').onclick = () => { S.si = Math.floor(Math.random()*L.FORGE_SUBJECTS.length); render(true); };
+    $('diceImg').onclick  = () => { S.ii = Math.floor(Math.random()*L.FORGE_IMAGES.length); render(true); };
+    $('spinBoth').onclick = () => { S.si = Math.floor(Math.random()*L.FORGE_SUBJECTS.length); S.ii = Math.floor(Math.random()*L.FORGE_IMAGES.length); render(true); };
+    stage.querySelectorAll('#typeToggle button').forEach(b => b.onclick = () => {
+      S.type = b.dataset.t;
+      stage.querySelectorAll('#typeToggle button').forEach(x=>x.classList.toggle('on', x===b));
+      render(true);
+    });
+    $('saveBtn').onclick = () => {
+      const subj = L.FORGE_SUBJECTS[S.si], im = L.FORGE_IMAGES[S.ii];
+      S.saved.unshift({ type:S.type, line:`${cap(subj)} ${S.type==='simile'?'is like':'is'} ${im.img}.` });
+      if (S.saved.length>8) S.saved.pop();
+      renderSaved();
+      const b=$('saveBtn'); b.textContent='✓ Saved!'; setTimeout(()=>b.textContent='⭐ Save this line', 900);
+    };
+    render(false); renderSaved();
+  }
+
+  // ============ GAME 3 · TONE REWRITER ============
+  let toneState = null;
+  function mountTone(){
+    const tmpl = pick(L.TONE_SENTS);
+    const target = pick(L.TONES);
+    const slotKeys = Object.keys(tmpl.slots);
+    // build chip pool per slot: 2 on-tone words + 2 decoys from other tones
+    const pools = {};
+    slotKeys.forEach(k => {
+      const onTone = tmpl.slots[k][target.key];
+      const otherTones = L.TONES.filter(t=>t.key!==target.key);
+      const decoys = shuffle(otherTones).slice(0,2).map(t => pick(tmpl.slots[k][t.key]));
+      pools[k] = shuffle([...onTone.map(w=>({w,on:true})), ...decoys.map(w=>({w,on:false}))]);
+    });
+    toneState = { tmpl, target, slotKeys, pools, chosen:{} };
+
+    stage.innerHTML = `<div class="card">
+      <p class="qprompt">🎚️ Tone Rewriter — make the sentence sound…</p>
+      <div class="tone-picker" id="tonePicker"></div>
+      <div class="tone-sentence" id="toneSentence"></div>
+      <div id="slots"></div>
+      <div class="meter-wrap">
+        <div class="meter-lbl"><span>Tone match</span><span id="meterPct">0%</span></div>
+        <div class="meter"><div class="fill" id="meterFill" style="background:${target.color}"></div></div>
+      </div>
+      <div class="feedback" id="fb"></div>
+      <div class="btn-row" id="btnRow"><button class="act btn-primary" id="lockBtn" disabled>Lock it in ✓</button><button class="act btn-ghost" id="newBtn">New sentence 🎲</button></div>
+    </div>`;
+
+    $('tonePicker').innerHTML = L.TONES.map(t =>
+      `<button class="tone-btn ${t.key===target.key?'on':''}" style="${t.key===target.key?`background:${t.color};border-color:${t.color}`:''}" disabled>${t.emoji} ${t.key}</button>`).join('');
+
+    function renderSentence(){
+      const S = toneState;
+      let html = S.tmpl.template;
+      S.slotKeys.forEach(k => {
+        const val = S.chosen[k];
+        html = html.replace('{'+k+'}', val ? `<span class="tblank filled">${esc(val.w)}</span>` : `<span class="tblank">____</span>`);
+      });
+      $('toneSentence').innerHTML = html;
+    }
+    function renderSlots(){
+      const S = toneState;
+      $('slots').innerHTML = S.slotKeys.map(k =>
+        `<div class="slotgroup"><div class="slbl">word ${S.slotKeys.indexOf(k)+1}</div><div class="slotchips" data-k="${k}">`+
+        S.pools[k].map((o,i)=>`<button class="wchip ${S.chosen[k]&&S.chosen[k].w===o.w?'picked':''}" data-i="${i}">${esc(o.w)}</button>`).join('')+
+        `</div></div>`).join('');
+      stage.querySelectorAll('.slotchips').forEach(group => {
+        const k = group.dataset.k;
+        group.querySelectorAll('.wchip').forEach(chip => chip.onclick = () => {
+          toneState.chosen[k] = toneState.pools[k][+chip.dataset.i];
+          group.querySelectorAll('.wchip').forEach(x=>x.classList.toggle('picked', x===chip));
+          renderSentence(); updateMeter();
+        });
+      });
+    }
+    function updateMeter(){
+      const S = toneState;
+      const filled = S.slotKeys.filter(k=>S.chosen[k]);
+      const onCount = filled.filter(k=>S.chosen[k].on).length;
+      const pct = Math.round(onCount / S.slotKeys.length * 100);
+      $('meterFill').style.width = pct + '%';
+      $('meterPct').textContent = pct + '%';
+      $('lockBtn').disabled = filled.length !== S.slotKeys.length;
+    }
+    $('lockBtn').onclick = () => {
+      const S = toneState;
+      const allOn = S.slotKeys.every(k => S.chosen[k] && S.chosen[k].on);
+      score(allOn);
+      const fb = $('fb');
+      if (allOn){
+        fb.innerHTML = `🎉 Nailed the <b>${S.target.key.toLowerCase()}</b> tone! Same sentence, totally different feeling — that’s the power of <b>diction</b> (word choice).`;
+        fb.className='feedback good';
+        stage.querySelectorAll('.wchip').forEach(c=>c.disabled=true);
+        $('lockBtn').style.display='none';
+      } else {
+        const bad = S.slotKeys.filter(k=>!S.chosen[k].on);
+        fb.innerHTML = `Close! ${bad.length} word${bad.length>1?'s don’t':' doesn’t'} fit a <b>${S.target.key.toLowerCase()}</b> mood — swap ${bad.length>1?'them':'it'} and lock again.`;
+        fb.className='feedback bad';
+      }
+    };
+    $('newBtn').onclick = mountTone;
+    renderSentence(); renderSlots(); updateMeter();
+  }
+
+  // ============ GAME 4 · THEME DETECTIVE ============
+  let lastStory = null;
+  function mountTheme(){
+    let it, tries=0;
+    do { it = pick(L.THEME); tries++; } while (L.THEME.length>1 && it===lastStory && tries<20);
+    lastStory = it;
+    let step = 1, clueOK = true;
+
+    stage.innerHTML = `<div class="card">
+      <p class="qprompt" id="tprompt">💡 Tap the sentence that reveals the theme</p>
+      <div class="story"><div class="story-title">${esc(it.title)}</div><div id="slines"></div></div>
+      <div class="choices" id="choices" style="display:none"></div>
+      <div class="feedback" id="fb"></div>
+      <div class="reveal" id="reveal" style="display:none"></div>
+      <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">Next story ➡️</button></div>
+    </div>`;
+    $('slines').innerHTML = it.sentences.map((s,i)=>`<div class="sline" data-i="${i}">${esc(s)}</div>`).join('');
+
+    stage.querySelectorAll('.sline').forEach(el => el.addEventListener('click', () => {
+      if (step !== 1) return;
+      const i = +el.dataset.i;
+      if (i === it.clue){
+        el.classList.add('found','locked');
+        stage.querySelectorAll('.sline').forEach(x=>{ x.classList.add('locked'); });
+        $('fb').textContent = '✅ That’s the key clue — now name the theme.'; $('fb').className='feedback good';
+        step = 2; showChoices();
+      } else {
+        clueOK = false; score(false);
+        el.classList.add('miss'); setTimeout(()=>el.classList.remove('miss'),400);
+        $('fb').textContent = 'Not the strongest clue — which sentence really shows the lesson?'; $('fb').className='feedback bad';
+      }
+    }));
+
+    function showChoices(){
+      $('tprompt').textContent = '💡 What’s the theme (central message)?';
+      const box = $('choices'); box.style.display='flex';
+      shuffle(it.options.slice()).forEach(o => {
+        const btn = document.createElement('button'); btn.className='choice'; btn.textContent=o;
+        btn.dataset.correct = (o===it.answer) ? '1' : '';
+        btn.onclick = () => {
+          if (step !== 2) return; step = 3;
+          const ok = o === it.answer;
+          score(ok && clueOK);
+          [...box.children].forEach(c=>{ c.disabled=true; if(c.dataset.correct) c.classList.add('correct'); });
+          if (!ok) btn.classList.add('wrong');
+          $('fb').textContent = ok ? '🎉 That’s the theme!' : 'Not quite — here’s the theme:'; $('fb').className = 'feedback ' + (ok?'good':'bad');
+          const rev = $('reveal'); rev.style.display=''; rev.innerHTML = `<div class="rev-title">Theme: ${esc(it.answer)}</div><div>${esc(it.why)}</div>` + srcLink('commonlit');
+          $('nextRow').style.display='flex'; $('nextBtn').focus();
+        };
+        box.appendChild(btn);
+      });
+    }
+    $('nextBtn').onclick = mountTheme;
+  }
+
+  // ---- dispatch ----
+  const MOUNTS = { detective:mountDetective, forge:mountForge, tone:mountTone, theme:mountTheme };
+  function newRound(){
+    $('scorebar').classList.toggle('hidden', mode==='forge');
+    MOUNTS[mode]();
+  }
+
+  // ---- popups ----
+  function openDict(){
+    const rows = L.DEVICES.map(t =>
+      `<div class="trow"><div class="tt">${esc(t.term)}</div><div class="td">${esc(t.def)}</div>`+
+      (t.simple?`<div class="ts">💡 <b>In simple terms:</b> ${esc(t.simple)}</div>`:``)+
+      (t.ex?`<div class="te">e.g. ${esc(t.ex)}</div>`:``)+`</div>`).join('');
+    $('dictSheet').innerHTML = `<button class="closeBtn" id="closeDict">✕</button><h2>📖 Literary Terms Glossary</h2>`+
+      `<p class="sheet-sub">The devices high-school English assumes you know — the definition, the same idea in plain terms, and an example.</p>` + rows;
+    $('closeDict').onclick = ()=> $('dictModal').className='modal hidden';
+    $('dictModal').className='modal'; $('dictModal').scrollTop=0;
+  }
+  function openSources(){
+    const rows = L.SOURCES.map(s => `<div class="srow"><a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)} ↗</a><div class="snote">${esc(s.note)}</div></div>`).join('');
+    $('srcSheet').innerHTML = `<button class="closeBtn" id="closeSrc">✕</button><h2>📚 Where these ideas come from</h2>`+
+      `<p class="sheet-sub">Trusted places to go deeper on literary devices, tone, and theme.</p>` + rows;
+    $('closeSrc').onclick = ()=> $('srcModal').className='modal hidden';
+    $('srcModal').className='modal';
+  }
+
+  // ---- wiring ----
+  $('modeSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.mode;
+    [...$('modeSeg').children].forEach(x => x.classList.toggle('on', x===b));
+    resetProgress(); newRound();
+  });
+  $('dictBtn').onclick = openDict;
+  $('srcBtn').onclick = openSources;
+  [$('dictModal'), $('srcModal')].forEach(m => m.addEventListener('click', e => { if (e.target === m) m.className='modal hidden'; }));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape'){ $('dictModal').className='modal hidden'; $('srcModal').className='modal hidden'; } });
+
+  newRound();
+})();
+</script>
+</body>
+</html>
