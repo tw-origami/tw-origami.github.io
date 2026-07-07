@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Chem Basics</title>
+<style>
+  :root {
+    --ink:#0c2b33; --muted:#5b7783; --accent:#0891b2; --accent-soft:#cffafe;
+    --correct:#16a34a; --wrong:#dc2626; --shadow:0 10px 30px rgba(8,145,178,.15);
+    --proton:#ef4444; --neutron:#94a3b8; --electron:#0891b2;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#ecfeff,#f0f9ff); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:22px 16px 60px; }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 16px; font-size:15px; text-align:center; max-width:540px; line-height:1.5; }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; position:sticky; top:10px; z-index:70; }
+  .nav a, .nav button{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 15px; border-radius:9px; border:none; background:transparent; font-family:inherit; cursor:pointer; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+  .nav button:hover{ background:var(--accent-soft); color:var(--accent); }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; max-width:660px; }
+  .seg button { border:none; background:transparent; font-family:inherit; font-weight:800; font-size:14.5px; padding:9px 15px; border-radius:10px; cursor:pointer; color:var(--muted); transition:background .15s, color .15s; }
+  .seg button.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .scorebar.hidden { display:none; }
+  .chip { background:#fff; border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; } .chip.streak { color:#ea580c; }
+
+  .stage { width:100%; max-width:620px; }
+  .card { width:100%; background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:24px; }
+  .qprompt { color:var(--muted); font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; text-align:center; margin:0 0 10px; }
+  .howto { background:var(--accent-soft); border-radius:12px; padding:10px 14px; font-size:13.5px; color:#0e5f73; font-weight:600; text-align:center; margin:0 0 16px; line-height:1.5; } .howto b { font-weight:800; }
+  .feedback { min-height:24px; margin-top:14px; font-weight:800; font-size:16px; text-align:center; }
+  .feedback.good { color:var(--correct); } .feedback.bad { color:var(--wrong); }
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; margin:12px 0 2px; padding:14px 16px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
+  .reveal .rev-title { font-weight:900; font-size:16px; margin-bottom:4px; color:#0e5f73; }
+  .rev-src { display:inline-block; margin-top:12px; font-size:13px; font-weight:700; color:var(--accent); text-decoration:none; border-bottom:1.5px dotted var(--accent); }
+  button.act { font-family:inherit; font-size:16px; font-weight:800; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; }
+  button.act:disabled { opacity:.5; cursor:default; }
+  .btn-primary { background:var(--accent); color:#fff; } .btn-primary:hover { background:#0e7490; }
+  .btn-ghost { background:var(--accent-soft); color:var(--accent); }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  /* ---- Atom Builder ---- */
+  .atom-wrap { display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start; justify-content:center; }
+  .atom-svg { flex:1 1 260px; max-width:320px; }
+  .atom-svg svg { width:100%; height:auto; display:block; }
+  .atom-panel { flex:1 1 240px; }
+  .elreadout { text-align:center; background:#f0fdff; border:2px solid #cff2f8; border-radius:16px; padding:14px; margin-bottom:14px; }
+  .elreadout .elsym { font-size:40px; font-weight:900; line-height:1; }
+  .elreadout .elname { font-size:18px; font-weight:800; margin-top:2px; }
+  .elreadout .elmeta, .elreadout .elmeta { color:var(--muted); font-size:13px; margin-top:6px; line-height:1.5; }
+  .elreadout .badge { display:inline-block; font-size:12px; font-weight:800; padding:3px 10px; border-radius:999px; margin-top:8px; }
+  .badge.neutral { background:#e2e8f0; color:#475569; } .badge.cation { background:#fee2e2; color:#b91c1c; } .badge.anion { background:#dbeafe; color:#1d4ed8; }
+  .prow { display:flex; align-items:center; gap:10px; margin-bottom:9px; background:#f8fafc; border-radius:12px; padding:8px 10px; }
+  .prow .dot { width:16px; height:16px; border-radius:50%; flex:0 0 auto; }
+  .prow .pname { flex:1; font-weight:800; font-size:14px; }
+  .prow .pval { font-weight:900; font-size:18px; min-width:26px; text-align:center; }
+  .stepbtn { width:38px; height:38px; border:none; border-radius:11px; background:var(--accent-soft); color:var(--accent); font-size:20px; font-weight:800; cursor:pointer; }
+  .stepbtn:hover { background:var(--accent); color:#fff; }
+  .stepbtn:disabled { opacity:.4; cursor:default; }
+  .challenge { text-align:center; font-size:16px; font-weight:800; background:#fffbeb; border:2px solid #fde68a; border-radius:12px; padding:10px; margin-bottom:14px; }
+  .challenge b { color:#b45309; }
+
+  /* ---- Molecule Lab ---- */
+  .formula-big { text-align:center; font-size:44px; font-weight:900; margin:2px 0 4px; letter-spacing:1px; }
+  .formula-name { text-align:center; color:var(--muted); font-weight:700; margin-bottom:14px; }
+  .palette { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:14px; }
+  .patom { width:56px; height:56px; border-radius:50%; border:none; font-family:inherit; font-weight:900; font-size:18px; cursor:pointer; box-shadow:0 3px 6px rgba(0,0,0,.14); }
+  .patom:hover { transform:translateY(-2px); }
+  .tray { min-height:78px; background:#f0fdff; border:2px dashed #cff2f8; border-radius:16px; padding:12px; display:flex; flex-wrap:wrap; gap:8px; align-content:flex-start; justify-content:center; margin-bottom:6px; }
+  .tatom { width:44px; height:44px; border-radius:50%; font-weight:900; font-size:15px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,.14); }
+  .tray-empty { color:#94a3b8; font-size:14px; align-self:center; }
+  .count-check { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin:8px 0 2px; }
+  .cc { font-size:13px; font-weight:800; padding:5px 11px; border-radius:999px; background:#f1f5f9; color:#64748b; }
+  .cc.ok { background:#dcfce7; color:#166534; }
+
+  /* ---- Balance It ---- */
+  .eqn { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:center; margin:6px 0 16px; }
+  .term { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .term .coef { font-size:28px; font-weight:900; color:var(--accent); min-width:22px; text-align:center; }
+  .term .tf { font-size:24px; font-weight:800; }
+  .term .tsteps { display:flex; gap:4px; }
+  .term .tsteps button { width:28px; height:28px; border:none; border-radius:8px; background:var(--accent-soft); color:var(--accent); font-weight:800; cursor:pointer; }
+  .eqn .plus, .eqn .arrow { font-size:24px; font-weight:800; color:var(--muted); align-self:flex-start; margin-top:6px; }
+  .tally { display:flex; flex-direction:column; gap:6px; max-width:340px; margin:0 auto; }
+  .tally-row { display:grid; grid-template-columns:52px 1fr 26px 1fr; align-items:center; gap:8px; font-weight:800; font-size:14px; background:#f8fafc; border-radius:10px; padding:7px 10px; }
+  .tally-row .el { color:var(--ink); } .tally-row .side { text-align:center; } .tally-row .eq { text-align:center; }
+  .tally-row.bal { background:#dcfce7; } .tally-row.unbal { background:#fef2f2; }
+  .tally-row.bal .eq { color:var(--correct); } .tally-row.unbal .eq { color:var(--wrong); }
+
+  /* ---- pH Scale ---- */
+  .ph-substance { text-align:center; margin-bottom:16px; }
+  .ph-substance .em { font-size:52px; } .ph-substance .nm { font-size:22px; font-weight:800; margin-top:4px; }
+  .ph-bar { height:26px; border-radius:999px; background:linear-gradient(90deg,#dc2626,#f97316,#eab308,#22c55e,#22c55e,#0ea5e9,#4338ca); margin:8px 0 4px; position:relative; }
+  .ph-scale-lbls { display:flex; justify-content:space-between; font-size:11px; font-weight:800; color:var(--muted); }
+  .ph-marker { position:absolute; top:-8px; width:4px; height:42px; background:#0c2b33; border-radius:2px; transform:translateX(-50%); }
+  .ph-marker.actual { background:#fff; box-shadow:0 0 0 3px #0c2b33; }
+  .ph-marker .lab { position:absolute; top:-22px; left:50%; transform:translateX(-50%); font-size:12px; font-weight:900; white-space:nowrap; }
+  input[type=range].ph { width:100%; margin-top:14px; accent-color:var(--accent); }
+  .ph-guess { text-align:center; font-size:26px; font-weight:900; color:var(--accent); }
+
+  /* Teacher Guide */
+  .teacher { width:100%; max-width:620px; margin-top:22px; background:#fffdf5; border:1px solid #eee6cf; border-radius:18px; box-shadow:var(--shadow); overflow:hidden; }
+  .teacher summary { list-style:none; cursor:pointer; padding:15px 20px; display:flex; align-items:center; gap:9px; font-weight:800; font-size:15px; color:#8a6d1f; }
+  .teacher summary::-webkit-details-marker { display:none; }
+  .teacher summary .chev { margin-left:auto; transition:transform .2s; color:#b89b45; font-size:13px; }
+  .teacher[open] summary .chev { transform:rotate(180deg); }
+  .teacher .tg-body { padding:0 20px 18px; }
+  .tg-item { margin-bottom:12px; } .tg-item .k { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:#b8860b; margin-bottom:3px; } .tg-item .v { font-size:14px; line-height:1.6; color:#4b4658; }
+  .tg-explore { background:var(--accent-soft); border-radius:12px; padding:12px 14px; font-size:13.5px; color:#0e5f73; line-height:1.6; } .tg-explore .k { color:var(--accent); }
+
+  /* popups */
+  .modal{ position:fixed; inset:0; z-index:90; background:rgba(12,43,51,.5); display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; } .modal.hidden{ display:none; }
+  .sheet{ background:#fff; border-radius:20px; max-width:560px; width:100%; padding:26px 24px; position:relative; box-shadow:0 24px 60px rgba(12,43,51,.4); }
+  .sheet h2{ margin:0 0 6px; font-size:20px; } .sheet-sub{ color:var(--muted); font-size:14px; margin:0 0 18px; line-height:1.5; }
+  .closeBtn{ position:absolute; top:14px; right:14px; border:none; background:#e6fbff; color:var(--accent); width:34px; height:34px; border-radius:50%; font-size:16px; font-weight:800; cursor:pointer; }
+  .trow{ padding:11px 0; border-top:1px solid #eef4f6; } .trow:first-of-type{ border-top:none; }
+  .trow .tt{ font-weight:900; font-size:15.5px; } .trow .td{ font-size:14px; color:#48606a; line-height:1.5; margin-top:2px; }
+  .trow .ts{ font-size:13.5px; color:#0e5f73; line-height:1.55; margin-top:6px; background:#ecfdff; border-left:3px solid var(--accent); border-radius:0 8px 8px 0; padding:8px 11px; }
+  .trow .te{ font-size:13px; color:var(--accent); font-weight:700; margin-top:6px; font-style:italic; }
+  .srow{ padding:10px 0; border-top:1px solid #eef4f6; } .srow a{ color:var(--accent); font-weight:800; text-decoration:none; } .snote{ color:var(--muted); font-size:13px; margin-top:3px; line-height:1.5; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner { position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6); background:linear-gradient(135deg,#22d3ee,#0891b2); color:#fff; font-weight:900; font-size:28px; padding:20px 38px; border-radius:22px; box-shadow:0 18px 50px rgba(8,145,178,.45); z-index:95; opacity:0; pointer-events:none; text-align:center; white-space:nowrap; }
+  #streakBanner.show { animation: banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner { 0%{opacity:0; transform:translate(-50%,-50%) scale(.6)} 15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)} 28%{transform:translate(-50%,-50%) scale(1)} 80%{opacity:1; transform:translate(-50%,-50%) scale(1)} 100%{opacity:0; transform:translate(-50%,-60%) scale(.95)} }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button id="dictBtn" title="Chemistry glossary">📖 Glossary</button>
+    <button id="srcBtn" title="Where these ideas come from">📚 Sources</button>
+  </div>
+  <h1>⚗️ Chem Basics</h1>
+  <p class="sub">Get ready for chemistry: build an atom and watch the element change, assemble molecules from formulas, balance equations, and map acids and bases.</p>
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="atom" class="on">⚛️ Atom Builder</button>
+      <button data-mode="molecule">🧪 Molecule Lab</button>
+      <button data-mode="balance">⚖️ Balance It</button>
+      <button data-mode="ph">🌡️ pH Scale</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar" id="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="stage" id="stage"></div>
+
+  <details class="teacher" id="teacher" open>
+    <summary>👩‍🏫 Teacher Guide <span class="chev">▲</span></summary>
+    <div class="tg-body" id="tgBody"></div>
+  </details>
+
+  <div class="modal hidden" id="dictModal"><div class="sheet" id="dictSheet"></div></div>
+  <div class="modal hidden" id="srcModal"><div class="sheet" id="srcSheet"></div></div>
+
+<script src="data.js?v=1"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const C = window.CHEM;
+  const SRC = {}; C.SOURCES.forEach(s => SRC[s.key] = s);
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const pick = a => a[Math.floor(Math.random()*a.length)];
+  const shuffle = a => a.slice().sort(()=>Math.random()-0.5);
+  const rnd = (lo,hi) => Math.floor(Math.random()*(hi-lo+1))+lo;
+  const gcdArr = a => a.reduce((g,x)=>{ const gg=(m,n)=>n?gg(n,m%n):m; return gg(g,x); });
+  const stage = $('stage');
+  const howBar = () => `<div class="howto">▶ <b>How to play:</b> ${esc(C.TEACHER[mode].how)}</div>`;
+
+  let mode = 'atom';
+  let correct = 0, total = 0, streak = 0;
+  function updateScore(){ $('correctCount').textContent=correct; $('totalCount').textContent=total; $('streak').textContent=streak; }
+  function score(ok){ total++; if(ok){ correct++; streak++; } else streak=0; updateScore(); if(ok && streak>0 && streak%5===0) celebrate(streak); }
+  function resetProgress(){ correct=0; total=0; streak=0; updateScore(); }
+  const srcLink = key => { const s=SRC[key]; return s ? `<a class="rev-src" href="${s.url}" target="_blank" rel="noopener">📚 Source: ${esc(s.name)} ↗</a>` : ''; };
+  function renderTeacher(){
+    const t = C.TEACHER[mode];
+    $('tgBody').innerHTML =
+      `<div class="tg-item"><div class="k">🎯 The point of this game</div><div class="v">${esc(t.point)}</div></div>`+
+      `<div class="tg-item"><div class="k">📘 What your student practices</div><div class="v">${esc(t.learn)}</div></div>`+
+      `<div class="tg-explore"><div class="k">🔎 Explore &amp; ask more</div>${esc(t.explore)}</div>`;
+  }
+  function celebrate(n){
+    const msgs = { 5:'🌟 5 in a row!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>Chem whiz!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    const colors = ['#0891b2','#22d3ee','#f59e0b','#16a34a','#ef4444','#a855f7'];
+    const box = $('confetti');
+    for (let i=0;i<80;i++){ const c=document.createElement('div'); c.className='conf';
+      c.style.left=Math.random()*100+'vw'; c.style.background=colors[i%colors.length];
+      c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; c.style.animationDelay=(Math.random()*0.4)+'s';
+      c.style.transform=`rotate(${Math.random()*360}deg)`; box.appendChild(c); setTimeout(()=>c.remove(),3400); }
+  }
+
+  // ============ GAME 1 · ATOM BUILDER ============
+  let atomState = { p:1, n:0, e:1, target:6 };
+  function atomSVG(p,n,e){
+    const W=300, cx=W/2, cy=W/2;
+    // electron shells
+    const caps = C.SHELLS; let remaining=e; const shellCounts=[];
+    for (const cap of caps){ const c=Math.min(cap,remaining); shellCounts.push(c); remaining-=c; if(remaining<=0) break; }
+    let svg = `<svg viewBox="0 0 ${W} ${W}" xmlns="http://www.w3.org/2000/svg">`;
+    // shell rings + electrons
+    shellCounts.forEach((cnt,si)=>{
+      const R = 52 + si*38;
+      svg += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#cbd5e1" stroke-width="1.5"/>`;
+      for (let k=0;k<cnt;k++){
+        const a = (k/cnt)*2*Math.PI - Math.PI/2 + si*0.4;
+        const ex = cx + R*Math.cos(a), ey = cy + R*Math.sin(a);
+        svg += `<circle cx="${ex}" cy="${ey}" r="6.5" fill="var(--electron)"/>`;
+      }
+    });
+    // nucleus
+    const total = p+n; const nucR = Math.min(34, 10 + Math.sqrt(total)*4);
+    for (let i=0;i<total;i++){
+      const r = total===1 ? 0 : nucR*Math.sqrt(i/total)*0.92;
+      const a = i*2.399963;
+      const x = cx + r*Math.cos(a), y = cy + r*Math.sin(a);
+      svg += `<circle cx="${x}" cy="${y}" r="6" fill="${i<p?'var(--proton)':'var(--neutron)'}" stroke="#fff" stroke-width="1"/>`;
+    }
+    if (total===0) svg += `<text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="13" fill="#94a3b8">empty</text>`;
+    svg += `</svg>`;
+    return svg;
+  }
+  function mountAtom(){
+    const S = atomState;
+    stage.innerHTML = `<div class="card"><p class="qprompt">⚛️ Atom Builder</p>${howBar()}
+      <div class="challenge" id="challenge"></div>
+      <div class="atom-wrap">
+        <div class="atom-svg" id="atomSvg"></div>
+        <div class="atom-panel">
+          <div id="elCard"></div>
+          <div class="prow"><span class="dot" style="background:var(--proton)"></span><span class="pname">Protons</span><button class="stepbtn" data-part="p" data-d="-1">−</button><span class="pval" id="pVal"></span><button class="stepbtn" data-part="p" data-d="1">+</button></div>
+          <div class="prow"><span class="dot" style="background:var(--neutron)"></span><span class="pname">Neutrons</span><button class="stepbtn" data-part="n" data-d="-1">−</button><span class="pval" id="nVal"></span><button class="stepbtn" data-part="n" data-d="1">+</button></div>
+          <div class="prow"><span class="dot" style="background:var(--electron)"></span><span class="pname">Electrons</span><button class="stepbtn" data-part="e" data-d="-1">−</button><span class="pval" id="eVal"></span><button class="stepbtn" data-part="e" data-d="1">+</button></div>
+        </div>
+      </div>
+      <div class="feedback" id="fb"></div>
+    </div>`;
+    function render(){
+      $('atomSvg').innerHTML = atomSVG(S.p,S.n,S.e);
+      $('pVal').textContent=S.p; $('nVal').textContent=S.n; $('eVal').textContent=S.e;
+      const el = C.ELEMENTS[S.p];
+      const charge = S.p - S.e;
+      let card;
+      if (!el){
+        card = `<div class="elsym" style="color:#94a3b8">?</div><div class="elname">No element yet</div><div class="elmeta">Add a proton to create hydrogen — the number of protons IS the element.</div>`;
+      } else {
+        const chargeTxt = charge===0 ? '<span class="badge neutral">neutral atom</span>'
+          : charge>0 ? `<span class="badge cation">+${charge} ion (cation)</span>`
+          : `<span class="badge anion">${charge} ion (anion)</span>`;
+        card = `<div class="elsym">${el.sym}</div><div class="elname">${el.name}</div>`+
+          `<div class="elmeta">Atomic number: <b>${S.p}</b> · Mass: <b>${S.p+S.n}</b> (${el.name}-${S.p+S.n})<br>Charge: <b>${charge>0?'+':''}${charge}</b></div>${chargeTxt}`;
+      }
+      $('elCard').innerHTML = `<div class="elreadout">${card}</div>`;
+      $('challenge').innerHTML = `🎯 Challenge: build an atom of <b>${C.ELEMENTS[S.target].name}</b> — it has <b>${S.target}</b> protons.`;
+      [...stage.querySelectorAll('.stepbtn')].forEach(b=>{
+        const part=b.dataset.part, d=+b.dataset.d;
+        b.disabled = (S[part]+d < 0) || (part==='p' && S[part]+d>20);
+      });
+      if (S.p === S.target && !S._won){
+        S._won = true; score(true);
+        $('fb').textContent = `🎉 You built ${C.ELEMENTS[S.target].name}! Next challenge loading…`; $('fb').className='feedback good';
+        setTimeout(()=>{ let t; do { t=rnd(1,20); } while(t===S.target); S.target=t; S._won=false; $('fb').textContent=''; render(); }, 1400);
+      }
+    }
+    stage.querySelectorAll('.stepbtn').forEach(b => b.onclick = () => {
+      const part=b.dataset.part, d=+b.dataset.d;
+      S[part] = Math.max(0, S[part]+d); if(part==='p') S[part]=Math.min(20,S[part]);
+      render();
+    });
+    render();
+  }
+
+  // ============ GAME 2 · MOLECULE LAB ============
+  let lastMol = null;
+  function mountMolecule(){
+    let m, tries=0;
+    do { m = pick(C.MOLECULES); tries++; } while (C.MOLECULES.length>1 && m===lastMol && tries<20);
+    lastMol = m;
+    const tray = [];
+    stage.innerHTML = `<div class="card"><p class="qprompt">🧪 Molecule Lab</p>${howBar()}
+      <div class="formula-big">${esc(m.formula)}</div>
+      <div class="formula-name">Build a molecule of ${esc(m.name)}</div>
+      <div class="reasons-lbl" style="text-align:center;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Tap atoms to add · tap one in the tray to remove it</div>
+      <div class="palette" id="palette"></div>
+      <div class="tray" id="tray"></div>
+      <div class="count-check" id="countCheck"></div>
+      <div class="feedback" id="fb"></div>
+      <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">Next molecule ➡️</button></div>
+    </div>`;
+    const need = m.atoms;
+    const paletteAtoms = C.ATOM_PALETTE.filter(a => a.sym in need).length >= 2 ? C.ATOM_PALETTE : C.ATOM_PALETTE;
+    const meta = {}; C.ATOM_PALETTE.forEach(a=>meta[a.sym]=a);
+    $('palette').innerHTML = C.ATOM_PALETTE.map(a =>
+      `<button class="patom" data-sym="${a.sym}" style="background:${a.fill};color:${a.text}">${a.sym}</button>`).join('');
+    function counts(){ const c={}; tray.forEach(s=>c[s]=(c[s]||0)+1); return c; }
+    function render(){
+      const t = $('tray');
+      t.innerHTML = tray.length ? tray.map((s,i)=>`<div class="tatom" data-i="${i}" style="background:${meta[s].fill};color:${meta[s].text}">${s}</div>`).join('') : '<div class="tray-empty">tap atoms above to start building</div>';
+      t.querySelectorAll('.tatom').forEach(el => el.onclick = () => { tray.splice(+el.dataset.i,1); render(); });
+      const c = counts();
+      $('countCheck').innerHTML = Object.keys(need).map(sym=>{
+        const have = c[sym]||0, ok = have===need[sym];
+        return `<span class="cc ${ok?'ok':''}">${ok?'✓ ':''}${sym}: ${have}/${need[sym]}</span>`;
+      }).join('');
+      // extra atoms not needed?
+      const extra = Object.keys(c).some(s=> !(s in need) || c[s] > need[s]);
+      const done = Object.keys(need).every(s => (c[s]||0)===need[s]) && !extra;
+      if (done){ finishMol(true); }
+    }
+    let finished = false;
+    function finishMol(ok){
+      if (finished) return; finished = true; score(true);
+      $('fb').textContent = `🎉 That’s ${m.name} — ${m.formula} built correctly!`; $('fb').className='feedback good';
+      $('nextRow').style.display='flex'; $('nextBtn').focus();
+      $('palette').querySelectorAll('.patom').forEach(b=>b.disabled=true);
+    }
+    stage.querySelectorAll('.patom').forEach(b => b.onclick = () => { if(finished) return; tray.push(b.dataset.sym); render(); });
+    $('nextBtn').onclick = mountMolecule;
+    render();
+  }
+
+  // ============ GAME 3 · BALANCE IT ============
+  let lastEq = null;
+  function mountBalance(){
+    let eq, tries=0;
+    do { eq = pick(C.EQUATIONS); tries++; } while (C.EQUATIONS.length>1 && eq===lastEq && tries<20);
+    lastEq = eq;
+    const coeffs = eq.terms.map(()=>1);
+    const elems = [...new Set(eq.terms.flatMap(t=>Object.keys(t.c)))];
+
+    let eqnHTML = '';
+    eq.terms.forEach((t,i)=>{
+      if (i>0) eqnHTML += (t.side==='R' && eq.terms[i-1].side==='L') ? '<span class="arrow">→</span>' : '<span class="plus">+</span>';
+      eqnHTML += `<div class="term"><div class="coef" id="coef${i}">1</div><div class="tf">${esc(t.f)}</div><div class="tsteps"><button data-i="${i}" data-d="-1">−</button><button data-i="${i}" data-d="1">+</button></div></div>`;
+    });
+    stage.innerHTML = `<div class="card"><p class="qprompt">⚖️ Balance It</p>${howBar()}
+      <div class="eqn">${eqnHTML}</div>
+      <div class="tally" id="tally"></div>
+      <div class="feedback" id="fb"></div>
+      <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">Next equation ➡️</button></div>
+    </div>`;
+    let solved = false;
+    function sideSum(el, side){ let s=0; eq.terms.forEach((t,i)=>{ if(t.side===side) s += coeffs[i]*(t.c[el]||0); }); return s; }
+    function render(){
+      eq.terms.forEach((t,i)=> $('coef'+i).textContent = coeffs[i]);
+      let allBal = true;
+      $('tally').innerHTML = elems.map(el=>{
+        const L=sideSum(el,'L'), R=sideSum(el,'R'); const bal=L===R; if(!bal) allBal=false;
+        return `<div class="tally-row ${bal?'bal':'unbal'}"><span class="el">${el}</span><span class="side">left: ${L}</span><span class="eq">${bal?'=':'≠'}</span><span class="side">right: ${R}</span></div>`;
+      }).join('');
+      const reduced = gcdArr(coeffs)===1;
+      if (allBal && reduced && !solved){
+        solved = true; score(true);
+        $('fb').textContent = '🎉 Balanced! Same atoms on both sides — mass is conserved.'; $('fb').className='feedback good';
+        $('nextRow').style.display='flex'; $('nextBtn').focus();
+      } else if (allBal && !reduced){
+        $('fb').textContent = 'Balanced — but try smaller numbers (divide them all down).'; $('fb').className='feedback bad';
+      } else { $('fb').textContent=''; }
+    }
+    stage.querySelectorAll('.tsteps button').forEach(b => b.onclick = () => {
+      if (solved) return;
+      const i=+b.dataset.i, d=+b.dataset.d;
+      coeffs[i] = Math.max(1, Math.min(9, coeffs[i]+d));
+      render();
+    });
+    $('nextBtn').onclick = mountBalance;
+    render();
+  }
+
+  // ============ GAME 4 · pH SCALE ============
+  let lastPh = null;
+  function mountPh(){
+    let s, tries=0;
+    do { s = pick(C.PH_SUBSTANCES); tries++; } while (C.PH_SUBSTANCES.length>1 && s===lastPh && tries<20);
+    lastPh = s;
+    stage.innerHTML = `<div class="card"><p class="qprompt">🌡️ pH Scale</p>${howBar()}
+      <div class="ph-substance"><div class="em">${s.emoji}</div><div class="nm">${esc(s.name)}</div></div>
+      <div class="ph-guess" id="phGuess">pH 7</div>
+      <div class="ph-bar" id="phBar"></div>
+      <div class="ph-scale-lbls"><span>0 acid</span><span>7 neutral</span><span>14 base</span></div>
+      <input type="range" class="ph" id="phSlider" min="0" max="14" step="0.5" value="7">
+      <div class="feedback" id="fb"></div>
+      <div class="btn-row" id="btnRow"><button class="act btn-primary" id="checkBtn">Check</button></div>
+    </div>`;
+    const sl = $('phSlider');
+    sl.oninput = () => $('phGuess').textContent = 'pH ' + (+sl.value);
+    $('checkBtn').onclick = () => {
+      const guess = +sl.value, diff = Math.abs(guess - s.ph);
+      const ok = diff <= 1.5;
+      score(ok);
+      sl.disabled = true; $('checkBtn').style.display='none';
+      const zone = s.ph<7 ? 'an acid' : s.ph>7 ? 'a base' : 'neutral';
+      // place actual marker
+      $('phBar').innerHTML =
+        `<div class="ph-marker" style="left:${guess/14*100}%"><div class="lab" style="color:#0c2b33">you: ${guess}</div></div>`+
+        `<div class="ph-marker actual" style="left:${s.ph/14*100}%"><div class="lab" style="color:var(--accent);top:26px">actual: ${s.ph}</div></div>`;
+      $('fb').textContent = ok ? `🎉 Close! ${s.name} has a pH of ${s.ph} — ${zone}.` : `Actual pH is ${s.ph} — ${zone}. You were ${diff.toFixed(1)} off.`;
+      $('fb').className = 'feedback ' + (ok?'good':'bad');
+      const nb = document.createElement('button'); nb.className='act btn-primary'; nb.textContent='Next ➡️'; nb.onclick=mountPh;
+      $('btnRow').appendChild(nb); nb.focus();
+    };
+  }
+
+  // ---- dispatch ----
+  const MOUNTS = { atom:mountAtom, molecule:mountMolecule, balance:mountBalance, ph:mountPh };
+  function newRound(){
+    $('scorebar').classList.toggle('hidden', false);
+    renderTeacher();
+    MOUNTS[mode]();
+  }
+
+  // ---- popups ----
+  function openDict(){
+    const rows = C.TERMS.map(t =>
+      `<div class="trow"><div class="tt">${esc(t.term)}</div><div class="td">${esc(t.def)}</div>`+
+      (t.simple?`<div class="ts">💡 <b>In simple terms:</b> ${esc(t.simple)}</div>`:``)+
+      (t.ex?`<div class="te">e.g. ${esc(t.ex)}</div>`:``)+`</div>`).join('');
+    $('dictSheet').innerHTML = `<button class="closeBtn" id="closeDict">✕</button><h2>📖 Chemistry Glossary</h2>`+
+      `<p class="sheet-sub">The vocabulary freshman chemistry assumes you know — the definition, the plain-terms version, and an example.</p>` + rows;
+    $('closeDict').onclick = ()=> $('dictModal').className='modal hidden';
+    $('dictModal').className='modal';
+  }
+  function openSources(){
+    const rows = C.SOURCES.map(s => `<div class="srow"><a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)} ↗</a><div class="snote">${esc(s.note)}</div></div>`).join('');
+    $('srcSheet').innerHTML = `<button class="closeBtn" id="closeSrc">✕</button><h2>📚 Where these ideas come from</h2>`+
+      `<p class="sheet-sub">Trusted places to go deeper on atoms, formulas, and reactions.</p>` + rows;
+    $('closeSrc').onclick = ()=> $('srcModal').className='modal hidden';
+    $('srcModal').className='modal';
+  }
+
+  // ---- wiring ----
+  $('modeSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.mode;
+    [...$('modeSeg').children].forEach(x => x.classList.toggle('on', x===b));
+    resetProgress(); newRound();
+  });
+  $('dictBtn').onclick = openDict;
+  $('srcBtn').onclick = openSources;
+  [$('dictModal'), $('srcModal')].forEach(m => m.addEventListener('click', e => { if (e.target === m) m.className='modal hidden'; }));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape'){ $('dictModal').className='modal hidden'; $('srcModal').className='modal hidden'; } });
+
+  newRound();
+})();
+</script>
+</body>
+</html>
