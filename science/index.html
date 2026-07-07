@@ -40,21 +40,6 @@
   .chip.streak { color:#ea580c; }
 
   .stage { width:100%; max-width:580px; }
-  .stage.hidden { display:none; }
-  #videoStage { max-width:680px; }
-
-  /* video lessons */
-  .vl-title { font-size:19px; font-weight:900; text-align:center; line-height:1.35; }
-  .vl-by { text-align:center; color:var(--muted); font-weight:700; font-size:13px; margin:3px 0 14px; }
-  .vl-sec { font-weight:900; font-size:15px; color:var(--accent); margin:18px 0 8px; text-transform:uppercase; letter-spacing:.5px; }
-  .vl-sum { margin:0; font-size:14.5px; line-height:1.65; color:var(--ink); }
-  .vk { display:flex; flex-direction:column; gap:8px; }
-  .vk-item { background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:0 10px 10px 0; padding:9px 12px; font-size:13.5px; line-height:1.55; }
-  .vk-item b { display:block; margin-bottom:2px; }
-  .vq { margin-bottom:14px; display:flex; flex-direction:column; gap:8px; }
-  .vq-q { font-weight:800; font-size:15px; }
-  .vq-why { min-height:0; font-size:13.5px; font-weight:700; line-height:1.5; }
-  .vq-why.good { color:var(--correct); } .vq-why.bad { color:var(--wrong); }
   .card { width:100%; background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:28px 24px; display:flex; flex-direction:column; align-items:center; }
   .qprompt { color:var(--muted); font-size:14px; margin:0 0 16px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; text-align:center; }
 
@@ -193,7 +178,6 @@
       <button data-mode="cloze">📝 Fill the Blank</button>
       <button data-mode="cause">⚡ Cause &amp; Effect</button>
       <button data-mode="sort">🗂️ Sort It</button>
-      <button data-mode="videos">📺 Videos</button>
     </div>
   </div>
 
@@ -206,9 +190,7 @@
     <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
   </div>
 
-  <div class="stage hidden" id="videoStage"></div>
-
-  <div class="stage" id="quizStage">
+  <div class="stage">
     <div class="card">
       <p class="qprompt" id="prompt"></p>
       <div class="subject" id="subject"></div>
@@ -224,9 +206,7 @@
   <div class="modal hidden" id="srcModal"><div class="sheet" id="srcSheet"></div></div>
   <div class="modal hidden" id="imgModal"><div class="sheet" id="imgSheet"></div></div>
 
-<script src="data.js"></script>
-<script src="videos.js?v=2"></script>
-<script>
+<script src="data.js"></script><script>
 (function(){
   const $ = id => document.getElementById(id);
   const pick = arr => arr[Math.floor(Math.random()*arr.length)];
@@ -634,13 +614,6 @@
     const b = e.target.closest('button'); if (!b) return;
     mode = b.dataset.mode;
     [...$('modeSeg').children].forEach(x => x.classList.toggle('on', x === b));
-    if (mode === 'videos'){
-      $('quizStage').classList.add('hidden');
-      window.SCI_VID && SCI_VID.mount($('videoStage'));
-      return;
-    }
-    window.SCI_VID && SCI_VID.hide($('videoStage'));
-    $('quizStage').classList.remove('hidden');
     resetProgress(); newRound();
   });
   $('nextBtn').onclick = tryAdvance;
