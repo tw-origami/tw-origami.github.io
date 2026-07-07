@@ -78,6 +78,20 @@
   .choice.wrong { border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
   .choice:disabled { cursor:default; }
 
+  /* Periodic Table */
+  .ptable-wrap { width:100%; overflow-x:auto; padding-bottom:4px; }
+  .ptable { display:grid; grid-template-columns:repeat(18, minmax(27px,1fr)); grid-auto-rows:36px; gap:3px; min-width:540px; margin:0 auto; }
+  .ptile { border:none; border-radius:6px; background:var(--pcat); color:#fff; font-weight:800; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; padding:0; line-height:1.1; font-family:inherit; }
+  .ptile:hover:not(:disabled) { filter:brightness(1.1); }
+  .ptile .pnum { font-size:8px; opacity:.85; }
+  .ptile .psym { font-size:13px; }
+  .ptile.correct { outline:3px solid var(--correct); outline-offset:1px; }
+  .ptile.wrong { outline:3px solid var(--wrong); outline-offset:1px; }
+  .ptile.dim { opacity:.3; }
+  .ptile:disabled { cursor:default; }
+  .ptable-legend { display:flex; flex-wrap:wrap; gap:7px 12px; justify-content:center; font-size:11.5px; color:var(--muted); margin-top:10px; }
+  .pleg i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:4px; vertical-align:-1px; }
+
   /* Order It picked steps + shake */
   .choice.picked { border-color:var(--correct); background:#f0fdf4; color:var(--ink); cursor:default; }
   .choice .stepnum { flex:none; width:26px; height:26px; border-radius:50%; background:var(--correct); color:#fff; font-size:14px; font-weight:800; display:flex; align-items:center; justify-content:center; }
@@ -178,6 +192,7 @@
       <button data-mode="cloze">📝 Fill the Blank</button>
       <button data-mode="cause">⚡ Cause &amp; Effect</button>
       <button data-mode="sort">🗂️ Sort It</button>
+      <button data-mode="elements">🧪 Periodic Table</button>
     </div>
   </div>
 
@@ -287,6 +302,7 @@
     if (mode === 'label'){ newLabelRound(); return; }
     if (mode === 'sequence'){ newSequenceRound(); return; }
     if (mode === 'cloze'){ newClozeRound(); return; }
+    if (mode === 'elements'){ newElementsRound(); return; }
     clearTimers();
     advanceReady = true; answered = false;
     $('feedback').textContent = ''; $('feedback').className = 'feedback';
@@ -385,6 +401,65 @@
       `<div class="rev-ex">🧭 ${esc(d.note)}</div>` +
       (d.real ? `<div><button class="real-btn" data-real="${d.key}">📷 See the real diagram</button></div>` : '') +
       srcLink(d.src);
+    $('reveal').className = 'reveal';
+    if (isCorrect && streak > 0 && streak % 5 === 0) celebrate(streak);
+    startReadLock();
+  }
+
+  // ---------- GAME · PERIODIC TABLE ----------
+  const CATS = S.ELEMENT_CATS;
+  let elementState = null;
+  function newElementsRound(){
+    clearTimers();
+    advanceReady = true; answered = false;
+    $('feedback').textContent = ''; $('feedback').className = 'feedback';
+    $('reveal').className = 'reveal hidden'; $('reveal').innerHTML = '';
+    $('nextRow').style.display = 'none';
+    $('choices').innerHTML = '';
+
+    let c, tries = 0;
+    do { c = pick(S.ELEMENT_CLUES); tries++; } while (S.ELEMENT_CLUES.length > 1 && c.sym === (lastKey||'').split('|')[1] && tries < 30);
+    lastKey = 'el|' + c.sym;
+    const target = S.ELEMENTS.find(e => e.sym === c.sym);
+    elementState = { c, target };
+
+    $('prompt').textContent = '🧪 Periodic Table — tap the right element';
+    const tiles = S.ELEMENTS.map(e =>
+      `<button class="ptile" data-sym="${e.sym}" style="grid-column:${e.group};grid-row:${e.period};--pcat:${CATS[e.cat].color}">` +
+        `<span class="pnum">${e.num}</span><span class="psym">${esc(e.sym)}</span>` +
+      `</button>`).join('');
+    const legend = Object.keys(CATS).map(k =>
+      `<span class="pleg"><i style="background:${CATS[k].color}"></i>${esc(CATS[k].name)}</span>`).join('');
+    $('subject').innerHTML =
+      `<div class="cluebox">👉 <b>${esc(c.clue)}</b></div>` +
+      `<div class="ptable-wrap"><div class="ptable" id="ptable">${tiles}</div></div>` +
+      `<div class="ptable-legend">${legend}</div>`;
+    $('subject').querySelector('#ptable').addEventListener('click', e => {
+      const t = e.target.closest('.ptile'); if (t) elementPick(t.dataset.sym);
+    });
+  }
+  function elementPick(sym){
+    if (answered) return;
+    answered = true; total++;
+    const { target } = elementState;
+    const isCorrect = sym === target.sym;
+    if (isCorrect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+    const grid = $('subject').querySelector('#ptable');
+    S.ELEMENTS.forEach(e => {
+      const tile = grid.querySelector(`.ptile[data-sym="${e.sym}"]`);
+      if (e.sym === target.sym) tile.classList.add('correct');
+      else if (e.sym === sym) tile.classList.add('wrong');
+      else tile.classList.add('dim');
+      tile.disabled = true;
+    });
+    const fb = $('feedback');
+    if (isCorrect){ fb.textContent = pick(['🎉 Correct!','⭐ Nice!','✅ You got it!','🔬 Sharp!']); fb.className = 'feedback good'; }
+    else { fb.textContent = `Not quite — that was ${esc(target.name)} (${esc(target.sym)}):`; fb.className = 'feedback bad'; }
+    $('reveal').innerHTML =
+      `<div class="rev-title">${esc(target.name)} (${esc(target.sym)}) — #${target.num}</div>` +
+      `<div class="rev-body">${esc(CATS[target.cat].name)} · ${esc(target.fact)}</div>` +
+      srcLink('iupac');
     $('reveal').className = 'reveal';
     if (isCorrect && streak > 0 && streak % 5 === 0) celebrate(streak);
     startReadLock();

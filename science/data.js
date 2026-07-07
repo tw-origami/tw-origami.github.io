@@ -22,7 +22,10 @@ window.SCI = {
       note:'The standards most U.S. middle-school science tests are built on — cells, ecosystems, matter, Earth systems.' },
     { key:'khan', name:'Khan Academy — Middle School Biology',
       url:'https://www.khanacademy.org/science/ms-biology',
-      note:'Video lessons on cells, body systems, photosynthesis and food chains.' }
+      note:'Video lessons on cells, body systems, photosynthesis and food chains.' },
+    { key:'iupac', name:'IUPAC Periodic Table of the Elements',
+      url:'https://iupac.org/what-we-do/periodic-table-of-elements/',
+      note:'The official international reference for element symbols, atomic numbers and names.' }
   ],
 
   /* Real reference diagrams shown via the "See the real diagram" button in
@@ -447,5 +450,81 @@ window.SCI = {
       why:'A cactus grows, needs water, and reproduces — it’s a living thing.' },
     { item:'A rock 🪨', cats:['Living','Nonliving'], answer:'Nonliving',
       why:'A rock doesn’t grow, eat, or reproduce, so it’s nonliving.' }
+  ],
+
+  /* ───────────── GAME 6 · PERIODIC TABLE ─────────────
+   * A real (sparse) periodic table grid — each element sits at its true
+   * group (1–18, the column) and period (1–6, the row), so the shape you
+   * see is the actual shape of the periodic table. Tap the element that
+   * matches the clue. */
+  ELEMENT_CATS: {
+    alkali:     { name:'Alkali metal',            color:'#f43f5e' },
+    alkaline:   { name:'Alkaline earth metal',    color:'#f97316' },
+    transition: { name:'Transition metal',        color:'#eab308' },
+    post:       { name:'Post-transition metal',   color:'#14b8a6' },
+    metalloid:  { name:'Metalloid',                color:'#a855f7' },
+    nonmetal:   { name:'Nonmetal',                 color:'#3b82f6' },
+    halogen:    { name:'Halogen',                  color:'#06b6d4' },
+    noble:      { name:'Noble gas',                color:'#64748b' }
+  },
+
+  ELEMENTS: [
+    { sym:'H',  name:'Hydrogen',   num:1,  group:1,  period:1, cat:'nonmetal',   fact:'The lightest and most abundant element in the universe — most stars are made mostly of hydrogen.' },
+    { sym:'He', name:'Helium',     num:2,  group:18, period:1, cat:'noble',      fact:'A noble gas that barely reacts with anything — light enough to make balloons float.' },
+    { sym:'Li', name:'Lithium',    num:3,  group:1,  period:2, cat:'alkali',     fact:'A soft, light alkali metal used in the rechargeable batteries inside phones and laptops.' },
+    { sym:'Be', name:'Beryllium',  num:4,  group:2,  period:2, cat:'alkaline',   fact:'A rare, lightweight metal used in aerospace parts and X-ray machines.' },
+    { sym:'B',  name:'Boron',      num:5,  group:13, period:2, cat:'metalloid',  fact:'A metalloid used to make heat-resistant glass, like Pyrex.' },
+    { sym:'C',  name:'Carbon',     num:6,  group:14, period:2, cat:'nonmetal',   fact:'The basis of all known life — it bonds in more ways than almost any other element.' },
+    { sym:'N',  name:'Nitrogen',   num:7,  group:15, period:2, cat:'nonmetal',   fact:'Makes up about 78% of the air you breathe, though your body can’t use it directly.' },
+    { sym:'O',  name:'Oxygen',     num:8,  group:16, period:2, cat:'nonmetal',   fact:'The gas your body needs to release energy from food — about 21% of the air around you.' },
+    { sym:'F',  name:'Fluorine',   num:9,  group:17, period:2, cat:'halogen',    fact:'The most reactive of all elements — added to toothpaste in tiny amounts to protect teeth.' },
+    { sym:'Ne', name:'Neon',       num:10, group:18, period:2, cat:'noble',      fact:'A noble gas that glows reddish-orange when electricity passes through it — classic neon signs.' },
+    { sym:'Na', name:'Sodium',     num:11, group:1,  period:3, cat:'alkali',     fact:'A soft metal that reacts violently with water — combined with chlorine, it becomes table salt.' },
+    { sym:'Mg', name:'Magnesium',  num:12, group:2,  period:3, cat:'alkaline',   fact:'A light, strong metal that burns with a brilliant white light — used in fireworks and flares.' },
+    { sym:'Al', name:'Aluminum',   num:13, group:13, period:3, cat:'post',       fact:'A lightweight metal used in soda cans and airplanes because it resists rust so well.' },
+    { sym:'Si', name:'Silicon',    num:14, group:14, period:3, cat:'metalloid',  fact:'A metalloid at the heart of every computer chip — “Silicon Valley” is named after it.' },
+    { sym:'P',  name:'Phosphorus', num:15, group:15, period:3, cat:'nonmetal',   fact:'Essential to DNA and bones — also the “strike-anywhere” chemical in some matches.' },
+    { sym:'S',  name:'Sulfur',     num:16, group:16, period:3, cat:'nonmetal',   fact:'A yellow nonmetal known for the rotten-egg smell of some of its compounds.' },
+    { sym:'Cl', name:'Chlorine',   num:17, group:17, period:3, cat:'halogen',    fact:'A greenish-yellow gas used to disinfect drinking water and swimming pools.' },
+    { sym:'Ar', name:'Argon',      num:18, group:18, period:3, cat:'noble',      fact:'A noble gas used to fill light bulbs because it won’t react with the hot filament.' },
+    { sym:'K',  name:'Potassium',  num:19, group:1,  period:4, cat:'alkali',     fact:'An alkali metal your body needs for muscles and nerves — bananas are a well-known source.' },
+    { sym:'Ca', name:'Calcium',    num:20, group:2,  period:4, cat:'alkaline',   fact:'Builds strong bones and teeth — the most abundant mineral in the human body.' },
+    { sym:'Fe', name:'Iron',       num:26, group:8,  period:4, cat:'transition', fact:'A transition metal that carries oxygen in your blood and is the main ingredient in steel.' },
+    { sym:'Cu', name:'Copper',     num:29, group:11, period:4, cat:'transition', fact:'An excellent conductor of electricity, so it’s used in almost all electrical wiring.' },
+    { sym:'Zn', name:'Zinc',       num:30, group:12, period:4, cat:'transition', fact:'Coats steel to stop it rusting (galvanizing), and it’s vital for your immune system.' },
+    { sym:'Br', name:'Bromine',    num:35, group:17, period:4, cat:'halogen',    fact:'One of only two elements that are liquid at room temperature.' },
+    { sym:'Ag', name:'Silver',     num:47, group:11, period:5, cat:'transition', fact:'The best electrical conductor of any element, and prized for jewelry for centuries.' },
+    { sym:'I',  name:'Iodine',     num:53, group:17, period:5, cat:'halogen',    fact:'Your thyroid gland needs iodine — it’s why table salt is often “iodized.”' },
+    { sym:'Au', name:'Gold',       num:79, group:11, period:6, cat:'transition', fact:'So unreactive it barely tarnishes, which is why gold jewelry lasts thousands of years.' },
+    { sym:'Pb', name:'Lead',       num:82, group:14, period:6, cat:'post',       fact:'A dense, soft metal once common in pipes and paint — now known to be toxic and phased out.' }
+  ],
+
+  ELEMENT_CLUES: [
+    { sym:'He', clue:'Tap the noble gas light enough to make balloons float' },
+    { sym:'O',  clue:'Tap the gas that makes up about 21% of the air you breathe' },
+    { sym:'Cu', clue:'Tap the metal used in almost all electrical wiring' },
+    { sym:'Na', clue:'Tap the element with the symbol “Na”' },
+    { sym:'F',  clue:'Tap the halogen added to toothpaste in tiny amounts' },
+    { sym:'C',  clue:'Tap element number 6 — the basis of all known life' },
+    { sym:'Ca', clue:'Tap the metal your body needs for strong bones and teeth' },
+    { sym:'Ne', clue:'Tap the noble gas used in glowing signs' },
+    { sym:'Al', clue:'Tap the metal used to make soda cans and airplanes' },
+    { sym:'Si', clue:'Tap the element at the heart of every computer chip' },
+    { sym:'Li', clue:'Tap the alkali metal used in rechargeable phone batteries' },
+    { sym:'Fe', clue:'Tap the transition metal that carries oxygen in your blood' },
+    { sym:'P',  clue:'Tap the “strike-anywhere” match ingredient, also essential to DNA' },
+    { sym:'S',  clue:'Tap the element behind the rotten-egg smell of some compounds' },
+    { sym:'Cl', clue:'Tap the gas used to disinfect swimming pools' },
+    { sym:'Ar', clue:'Tap the noble gas used to fill light bulbs' },
+    { sym:'K',  clue:'Tap the alkali metal found in bananas' },
+    { sym:'Zn', clue:'Tap the metal used to galvanize (rust-proof) steel' },
+    { sym:'Br', clue:'Tap one of only two elements that are liquid at room temperature' },
+    { sym:'Ag', clue:'Tap the best electrical conductor of any element' },
+    { sym:'I',  clue:'Tap the element your thyroid needs — why salt is often “iodized”' },
+    { sym:'Au', clue:'Tap the metal so unreactive it barely tarnishes' },
+    { sym:'Pb', clue:'Tap the toxic metal once common in pipes and paint, now phased out' },
+    { sym:'Mg', clue:'Tap the alkaline earth metal that burns with a brilliant white light in fireworks' },
+    { sym:'H',  clue:'Tap the lightest element in the whole universe' },
+    { sym:'N',  clue:'Tap the gas that makes up about 78% of the air around you' }
   ]
 };
