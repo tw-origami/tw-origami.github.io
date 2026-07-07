@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Essay Builder</title>
+<style>
+  :root {
+    --ink:#152238; --muted:#5b6b82; --accent:#2563eb; --accent-soft:#dbeafe;
+    --correct:#16a34a; --wrong:#dc2626; --shadow:0 10px 30px rgba(37,99,235,.15);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#eff6ff,#f8fafc); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:22px 16px 60px; }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 16px; font-size:15px; text-align:center; max-width:540px; line-height:1.5; }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; position:sticky; top:10px; z-index:70; }
+  .nav a, .nav button{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 15px; border-radius:9px; border:none; background:transparent; font-family:inherit; cursor:pointer; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+  .nav button:hover{ background:var(--accent-soft); color:var(--accent); }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; max-width:660px; }
+  .seg button { border:none; background:transparent; font-family:inherit; font-weight:800; font-size:14.5px; padding:9px 15px; border-radius:10px; cursor:pointer; color:var(--muted); transition:background .15s, color .15s; }
+  .seg button.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .scorebar.hidden { display:none; }
+  .chip { background:#fff; border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; } .chip.streak { color:#ea580c; }
+
+  .stage { width:100%; max-width:620px; }
+  .card { width:100%; background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:24px; }
+  .qprompt { color:var(--muted); font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; text-align:center; margin:0 0 10px; }
+  .howto { background:var(--accent-soft); border-radius:12px; padding:10px 14px; font-size:13.5px; color:#1e40af; font-weight:600; text-align:center; margin:0 0 16px; line-height:1.5; }
+  .howto b { font-weight:800; }
+  .feedback { min-height:24px; margin-top:14px; font-weight:800; font-size:16px; text-align:center; }
+  .feedback.good { color:var(--correct); } .feedback.bad { color:var(--wrong); }
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; margin:12px 0 2px; padding:14px 16px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
+  .reveal .rev-title { font-weight:900; font-size:16px; margin-bottom:4px; color:#1e40af; }
+  .rev-src { display:inline-block; margin-top:12px; font-size:13px; font-weight:700; color:var(--accent); text-decoration:none; border-bottom:1.5px dotted var(--accent); }
+  button.act { font-family:inherit; font-size:16px; font-weight:800; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; }
+  button.act:disabled { opacity:.5; cursor:default; }
+  .btn-primary { background:var(--accent); color:#fff; } .btn-primary:hover { background:#1d4ed8; }
+  .btn-ghost { background:var(--accent-soft); color:var(--accent); }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  /* choices (evidence, transition) */
+  .choices { display:flex; flex-direction:column; gap:11px; }
+  .choice { background:#fff; border:3px solid #e2e8f0; border-radius:14px; font-size:15.5px; font-weight:600; padding:14px 16px; color:var(--ink); cursor:pointer; text-align:left; font-family:inherit; line-height:1.45; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; }
+  .choice.wrong { border-color:var(--wrong); background:#fee2e2; }
+  .choice:disabled { cursor:default; }
+  .claimbox { background:#f0f6ff; border:2px solid #cfe0fb; border-radius:14px; padding:14px 16px; font-size:17px; font-weight:700; text-align:center; margin-bottom:16px; line-height:1.45; }
+  .transbox { font-size:18px; line-height:1.7; text-align:center; margin-bottom:16px; }
+  .transbox .tb { display:inline-block; min-width:120px; border-bottom:3px solid var(--accent); color:var(--accent); font-weight:800; text-align:center; }
+
+  /* ---- Essay Architect ---- */
+  .skel { display:flex; flex-direction:column; gap:8px; margin-bottom:18px; }
+  .slot { border:2px dashed #cbd5e1; border-radius:14px; padding:11px 14px; min-height:52px; display:flex; align-items:center; gap:10px; }
+  .slot .snum { flex:0 0 26px; height:26px; border-radius:50%; background:#e2e8f0; color:#64748b; font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; }
+  .slot .stext { flex:1; }
+  .slot .srole { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:#94a3b8; }
+  .slot .srole b { color:var(--muted); }
+  .slot .sfill { font-size:14.5px; line-height:1.5; margin-top:2px; }
+  .slot.now { border-color:var(--accent); border-style:solid; background:#f0f6ff; }
+  .slot.now .snum { background:var(--accent); color:#fff; }
+  .slot.done { border-style:solid; border-color:var(--correct); background:#f0fdf4; }
+  .slot.done .snum { background:var(--correct); color:#fff; }
+  .pool { display:flex; flex-direction:column; gap:10px; }
+  .pcard { border:3px solid #e2e8f0; border-radius:14px; padding:12px 15px; font-size:14.5px; line-height:1.5; cursor:pointer; background:#fff; text-align:left; font-family:inherit; color:var(--ink); }
+  .pcard:hover { border-color:var(--accent); background:var(--accent-soft); }
+  .pcard.miss { border-color:var(--wrong); background:#fee2e2; animation:shake .35s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+
+  /* ---- Thesis Builder ---- */
+  .topic-line { text-align:center; font-size:17px; font-weight:800; margin-bottom:14px; }
+  .side-toggle { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+  .side-btn { border:3px solid #e2e8f0; background:#fff; font-family:inherit; font-weight:700; font-size:15px; padding:12px 15px; border-radius:14px; cursor:pointer; text-align:left; color:var(--ink); }
+  .side-btn.on { border-color:var(--accent); background:var(--accent-soft); color:#1e40af; }
+  .reasons-lbl { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); margin:4px 0 8px; text-align:center; }
+  .reason-chips { display:flex; flex-direction:column; gap:8px; }
+  .rchip { border:2px solid #e2e8f0; background:#fff; font-family:inherit; font-weight:600; font-size:14.5px; padding:11px 14px; border-radius:12px; cursor:pointer; text-align:left; color:var(--ink); position:relative; }
+  .rchip:hover { border-color:var(--accent); }
+  .rchip.picked { border-color:var(--accent); background:var(--accent-soft); color:#1e40af; }
+  .rchip.picked::after { content:'✓'; position:absolute; right:12px; top:50%; transform:translateY(-50%); font-weight:900; color:var(--accent); }
+  .thesis-line { font-family:Georgia,"Times New Roman",serif; font-size:20px; line-height:1.5; text-align:center; background:#f0f6ff; border:2px solid #cfe0fb; border-radius:14px; padding:16px; margin:16px 0 8px; min-height:70px; }
+  .thesis-line.pop { animation:pop .4s cubic-bezier(.2,.9,.3,1.3); }
+  @keyframes pop { 0%{transform:scale(.95); opacity:.4} 100%{transform:scale(1); opacity:1} }
+  .thesis-note { text-align:center; color:var(--muted); font-size:14px; line-height:1.55; }
+  .thesis-note b { color:var(--accent); }
+  .saved-wrap h3 { font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin:20px 0 8px; }
+  .saved-line { font-family:Georgia,serif; font-size:15px; background:#f0f6ff; border-left:3px solid var(--accent); border-radius:0 8px 8px 0; padding:9px 12px; margin-bottom:7px; line-height:1.5; }
+
+  /* Teacher Guide */
+  .teacher { width:100%; max-width:620px; margin-top:22px; background:#fffdf5; border:1px solid #eee6cf; border-radius:18px; box-shadow:var(--shadow); overflow:hidden; }
+  .teacher summary { list-style:none; cursor:pointer; padding:15px 20px; display:flex; align-items:center; gap:9px; font-weight:800; font-size:15px; color:#8a6d1f; }
+  .teacher summary::-webkit-details-marker { display:none; }
+  .teacher summary .chev { margin-left:auto; transition:transform .2s; color:#b89b45; font-size:13px; }
+  .teacher[open] summary .chev { transform:rotate(180deg); }
+  .teacher .tg-body { padding:0 20px 18px; }
+  .tg-item { margin-bottom:12px; } .tg-item .k { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:#b8860b; margin-bottom:3px; } .tg-item .v { font-size:14px; line-height:1.6; color:#4b4658; }
+  .tg-explore { background:var(--accent-soft); border-radius:12px; padding:12px 14px; font-size:13.5px; color:#1e40af; line-height:1.6; } .tg-explore .k { color:var(--accent); }
+
+  /* popups */
+  .modal{ position:fixed; inset:0; z-index:90; background:rgba(21,34,56,.5); display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; }
+  .modal.hidden{ display:none; }
+  .sheet{ background:#fff; border-radius:20px; max-width:560px; width:100%; padding:26px 24px; position:relative; box-shadow:0 24px 60px rgba(21,34,56,.4); }
+  .sheet h2{ margin:0 0 6px; font-size:20px; } .sheet-sub{ color:var(--muted); font-size:14px; margin:0 0 18px; line-height:1.5; }
+  .closeBtn{ position:absolute; top:14px; right:14px; border:none; background:#eef4ff; color:var(--accent); width:34px; height:34px; border-radius:50%; font-size:16px; font-weight:800; cursor:pointer; }
+  .trow{ padding:11px 0; border-top:1px solid #eef1f6; } .trow:first-of-type{ border-top:none; }
+  .trow .tt{ font-weight:900; font-size:15.5px; } .trow .td{ font-size:14px; color:#4b5568; line-height:1.5; margin-top:2px; }
+  .trow .ts{ font-size:13.5px; color:#1e40af; line-height:1.55; margin-top:6px; background:#eef4ff; border-left:3px solid var(--accent); border-radius:0 8px 8px 0; padding:8px 11px; }
+  .trow .te{ font-size:13px; color:var(--accent); font-weight:700; margin-top:6px; font-style:italic; }
+  .srow{ padding:10px 0; border-top:1px solid #eef1f6; } .srow a{ color:var(--accent); font-weight:800; text-decoration:none; } .snote{ color:var(--muted); font-size:13px; margin-top:3px; line-height:1.5; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner { position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6); background:linear-gradient(135deg,#60a5fa,#2563eb); color:#fff; font-weight:900; font-size:28px; padding:20px 38px; border-radius:22px; box-shadow:0 18px 50px rgba(37,99,235,.45); z-index:95; opacity:0; pointer-events:none; text-align:center; white-space:nowrap; }
+  #streakBanner.show { animation: banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner { 0%{opacity:0; transform:translate(-50%,-50%) scale(.6)} 15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)} 28%{transform:translate(-50%,-50%) scale(1)} 80%{opacity:1; transform:translate(-50%,-50%) scale(1)} 100%{opacity:0; transform:translate(-50%,-60%) scale(.95)} }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button id="dictBtn" title="Essay terms glossary">📖 Glossary</button>
+    <button id="srcBtn" title="Where these ideas come from">📚 Sources</button>
+  </div>
+  <h1>✍️ Essay Builder</h1>
+  <p class="sub">Learn the academic essay by building one: order its parts, forge a thesis, back a claim with the right evidence, and connect ideas with transitions.</p>
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="architect" class="on">🧩 Essay Architect</button>
+      <button data-mode="builder">⚒️ Thesis Builder</button>
+      <button data-mode="evidence">🔗 Evidence Match</button>
+      <button data-mode="transition">➡️ Transition Lab</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar" id="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="stage" id="stage"></div>
+
+  <details class="teacher" id="teacher" open>
+    <summary>👩‍🏫 Teacher Guide <span class="chev">▲</span></summary>
+    <div class="tg-body" id="tgBody"></div>
+  </details>
+
+  <div class="modal hidden" id="dictModal"><div class="sheet" id="dictSheet"></div></div>
+  <div class="modal hidden" id="srcModal"><div class="sheet" id="srcSheet"></div></div>
+
+<script src="data.js?v=1"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const E = window.ESSAY;
+  const SRC = {}; E.SOURCES.forEach(s => SRC[s.key] = s);
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const pick = a => a[Math.floor(Math.random()*a.length)];
+  const shuffle = a => a.slice().sort(()=>Math.random()-0.5);
+  const stage = $('stage');
+  const howBar = () => `<div class="howto">▶ <b>How to play:</b> ${esc(E.TEACHER[mode].how)}</div>`;
+
+  let mode = 'architect';
+  let correct = 0, total = 0, streak = 0;
+  function updateScore(){ $('correctCount').textContent=correct; $('totalCount').textContent=total; $('streak').textContent=streak; }
+  function score(ok){ total++; if(ok){ correct++; streak++; } else streak=0; updateScore(); if(ok && streak>0 && streak%5===0) celebrate(streak); }
+  function resetProgress(){ correct=0; total=0; streak=0; updateScore(); }
+  const srcLink = key => { const s=SRC[key]; return s ? `<a class="rev-src" href="${s.url}" target="_blank" rel="noopener">📚 Source: ${esc(s.name)} ↗</a>` : ''; };
+
+  function renderTeacher(){
+    const t = E.TEACHER[mode];
+    $('tgBody').innerHTML =
+      `<div class="tg-item"><div class="k">🎯 The point of this game</div><div class="v">${esc(t.point)}</div></div>`+
+      `<div class="tg-item"><div class="k">📘 What your student practices</div><div class="v">${esc(t.learn)}</div></div>`+
+      `<div class="tg-explore"><div class="k">🔎 Explore &amp; ask more</div>${esc(t.explore)}</div>`;
+  }
+  function celebrate(n){
+    const msgs = { 5:'🌟 5 in a row!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>Sharp writer!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    const colors = ['#2563eb','#60a5fa','#f59e0b','#16a34a','#0ea5e9','#ec4899'];
+    const box = $('confetti');
+    for (let i=0;i<80;i++){ const c=document.createElement('div'); c.className='conf';
+      c.style.left=Math.random()*100+'vw'; c.style.background=colors[i%colors.length];
+      c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; c.style.animationDelay=(Math.random()*0.4)+'s';
+      c.style.transform=`rotate(${Math.random()*360}deg)`; box.appendChild(c); setTimeout(()=>c.remove(),3400); }
+  }
+
+  // ============ GAME 1 · ESSAY ARCHITECT ============
+  let lastEssay = null;
+  function mountArchitect(){
+    let e, tries=0;
+    do { e = pick(E.ESSAYS); tries++; } while (E.ESSAYS.length>1 && e===lastEssay && tries<20);
+    lastEssay = e;
+    const roles = E.ROLES;                       // fixed 5-part skeleton
+    const cards = shuffle(e.parts.map((text,i)=>({text, i})));
+    let filled = 0;
+
+    stage.innerHTML = `<div class="card"><p class="qprompt">🧩 Essay Architect — “${esc(e.topic)}”</p>${howBar()}
+      <div class="skel" id="skel"></div>
+      <div class="reasons-lbl">Scrambled pieces — tap the one that fits the highlighted slot</div>
+      <div class="pool" id="pool"></div>
+      <div class="feedback" id="fb"></div>
+      <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">New essay ➡️</button></div>
+    </div>`;
+
+    function renderSkel(){
+      $('skel').innerHTML = roles.map((r,i)=>{
+        const cls = i<filled ? 'done' : (i===filled ? 'now' : '');
+        const fill = i<filled ? `<div class="sfill">${esc(e.parts[i])}</div>` : '';
+        return `<div class="slot ${cls}"><div class="snum">${i+1}</div><div class="stext"><div class="srole"><b>${esc(r.role)}</b> · ${esc(r.hint)}</div>${fill}</div></div>`;
+      }).join('');
+    }
+    function renderPool(){
+      $('pool').innerHTML = cards.filter(c=>c.i>=filled).map(c=>`<button class="pcard" data-i="${c.i}">${esc(c.text)}</button>`).join('');
+      stage.querySelectorAll('.pcard').forEach(btn => btn.onclick = () => {
+        const idx = +btn.dataset.i;
+        if (idx === filled){
+          score(true); filled++;
+          $('fb').textContent = pick(['✅ Perfect spot!','⭐ That’s the one!','🎉 Nice — keeps building!']); $('fb').className='feedback good';
+          renderSkel();
+          if (filled >= roles.length){ $('pool').innerHTML=''; $('fb').textContent='🎉 Essay built — that’s the shape of a strong argument!'; $('nextRow').style.display='flex'; $('nextBtn').focus(); }
+          else renderPool();
+        } else {
+          score(false); btn.classList.add('miss'); setTimeout(()=>btn.classList.remove('miss'),400);
+          $('fb').textContent = `Not next — the ${roles[filled].role.toLowerCase()} (${roles[filled].hint}) comes now.`; $('fb').className='feedback bad';
+        }
+      });
+    }
+    $('nextBtn').onclick = mountArchitect;
+    renderSkel(); renderPool();
+  }
+
+  // ============ GAME 2 · THESIS BUILDER ============
+  let builderState = { ti:0, side:0, chosen:[], saved:[] };
+  function mountBuilder(){
+    const S = builderState;
+    const topic = E.THESIS_TOPICS[S.ti];
+    stage.innerHTML = `<div class="card"><p class="qprompt">⚒️ Thesis Builder — take a side, give reasons</p>${howBar()}
+      <div class="topic-line">🗣️ ${esc(topic.topic)}</div>
+      <div class="side-toggle" id="sideToggle"></div>
+      <div class="reasons-lbl">Tap TWO reasons that back your side</div>
+      <div class="reason-chips" id="reasonChips"></div>
+      <div class="thesis-line" id="thesisLine"></div>
+      <div class="thesis-note" id="thesisNote"></div>
+      <div class="btn-row">
+        <button class="act btn-ghost" id="newTopic">🔄 New debate</button>
+        <button class="act btn-primary" id="saveThesis" disabled>⭐ Save thesis</button>
+      </div>
+      <div class="saved-wrap" id="savedWrap" style="display:none"><h3>⭐ Your thesis collection</h3><div id="savedList"></div></div>
+    </div>`;
+
+    function renderSides(){
+      $('sideToggle').innerHTML = topic.sides.map((sd,i)=>
+        `<button class="side-btn ${i===S.side?'on':''}" data-s="${i}">${esc(sd.stance)}</button>`).join('');
+      stage.querySelectorAll('.side-btn').forEach(b => b.onclick = () => {
+        S.side = +b.dataset.s; S.chosen = [];
+        stage.querySelectorAll('.side-btn').forEach(x=>x.classList.toggle('on', x===b));
+        renderReasons(); renderThesis();
+      });
+    }
+    function renderReasons(){
+      const reasons = topic.sides[S.side].reasons;
+      $('reasonChips').innerHTML = reasons.map((r,i)=>
+        `<button class="rchip ${S.chosen.includes(i)?'picked':''}" data-r="${i}">${esc(r)}</button>`).join('');
+      stage.querySelectorAll('.rchip').forEach(b => b.onclick = () => {
+        const i = +b.dataset.r;
+        const at = S.chosen.indexOf(i);
+        if (at>=0) S.chosen.splice(at,1);
+        else { S.chosen.push(i); if (S.chosen.length>2) S.chosen.shift(); }
+        stage.querySelectorAll('.rchip').forEach(x=>x.classList.toggle('picked', S.chosen.includes(+x.dataset.r)));
+        renderThesis();
+      });
+    }
+    function renderThesis(){
+      const sd = topic.sides[S.side];
+      const rs = S.chosen.map(i=>sd.reasons[i]);
+      const line = $('thesisLine');
+      if (rs.length < 2){
+        line.innerHTML = `${esc(sd.stance)} <b style="color:#94a3b8">because ${rs[0]?esc(rs[0])+' and …':'… (pick two reasons)'}</b>`;
+        $('thesisNote').innerHTML = 'A thesis needs a side <b>and</b> reasons — pick two.';
+        $('saveThesis').disabled = true;
+      } else {
+        line.textContent = `${sd.stance} because ${rs[0]} and ${rs[1]}.`;
+        line.classList.remove('pop'); void line.offsetWidth; line.classList.add('pop');
+        $('thesisNote').innerHTML = '💪 <b>Strong thesis!</b> It takes a clear side <b>and</b> gives two reasons — and those two reasons become your body paragraphs.';
+        $('saveThesis').disabled = false;
+      }
+    }
+    function renderSaved(){
+      const w = $('savedWrap');
+      if (!S.saved.length){ w.style.display='none'; return; }
+      w.style.display=''; $('savedList').innerHTML = S.saved.map(t=>`<div class="saved-line">${esc(t)}</div>`).join('');
+    }
+    $('newTopic').onclick = () => { S.ti = (S.ti+1)%E.THESIS_TOPICS.length; S.side=0; S.chosen=[]; mountBuilder(); };
+    $('saveThesis').onclick = () => {
+      const sd = topic.sides[S.side], rs = S.chosen.map(i=>sd.reasons[i]);
+      if (rs.length<2) return;
+      S.saved.unshift(`${sd.stance} because ${rs[0]} and ${rs[1]}.`);
+      if (S.saved.length>6) S.saved.pop();
+      renderSaved();
+      const b=$('saveThesis'); b.textContent='✓ Saved!'; setTimeout(()=>b.textContent='⭐ Save thesis',900);
+    };
+    renderSides(); renderReasons(); renderThesis(); renderSaved();
+  }
+
+  // ============ GAME 3 · EVIDENCE MATCH ============
+  let lastClaim = null;
+  function mountEvidence(){
+    let it, tries=0;
+    do { it = pick(E.EVIDENCE); tries++; } while (E.EVIDENCE.length>1 && it.claim===lastClaim && tries<20);
+    lastClaim = it.claim;
+    const opts = shuffle([{t:it.correct,ok:true}, ...it.distractors.map(d=>({t:d,ok:false}))]);
+    genMCQ(`🔗 Evidence Match`,
+      `<div class="claimbox">Claim: “${esc(it.claim)}”</div><p class="qprompt" style="margin-bottom:12px">Which evidence best proves it?</p>`,
+      opts, it.why, 'khan', mountEvidence);
+  }
+
+  // ============ GAME 4 · TRANSITION LAB ============
+  let lastTrans = null;
+  function mountTransition(){
+    let it, tries=0;
+    do { it = pick(E.TRANSITIONS); tries++; } while (E.TRANSITIONS.length>1 && it.before===lastTrans && tries<20);
+    lastTrans = it.before;
+    const opts = shuffle([{t:it.correct,ok:true}, ...it.options.filter(o=>o!==it.correct).map(o=>({t:o,ok:false}))]);
+    genMCQ(`➡️ Transition Lab`,
+      `<div class="transbox">${esc(it.before)} <span class="tb">____</span> ${esc(it.after)}</div><p class="qprompt" style="margin-bottom:12px">Relationship: <b style="color:var(--accent)">${esc(it.relation)}</b> — pick the transition that fits</p>`,
+      opts, it.why, 'purdue', mountTransition);
+  }
+
+  // shared MCQ renderer for evidence + transition
+  function genMCQ(title, subjectHTML, opts, why, srcKey, nextFn){
+    stage.innerHTML = `<div class="card"><p class="qprompt">${title}</p>${howBar()}
+      ${subjectHTML}
+      <div class="choices" id="choices"></div>
+      <div class="feedback" id="fb"></div>
+      <div class="reveal" id="reveal" style="display:none"></div>
+      <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">Next ➡️</button></div>
+    </div>`;
+    const box = $('choices'); let answered = false;
+    opts.forEach(o => {
+      const btn = document.createElement('button'); btn.className='choice'; btn.textContent = o.t;
+      btn.onclick = () => {
+        if (answered) return; answered = true;
+        score(o.ok);
+        [...box.children].forEach(c => c.disabled = true);
+        opts.forEach((oo,i)=>{ if(oo.ok) box.children[i].classList.add('correct'); });
+        if (!o.ok) btn.classList.add('wrong');
+        $('fb').textContent = o.ok ? pick(['🎉 Correct!','⭐ Nice!','✅ Spot on!']) : 'Not quite — here’s why:';
+        $('fb').className = 'feedback ' + (o.ok?'good':'bad');
+        const rev = $('reveal'); rev.style.display=''; rev.innerHTML = `<div class="rev-title">${o.ok?'Why this works':'The best answer'}</div><div>${esc(why)}</div>` + srcLink(srcKey);
+        $('nextRow').style.display='flex'; $('nextBtn').focus();
+      };
+      box.appendChild(btn);
+    });
+    $('nextBtn').onclick = nextFn;
+  }
+
+  // ---- dispatch ----
+  const MOUNTS = { architect:mountArchitect, builder:mountBuilder, evidence:mountEvidence, transition:mountTransition };
+  function newRound(){
+    $('scorebar').classList.toggle('hidden', mode==='builder');
+    renderTeacher();
+    MOUNTS[mode]();
+  }
+
+  // ---- popups ----
+  function openDict(){
+    const rows = E.TERMS.map(t =>
+      `<div class="trow"><div class="tt">${esc(t.term)}</div><div class="td">${esc(t.def)}</div>`+
+      (t.simple?`<div class="ts">💡 <b>In simple terms:</b> ${esc(t.simple)}</div>`:``)+
+      (t.ex?`<div class="te">e.g. ${esc(t.ex)}</div>`:``)+`</div>`).join('');
+    $('dictSheet').innerHTML = `<button class="closeBtn" id="closeDict">✕</button><h2>📖 Essay Terms Glossary</h2>`+
+      `<p class="sheet-sub">The building blocks of an academic essay — the definition, the plain-terms version, and an example.</p>` + rows;
+    $('closeDict').onclick = ()=> $('dictModal').className='modal hidden';
+    $('dictModal').className='modal';
+  }
+  function openSources(){
+    const rows = E.SOURCES.map(s => `<div class="srow"><a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)} ↗</a><div class="snote">${esc(s.note)}</div></div>`).join('');
+    $('srcSheet').innerHTML = `<button class="closeBtn" id="closeSrc">✕</button><h2>📚 Where these ideas come from</h2>`+
+      `<p class="sheet-sub">Trusted places to go deeper on essay writing and argument.</p>` + rows;
+    $('closeSrc').onclick = ()=> $('srcModal').className='modal hidden';
+    $('srcModal').className='modal';
+  }
+
+  // ---- wiring ----
+  $('modeSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.mode;
+    [...$('modeSeg').children].forEach(x => x.classList.toggle('on', x===b));
+    resetProgress(); newRound();
+  });
+  $('dictBtn').onclick = openDict;
+  $('srcBtn').onclick = openSources;
+  [$('dictModal'), $('srcModal')].forEach(m => m.addEventListener('click', e => { if (e.target === m) m.className='modal hidden'; }));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape'){ $('dictModal').className='modal hidden'; $('srcModal').className='modal hidden'; } });
+
+  newRound();
+})();
+</script>
+</body>
+</html>
