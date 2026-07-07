@@ -414,7 +414,9 @@
   function finish(isCorrect){
     answered = true;
     total++;
-    if (isCorrect){ correct++; streak++; } else streak = 0;
+    // "correct" counts first-try wins; a question solved after a miss still
+    // counts as tried (total) but not correct.
+    if (isCorrect){ if (!missed) correct++; streak++; } else streak = 0;
     $('correctCount').textContent = correct;
     $('totalCount').textContent = total;
     $('streak').textContent = streak;
@@ -538,7 +540,7 @@
   });
 
   // Advance only once the post-correct lock has lifted.
-  function tryAdvance(){ if (answered && !advanceReady) return; newQuestion(); }
+  function tryAdvance(){ if (!answered || !advanceReady) return; newQuestion(); }
 
   $('checkBtn').onclick = check;
   $('hintBtn').onclick  = showHint;

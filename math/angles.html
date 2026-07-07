@@ -164,29 +164,36 @@
   };
 
   // ---------- Angle SVG ----------
+  // Vertex is centered so every angle 0-360° (obtuse, straight, reflex) stays
+  // fully inside the viewBox.
+  const A_SIZE = 260, A_CX = A_SIZE/2, A_CY = A_SIZE/2;
   function polar(cx,cy,r,deg){ const rad = deg*Math.PI/180; return { x: cx + r*Math.cos(rad), y: cy - r*Math.sin(rad) }; }
   function angleSVG(deg, opts){
     opts = opts || {};
-    const size = opts.size || 260, cx = 40, cy = size - 40, r = opts.rayLen || (size - 80), arcR = 34, color = opts.color || 'var(--accent)';
+    const size = A_SIZE, cx = A_CX, cy = A_CY, r = opts.rayLen || (size/2 - 38), arcR = 30, color = opts.color || 'var(--accent)';
     const p1 = polar(cx,cy,r,0);
     const p2 = polar(cx,cy,r,deg);
     const large = deg > 180 ? 1 : 0;
     const a1 = polar(cx,cy,arcR,0), a2 = polar(cx,cy,arcR,deg);
     const arcPath = `M ${a1.x} ${a1.y} A ${arcR} ${arcR} 0 ${large} 0 ${a2.x} ${a2.y}`;
-    const labelPos = polar(cx,cy,arcR+22, deg/2 <= 180 ? deg/2 : (deg/2)%360);
+    const labelPos = polar(cx,cy,arcR+20, deg/2);
     let extra = '';
     if (opts.tickMarks){
+      const maxT = opts.fullTicks ? 350 : 180;
       let ticks = '';
-      for (let t=0;t<=180;t+=10){
+      for (let t=0;t<=maxT;t+=10){
         const isMajor = t % 30 === 0;
-        const tp1 = polar(cx,cy,r+2,t), tp2 = polar(cx,cy,r+(isMajor?12:7),t);
+        const tp1 = polar(cx,cy,r+2,t), tp2 = polar(cx,cy,r+(isMajor?11:6),t);
         ticks += `<line x1="${tp1.x}" y1="${tp1.y}" x2="${tp2.x}" y2="${tp2.y}" stroke="#94a3b8" stroke-width="${isMajor?2:1}"/>`;
         if (isMajor){
-          const tl = polar(cx,cy,r+24,t);
-          ticks += `<text x="${tl.x}" y="${tl.y}" text-anchor="middle" font-size="10" font-weight="700" fill="#64748b">${t}</text>`;
+          const tl = polar(cx,cy,r+22,t);
+          ticks += `<text x="${tl.x}" y="${tl.y+3}" text-anchor="middle" font-size="9" font-weight="700" fill="#64748b">${t}</text>`;
         }
       }
-      extra += `<path d="M ${polar(cx,cy,r,0).x} ${polar(cx,cy,r,0).y} A ${r} ${r} 0 0 0 ${polar(cx,cy,r,180).x} ${polar(cx,cy,r,180).y}" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3,3"/>${ticks}`;
+      const guide = opts.fullTicks
+        ? `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3,3"/>`
+        : `<path d="M ${polar(cx,cy,r,0).x} ${polar(cx,cy,r,0).y} A ${r} ${r} 0 0 0 ${polar(cx,cy,r,180).x} ${polar(cx,cy,r,180).y}" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3,3"/>`;
+      extra += guide + ticks;
     }
     return `<svg class="angsvg" id="angSvg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="${SVGNS}">
       ${extra}
@@ -195,45 +202,72 @@
       <line x1="${cx}" y1="${cy}" x2="${p2.x}" y2="${p2.y}" stroke="${color}" stroke-width="4" stroke-linecap="round"/>
       <circle cx="${cx}" cy="${cy}" r="5" fill="var(--ink)"/>
       ${opts.handle ? `<circle id="angHandle" cx="${p2.x}" cy="${p2.y}" r="12" fill="#fff" stroke="${color}" stroke-width="3" style="cursor:grab"/>` : ''}
-      <text x="${labelPos.x}" y="${labelPos.y}" text-anchor="middle" font-size="13" font-weight="800" fill="${color}">${deg}°</text>
+      ${opts.hideLabel ? '' : `<text x="${labelPos.x}" y="${labelPos.y}" text-anchor="middle" font-size="13" font-weight="800" fill="${color}">${deg}°</text>`}
     </svg>`;
   }
 
   // ---------- LEARN mode (draggable) ----------
+  // The drag listeners live on document/window (registered once below), so the
+  // SVG can be re-rendered mid-drag without killing the drag.
+  let angleDragging = false;
+
+  function learnUpdate(){
+    const wrap = $('angWrap'); if (!wrap) return;
+    wrap.innerHTML = angleSVG(learnDeg, { handle:true, tickMarks:true });
+    const type = classify(learnDeg);
+    $('degReadout').textContent = learnDeg + '°';
+    const badge = $('typeBadge');
+    badge.className = 'type-badge ' + type;
+    badge.textContent = TYPE_LABEL[type];
+    $('typeSentence').innerHTML = `A <b>${TYPE_LABEL[type].toLowerCase()}</b> angle is ${TYPE_DESC[type]}. Drag the orange dot around the vertex to change the angle and watch the type change.`;
+  }
+
   function renderLearn(){
     $('scorebar').style.display = 'none';
     $('levelSeg').style.display = 'none';
-    const type = classify(learnDeg);
     $('layout').innerHTML = `
       <div class="card visual" style="flex:1 1 320px">
-        ${angleSVG(learnDeg, { handle:true, tickMarks:true })}
+        <div id="angWrap"></div>
       </div>
       <div class="card quiz" style="flex:1 1 320px; min-height:auto">
         <div style="text-align:center">
-          <div class="deg-readout">${learnDeg}°</div>
-          <span class="type-badge ${type}">${TYPE_LABEL[type]}</span>
-          <p class="sentence">A <b>${TYPE_LABEL[type].toLowerCase()}</b> angle is ${TYPE_DESC[type]}. Drag the orange dot around the vertex to change the angle and watch the type change.</p>
+          <div class="deg-readout" id="degReadout"></div>
+          <span class="type-badge" id="typeBadge"></span>
+          <p class="sentence" id="typeSentence"></p>
           <div class="btn-row"><button class="act btn-ghost" id="randomizeBtn">🎲 Random angle</button></div>
         </div>
       </div>`;
-    const svg = $('angSvg');
-    const handle = $('angHandle');
-    const cx = 40, cy = 260 - 40;
-    let dragging = false;
-    function angleFromEvent(e){
-      const rect = svg.getBoundingClientRect();
-      const scaleX = 260 / rect.width, scaleY = 260 / rect.height;
-      const x = (e.clientX - rect.left) * scaleX, y = (e.clientY - rect.top) * scaleY;
-      let deg = Math.atan2(-(y-cy), x-cx) * 180/Math.PI;
-      if (deg < 0) deg += 360;
-      return Math.round(deg);
-    }
-    handle.addEventListener('pointerdown', e => { dragging = true; try{handle.setPointerCapture(e.pointerId);}catch(_){} });
-    handle.addEventListener('pointermove', e => { if (!dragging) return; learnDeg = Math.max(1, Math.min(359, angleFromEvent(e))); renderLearn(); });
-    handle.addEventListener('pointerup', () => dragging = false);
-    handle.addEventListener('pointercancel', () => dragging = false);
-    $('randomizeBtn').onclick = () => { learnDeg = rand(5, 355); renderLearn(); };
+    learnUpdate();
+    $('randomizeBtn').onclick = () => { learnDeg = rand(5, 355); learnUpdate(); };
   }
+
+  function angleFromPointer(e){
+    const svg = document.querySelector('#angWrap svg');
+    if (!svg) return learnDeg;
+    const rect = svg.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (A_SIZE / rect.width);
+    const y = (e.clientY - rect.top) * (A_SIZE / rect.height);
+    let deg = Math.atan2(-(y - A_CY), x - A_CX) * 180/Math.PI;
+    if (deg < 0) deg += 360;
+    return Math.round(deg);
+  }
+  document.addEventListener('pointerdown', e => {
+    if (mode !== 'learn') return;
+    const t = e.target;
+    if (t && (t.id === 'angHandle' || (t.closest && t.closest('#angWrap')))){
+      angleDragging = true;
+      learnDeg = Math.max(1, Math.min(359, angleFromPointer(e)));
+      learnUpdate();
+      e.preventDefault();
+    }
+  });
+  window.addEventListener('pointermove', e => {
+    if (!angleDragging) return;
+    learnDeg = Math.max(1, Math.min(359, angleFromPointer(e)));
+    learnUpdate();
+  });
+  window.addEventListener('pointerup', () => angleDragging = false);
+  window.addEventListener('pointercancel', () => angleDragging = false);
 
   // ---------- Shared quiz chrome ----------
   function quizShell(prompt, subjectHTML, extraVisualHTML){
@@ -293,7 +327,7 @@
 
   // ---------- CLASSIFY ----------
   function genAngleForLevel(){
-    if (level === 1) return rand(1,89) === 90 ? 45 : pick([rand(10,80), 90, rand(100,170)]);
+    if (level === 1) return pick([rand(10,80), 90, rand(100,170)]);
     if (level === 2) return pick([rand(5,85), 90, rand(95,175), 180]);
     if (level === 3) return pick([rand(5,85), 90, rand(95,175), 180, rand(190,270)]);
     if (level === 4) return pick([rand(1,89), 90, rand(91,179), 180, rand(181,350)]);
@@ -328,7 +362,7 @@
     do { deg = rand(10, maxDeg); deg = Math.round(deg/5)*5; tries++; } while (deg === lastKey && tries < 20);
     lastKey = deg;
     cur = { deg };
-    quizShell('Use the protractor marks — what’s the measure of this angle?', `<div style="display:flex;justify-content:center">${angleSVG(Math.min(deg,180), { tickMarks:true })}</div>${deg>180 ? '<p class="sentence">This ray has gone past a straight line — remember, a reflex angle is more than 180°. The marks show the angle up to 180°; the actual angle continues around.</p>' : ''}`);
+    quizShell('Use the protractor marks — what’s the measure of this angle?', `<div style="display:flex;justify-content:center">${angleSVG(deg, { tickMarks:true, fullTicks: maxDeg > 180, hideLabel:true })}</div>${deg>180 ? '<p class="sentence">The arc sweeps past the straight line — this is a reflex angle (more than 180°). Keep counting the marks all the way around.</p>' : ''}`);
     const correctVal = deg;
     const opts = new Set([correctVal]);
     while (opts.size < 4){

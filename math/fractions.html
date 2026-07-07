@@ -306,16 +306,27 @@
     const shape = pick(['pie','bar']);
     const visual = shape === 'pie' ? pieSVG(n,d,200,'var(--accent)') : `<div style="margin-top:30px">${barHTML(n,d,'var(--accent)')}</div>`;
     quizShell('What fraction is shaded?', `<div style="display:flex;justify-content:center;margin-bottom:10px">${visual}</div>`);
+    // Distractors: never the same VALUE as the answer (so no equivalent
+    // fractions like 2/4 vs 1/2), and always terminates — a fixed candidate
+    // list plus a bounded random filler, no unbounded loop.
     const opts = new Set([`${n}/${d}`]);
-    while (opts.size < 4){
-      const variants = [ `${d}/${n <= 0 ? 1 : n}`, `${Math.max(1,n-1)}/${d}`, `${Math.min(d-1,n+1)}/${d}`, `${n}/${Math.max(n+1,d-1)}`, `${n}/${d+1}` ];
-      opts.add(pick(variants));
+    const sameValue = o => { const [on,od] = o.split('/').map(Number); return on*d === n*od; };
+    const candidates = [
+      `${d}/${n}`, `${Math.max(1,n-1)}/${d}`, `${Math.min(d-1,n+1)}/${d}`,
+      `${n}/${d+1}`, `${n}/${d+2}`, `${d-n}/${d}`, `${Math.min(d,n+1)}/${d+1}`
+    ].sort(()=>Math.random()-0.5);
+    for (const c of candidates){ if (opts.size >= 4) break; if (!sameValue(c)) opts.add(c); }
+    for (let guard = 0; opts.size < 4 && guard < 60; guard++){
+      const rd = rand(2,12), rn = rand(1,rd);
+      const c = `${rn}/${rd}`;
+      if (!sameValue(c)) opts.add(c);
     }
     const box = $('choices');
     [...opts].sort(()=>Math.random()-0.5).forEach(o => {
       const [on, od] = o.split('/').map(Number);
       const btn = document.createElement('button'); btn.className='choice';
       btn.innerHTML = fracHTML(on, od, 'med');
+      btn.dataset.n = on; btn.dataset.d = od;
       btn.onclick = () => answerName(btn, on, od, n, d);
       box.appendChild(btn);
     });
@@ -324,9 +335,10 @@
     if (answered) return;
     const isCorrect = on === n && od === d;
     [...$('choices').children].forEach(c => c.disabled = true);
-    if (isCorrect) btn.classList.add('correct'); else { btn.classList.add('wrong'); [...$('choices').children].find(c=>c.textContent.includes(`${n}`) && c!==btn); }
-    if (!isCorrect){
-      [...$('choices').children].forEach(c => { if (c.innerHTML.includes(`>${n}<`) && c.innerHTML.includes(`>${d}<`)) c.classList.add('correct'); });
+    if (isCorrect) btn.classList.add('correct');
+    else {
+      btn.classList.add('wrong');
+      [...$('choices').children].forEach(c => { if (+c.dataset.n === n && +c.dataset.d === d) c.classList.add('correct'); });
     }
     const dec = n/d;
     finishAnswer(isCorrect, `<b>${n} out of ${d}</b> equal parts are shaded, so the fraction is ${fracHTML(n,d,'med')}. As a decimal that’s <b>${dec.toFixed(2)}</b>, or <b>${Math.round(dec*100)}%</b>.`);

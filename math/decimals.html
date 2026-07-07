@@ -291,19 +291,23 @@
   }
   function roundRead(){
     let d, tries=0;
-    do { d = genDecimal(); tries++; } while (`${d.ones}.${d.tenths}${d.hund}` === lastKey && tries < 20);
+    // never show 0.00 — there'd be nothing to read (and too few distractors)
+    do { d = genDecimal(); tries++; } while ((d.ones + d.tenths + d.hund === 0 || `${d.ones}.${d.tenths}${d.hund}` === lastKey) && tries < 30);
+    if (d.ones + d.tenths + d.hund === 0) d.tenths = rand(1,9);
     lastKey = `${d.ones}.${d.tenths}${d.hund}`;
     const value = d.ones + d.tenths/10 + d.hund/100;
     cur = { ...d, value };
     quizShell('What decimal number is shown?', `<div style="margin-top:6px">${decimalVisual(d.ones, d.tenths, d.hund)}</div>`);
     const opts = new Set([fmtDec(value)]);
-    while (opts.size < 4){
-      const variants = [
-        fmtDec(d.tenths/100 + d.hund/10 + d.ones), // swapped tenths/hundredths
-        fmtDec(value + 0.1), fmtDec(Math.max(0,value - 0.1)),
-        fmtDec(d.ones + d.hund/10), fmtDec(value + 1)
-      ];
-      opts.add(pick(variants));
+    const variants = [
+      fmtDec(d.tenths/100 + d.hund/10 + d.ones), // swapped tenths/hundredths
+      fmtDec(value + 0.1), fmtDec(Math.max(0,value - 0.1)),
+      fmtDec(d.ones + d.hund/10), fmtDec(value + 1),
+      fmtDec(value + 0.01), fmtDec(value + 0.2)
+    ].sort(()=>Math.random()-0.5);
+    for (const v of variants){ if (opts.size >= 4) break; opts.add(v); }
+    for (let guard = 0; opts.size < 4 && guard < 60; guard++){
+      opts.add(fmtDec(value + rand(1,9)/10 + rand(0,9)/100));
     }
     const box = $('choices');
     [...opts].sort(()=>Math.random()-0.5).forEach(o => {

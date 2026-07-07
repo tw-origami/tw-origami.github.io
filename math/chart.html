@@ -244,7 +244,8 @@
 
   function finish(ok){
     answered=true; total++;
-    if(ok){ correct++; streak++; } else streak=0;
+    // "correct" counts first-try wins; solved-after-a-miss counts as tried only.
+    if(ok){ if(!missed) correct++; streak++; } else streak=0;
     $('correctCount').textContent=correct; $('totalCount').textContent=total; $('streak').textContent=streak;
     const fb=$('feedback');
     if(ok){ fb.textContent=pick(['🎉 Correct!','⭐ Nice work!','✅ You got it!','🚀 Great job!']); fb.className='feedback good'; }
@@ -291,7 +292,7 @@
   $('levelSeg').addEventListener('click', e=>{ const b=e.target.closest('button.lvl'); if(!b) return;
     level=+b.dataset.lvl; document.querySelectorAll('.lvl').forEach(x=>x.classList.toggle('on',x===b));
     wrongQueue=[]; missed=false; r=null; lastKey=null; newQuestion(); });
-  function tryAdvance(){ if(answered && !advanceReady) return; newQuestion(); }
+  function tryAdvance(){ if(!answered || !advanceReady) return; newQuestion(); }
   $('checkBtn').onclick=check; $('hintBtn').onclick=showHint; $('nextBtn').onclick=tryAdvance;
   document.addEventListener('keydown', e=>{ if(e.key!=='Enter') return; e.preventDefault(); if(answered) tryAdvance(); else check(); });
 
