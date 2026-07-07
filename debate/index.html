@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Debate Dojo</title>
+<style>
+  :root {
+    --ink:#33240f; --muted:#7a6a54; --accent:#ea580c; --accent-soft:#ffedd5;
+    --correct:#16a34a; --wrong:#dc2626; --shadow:0 10px 30px rgba(234,88,12,.15);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#fff7ed,#fffbf5); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:22px 16px 60px; }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 16px; font-size:15px; text-align:center; max-width:540px; line-height:1.5; }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; position:sticky; top:10px; z-index:70; }
+  .nav a, .nav button{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 15px; border-radius:9px; border:none; background:transparent; font-family:inherit; cursor:pointer; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+  .nav button:hover{ background:var(--accent-soft); color:var(--accent); }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; max-width:660px; }
+  .seg button { border:none; background:transparent; font-family:inherit; font-weight:800; font-size:14.5px; padding:9px 15px; border-radius:10px; cursor:pointer; color:var(--muted); transition:background .15s, color .15s; }
+  .seg button.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .scorebar.hidden { display:none; }
+  .chip { background:#fff; border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; } .chip.streak { color:#ea580c; }
+
+  .stage { width:100%; max-width:620px; }
+  .card { width:100%; background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:24px; }
+  .qprompt { color:var(--muted); font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; text-align:center; margin:0 0 10px; }
+  .howto { background:var(--accent-soft); border-radius:12px; padding:10px 14px; font-size:13.5px; color:#9a3412; font-weight:600; text-align:center; margin:0 0 16px; line-height:1.5; } .howto b { font-weight:800; }
+  .feedback { min-height:24px; margin-top:14px; font-weight:800; font-size:16px; text-align:center; }
+  .feedback.good { color:var(--correct); } .feedback.bad { color:var(--wrong); }
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; margin:12px 0 2px; padding:14px 16px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
+  .reveal .rev-title { font-weight:900; font-size:16px; margin-bottom:4px; color:#9a3412; }
+  .rev-src { display:inline-block; margin-top:12px; font-size:13px; font-weight:700; color:var(--accent); text-decoration:none; border-bottom:1.5px dotted var(--accent); }
+  button.act { font-family:inherit; font-size:16px; font-weight:800; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; }
+  button.act:disabled { opacity:.5; cursor:default; }
+  .btn-primary { background:var(--accent); color:#fff; } .btn-primary:hover { background:#c2410c; }
+  .btn-ghost { background:var(--accent-soft); color:var(--accent); }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  .argbox { background:#fff7ed; border:2px solid #fed7aa; border-radius:14px; padding:16px 18px; font-size:18px; font-weight:600; line-height:1.55; text-align:center; margin-bottom:16px; font-family:Georgia,serif; }
+  .choices { display:flex; flex-direction:column; gap:11px; }
+  .choice { background:#fff; border:3px solid #f1e6d6; border-radius:14px; font-size:15.5px; font-weight:600; padding:14px 16px; color:var(--ink); cursor:pointer; text-align:left; font-family:inherit; line-height:1.45; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; } .choice.wrong { border-color:var(--wrong); background:#fee2e2; } .choice:disabled { cursor:default; }
+  /* appeal choices as big buttons */
+  .appeal-choices { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  .achoice { flex:1 1 150px; background:#fff; border:3px solid #f1e6d6; border-radius:16px; padding:16px 12px; cursor:pointer; text-align:center; font-family:inherit; }
+  .achoice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .achoice .aem { font-size:30px; } .achoice .ak { font-weight:900; font-size:17px; margin-top:4px; } .achoice .ab { font-size:12px; color:var(--muted); font-weight:700; }
+  .achoice.correct { border-color:var(--correct); background:#dcfce7; } .achoice.wrong { border-color:var(--wrong); background:#fee2e2; } .achoice:disabled { cursor:default; }
+
+  /* ---- Argument Builder (CER) ---- */
+  .cer-step { font-size:12px; font-weight:800; color:var(--accent); text-transform:uppercase; letter-spacing:.5px; margin:12px 0 8px; }
+  .claim-card { background:#fff7ed; border:2px solid #fed7aa; border-radius:14px; padding:14px 16px; font-size:17px; font-weight:800; text-align:center; margin-bottom:6px; }
+  .opt { border:2px solid #f1e6d6; background:#fff; border-radius:12px; padding:12px 14px; font-size:14.5px; line-height:1.5; cursor:pointer; font-family:inherit; text-align:left; color:var(--ink); margin-bottom:8px; width:100%; }
+  .opt:hover { border-color:var(--accent); }
+  .opt.picked { border-color:var(--accent); background:var(--accent-soft); }
+  .opt.good { border-color:var(--correct); background:#dcfce7; } .opt.bad { border-color:#fca5a5; background:#fff5f5; }
+  .opt .note { display:block; font-size:12.5px; font-weight:700; margin-top:5px; }
+  .opt.good .note { color:#166534; } .opt.bad .note { color:#b91c1c; }
+  .arg-para { background:#fff; border:2px solid #fed7aa; border-radius:14px; padding:16px; font-family:Georgia,serif; font-size:16px; line-height:1.65; margin:14px 0 4px; min-height:60px; }
+  .arg-para .ph { color:#c9b8a0; }
+  .arg-check { text-align:center; font-weight:800; font-size:15px; margin-top:6px; }
+  .arg-check.solid { color:var(--correct); } .arg-check.weak { color:var(--wrong); }
+
+  /* Teacher Guide */
+  .teacher { width:100%; max-width:620px; margin-top:22px; background:#fffdf5; border:1px solid #eee6cf; border-radius:18px; box-shadow:var(--shadow); overflow:hidden; }
+  .teacher summary { list-style:none; cursor:pointer; padding:15px 20px; display:flex; align-items:center; gap:9px; font-weight:800; font-size:15px; color:#8a6d1f; }
+  .teacher summary::-webkit-details-marker { display:none; }
+  .teacher summary .chev { margin-left:auto; transition:transform .2s; color:#b89b45; font-size:13px; }
+  .teacher[open] summary .chev { transform:rotate(180deg); }
+  .teacher .tg-body { padding:0 20px 18px; }
+  .tg-item { margin-bottom:12px; } .tg-item .k { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:#b8860b; margin-bottom:3px; } .tg-item .v { font-size:14px; line-height:1.6; color:#4b4658; }
+  .tg-explore { background:var(--accent-soft); border-radius:12px; padding:12px 14px; font-size:13.5px; color:#9a3412; line-height:1.6; } .tg-explore .k { color:var(--accent); }
+
+  /* popups */
+  .modal{ position:fixed; inset:0; z-index:90; background:rgba(51,36,15,.5); display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; } .modal.hidden{ display:none; }
+  .sheet{ background:#fff; border-radius:20px; max-width:560px; width:100%; padding:26px 24px; position:relative; box-shadow:0 24px 60px rgba(51,36,15,.4); }
+  .sheet h2{ margin:0 0 6px; font-size:20px; } .sheet-sub{ color:var(--muted); font-size:14px; margin:0 0 18px; line-height:1.5; }
+  .closeBtn{ position:absolute; top:14px; right:14px; border:none; background:#fff1e6; color:var(--accent); width:34px; height:34px; border-radius:50%; font-size:16px; font-weight:800; cursor:pointer; }
+  .trow{ padding:11px 0; border-top:1px solid #f4ece0; } .trow:first-of-type{ border-top:none; }
+  .trow .tt{ font-weight:900; font-size:15.5px; } .trow .td{ font-size:14px; color:#5c4f3d; line-height:1.5; margin-top:2px; }
+  .trow .ts{ font-size:13.5px; color:#9a3412; line-height:1.55; margin-top:6px; background:#fff7ed; border-left:3px solid var(--accent); border-radius:0 8px 8px 0; padding:8px 11px; }
+  .trow .te{ font-size:13px; color:var(--accent); font-weight:700; margin-top:6px; font-style:italic; }
+  .srow{ padding:10px 0; border-top:1px solid #f4ece0; } .srow a{ color:var(--accent); font-weight:800; text-decoration:none; } .snote{ color:var(--muted); font-size:13px; margin-top:3px; line-height:1.5; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner { position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6); background:linear-gradient(135deg,#fb923c,#ea580c); color:#fff; font-weight:900; font-size:28px; padding:20px 38px; border-radius:22px; box-shadow:0 18px 50px rgba(234,88,12,.45); z-index:95; opacity:0; pointer-events:none; text-align:center; white-space:nowrap; }
+  #streakBanner.show { animation: banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner { 0%{opacity:0; transform:translate(-50%,-50%) scale(.6)} 15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)} 28%{transform:translate(-50%,-50%) scale(1)} 80%{opacity:1; transform:translate(-50%,-50%) scale(1)} 100%{opacity:0; transform:translate(-50%,-60%) scale(.95)} }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button id="dictBtn" title="Debate & logic glossary">📖 Glossary</button>
+    <button id="srcBtn" title="Where these ideas come from">📚 Sources</button>
+  </div>
+  <h1>🥋 Debate Dojo</h1>
+  <p class="sub">Sharpen your thinking: spot logical fallacies, build airtight arguments, decode persuasion, and land the strongest rebuttal.</p>
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="fallacy" class="on">🎯 Spot the Fallacy</button>
+      <button data-mode="build">🏗️ Argument Builder</button>
+      <button data-mode="appeal">🎭 Ethos·Pathos·Logos</button>
+      <button data-mode="rebuttal">🥊 Best Rebuttal</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar" id="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="stage" id="stage"></div>
+
+  <details class="teacher" id="teacher" open>
+    <summary>👩‍🏫 Teacher Guide <span class="chev">▲</span></summary>
+    <div class="tg-body" id="tgBody"></div>
+  </details>
+
+  <div class="modal hidden" id="dictModal"><div class="sheet" id="dictSheet"></div></div>
+  <div class="modal hidden" id="srcModal"><div class="sheet" id="srcSheet"></div></div>
+
+<script src="data.js?v=1"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const D = window.DEBATE;
+  const SRC = {}; D.SOURCES.forEach(s => SRC[s.key] = s);
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const pick = a => a[Math.floor(Math.random()*a.length)];
+  const shuffle = a => a.slice().sort(()=>Math.random()-0.5);
+  const sample = (a,n) => shuffle(a).slice(0,n);
+  const stage = $('stage');
+  const howBar = () => `<div class="howto">▶ <b>How to play:</b> ${esc(D.TEACHER[mode].how)}</div>`;
+
+  let mode = 'fallacy';
+  let correct = 0, total = 0, streak = 0;
+  function updateScore(){ $('correctCount').textContent=correct; $('totalCount').textContent=total; $('streak').textContent=streak; }
+  function score(ok){ total++; if(ok){ correct++; streak++; } else streak=0; updateScore(); if(ok && streak>0 && streak%5===0) celebrate(streak); }
+  function resetProgress(){ correct=0; total=0; streak=0; updateScore(); }
+  const srcLink = key => { const s=SRC[key]; return s ? `<a class="rev-src" href="${s.url}" target="_blank" rel="noopener">📚 Source: ${esc(s.name)} ↗</a>` : ''; };
+  function renderTeacher(){
+    const t = D.TEACHER[mode];
+    $('tgBody').innerHTML =
+      `<div class="tg-item"><div class="k">🎯 The point of this game</div><div class="v">${esc(t.point)}</div></div>`+
+      `<div class="tg-item"><div class="k">📘 What your student practices</div><div class="v">${esc(t.learn)}</div></div>`+
+      `<div class="tg-explore"><div class="k">🔎 Explore &amp; ask more</div>${esc(t.explore)}</div>`;
+  }
+  function celebrate(n){
+    const msgs = { 5:'🌟 5 in a row!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>Sharp thinker!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    const colors = ['#ea580c','#fb923c','#f59e0b','#16a34a','#0ea5e9','#a855f7'];
+    const box = $('confetti');
+    for (let i=0;i<80;i++){ const c=document.createElement('div'); c.className='conf';
+      c.style.left=Math.random()*100+'vw'; c.style.background=colors[i%colors.length];
+      c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; c.style.animationDelay=(Math.random()*0.4)+'s';
+      c.style.transform=`rotate(${Math.random()*360}deg)`; box.appendChild(c); setTimeout(()=>c.remove(),3400); }
+  }
+
+  // ============ GAME 1 · SPOT THE FALLACY ============
+  let lastSpot = null;
+  function mountFallacy(){
+    let it, tries=0;
+    do { it = pick(D.SPOT); tries++; } while (D.SPOT.length>1 && it.text===lastSpot && tries<20);
+    lastSpot = it.text;
+    const opts = shuffle([it.fallacy, ...sample(D.FALLACIES.filter(f=>f!==it.fallacy),3)]).map(o=>({t:o, ok:o===it.fallacy}));
+    genMCQ('🎯 Spot the Fallacy', `<div class="argbox">${esc(it.text)}</div><p class="qprompt" style="margin-bottom:12px">Which logical fallacy is this?</p>`,
+      opts, `<div class="rev-title">${esc(it.fallacy)}</div><div>${esc(it.why)}</div>`, 'purdue', mountFallacy, 'text');
+  }
+
+  // ============ GAME 3 · ETHOS PATHOS LOGOS ============
+  let lastAppeal = null;
+  function mountAppeal(){
+    let it, tries=0;
+    do { it = pick(D.APPEAL_ITEMS); tries++; } while (D.APPEAL_ITEMS.length>1 && it.text===lastAppeal && tries<20);
+    lastAppeal = it.text;
+    const opts = shuffle(D.APPEALS.map(a=>({t:a.key, em:a.emoji, ab:a.blurb, ok:a.key===it.appeal})));
+    genMCQ('🎭 Ethos, Pathos, or Logos?', `<div class="argbox">${esc(it.text)}</div><p class="qprompt" style="margin-bottom:12px">Which appeal is it using?</p>`,
+      opts, `<div class="rev-title">${esc(it.appeal)}</div><div>${esc(it.why)}</div>`, 'khan', mountAppeal, 'appeal');
+  }
+
+  // ============ GAME 4 · BEST REBUTTAL ============
+  let lastReb = null;
+  function mountRebuttal(){
+    let it, tries=0;
+    do { it = pick(D.REBUTTAL); tries++; } while (D.REBUTTAL.length>1 && it.argument===lastReb && tries<20);
+    lastReb = it.argument;
+    const opts = shuffle([{t:it.best,ok:true}, ...it.distractors.map(d=>({t:d,ok:false}))]);
+    genMCQ('🥊 Best Rebuttal', `<div class="argbox">${esc(it.argument)}</div><p class="qprompt" style="margin-bottom:12px">Pick the strongest response</p>`,
+      opts, `<div class="rev-title">Strongest rebuttal</div><div>${esc(it.why)}</div>`, 'purdue', mountRebuttal, 'text');
+  }
+
+  // shared MCQ renderer. style: 'text' (list) or 'appeal' (3 big buttons)
+  function genMCQ(title, subjectHTML, opts, revealHTML, srcKey, nextFn, style){
+    const choicesHTML = style==='appeal'
+      ? `<div class="appeal-choices" id="choices"></div>`
+      : `<div class="choices" id="choices"></div>`;
+    stage.innerHTML = `<div class="card"><p class="qprompt">${title}</p>${howBar()}
+      ${subjectHTML}${choicesHTML}
+      <div class="feedback" id="fb"></div>
+      <div class="reveal" id="reveal" style="display:none"></div>
+      <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">Next ➡️</button></div>
+    </div>`;
+    const box = $('choices'); let answered=false;
+    opts.forEach(o => {
+      const btn = document.createElement('button');
+      if (style==='appeal'){ btn.className='achoice'; btn.innerHTML=`<div class="aem">${o.em}</div><div class="ak">${esc(o.t)}</div><div class="ab">${esc(o.ab)}</div>`; }
+      else { btn.className='choice'; btn.textContent=o.t; }
+      btn.onclick = () => {
+        if (answered) return; answered = true;
+        score(o.ok);
+        [...box.children].forEach((c,i)=>{ c.disabled=true; if(opts[i].ok) c.classList.add('correct'); });
+        if (!o.ok) btn.classList.add('wrong');
+        $('fb').textContent = o.ok ? pick(['🎉 Correct!','⭐ Nice!','✅ Sharp!']) : 'Not quite — here’s why:';
+        $('fb').className = 'feedback ' + (o.ok?'good':'bad');
+        const rev=$('reveal'); rev.style.display=''; rev.innerHTML = revealHTML + srcLink(srcKey);
+        $('nextRow').style.display='flex'; $('nextBtn').focus();
+      };
+      box.appendChild(btn);
+    });
+    $('nextBtn').onclick = nextFn;
+  }
+
+  // ============ GAME 2 · ARGUMENT BUILDER (CER) ============
+  let lastCer = null;
+  function mountBuild(){
+    let it, tries=0;
+    do { it = pick(D.CER); tries++; } while (D.CER.length>1 && it===lastCer && tries<20);
+    lastCer = it;
+    let evPick = null, rePick = null, locked = false;
+    const evs = shuffle(it.evidences.slice());
+    const res = shuffle(it.reasonings.slice());
+
+    stage.innerHTML = `<div class="card"><p class="qprompt">🏗️ Argument Builder (Claim · Evidence · Reasoning)</p>${howBar()}
+      <div class="cer-step">① Your claim</div>
+      <div class="claim-card">${esc(it.claim)}</div>
+      <div class="cer-step">② Pick the strongest evidence</div>
+      <div id="evList"></div>
+      <div class="cer-step">③ Pick the reasoning that connects it</div>
+      <div id="reList"></div>
+      <div class="cer-step">Your argument</div>
+      <div class="arg-para" id="argPara"></div>
+      <div class="arg-check" id="argCheck"></div>
+      <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">New claim ➡️</button></div>
+    </div>`;
+
+    function renderList(list, containerId, sel, onPick){
+      $(containerId).innerHTML = list.map((o,i)=>`<button class="opt ${sel===i?'picked':''}" data-i="${i}">${esc(o.text)}</button>`).join('');
+      $(containerId).querySelectorAll('.opt').forEach(b => b.onclick = () => { if(locked) return; onPick(+b.dataset.i); });
+    }
+    function renderPara(){
+      const ev = evPick!=null ? evs[evPick].text : null;
+      const re = rePick!=null ? res[rePick].text : null;
+      $('argPara').innerHTML = `${esc(it.claim)} ` +
+        (ev ? esc(ev) : `<span class="ph">[choose your evidence] </span>`) + ' ' +
+        (re ? esc(re) : `<span class="ph">[choose your reasoning]</span>`);
+      if (evPick!=null && rePick!=null && !locked){ checkArg(); }
+    }
+    function checkArg(){
+      locked = true;
+      const ev = evs[evPick], re = res[rePick];
+      const solid = ev.good && re.good;
+      score(solid);
+      // reveal quality on the two chosen
+      const evBtn = $('evList').querySelectorAll('.opt')[evPick];
+      const reBtn = $('reList').querySelectorAll('.opt')[rePick];
+      evBtn.classList.add(ev.good?'good':'bad'); if(ev.note) evBtn.innerHTML += `<span class="note">${ev.good?'✓ strong, relevant evidence':'✗ '+esc(ev.note)}</span>`;
+      reBtn.classList.add(re.good?'good':'bad'); if(re.note||!re.good) reBtn.innerHTML += `<span class="note">${re.good?'✓ clearly connects evidence to claim':'✗ '+esc(re.note)}</span>`;
+      else reBtn.innerHTML += `<span class="note">✓ clearly connects evidence to claim</span>`;
+      const chk = $('argCheck');
+      if (solid){ chk.textContent='🎉 Solid argument! Claim + strong evidence + clear reasoning.'; chk.className='arg-check solid'; }
+      else { chk.textContent='⚠️ This argument has a weak link — see the notes above, then try again.'; chk.className='arg-check weak'; }
+      $('nextRow').style.display='flex'; $('nextBtn').focus();
+    }
+    function redraw(){
+      renderList(evs,'evList',evPick, i=>{ if(locked)return; evPick=i; redraw(); });
+      renderList(res,'reList',rePick, i=>{ if(locked)return; rePick=i; redraw(); });
+      renderPara();
+    }
+    $('nextBtn').onclick = mountBuild;
+    redraw();
+  }
+
+  // ---- dispatch ----
+  const MOUNTS = { fallacy:mountFallacy, build:mountBuild, appeal:mountAppeal, rebuttal:mountRebuttal };
+  function newRound(){ $('scorebar').classList.toggle('hidden', mode==='build'); renderTeacher(); MOUNTS[mode](); }
+
+  // ---- popups ----
+  function openDict(){
+    const rows = D.TERMS.map(t =>
+      `<div class="trow"><div class="tt">${esc(t.term)}</div><div class="td">${esc(t.def)}</div>`+
+      (t.simple?`<div class="ts">💡 <b>In simple terms:</b> ${esc(t.simple)}</div>`:``)+
+      (t.ex?`<div class="te">e.g. ${esc(t.ex)}</div>`:``)+`</div>`).join('');
+    $('dictSheet').innerHTML = `<button class="closeBtn" id="closeDict">✕</button><h2>📖 Debate &amp; Logic Glossary</h2>`+
+      `<p class="sheet-sub">Fallacies, persuasive appeals, and argument terms — the definition, the plain-terms version, and an example.</p>` + rows;
+    $('closeDict').onclick = ()=> $('dictModal').className='modal hidden';
+    $('dictModal').className='modal';
+  }
+  function openSources(){
+    const rows = D.SOURCES.map(s => `<div class="srow"><a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)} ↗</a><div class="snote">${esc(s.note)}</div></div>`).join('');
+    $('srcSheet').innerHTML = `<button class="closeBtn" id="closeSrc">✕</button><h2>📚 Where these ideas come from</h2>`+
+      `<p class="sheet-sub">Trusted places to go deeper on logic, argument, and rhetoric.</p>` + rows;
+    $('closeSrc').onclick = ()=> $('srcModal').className='modal hidden';
+    $('srcModal').className='modal';
+  }
+
+  // ---- wiring ----
+  $('modeSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.mode;
+    [...$('modeSeg').children].forEach(x => x.classList.toggle('on', x===b));
+    resetProgress(); newRound();
+  });
+  $('dictBtn').onclick = openDict;
+  $('srcBtn').onclick = openSources;
+  [$('dictModal'), $('srcModal')].forEach(m => m.addEventListener('click', e => { if (e.target === m) m.className='modal hidden'; }));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape'){ $('dictModal').className='modal hidden'; $('srcModal').className='modal hidden'; } });
+
+  newRound();
+})();
+</script>
+</body>
+</html>
