@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Geometry Gym</title>
+<style>
+  :root {
+    --ink:#1c1f45; --muted:#5f6289; --accent:#4338ca; --accent-soft:#e6e7fb;
+    --correct:#16a34a; --wrong:#dc2626; --shadow:0 10px 30px rgba(67,56,202,.15);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#eef0ff,#f8fafc); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:22px 16px 60px; }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 16px; font-size:15px; text-align:center; max-width:540px; line-height:1.5; }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; position:sticky; top:10px; z-index:70; }
+  .nav a, .nav button{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 15px; border-radius:9px; border:none; background:transparent; font-family:inherit; cursor:pointer; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+  .nav button:hover{ background:var(--accent-soft); color:var(--accent); }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; max-width:660px; }
+  .seg button { border:none; background:transparent; font-family:inherit; font-weight:800; font-size:14.5px; padding:9px 15px; border-radius:10px; cursor:pointer; color:var(--muted); transition:background .15s, color .15s; }
+  .seg button.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .chip { background:#fff; border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; } .chip.streak { color:#ea580c; }
+
+  .stage { width:100%; max-width:620px; }
+  .card { width:100%; background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:24px; }
+  .qprompt { color:var(--muted); font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; text-align:center; margin:0 0 10px; }
+  .howto { background:var(--accent-soft); border-radius:12px; padding:10px 14px; font-size:13.5px; color:#312e81; font-weight:600; text-align:center; margin:0 0 16px; line-height:1.5; } .howto b { font-weight:800; }
+  .feedback { min-height:24px; margin-top:14px; font-weight:800; font-size:16px; text-align:center; }
+  .feedback.good { color:var(--correct); } .feedback.bad { color:var(--wrong); }
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; margin:12px 0 2px; padding:14px 16px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
+  .reveal .rev-title { font-weight:900; font-size:16px; margin-bottom:4px; color:#312e81; }
+  .rev-src { display:inline-block; margin-top:12px; font-size:13px; font-weight:700; color:var(--accent); text-decoration:none; border-bottom:1.5px dotted var(--accent); }
+  button.act { font-family:inherit; font-size:16px; font-weight:800; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; }
+  button.act:disabled { opacity:.5; cursor:default; }
+  .btn-primary { background:var(--accent); color:#fff; } .btn-primary:hover { background:#3730a3; }
+  .btn-ghost { background:var(--accent-soft); color:var(--accent); }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+  .numinput { font-size:26px; font-weight:800; text-align:center; width:130px; padding:9px; border:3px solid #e2e4f5; border-radius:14px; font-family:inherit; color:var(--ink); }
+  .numinput:focus { border-color:var(--accent); outline:none; box-shadow:0 0 0 4px var(--accent-soft); }
+
+  svg { width:100%; height:auto; display:block; touch-action:none; }
+  .geo-svg { max-width:340px; margin:0 auto 10px; }
+
+  /* Triangle Lab */
+  .challenge { text-align:center; font-size:16px; font-weight:800; background:#fffbeb; border:2px solid #fde68a; border-radius:12px; padding:10px; margin-bottom:14px; }
+  .challenge b { color:#b45309; }
+  .tri-info { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:6px; }
+  .tri-pill { background:var(--accent-soft); color:var(--accent); font-weight:800; font-size:13.5px; padding:7px 14px; border-radius:999px; }
+  .tri-sum { text-align:center; font-weight:800; font-size:15px; margin-top:10px; }
+
+  /* Teacher Guide */
+  .teacher { width:100%; max-width:620px; margin-top:22px; background:#fffdf5; border:1px solid #eee6cf; border-radius:18px; box-shadow:var(--shadow); overflow:hidden; }
+  .teacher summary { list-style:none; cursor:pointer; padding:15px 20px; display:flex; align-items:center; gap:9px; font-weight:800; font-size:15px; color:#8a6d1f; }
+  .teacher summary::-webkit-details-marker { display:none; }
+  .teacher summary .chev { margin-left:auto; transition:transform .2s; color:#b89b45; font-size:13px; }
+  .teacher[open] summary .chev { transform:rotate(180deg); }
+  .teacher .tg-body { padding:0 20px 18px; }
+  .tg-item { margin-bottom:12px; } .tg-item .k { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:#b8860b; margin-bottom:3px; } .tg-item .v { font-size:14px; line-height:1.6; color:#4b4658; }
+  .tg-explore { background:var(--accent-soft); border-radius:12px; padding:12px 14px; font-size:13.5px; color:#312e81; line-height:1.6; } .tg-explore .k { color:var(--accent); }
+
+  /* popups */
+  .modal{ position:fixed; inset:0; z-index:90; background:rgba(28,31,69,.5); display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; } .modal.hidden{ display:none; }
+  .sheet{ background:#fff; border-radius:20px; max-width:560px; width:100%; padding:26px 24px; position:relative; box-shadow:0 24px 60px rgba(28,31,69,.4); }
+  .sheet h2{ margin:0 0 6px; font-size:20px; } .sheet-sub{ color:var(--muted); font-size:14px; margin:0 0 18px; line-height:1.5; }
+  .closeBtn{ position:absolute; top:14px; right:14px; border:none; background:#e6e7fb; color:var(--accent); width:34px; height:34px; border-radius:50%; font-size:16px; font-weight:800; cursor:pointer; }
+  .trow{ padding:11px 0; border-top:1px solid #eeeff8; } .trow:first-of-type{ border-top:none; }
+  .trow .tt{ font-weight:900; font-size:15.5px; } .trow .td{ font-size:14px; color:#4c4e6b; line-height:1.5; margin-top:2px; }
+  .trow .ts{ font-size:13.5px; color:#312e81; line-height:1.55; margin-top:6px; background:#eef0ff; border-left:3px solid var(--accent); border-radius:0 8px 8px 0; padding:8px 11px; }
+  .trow .te{ font-size:13px; color:var(--accent); font-weight:700; margin-top:6px; font-style:italic; }
+  .srow{ padding:10px 0; border-top:1px solid #eeeff8; } .srow a{ color:var(--accent); font-weight:800; text-decoration:none; } .snote{ color:var(--muted); font-size:13px; margin-top:3px; line-height:1.5; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner { position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6); background:linear-gradient(135deg,#818cf8,#4338ca); color:#fff; font-weight:900; font-size:28px; padding:20px 38px; border-radius:22px; box-shadow:0 18px 50px rgba(67,56,202,.45); z-index:95; opacity:0; pointer-events:none; text-align:center; white-space:nowrap; }
+  #streakBanner.show { animation: banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner { 0%{opacity:0; transform:translate(-50%,-50%) scale(.6)} 15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)} 28%{transform:translate(-50%,-50%) scale(1)} 80%{opacity:1; transform:translate(-50%,-50%) scale(1)} 100%{opacity:0; transform:translate(-50%,-60%) scale(.95)} }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button id="dictBtn" title="Geometry glossary">📖 Glossary</button>
+    <button id="srcBtn" title="Where these ideas come from">📚 Sources</button>
+  </div>
+  <h1>📐 Geometry Gym</h1>
+  <p class="sub">See geometry, don’t just memorize it: drag a triangle to prove the angle rule, use a²+b²=c², work the area and volume formulas, and crack parallel-line angles.</p>
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="triangle" class="on">📐 Triangle Lab</button>
+      <button data-mode="pythag">📏 Pythagoras</button>
+      <button data-mode="shapes">🔷 Shape Formulas</button>
+      <button data-mode="parallel">∥ Parallel Lines</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar" id="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="stage" id="stage"></div>
+
+  <details class="teacher" id="teacher" open>
+    <summary>👩‍🏫 Teacher Guide <span class="chev">▲</span></summary>
+    <div class="tg-body" id="tgBody"></div>
+  </details>
+
+  <div class="modal hidden" id="dictModal"><div class="sheet" id="dictSheet"></div></div>
+  <div class="modal hidden" id="srcModal"><div class="sheet" id="srcSheet"></div></div>
+
+<script src="data.js?v=1"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const G = window.GEO;
+  const SRC = {}; G.SOURCES.forEach(s => SRC[s.key] = s);
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const pick = a => a[Math.floor(Math.random()*a.length)];
+  const shuffle = a => a.slice().sort(()=>Math.random()-0.5);
+  const stage = $('stage');
+  const NS = 'http://www.w3.org/2000/svg';
+  const howBar = () => `<div class="howto">▶ <b>How to play:</b> ${esc(G.TEACHER[mode].how)}</div>`;
+
+  let mode = 'triangle';
+  let correct = 0, total = 0, streak = 0;
+  function updateScore(){ $('correctCount').textContent=correct; $('totalCount').textContent=total; $('streak').textContent=streak; }
+  function score(ok){ total++; if(ok){ correct++; streak++; } else streak=0; updateScore(); if(ok && streak>0 && streak%5===0) celebrate(streak); }
+  function resetProgress(){ correct=0; total=0; streak=0; updateScore(); }
+  const srcLink = key => { const s=SRC[key]; return s ? `<a class="rev-src" href="${s.url}" target="_blank" rel="noopener">📚 Source: ${esc(s.name)} ↗</a>` : ''; };
+  function renderTeacher(){
+    const t = G.TEACHER[mode];
+    $('tgBody').innerHTML =
+      `<div class="tg-item"><div class="k">🎯 The point of this game</div><div class="v">${esc(t.point)}</div></div>`+
+      `<div class="tg-item"><div class="k">📘 What your student practices</div><div class="v">${esc(t.learn)}</div></div>`+
+      `<div class="tg-explore"><div class="k">🔎 Explore &amp; ask more</div>${esc(t.explore)}</div>`;
+  }
+  function celebrate(n){
+    const msgs = { 5:'🌟 5 in a row!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>Geometry pro!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    const colors = ['#4338ca','#818cf8','#f59e0b','#16a34a','#0ea5e9','#ec4899'];
+    const box = $('confetti');
+    for (let i=0;i<80;i++){ const c=document.createElement('div'); c.className='conf';
+      c.style.left=Math.random()*100+'vw'; c.style.background=colors[i%colors.length];
+      c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; c.style.animationDelay=(Math.random()*0.4)+'s';
+      c.style.transform=`rotate(${Math.random()*360}deg)`; box.appendChild(c); setTimeout(()=>c.remove(),3400); }
+  }
+
+  // ============ GAME 1 · TRIANGLE LAB (drag) ============
+  const TSZ = 320;
+  let triPts = [{x:60,y:250},{x:260,y:250},{x:150,y:70}];
+  let triChallenge = null, triWon = false, dragIdx = -1;
+  const TCHALLENGES = [
+    { name:'a right triangle', test:a => a.some(x=>Math.abs(x-90)<=3) },
+    { name:'an obtuse triangle', test:a => a.some(x=>x>93) },
+    { name:'an acute triangle', test:a => a.every(x=>x<87) },
+    { name:'an isosceles triangle', test:(a,s) => { const [p,q,r]=s; const tol=0.06; return Math.abs(p-q)/Math.max(p,q)<tol || Math.abs(q-r)/Math.max(q,r)<tol || Math.abs(p-r)/Math.max(p,r)<tol; } }
+  ];
+  function angleAt(P, Q, R){ // angle at P
+    const v1={x:Q.x-P.x,y:Q.y-P.y}, v2={x:R.x-P.x,y:R.y-P.y};
+    const dot=v1.x*v2.x+v1.y*v2.y, m1=Math.hypot(v1.x,v1.y), m2=Math.hypot(v2.x,v2.y);
+    return Math.acos(Math.max(-1,Math.min(1,dot/(m1*m2))))*180/Math.PI;
+  }
+  function triAngles(){
+    const [A,B,C]=triPts;
+    let a=angleAt(A,B,C), b=angleAt(B,A,C);
+    a=Math.round(a); b=Math.round(b); let c=180-a-b;
+    return [a,b,c];
+  }
+  function triSides(){
+    const [A,B,C]=triPts;
+    return [Math.hypot(B.x-C.x,B.y-C.y), Math.hypot(A.x-C.x,A.y-C.y), Math.hypot(A.x-B.x,A.y-B.y)];
+  }
+  function classifyTri(angles, sides){
+    const byAngle = angles.some(x=>Math.abs(x-90)<=3) ? 'Right' : angles.some(x=>x>93) ? 'Obtuse' : 'Acute';
+    const [p,q,r]=sides, tol=0.06;
+    const eq=(x,y)=>Math.abs(x-y)/Math.max(x,y)<tol;
+    const bySide = (eq(p,q)&&eq(q,r)) ? 'Equilateral' : (eq(p,q)||eq(q,r)||eq(p,r)) ? 'Isosceles' : 'Scalene';
+    return { byAngle, bySide };
+  }
+  function newChallenge(){ let c; do { c=pick(TCHALLENGES); } while (triChallenge && c.name===triChallenge.name); triChallenge=c; triWon=false; }
+  function mountTriangle(){
+    if(!triChallenge) newChallenge();
+    stage.innerHTML = `<div class="card"><p class="qprompt">📐 Triangle Lab</p>${howBar()}
+      <div class="challenge" id="challenge"></div>
+      <div class="geo-svg" id="triSvg"></div>
+      <div class="tri-info" id="triInfo"></div>
+      <div class="tri-sum" id="triSum"></div>
+      <div class="feedback" id="fb"></div>
+    </div>`;
+    renderTri();
+  }
+  function renderTri(){
+    const [A,B,C]=triPts;
+    const [a,b,c]=triAngles();
+    const sides=triSides();
+    const cx=(A.x+B.x+C.x)/3, cy=(A.y+B.y+C.y)/3;
+    function lbl(P,val){ const dx=cx-P.x, dy=cy-P.y, d=Math.hypot(dx,dy)||1; return {x:P.x+dx/d*30, y:P.y+dy/d*30, val}; }
+    const la=lbl(A,a), lb=lbl(B,b), lc=lbl(C,c);
+    let svg=`<svg viewBox="0 0 ${TSZ} ${TSZ}">`;
+    svg+=`<polygon points="${A.x},${A.y} ${B.x},${B.y} ${C.x},${C.y}" fill="#e6e7fb" stroke="var(--accent)" stroke-width="3"/>`;
+    [[la],[lb],[lc]].forEach(([l])=>{ svg+=`<text x="${l.x}" y="${l.y+5}" text-anchor="middle" font-size="16" font-weight="800" fill="var(--accent)">${l.val}°</text>`; });
+    triPts.forEach((P,i)=>{ svg+=`<circle class="thandle" data-i="${i}" cx="${P.x}" cy="${P.y}" r="13" fill="#fff" stroke="#f59e0b" stroke-width="3" style="cursor:grab"/>`; });
+    svg+=`</svg>`;
+    $('triSvg').innerHTML=svg;
+    const cls=classifyTri([a,b,c],sides);
+    $('triInfo').innerHTML=`<span class="tri-pill">${cls.byAngle}</span><span class="tri-pill">${cls.bySide}</span>`;
+    $('triSum').innerHTML=`Angles: ${a}° + ${b}° + ${c}° = <b style="color:var(--correct)">180°</b> — always!`;
+    $('challenge').innerHTML=`🎯 Challenge: drag it into <b>${triChallenge.name}</b>.`;
+    // check challenge
+    if(!triWon && triChallenge.test([a,b,c], sides)){
+      triWon=true; score(true);
+      $('fb').textContent=`🎉 That’s ${triChallenge.name}! New challenge…`; $('fb').className='feedback good';
+      setTimeout(()=>{ newChallenge(); $('fb').textContent=''; renderTri(); }, 1500);
+    }
+  }
+  function triFromPointer(e){
+    const svg=$('triSvg').querySelector('svg'); if(!svg) return null;
+    const r=svg.getBoundingClientRect();
+    return { x: Math.max(20,Math.min(TSZ-20,(e.clientX-r.left)*(TSZ/r.width))), y: Math.max(20,Math.min(TSZ-20,(e.clientY-r.top)*(TSZ/r.height))) };
+  }
+  document.addEventListener('pointerdown', e=>{
+    if(mode!=='triangle') return;
+    const h=e.target.closest && e.target.closest('.thandle'); if(!h) return;
+    dragIdx=+h.dataset.i; e.preventDefault();
+  });
+  window.addEventListener('pointermove', e=>{
+    if(mode!=='triangle'||dragIdx<0) return;
+    const p=triFromPointer(e); if(p){ triPts[dragIdx]=p; renderTri(); }
+  });
+  window.addEventListener('pointerup', ()=>{ dragIdx=-1; });
+
+  // ============ GAME 2 · PYTHAGORAS ============
+  let lastPy=null;
+  function mountPythag(){
+    let it, tries=0;
+    do { it=pick(G.PYTH); tries++; } while (G.PYTH.length>1 && it===lastPy && tries<20);
+    lastPy=it;
+    const ans = it[it.unknown];
+    const knownLabel = s => it.unknown===s ? '?' : it[s];
+    // draw right triangle with legs a (bottom) and b (left), squares on each side (schematic)
+    const P={x:70,y:210}, Q={x:250,y:210}, R={x:70,y:70}; // right angle at P
+    let svg=`<svg viewBox="0 0 320 300">`;
+    // square on leg a (below PQ)
+    svg+=`<rect x="70" y="210" width="180" height="46" fill="#dbeafe" stroke="#60a5fa" stroke-width="1.5"/><text x="160" y="238" text-anchor="middle" font-size="12" font-weight="800" fill="#1d4ed8">a²</text>`;
+    // square on leg b (left of PR)
+    svg+=`<rect x="24" y="70" width="46" height="140" fill="#dcfce7" stroke="#4ade80" stroke-width="1.5"/><text x="47" y="145" text-anchor="middle" font-size="12" font-weight="800" fill="#15803d">b²</text>`;
+    // triangle
+    svg+=`<polygon points="${P.x},${P.y} ${Q.x},${Q.y} ${R.x},${R.y}" fill="#e6e7fb" stroke="var(--accent)" stroke-width="3"/>`;
+    svg+=`<rect x="70" y="196" width="14" height="14" fill="none" stroke="var(--accent)" stroke-width="2"/>`; // right-angle marker
+    // side labels
+    svg+=`<text x="160" y="204" text-anchor="middle" font-size="15" font-weight="800" fill="#1d4ed8">a = ${knownLabel('a')}</text>`;
+    svg+=`<text x="60" y="145" text-anchor="end" font-size="15" font-weight="800" fill="#15803d">b = ${knownLabel('b')}</text>`;
+    svg+=`<text x="175" y="130" text-anchor="middle" font-size="15" font-weight="800" fill="var(--accent)" transform="rotate(-33 175 130)">c = ${knownLabel('c')}</text>`;
+    svg+=`</svg>`;
+    const askName = it.unknown==='c' ? 'the hypotenuse (c)' : 'the missing leg ('+it.unknown+')';
+    stage.innerHTML = `<div class="card"><p class="qprompt">📏 Pythagoras — a² + b² = c²</p>${howBar()}
+      <div class="geo-svg">${svg}</div>
+      <p class="qprompt" style="margin:6px 0 10px">Find ${askName}</p>
+      <div style="text-align:center"><input class="numinput" id="ans" type="number" inputmode="decimal" placeholder="?"></div>
+      <div class="btn-row" id="btnRow"><button class="act btn-primary" id="checkBtn">Check</button></div>
+      <div class="feedback" id="fb"></div>
+      <div class="reveal" id="reveal" style="display:none"></div>
+    </div>`;
+    function solve(){
+      const val=parseFloat($('ans').value); if(isNaN(val)) return;
+      const ok=Math.abs(val-ans)<0.01; score(ok);
+      $('ans').disabled=true; $('checkBtn').style.display='none';
+      $('fb').textContent = ok ? pick(['🎉 Correct!','⭐ Nice!','✅ Sharp!']) : `The answer is ${ans}.`;
+      $('fb').className='feedback '+(ok?'good':'bad');
+      let work;
+      if(it.unknown==='c') work=`a² + b² = c² → ${it.a}² + ${it.b}² = ${it.a*it.a} + ${it.b*it.b} = ${it.a*it.a+it.b*it.b} = c², so c = √${it.a*it.a+it.b*it.b} = <b>${it.c}</b>.`;
+      else { const leg=it.unknown, other= leg==='a'?'b':'a'; work=`c² − ${other}² = ${leg}² → ${it.c}² − ${it[other]}² = ${it.c*it.c} − ${it[other]*it[other]} = ${it.c*it.c-it[other]*it[other]} = ${leg}², so ${leg} = √${it.c*it.c-it[other]*it[other]} = <b>${ans}</b>.`; }
+      const rev=$('reveal'); rev.style.display=''; rev.innerHTML=`<div class="rev-title">How to solve it</div><div>${work}</div>`+srcLink('khan');
+      const nb=document.createElement('button'); nb.className='act btn-primary'; nb.textContent='Next ➡️'; nb.onclick=mountPythag; $('btnRow').appendChild(nb); nb.focus();
+    }
+    $('checkBtn').onclick=solve;
+    $('ans').addEventListener('keydown',e=>{ if(e.key==='Enter' && !$('ans').disabled) solve(); });
+    $('ans').focus();
+  }
+
+  // ============ GAME 3 · SHAPE FORMULAS ============
+  let lastSh=null;
+  function shapeSVG(sh){
+    const d=sh.dims;
+    if(sh.shape==='rectangle'||sh.shape==='square'){
+      const w= sh.shape==='square'? 150 : 200, h=110;
+      return `<svg viewBox="0 0 260 170"><rect x="30" y="30" width="${w}" height="${h}" fill="#e6e7fb" stroke="var(--accent)" stroke-width="3"/>`+
+        `<text x="${30+w/2}" y="24" text-anchor="middle" font-size="14" font-weight="800" fill="var(--accent)">${sh.shape==='square'?d.s:d.l}</text>`+
+        `<text x="${30+w+14}" y="${30+h/2}" font-size="14" font-weight="800" fill="var(--accent)">${sh.shape==='square'?d.s:d.w}</text></svg>`;
+    }
+    if(sh.shape==='triangle'){
+      return `<svg viewBox="0 0 260 170"><polygon points="40,140 220,140 110,30" fill="#e6e7fb" stroke="var(--accent)" stroke-width="3"/>`+
+        `<line x1="110" y1="30" x2="110" y2="140" stroke="#94a3b8" stroke-dasharray="4 3" stroke-width="1.5"/>`+
+        `<text x="130" y="158" text-anchor="middle" font-size="14" font-weight="800" fill="var(--accent)">base = ${d.b}</text>`+
+        `<text x="118" y="90" font-size="13" font-weight="800" fill="#64748b">h = ${d.h}</text></svg>`;
+    }
+    if(sh.shape==='circle'){
+      return `<svg viewBox="0 0 260 170"><circle cx="130" cy="85" r="65" fill="#e6e7fb" stroke="var(--accent)" stroke-width="3"/>`+
+        `<line x1="130" y1="85" x2="195" y2="85" stroke="var(--accent)" stroke-width="2"/>`+
+        `<circle cx="130" cy="85" r="3" fill="var(--accent)"/>`+
+        `<text x="162" y="78" text-anchor="middle" font-size="14" font-weight="800" fill="var(--accent)">r = ${d.r}</text></svg>`;
+    }
+    // box (3D)
+    return `<svg viewBox="0 0 260 180"><polygon points="50,60 170,60 210,40 90,40" fill="#c7caf0" stroke="var(--accent)" stroke-width="2"/>`+
+      `<rect x="50" y="60" width="120" height="90" fill="#e6e7fb" stroke="var(--accent)" stroke-width="2"/>`+
+      `<polygon points="170,60 210,40 210,130 170,150" fill="#d4d6f5" stroke="var(--accent)" stroke-width="2"/>`+
+      `<text x="110" y="168" text-anchor="middle" font-size="13" font-weight="800" fill="var(--accent)">l = ${d.l}</text>`+
+      `<text x="222" y="90" font-size="13" font-weight="800" fill="var(--accent)">h = ${d.h}</text>`+
+      `<text x="185" y="40" font-size="13" font-weight="800" fill="var(--accent)">w = ${d.w}</text></svg>`;
+  }
+  function mountShapes(){
+    let it, tries=0;
+    do { it=pick(G.SHAPES); tries++; } while (G.SHAPES.length>1 && it===lastSh && tries<20);
+    lastSh=it;
+    stage.innerHTML = `<div class="card"><p class="qprompt">🔷 Shape Formulas</p>${howBar()}
+      <div class="geo-svg" style="max-width:280px">${shapeSVG(it)}</div>
+      <p class="qprompt" style="margin:6px 0 10px">Find the <b style="color:var(--accent)">${it.ask}</b> of this ${it.shape}${it.shape==='circle'?' (use π = 3.14)':''}</p>
+      <div style="text-align:center"><input class="numinput" id="ans" type="number" inputmode="decimal" placeholder="?"> <span style="color:var(--muted);font-size:13px">${esc(it.unit)}</span></div>
+      <div class="btn-row" id="btnRow"><button class="act btn-primary" id="checkBtn">Check</button></div>
+      <div class="feedback" id="fb"></div>
+      <div class="reveal" id="reveal" style="display:none"></div>
+    </div>`;
+    function solve(){
+      const val=parseFloat($('ans').value); if(isNaN(val)) return;
+      const ok=Math.abs(val-it.ans)<0.05; score(ok);
+      $('ans').disabled=true; $('checkBtn').style.display='none';
+      $('fb').textContent = ok ? pick(['🎉 Correct!','⭐ Nice!','✅ Sharp!']) : `The answer is ${it.ans} ${it.unit}.`;
+      $('fb').className='feedback '+(ok?'good':'bad');
+      const rev=$('reveal'); rev.style.display=''; rev.innerHTML=`<div class="rev-title">${it.ask.charAt(0).toUpperCase()+it.ask.slice(1)} = ${it.ans}</div><div>${esc(it.formula)} = <b>${it.ans}</b> ${esc(it.unit)}.</div>`+srcLink('mathisfun');
+      const nb=document.createElement('button'); nb.className='act btn-primary'; nb.textContent='Next ➡️'; nb.onclick=mountShapes; $('btnRow').appendChild(nb); nb.focus();
+    }
+    $('checkBtn').onclick=solve;
+    $('ans').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!$('ans').disabled) solve(); });
+    $('ans').focus();
+  }
+
+  // ============ GAME 4 · PARALLEL LINES ============
+  let lastPa=null;
+  const T={x:120,y:80}, B={x:210,y:210};
+  const POS = {
+    'T-tr':[T.x+22,T.y-12],'T-tl':[T.x-26,T.y-12],'T-br':[T.x+22,T.y+22],'T-bl':[T.x-26,T.y+22],
+    'B-tr':[B.x+22,B.y-12],'B-tl':[B.x-26,B.y-12],'B-br':[B.x+22,B.y+22],'B-bl':[B.x-26,B.y+22]
+  };
+  function mountParallel(){
+    let it, tries=0;
+    do { it=pick(G.PARALLEL); tries++; } while (G.PARALLEL.length>1 && it===lastPa && tries<20);
+    lastPa=it;
+    const ans = it.equal ? it.known : 180-it.known;
+    const kp=POS[it.kpos], tp=POS[it.tpos];
+    // extend transversal beyond both intersections
+    const dx=B.x-T.x, dy=B.y-T.y, ex1={x:T.x-dx*0.6,y:T.y-dy*0.6}, ex2={x:B.x+dx*0.6,y:B.y+dy*0.6};
+    let svg=`<svg viewBox="0 0 320 300">`;
+    svg+=`<line x1="20" y1="${T.y}" x2="300" y2="${T.y}" stroke="#334155" stroke-width="3"/>`;
+    svg+=`<line x1="20" y1="${B.y}" x2="300" y2="${B.y}" stroke="#334155" stroke-width="3"/>`;
+    // parallel arrows
+    svg+=`<text x="285" y="${T.y-6}" font-size="15" fill="#94a3b8">▶</text><text x="285" y="${B.y-6}" font-size="15" fill="#94a3b8">▶</text>`;
+    svg+=`<line x1="${ex1.x}" y1="${ex1.y}" x2="${ex2.x}" y2="${ex2.y}" stroke="var(--accent)" stroke-width="3"/>`;
+    svg+=`<circle cx="${kp[0]}" cy="${kp[1]}" r="16" fill="#dcfce7" stroke="var(--correct)" stroke-width="2"/><text x="${kp[0]}" y="${kp[1]+5}" text-anchor="middle" font-size="14" font-weight="800" fill="#15803d">${it.known}°</text>`;
+    svg+=`<circle cx="${tp[0]}" cy="${tp[1]}" r="16" fill="#ffedd5" stroke="#f59e0b" stroke-width="2"/><text x="${tp[0]}" y="${tp[1]+5}" text-anchor="middle" font-size="16" font-weight="800" fill="#b45309">?</text>`;
+    svg+=`<text x="160" y="290" text-anchor="middle" font-size="11" fill="#94a3b8">(figure not drawn to scale)</text>`;
+    svg+=`</svg>`;
+    stage.innerHTML = `<div class="card"><p class="qprompt">∥ Parallel Lines</p>${howBar()}
+      <div class="geo-svg">${svg}</div>
+      <p class="qprompt" style="margin:6px 0 10px">The two marked angles are <b style="color:var(--accent)">${esc(it.rel)}</b> angles. What is <span style="color:#b45309">?</span></p>
+      <div style="text-align:center"><input class="numinput" id="ans" type="number" inputmode="numeric" placeholder="?">°</div>
+      <div class="btn-row" id="btnRow"><button class="act btn-primary" id="checkBtn">Check</button></div>
+      <div class="feedback" id="fb"></div>
+      <div class="reveal" id="reveal" style="display:none"></div>
+    </div>`;
+    function solve(){
+      const val=parseInt($('ans').value,10); if(isNaN(val)) return;
+      const ok=val===ans; score(ok);
+      $('ans').disabled=true; $('checkBtn').style.display='none';
+      $('fb').textContent = ok ? pick(['🎉 Correct!','⭐ Nice!','✅ Sharp!']) : `The answer is ${ans}°.`;
+      $('fb').className='feedback '+(ok?'good':'bad');
+      const math = it.equal ? `equal, so ? = <b>${ans}°</b>.` : `add to 180°, so ? = 180° − ${it.known}° = <b>${ans}°</b>.`;
+      const rev=$('reveal'); rev.style.display=''; rev.innerHTML=`<div class="rev-title">${esc(it.rel.charAt(0).toUpperCase()+it.rel.slice(1))} angles</div><div>${esc(it.rule)} They are ${math}</div>`+srcLink('mathisfun');
+      const nb=document.createElement('button'); nb.className='act btn-primary'; nb.textContent='Next ➡️'; nb.onclick=mountParallel; $('btnRow').appendChild(nb); nb.focus();
+    }
+    $('checkBtn').onclick=solve;
+    $('ans').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!$('ans').disabled) solve(); });
+    $('ans').focus();
+  }
+
+  // ---- dispatch ----
+  const MOUNTS = { triangle:mountTriangle, pythag:mountPythag, shapes:mountShapes, parallel:mountParallel };
+  function newRound(){ renderTeacher(); MOUNTS[mode](); }
+
+  // ---- popups ----
+  function openDict(){
+    const rows = G.TERMS.map(t =>
+      `<div class="trow"><div class="tt">${esc(t.term)}</div><div class="td">${esc(t.def)}</div>`+
+      (t.simple?`<div class="ts">💡 <b>In simple terms:</b> ${esc(t.simple)}</div>`:``)+
+      (t.ex?`<div class="te">e.g. ${esc(t.ex)}</div>`:``)+`</div>`).join('');
+    $('dictSheet').innerHTML = `<button class="closeBtn" id="closeDict">✕</button><h2>📖 Geometry Glossary</h2>`+
+      `<p class="sheet-sub">The words and formulas high-school geometry uses — the definition, the plain-terms version, and an example.</p>` + rows;
+    $('closeDict').onclick = ()=> $('dictModal').className='modal hidden';
+    $('dictModal').className='modal';
+  }
+  function openSources(){
+    const rows = G.SOURCES.map(s => `<div class="srow"><a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)} ↗</a><div class="snote">${esc(s.note)}</div></div>`).join('');
+    $('srcSheet').innerHTML = `<button class="closeBtn" id="closeSrc">✕</button><h2>📚 Where these ideas come from</h2>`+
+      `<p class="sheet-sub">Trusted places to go deeper on geometry.</p>` + rows;
+    $('closeSrc').onclick = ()=> $('srcModal').className='modal hidden';
+    $('srcModal').className='modal';
+  }
+
+  // ---- wiring ----
+  $('modeSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.mode;
+    [...$('modeSeg').children].forEach(x => x.classList.toggle('on', x===b));
+    resetProgress(); newRound();
+  });
+  $('dictBtn').onclick = openDict;
+  $('srcBtn').onclick = openSources;
+  [$('dictModal'), $('srcModal')].forEach(m => m.addEventListener('click', e => { if (e.target === m) m.className='modal hidden'; }));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape'){ $('dictModal').className='modal hidden'; $('srcModal').className='modal hidden'; } });
+
+  newRound();
+})();
+</script>
+</body>
+</html>

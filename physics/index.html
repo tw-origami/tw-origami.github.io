@@ -114,6 +114,30 @@
   .simmsg.warn { color:var(--wrong); }
   .simmsg.win { color:var(--correct); }
 
+  /* ---------- COACH · guided lesson ---------- */
+  .coach { width:100%; background:linear-gradient(135deg,#fff7ed,#ffedd5); border:2px solid #fed7aa; border-radius:16px; padding:15px 17px; margin-bottom:4px; }
+  .coach-top { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:9px; }
+  .coach-step { font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:#c2410c; background:#fff; padding:5px 11px; border-radius:999px; }
+  .coach-skip { font-size:12.5px; font-weight:700; color:var(--muted); background:none; border:none; cursor:pointer; font-family:inherit; padding:4px 2px; white-space:nowrap; }
+  .coach-skip:hover { color:var(--accent); text-decoration:underline; }
+  .coach-head { font-size:17px; font-weight:900; margin:0 0 6px; color:#7c2d12; line-height:1.3; }
+  .coach-body { font-size:14.5px; line-height:1.6; color:#7c2d12; }
+  .coach-body b { color:#c2410c; }
+  .coach-hint { margin-top:10px; font-weight:800; color:#9a3412; }
+  .coach-predict { margin-top:13px; background:rgba(255,255,255,.6); border-radius:12px; padding:11px 12px; }
+  .coach-predict .pq { font-size:12.5px; font-weight:800; color:#9a3412; margin-bottom:8px; text-transform:uppercase; letter-spacing:.3px; }
+  .coach-predict .popts { display:flex; gap:8px; flex-wrap:wrap; }
+  .coach-predict .popts button { flex:1 1 90px; font-family:inherit; font-weight:800; font-size:14.5px; border:2px solid #fdba74; background:#fff; color:#c2410c; border-radius:11px; padding:11px 8px; cursor:pointer; transition:background .12s, color .12s; }
+  .coach-predict .popts button:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .coach-learn { margin-top:13px; background:#fff; border-radius:12px; padding:12px 14px; border-left:4px solid var(--correct); }
+  .coach-learn .cl-title { font-weight:900; color:var(--correct); font-size:15px; margin-bottom:5px; }
+  .coach-learn .cl-body { font-size:14px; line-height:1.6; color:#57534e; }
+  .coach-learn .cl-body b { color:#c2410c; }
+  .coach-nums { margin-top:9px; font-size:13.5px; font-weight:800; color:#7c2d12; background:var(--accent-soft); border-radius:9px; padding:8px 11px; text-align:center; }
+  .coach-nums b { color:#c2410c; }
+  .coach-next { margin-top:12px; display:flex; }
+  .coach-next button { flex:1; }
+
   .runs { width:100%; margin-top:14px; border:2px solid #f5e3d3; border-radius:12px; overflow:hidden; font-size:13px; }
   .runs .rhead, .runs .rrow { display:grid; grid-template-columns:1.2fr 1.2fr 1fr 1.1fr 1fr; }
   .runs .rhead { background:var(--accent-soft); font-weight:800; color:#7c2d12; }
@@ -165,7 +189,7 @@
     <button id="srcBtn" title="Where these ideas come from">📚 Sources</button>
   </div>
   <h1>🔬 Physics Playground</h1>
-  <p class="sub">Play with forces, motion and energy — launch a cart and watch Newton’s laws in action, then master speed vs. velocity, energy, and simple machines.</p>
+  <p class="sub">Play with forces, motion and energy — follow the step-by-step launch lab to <b>discover F = m·a</b>, then master speed vs. velocity, energy, and simple machines.</p>
   <img class="hero" src="img/hero.png" alt="Kids experimenting with physics" onerror="this.style.display='none'">
 
   <div class="controls">
@@ -350,8 +374,70 @@
 
   /* ============ GAME 1 · LAUNCH THE CART (F = m·a) ============ */
   const S = P.SIM;
+  const LESSON = S.lesson;
   let physx = { mass:S.mass.def, force:S.force.def, surf:'track', runs:[], animating:false, runToken:0 };
+  let lesson = { idx:0, predicted:null, stepDone:false, result:null, lastA:null, baseA:null };
+  const curStep = () => LESSON[lesson.idx];
+  const surfName = id => { const s = S.surfaces.find(x => x.id===id); return s ? s.name : id; };
   function surfObj(){ return S.surfaces.find(s => s.id===physx.surf); }
+
+  /* --- lesson flow --- */
+  function enterStep(){
+    const step = curStep();
+    lesson.predicted = null; lesson.stepDone = false; lesson.result = null;
+    if (step.apply){
+      if (step.apply.mass  != null) physx.mass  = step.apply.mass;
+      if (step.apply.force != null) physx.force = step.apply.force;
+      if (step.apply.surf  != null) physx.surf  = step.apply.surf;
+    }
+    renderSim();
+  }
+  function startLesson(){ lesson.idx = 0; lesson.baseA = null; enterStep(); }
+  function advanceStep(){ if (lesson.idx < LESSON.length-1){ lesson.idx++; enterStep(); } }
+  function gotoFree(){ lesson.idx = LESSON.length-1; enterStep(); }
+  function reqMet(step){
+    if (!step.req) return true;
+    return (step.req.mass  == null || physx.mass  === step.req.mass)
+        && (step.req.force == null || physx.force === step.req.force)
+        && (step.req.surf  == null || physx.surf  === step.req.surf);
+  }
+  function reqNudge(step){
+    const parts = [];
+    if (step.req.force != null && physx.force !== step.req.force) parts.push(`the force to ${step.req.force} N`);
+    if (step.req.mass  != null && physx.mass  !== step.req.mass)  parts.push(`the mass to ${step.req.mass} kg`);
+    if (step.req.surf  != null && physx.surf  !== step.req.surf)  parts.push(`the surface to ${surfName(step.req.surf)}`);
+    return parts.length ? `First set ${parts.join(' and ')}, then Launch.` : 'Adjust the settings, then Launch.';
+  }
+  function coachHTML(){
+    const step = curStep(), n = LESSON.length - 1;   // last entry is free play, not a numbered step
+    let h = `<div class="coach"><div class="coach-top">`;
+    h += `<span class="coach-step">${step.free ? '🎓 Free play' : 'Lesson · Step '+(lesson.idx+1)+' of '+n}</span>`;
+    h += step.free
+      ? `<button class="coach-skip" data-coach="restart">↩ Restart lesson</button>`
+      : `<button class="coach-skip" data-coach="skip">Skip to free play →</button>`;
+    h += `</div><div class="coach-head">${step.head}</div><div class="coach-body">${step.body}</div>`;
+    if (!step.free && !lesson.stepDone){
+      if (step.predict && !lesson.predicted){
+        h += `<div class="coach-predict"><div class="pq">${step.predict.q}</div><div class="popts">` +
+          step.predict.options.map(o => `<button data-predict="${esc(o)}">${esc(o)}</button>`).join('') +
+          `</div></div>`;
+      } else if (lesson.predicted){
+        h += `<div class="coach-body coach-hint">🔒 You predicted “${esc(lesson.predicted)}.” Now set it up and hit 🚀 Launch to test it.</div>`;
+      }
+    }
+    if (lesson.stepDone){
+      const goingToFree = lesson.idx === LESSON.length-2;
+      let title = '✅ What just happened';
+      if (step.predict) title = lesson.result ? '🎯 Nailed it — you predicted this!' : '🔬 Good experiment!';
+      let nums = `This launch → <b>a = ${r1(lesson.lastA)} m/s²</b>`;
+      if (lesson.idx > 0 && lesson.baseA != null) nums += ` &nbsp;·&nbsp; baseline was <b>${r1(lesson.baseA)} m/s²</b>`;
+      h += `<div class="coach-learn"><div class="cl-title">${title}</div><div class="cl-body">${step.learn}</div>` +
+        `<div class="coach-nums">${nums}</div></div>` +
+        `<div class="coach-next"><button class="act btn-primary" data-coach="next">${goingToFree ? 'Finish → Free play 🎓' : 'Next experiment ➡️'}</button></div>`;
+    }
+    h += `</div>`;
+    return h;
+  }
   function calc(){
     const s = surfObj();
     const fric = s.mu * physx.mass * S.g;
@@ -362,6 +448,7 @@
   function renderSim(){
     const s = surfObj(), c = calc();
     let html = `<div class="qprompt">🚀 Launch the Cart — Newton’s 2nd Law</div>`;
+    html += coachHTML();
     html += `<div class="simctl">`;
     html += drow('⚖️ Mass of the cart', 'Heavier carts are harder to speed up.',
       stepper('mass', physx.mass + ' ' + S.mass.unit));
@@ -411,12 +498,37 @@
       if (physx.animating) return;
       physx.surf = b.dataset.surf; renderSim();
     });
+    $('simCard').querySelectorAll('[data-predict]').forEach(b => b.onclick = () => {
+      if (physx.animating) return;
+      lesson.predicted = b.dataset.predict; renderSim();
+    });
+    $('simCard').querySelectorAll('[data-coach]').forEach(b => b.onclick = () => {
+      if (physx.animating) return;
+      const act = b.dataset.coach;
+      if (act === 'next') advanceStep();
+      else if (act === 'skip') gotoFree();
+      else if (act === 'restart') startLesson();
+    });
     $('launchBtn').onclick = launch;
   }
   function launch(){
     if (physx.animating) return;
     const c = calc();
     const msg = $('simMsg');
+    // guided-lesson gating: predict first, then match the experiment's settings
+    if (LESSON && !curStep().free && !lesson.stepDone){
+      const step = curStep();
+      if (step.predict && !lesson.predicted){
+        msg.className = 'simmsg warn';
+        msg.textContent = '👆 Make your prediction above first — then Launch.';
+        return;
+      }
+      if (!reqMet(step)){
+        msg.className = 'simmsg warn';
+        msg.textContent = reqNudge(step);
+        return;
+      }
+    }
     if (c.a <= 0){
       msg.className = 'simmsg warn';
       msg.textContent = '🛑 Not enough force to beat friction — the cart won’t budge! Add force or pick a slicker surface.';
@@ -468,6 +580,18 @@
     msg.className = 'simmsg win';
     msg.textContent = `💥 CRASH! Top speed ${r1(v)} m/s · Kinetic energy ${r1(ke)} J`;
     physx.runs.push({ mass:physx.mass, force:physx.force, a, v, ke });
+    // guided-lesson bookkeeping
+    if (LESSON){
+      const step = curStep();
+      if (step.free){
+        if (ke > 1000) msg.textContent = `🏆 CHALLENGE DONE! ${r1(v)} m/s · ${r1(ke)} J of kinetic energy!`;
+      } else if (!lesson.stepDone){
+        lesson.stepDone = true;
+        lesson.lastA = a;
+        if (lesson.idx === 0) lesson.baseA = a;
+        if (step.predict) lesson.result = (lesson.predicted === step.predict.answer);
+      }
+    }
     if (ke > 250) celebrate(0);
     setTimeout(() => { if (token !== physx.runToken) return; physx.animating = false; renderSim(); }, 1400);
   }
@@ -530,7 +654,7 @@
     $('simCard').style.display = isSim ? 'flex' : 'none';
     $('scorebar').style.display = isSim ? 'none' : 'flex';
     clearTimers();
-    if (isSim){ physx.animating = false; physx.runToken++; renderSim(); }
+    if (isSim){ physx.animating = false; physx.runToken++; startLesson(); }
     else { resetProgress(); newRound(); }
   }
   $('modeSeg').addEventListener('click', e => { const b=e.target.closest('button'); if (b) setMode(b.dataset.mode); });

@@ -76,6 +76,41 @@ window.PHYS = {
       { id:'ice',   name:'Ice',   icon:'🧊', mu:0.0, note:'No friction — nothing slows the cart.' },
       { id:'track', name:'Track', icon:'🛤️', mu:0.2, note:'A little friction, like a smooth floor.' },
       { id:'grass', name:'Grass', icon:'🌿', mu:0.4, note:'Lots of friction — hard to get moving.' }
+    ],
+    /* Guided lesson that walks the learner through F = m·a, one experiment at a time.
+     * apply = preset the controls when the step opens; req = settings needed before a launch "counts";
+     * predict = ask before launching; free = open sandbox (graduation). */
+    lesson: [
+      { head:'🚀 Welcome to the launch lab',
+        body:'Every launch obeys one rule: <b>Force = mass × acceleration</b> (F = m·a). Push harder and the cart speeds up faster; pile on mass and it fights back. We’ll <b>prove it</b> in 3 quick experiments, changing just one thing each time. First, let’s set a baseline — hit <b>🚀 Launch!</b>',
+        apply:{ mass:2, force:40, surf:'ice' },
+        req:{ mass:2, force:40, surf:'ice' },
+        learn:'That’s your <b>baseline</b> on frictionless ice: a 2&nbsp;kg cart with a 40&nbsp;N push. Every experiment below changes exactly ONE thing from here, so you can see precisely what it does. Watch the <b>Acceleration</b> readout each time.' },
+
+      { head:'💪 Experiment 1 — more force',
+        body:'Keep the cart at 2&nbsp;kg, but <b>double the push to 80&nbsp;N</b> — tap ＋ on <b>Launch force</b>. Make your prediction, then Launch.',
+        apply:{ mass:2, force:40, surf:'ice' },
+        req:{ mass:2, force:80, surf:'ice' },
+        predict:{ q:'Predict: double the push, and the cart will…', options:['Speed up','No change','Slow down'], answer:'Speed up' },
+        learn:'Double the push → the acceleration <b>doubled</b>. Force and acceleration go up together — that’s the F and the a sitting on the same side of F = m·a.' },
+
+      { head:'⚖️ Experiment 2 — more mass',
+        body:'Put the force back to 40&nbsp;N, then <b>make the cart heavier: 4&nbsp;kg</b> — tap ＋ on <b>Mass</b>. Same push, heavier cart — predict first, then Launch.',
+        apply:{ mass:2, force:40, surf:'ice' },
+        req:{ mass:4, force:40, surf:'ice' },
+        predict:{ q:'Predict: double the mass, and the cart will…', options:['Speed up','No change','Slow down'], answer:'Slow down' },
+        learn:'Double the mass → the acceleration <b>halved</b>. Mass resists motion, so the same push moves a heavy cart less. Bigger m means smaller a.' },
+
+      { head:'🌍 Experiment 3 — friction',
+        body:'Same 2&nbsp;kg cart and 40&nbsp;N push, but now you’re on <b>🌿 Grass</b> instead of ice. Predict what rough ground does, then Launch — and watch the <b>friction</b> number in the equation.',
+        apply:{ mass:2, force:40, surf:'grass' },
+        req:{ mass:2, force:40, surf:'grass' },
+        predict:{ q:'Predict: move from ice to grass, and the cart will…', options:['Speed up','No change','Slow down'], answer:'Slow down' },
+        learn:'On grass, <b>friction</b> is subtracted from your push before it ever reaches the cart. Less <b>net</b> force means less acceleration — so the very same 40&nbsp;N does less here than on ice.' },
+
+      { head:'🎓 You did it — free play!',
+        body:'You just discovered <b>F = m·a</b>: more force = faster, more mass = slower, and friction steals from your push. The lab is now yours — mix any settings and launch. <b>Challenge:</b> can you make the cart crash with over <b>1000 J</b> of kinetic energy? (Hint: go heavy AND fast.)',
+        free:true }
     ]
   },
 
