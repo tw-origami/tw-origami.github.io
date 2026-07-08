@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Bio Basics</title>
+<style>
+  :root {
+    --ink:#2a1033; --muted:#7c6285; --accent:#a21caf; --accent-soft:#fae8ff;
+    --correct:#16a34a; --wrong:#dc2626; --shadow:0 10px 30px rgba(162,28,175,.15);
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#fdf4ff,#ecfdf5); min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; padding:24px 16px 60px;
+  }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 14px; font-size:15px; text-align:center; max-width:540px; line-height:1.5; }
+  .hero { width:100%; max-width:480px; border-radius:18px; box-shadow:var(--shadow); margin:0 0 18px; display:block; }
+
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; position:sticky; top:10px; z-index:70; }
+  .nav a, .nav button{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 16px; border-radius:9px; border:none; background:transparent; font-family:inherit; cursor:pointer; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+  .nav button:hover{ background:var(--accent-soft); color:var(--accent); }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; }
+  .seg button {
+    border:none; background:transparent; font-family:inherit; font-weight:800;
+    font-size:14.5px; padding:9px 15px; border-radius:10px; cursor:pointer; color:var(--muted);
+    transition:background .15s, color .15s;
+  }
+  .seg button.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .chip { background:#fff; border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; }
+  .chip.streak { color:#ea580c; }
+
+  .stage { width:100%; max-width:600px; }
+  .card { width:100%; background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:28px 24px; display:flex; flex-direction:column; align-items:center; }
+  .qprompt { color:var(--muted); font-size:14px; margin:0 0 16px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; text-align:center; }
+
+  .subject { text-align:center; margin-bottom:22px; width:100%; }
+  .subj-tag { display:inline-block; font-size:12px; font-weight:800; color:var(--accent); background:var(--accent-soft); padding:4px 12px; border-radius:999px; text-transform:uppercase; letter-spacing:.4px; margin-bottom:8px; }
+  .subj-question { font-size:19px; font-weight:800; line-height:1.45; margin:4px auto 0; max-width:500px; }
+  .subj-item { font-size:23px; font-weight:900; line-height:1.3; margin:4px auto 0; }
+
+  .choices { display:flex; flex-direction:column; gap:11px; width:100%; }
+  .choice { background:#fff; border:3px solid #f0dcf5; border-radius:16px; font-size:16.5px; font-weight:700; padding:14px 18px; color:var(--ink); cursor:pointer; text-align:left; display:flex; align-items:center; gap:11px; font-family:inherit; line-height:1.4; }
+  .choice .cico { font-size:24px; flex:none; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.has-sub { align-items:flex-start; }
+  .choice.has-sub .cico { margin-top:1px; }
+  .choice-text { display:flex; flex-direction:column; gap:3px; }
+  .choice-label { font-weight:800; }
+  .choice-sub { font-size:12.5px; font-weight:600; color:var(--muted); line-height:1.4; }
+  .choice.correct .choice-sub, .choice.wrong .choice-sub { color:inherit; opacity:.85; }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; color:var(--correct); }
+  .choice.wrong { border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
+  .choice:disabled { cursor:default; }
+
+  /* Order It picked steps + shake */
+  .choice.picked { border-color:var(--correct); background:#f0fdf4; color:var(--ink); cursor:default; }
+  .choice .stepnum { flex:none; width:26px; height:26px; border-radius:50%; background:var(--correct); color:#fff; font-size:14px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .choice.shake { animation:shake .4s; border-color:var(--wrong); }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+
+  .feedback { min-height:26px; margin-top:18px; font-weight:800; font-size:17px; text-align:center; }
+  .feedback.good { color:var(--correct); }
+  .feedback.bad { color:var(--wrong); }
+
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; text-align:left; width:100%; margin:10px auto 4px; padding:16px 18px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
+  .reveal.hidden { display:none; }
+  .reveal .rev-title { font-size:18px; font-weight:800; margin-bottom:6px; color:#86198f; }
+  .reveal .rev-body { color:#701a75; }
+  .reveal .rev-ex { margin-top:10px; color:#a21caf; font-style:italic; }
+  .beatrow { display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-top:1px solid #efc9f5; }
+  .beatrow:first-of-type { border-top:none; }
+  .beatrow .bico { font-size:22px; flex:none; }
+  .beatrow .bnum { font-weight:800; min-width:22px; flex:none; color:#86198f; }
+  .beatrow .bn { color:#701a75; }
+  .eli5 { margin-top:14px; background:#f0fdf4; border-left:3px solid #16a34a; border-radius:8px; padding:10px 13px; font-size:14px; color:#14532d; line-height:1.55; }
+  .eli5 b { color:#15803d; }
+  .rev-src { display:inline-block; margin-top:14px; font-size:13px; font-weight:700; color:var(--accent); text-decoration:none; border-bottom:1.5px dotted var(--accent); }
+
+  button.act { font-family:inherit; font-size:16px; font-weight:700; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; transition:transform .1s, background .15s; }
+  button.act:active { transform:scale(.96); }
+  button.act:disabled { opacity:.5; cursor:default; transform:none; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#86198f; }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  /* ---------- PUNNETT SIM ---------- */
+  .coach { width:100%; background:linear-gradient(135deg,#fdf4ff,#fae8ff); border:2px solid #efc9f5; border-radius:16px; padding:14px 16px; margin-bottom:14px; }
+  .coach .cstep { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--accent); }
+  .coach .chead { font-size:17px; font-weight:900; margin:3px 0 5px; }
+  .coach .cbody { font-size:14px; line-height:1.55; color:#4a2350; }
+  .coach .cbody b { color:#86198f; }
+  .lessondots { display:flex; gap:5px; justify-content:center; margin:10px 0 2px; }
+  .lessondots span { width:9px; height:9px; border-radius:50%; background:#efc9f5; }
+  .lessondots span.done { background:var(--correct); }
+  .lessondots span.now { background:var(--accent); }
+  .predictq { width:100%; text-align:center; font-weight:800; font-size:15.5px; margin:6px 0 10px; color:var(--ink); }
+  .skiplink { display:block; text-align:center; margin-top:12px; font-size:13px; font-weight:700; color:var(--muted); background:none; border:none; cursor:pointer; font-family:inherit; text-decoration:underline; }
+  .skiplink:hover { color:var(--accent); }
+  .parent.locked .gbtns button { opacity:.55; cursor:default; }
+  .traitpick { display:flex; gap:7px; flex-wrap:wrap; justify-content:center; margin-bottom:16px; }
+  .traitpick button { font-family:inherit; font-weight:800; font-size:13.5px; border:2px solid #f0dcf5; background:#fff; color:var(--muted); border-radius:999px; padding:7px 13px; cursor:pointer; }
+  .traitpick button.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .parents { display:flex; gap:12px; width:100%; margin-bottom:8px; }
+  .parent { flex:1; background:#fdf7ff; border:2px solid #f0dcf5; border-radius:16px; padding:12px; text-align:center; }
+  .parent .ph { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); }
+  .parent .pheno { font-size:30px; line-height:1; margin:6px 0 2px; }
+  .parent .phenol { font-size:12.5px; font-weight:800; margin-bottom:8px; }
+  .gbtns { display:flex; flex-direction:column; gap:6px; }
+  .gbtns button { font-family:inherit; font-weight:800; font-size:14px; border:2px solid #f0dcf5; background:#fff; color:var(--ink); border-radius:10px; padding:7px; cursor:pointer; }
+  .gbtns button.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .cross-lbl { text-align:center; font-weight:900; font-size:22px; color:var(--accent); margin:6px 0; }
+
+  .punnett { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; width:100%; max-width:320px; margin:8px auto 4px; }
+  .pcell { aspect-ratio:1; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:22px; }
+  .pcell.hdr { background:var(--accent-soft); color:#86198f; font-size:20px; }
+  .pcell.corner { background:transparent; }
+  .pcell.off { border:3px solid; }
+  .pcell.off .gt { text-shadow:0 1px 2px rgba(0,0,0,.25); }
+
+  .oddsbar { display:flex; width:100%; max-width:360px; height:34px; border-radius:10px; overflow:hidden; margin:14px auto 6px; border:2px solid #fff; box-shadow:var(--shadow); }
+  .oddsbar .seg2 { display:flex; align-items:center; justify-content:center; color:#fff; font-weight:900; font-size:14px; text-shadow:0 1px 2px rgba(0,0,0,.3); }
+  .ratio { text-align:center; font-weight:800; font-size:15px; margin:6px 0; }
+  .ratio small { color:var(--muted); font-weight:700; }
+
+  .modal { position:fixed; inset:0; background:rgba(50,10,60,.45); z-index:80; display:flex; align-items:center; justify-content:center; padding:18px; }
+  .modal.hidden { display:none; }
+  .sheet { background:#fff; border-radius:22px; box-shadow:0 24px 60px rgba(162,28,175,.35); width:100%; max-width:600px; max-height:82vh; overflow-y:auto; padding:26px 24px 30px; position:relative; }
+  .sheet h2 { margin:0 0 4px; font-size:22px; letter-spacing:-.4px; }
+  .sheet .sheet-sub { color:var(--muted); font-size:14px; margin:0 0 18px; line-height:1.5; }
+  .closeBtn { position:sticky; float:right; top:0; width:34px; height:34px; border:none; border-radius:50%; background:var(--accent-soft); color:#86198f; font-size:17px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .closeBtn:hover { background:var(--accent); color:#fff; }
+  .srow { padding:12px 0; border-top:1px solid #f0dcf5; }
+  .srow:first-of-type { border-top:none; }
+  .srow a { font-weight:800; font-size:15.5px; color:var(--accent); text-decoration:none; }
+  .srow .snote { color:var(--muted); font-size:13.5px; margin-top:3px; line-height:1.45; }
+  .trow { padding:11px 0; border-top:1px solid #f0dcf5; }
+  .trow:first-of-type { border-top:none; }
+  .trow .tt { font-weight:900; font-size:15.5px; color:var(--ink); }
+  .trow .td { font-size:14px; color:#6b5470; line-height:1.5; margin-top:2px; }
+  .trow .te { font-size:13px; color:var(--accent); font-weight:700; margin-top:4px; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner {
+    position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6);
+    background:linear-gradient(135deg,#d946ef,#a21caf); color:#fff; font-weight:900;
+    font-size:26px; padding:20px 34px; border-radius:22px; box-shadow:0 18px 50px rgba(162,28,175,.45);
+    z-index:60; opacity:0; pointer-events:none; text-align:center; white-space:nowrap;
+  }
+  #streakBanner.show { animation:banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner {
+    0%{opacity:0; transform:translate(-50%,-50%) scale(.6)}
+    15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)}
+    28%{transform:translate(-50%,-50%) scale(1)}
+    80%{opacity:1; transform:translate(-50%,-50%) scale(1)}
+    100%{opacity:0; transform:translate(-50%,-60%) scale(.95)}
+  }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button id="dictBtn" title="Biology words explained">📖 Dictionary</button>
+    <button id="srcBtn" title="Where these ideas come from">📚 Sources</button>
+  </div>
+  <h1>🧬 Bio Basics</h1>
+  <p class="sub">Freshman biology made playable — predict genetics with Punnett squares, explore cell parts, order life’s processes, and classify living things.</p>
+  <img class="hero" src="img/hero.png" alt="Kids exploring biology and genetics" onerror="this.style.display='none'">
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="punnett" class="on">🧬 Punnett Predictor</button>
+      <button data-mode="cells">🔬 Cell Command</button>
+      <button data-mode="sequence">🔁 Sequence It</button>
+      <button data-mode="heredity">👪 Heredity</button>
+      <button data-mode="classify">🌳 Classify It</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar" id="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="stage">
+    <div class="card" id="quizCard">
+      <p class="qprompt" id="prompt"></p>
+      <div class="subject" id="subject"></div>
+      <div class="choices" id="choices"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="reveal hidden" id="reveal"></div>
+      <div class="btn-row" id="nextRow" style="display:none">
+        <button class="act btn-primary" id="nextBtn">Next ➡️</button>
+      </div>
+    </div>
+    <div class="card" id="simCard" style="display:none"></div>
+  </div>
+
+  <div class="modal hidden" id="srcModal"><div class="sheet" id="srcSheet"></div></div>
+  <div class="modal hidden" id="dictModal"><div class="sheet" id="dictSheet"></div></div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const shuffle = arr => arr.slice().sort(()=>Math.random()-0.5);
+  const G = window.BIO;
+  const SRC = {}; G.SOURCES.forEach(s => SRC[s.key] = s);
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  let mode = 'punnett';
+  let correct = 0, total = 0, streak = 0, lastKey = null;
+  let answered = false, advanceReady = true, advanceTimer = null, countdownTimer = null;
+
+  function clearTimers(){
+    if (advanceTimer){ clearTimeout(advanceTimer); advanceTimer = null; }
+    if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
+  }
+  function updateScorebar(){ $('correctCount').textContent = correct; $('totalCount').textContent = total; $('streak').textContent = streak; }
+  function resetProgress(){ correct = 0; total = 0; streak = 0; lastKey = null; updateScorebar(); }
+  const srcLink = key => { const s = SRC[key]; return s ? `<a class="rev-src" href="${s.url}" target="_blank" rel="noopener">📚 Source: ${esc(s.name)} ↗</a>` : ''; };
+  const eli5Box = (label,text) => `<div class="eli5">💡 <b>${esc(label)}:</b> ${esc(text)}</div>`;
+
+  /* ============ QUIZ MODES ============ */
+  function buildRound(){
+    if (mode === 'cells')    return roundCells();
+    if (mode === 'heredity') return roundHeredity();
+    return roundClassify();
+  }
+  function roundCells(){
+    let it, tries=0;
+    do { it = pick(G.CELLS); tries++; } while (G.CELLS.length>1 && it.name===lastKey && tries<30);
+    lastKey = it.name;
+    const distractors = shuffle(G.CELLS.filter(x => x.name!==it.name)).slice(0,3);
+    const options = shuffle([it, ...distractors]);
+    return {
+      prompt:'🔬 Which cell part does this job?',
+      subjectHTML:`<div class="subj-tag">Find the organelle</div><div class="subj-question">The part that is ${esc(it.clue)}.</div>`,
+      choices: options.map(o => ({
+        html:`<span class="cico">${o.icon}</span><span class="choice-text"><span class="choice-label">${esc(o.name)}</span></span>`,
+        val:o.name, correct:o.name===it.name, cls:'has-sub'
+      })),
+      revealHTML:`<div class="rev-title">${it.icon} ${esc(it.name)}</div><div class="rev-body">It is ${esc(it.clue)}.</div>` + srcLink('ck12')
+    };
+  }
+  function roundHeredity(){
+    let p, tries=0;
+    do { p = pick(G.HEREDITY); tries++; } while (G.HEREDITY.length>1 && p.q===lastKey && tries<30);
+    lastKey = p.q;
+    const options = shuffle([p.correct, ...p.distractors]);
+    return {
+      prompt:'👪 Genetics & heredity',
+      subjectHTML:`<div class="subj-tag">Think it through</div><div class="subj-question">${esc(p.q)}</div>`,
+      choices: options.map(o => ({ html:esc(o), val:o, correct:o===p.correct })),
+      revealHTML:`<div class="rev-title">✅ ${esc(p.correct)}</div><div class="rev-body">${esc(p.why)}</div>` + srcLink('genome')
+    };
+  }
+  function roundClassify(){
+    let it, tries=0;
+    do { it = pick(G.CLASSIFY); tries++; } while (G.CLASSIFY.length>1 && it.item===lastKey && tries<30);
+    lastKey = it.item;
+    const options = shuffle(Object.keys(G.KINGDOMS));
+    const k = G.KINGDOMS[it.kingdom];
+    return {
+      prompt:'🌳 Which kingdom does it belong to?',
+      subjectHTML:`<div class="subj-tag">Classify this living thing</div><div class="subj-item">${esc(it.item)}</div>`,
+      choices: options.map(o => ({
+        html:`<span class="cico">${G.KINGDOMS[o].icon}</span><span class="choice-text"><span class="choice-label">${esc(o)}</span></span>`,
+        val:o, correct:o===it.kingdom, cls:'has-sub'
+      })),
+      revealHTML:`<div class="rev-title">${k.icon} ${esc(it.kingdom)}</div><div class="rev-body">${esc(k.desc)}</div>` + srcLink('ck12')
+    };
+  }
+
+  let curReveal = '';
+  function newRound(){
+    if (mode === 'sequence'){ newSequenceRound(); return; }
+    clearTimers();
+    advanceReady = true; answered = false;
+    $('feedback').textContent=''; $('feedback').className='feedback';
+    $('reveal').className='reveal hidden'; $('reveal').innerHTML='';
+    $('nextRow').style.display='none';
+    const round = buildRound();
+    curReveal = round.revealHTML;
+    $('prompt').textContent = round.prompt;
+    $('subject').innerHTML = round.subjectHTML;
+    const box = $('choices'); box.innerHTML='';
+    round.choices.forEach(ch => {
+      const btn = document.createElement('button');
+      btn.className = ch.cls ? 'choice '+ch.cls : 'choice';
+      btn.innerHTML = ch.html; btn.dataset.val = ch.val;
+      if (ch.correct) btn.dataset.correct='1';
+      btn.onclick = () => answer(btn, ch.correct);
+      box.appendChild(btn);
+    });
+  }
+  function answer(btn, isCorrect){
+    if (answered) return;
+    answered = true; total++;
+    if (isCorrect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+    [...$('choices').children].forEach(c => { c.disabled=true; if (c.dataset.correct==='1') c.classList.add('correct'); });
+    if (!isCorrect) btn.classList.add('wrong');
+    const fb = $('feedback');
+    if (isCorrect){ fb.textContent = pick(['🎉 Correct!','⭐ Nice!','✅ You got it!','🧬 Sharp!','🔬 Yes!']); fb.className='feedback good'; }
+    else { fb.textContent = 'Not quite — here’s the biology:'; fb.className='feedback bad'; }
+    $('reveal').innerHTML = curReveal; $('reveal').className='reveal';
+    if (isCorrect && streak>0 && streak%5===0) celebrate(streak);
+    startReadLock();
+  }
+  function startReadLock(){
+    advanceReady = false;
+    let secs = 3; const nb = $('nextBtn');
+    nb.disabled = true; nb.textContent = `Read it… (${secs})`;
+    $('nextRow').style.display='flex';
+    countdownTimer = setInterval(() => { secs--; if (secs>0) nb.textContent=`Read it… (${secs})`; else { clearInterval(countdownTimer); countdownTimer=null; } }, 1000);
+    advanceTimer = setTimeout(() => { advanceReady=true; advanceTimer=null; nb.disabled=false; nb.textContent='Next ➡️'; nb.focus(); }, 3000);
+  }
+  function tryAdvance(){ if (answered && advanceReady) newRound(); }
+
+  /* ============ SEQUENCE IT (Order It!) ============ */
+  let orderState = null;
+  function newSequenceRound(){
+    clearTimers();
+    advanceReady = true; answered = false;
+    $('feedback').textContent=''; $('feedback').className='feedback';
+    $('reveal').className='reveal hidden'; $('reveal').innerHTML='';
+    $('nextRow').style.display='none';
+    let seq, tries=0;
+    do { seq = pick(G.SEQUENCES); tries++; } while (G.SEQUENCES.length>1 && seq.title===lastKey && tries<20);
+    lastKey = seq.title;
+    orderState = { seq, expected:0, mistakes:0 };
+    $('prompt').textContent = seq.icon + ' ' + seq.title;
+    $('subject').innerHTML = `<div class="subj-question" style="font-size:16px;color:var(--muted);font-weight:600">Tap the steps in the correct order — first step first.</div>`;
+    let idxs = seq.steps.map((_,i)=>i), t2=0;
+    do { idxs = shuffle(idxs); t2++; } while (idxs.every((v,i)=>v===i) && t2<10);
+    const box = $('choices'); box.innerHTML='';
+    idxs.forEach(i => {
+      const st = seq.steps[i];
+      const btn = document.createElement('button');
+      btn.className = 'choice has-sub';
+      btn.innerHTML = `<span class="cico">${st.icon}</span><span class="choice-text"><span class="choice-label">${esc(st.text)}</span><span class="choice-sub">${esc(st.desc)}</span></span>`;
+      btn.onclick = () => orderPick(btn, i);
+      box.appendChild(btn);
+    });
+  }
+  function orderPick(btn, i){
+    if (answered) return;
+    const st = orderState;
+    if (i === st.expected){
+      st.expected++;
+      btn.classList.remove('shake'); btn.classList.add('picked'); btn.disabled = true;
+      btn.insertAdjacentHTML('afterbegin', `<span class="stepnum">${st.expected}</span>`);
+      if (st.expected === st.seq.steps.length) finishOrder();
+      else { $('feedback').textContent=''; $('feedback').className='feedback'; }
+    } else {
+      st.mistakes++;
+      btn.classList.remove('shake'); void btn.offsetWidth; btn.classList.add('shake');
+      setTimeout(() => btn.classList.remove('shake'), 450);
+      const fb = $('feedback'); fb.textContent = 'Not that step yet — what comes next? 🤔'; fb.className='feedback bad';
+    }
+  }
+  function finishOrder(){
+    answered = true; total++;
+    const perfect = orderState.mistakes === 0;
+    if (perfect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+    const fb = $('feedback');
+    if (perfect){ fb.textContent = '🎉 Perfect order!'; fb.className='feedback good'; }
+    else { fb.textContent = `Done — with ${orderState.mistakes} wrong tap${orderState.mistakes>1?'s':''}. Review below.`; fb.className='feedback bad'; }
+    const seq = orderState.seq;
+    $('reveal').innerHTML =
+      `<div class="rev-title">${seq.icon} ${esc(seq.title)}</div>` +
+      seq.steps.map((s,i) => `<div class="beatrow"><span class="bico">${s.icon}</span><span class="bnum">${i+1}.</span><span class="bn"><b>${esc(s.text)}.</b> ${esc(s.desc)}</span></div>`).join('') +
+      `<div class="rev-ex">🧭 ${esc(seq.note)}</div>` + srcLink(seq.src);
+    $('reveal').className='reveal';
+    if (perfect && streak>0 && streak%5===0) celebrate(streak);
+    startReadLock();
+  }
+
+  /* ============ GAME 1 · PUNNETT PREDICTOR (guided lesson) ============ */
+  const PU = G.PUNNETT;
+  const LESSON = PU.lesson;
+  let bio = { traitId: PU.traits[0].id, p1:'het', p2:'het' };
+  let lesson = { step:0, phase:'predict', predictedOk:null, active:true };
+  const trait = () => PU.traits.find(t => t.id===bio.traitId);
+  function allelesOf(type, L){ const l=L.toLowerCase(); return type==='hom-dom'?[L,L]:type==='het'?[L,l]:[l,l]; }
+  function genoStr(type, L){ const l=L.toLowerCase(); return type==='hom-dom'?L+L:type==='het'?L+l:l+l; }
+  const combine = (a,b) => [a,b].sort().join('');           // uppercase sorts first
+  const isDom = cell => /[A-Z]/.test(cell);
+  function phenoOf(type){ const t=trait(); return type==='hom-rec' ? t.rec : t.dom; }
+
+  // one parent card (genotype buttons optionally locked)
+  function parentHTML(p, idx, locked){
+    const t = trait(), ph = phenoOf(bio[p]);
+    return `<div class="parent${locked?' locked':''}"><div class="ph">Parent ${idx+1}</div>` +
+      `<div class="pheno">${t.emoji}</div><div class="phenol" style="color:${ph.color}">${esc(ph.label)}</div>` +
+      `<div class="gbtns" data-parent="${p}">` +
+        PU.genotypes.map(g=>`<button data-g="${g}" class="${bio[p]===g?'on':''}"${locked?' disabled':''}>${genoStr(g,trait().letter)}</button>`).join('') +
+      `</div></div>`;
+  }
+  // the square + odds + ratio (shared by lesson reveal and free play)
+  function squareHTML(){
+    const t = trait(), L = t.letter;
+    const a1 = allelesOf(bio.p1, L), a2 = allelesOf(bio.p2, L);
+    const counts = { 'hom-dom':0, 'het':0, 'hom-rec':0 }; let domCount=0;
+    let html = `<div class="punnett"><div class="pcell corner"></div>` +
+      `<div class="pcell hdr">${a2[0]}</div><div class="pcell hdr">${a2[1]}</div>`;
+    for (let i=0;i<2;i++){
+      html += `<div class="pcell hdr">${a1[i]}</div>`;
+      for (let j=0;j<2;j++){
+        const cell = combine(a1[i], a2[j]);
+        const caps = (cell.match(/[A-Z]/g)||[]).length;
+        counts[caps===2?'hom-dom':caps===1?'het':'hom-rec']++;
+        const dom = isDom(cell); if (dom) domCount++;
+        const ph = dom ? t.dom : t.rec;
+        html += `<div class="pcell off" style="background:${ph.color}22;border-color:${ph.color}"><span class="gt" style="color:${ph.color}">${cell}</span></div>`;
+      }
+    }
+    html += `</div>`;
+    const recCount = 4 - domCount;
+    html += `<div class="oddsbar">` +
+      (domCount?`<div class="seg2" style="flex:${domCount};background:${t.dom.color}">${domCount}/4</div>`:``) +
+      (recCount?`<div class="seg2" style="flex:${recCount};background:${t.rec.color}">${recCount}/4</div>`:``) +
+      `</div>`;
+    html += `<div class="ratio">Phenotype: <span style="color:${t.dom.color}">${domCount}/4 ${esc(t.dom.label)}</span> · <span style="color:${t.rec.color}">${recCount}/4 ${esc(t.rec.label)}</span></div>`;
+    html += `<div class="ratio"><small>Genotype ratio — ${counts['hom-dom']} ${genoStr('hom-dom',L)} : ${counts['het']} ${genoStr('het',L)} : ${counts['hom-rec']} ${genoStr('hom-rec',L)}</small></div>`;
+    return html;
+  }
+  function lessonDots(){
+    return `<div class="lessondots">` + LESSON.map((_,i)=>`<span class="${i<lesson.step?'done':i===lesson.step?'now':''}"></span>`).join('') + `</div>`;
+  }
+
+  function renderPunnett(){
+    const step = lesson.active ? LESSON[lesson.step] : null;
+    if (step && !step.free){ renderLesson(step); return; }
+    renderFree(step && step.free ? step : null);
+  }
+
+  function renderLesson(step){
+    // preset (and lock) the cross for this step
+    bio.traitId = step.trait; bio.p1 = step.p1; bio.p2 = step.p2;
+    const t = trait(), L = t.letter;
+    let html = `<div class="coach"><div class="cstep">Lesson · step ${lesson.step+1} of ${LESSON.length}</div>` +
+      `<div class="chead">${step.head}</div><div class="cbody">${step.body}</div></div>`;
+    html += lessonDots();
+    html += `<div class="parents">${parentHTML('p1',0,true)}${parentHTML('p2',1,true)}</div>`;
+    html += `<div class="cross-lbl">${genoStr(bio.p1,L)} × ${genoStr(bio.p2,L)}</div>`;
+    if (lesson.phase === 'predict'){
+      html += `<div class="predictq">🔮 Predict first: ${esc(step.predictQ)}</div>`;
+      html += `<div class="choices" id="predChoices"></div>`;
+    } else {
+      html += squareHTML();
+      const good = lesson.predictedOk;
+      html += `<div class="reveal" style="margin-top:12px">` +
+        `<div class="rev-title">${good?'🎉 Your prediction was right!':'🔍 Here’s what actually happens'}</div>` +
+        `<div class="rev-body">${step.explain}</div>` +
+        `<div class="rev-ex" style="color:#a21caf">🧬 ${esc(t.note)}</div></div>`;
+      html += `<div class="btn-row"><button class="act btn-primary" id="lessonNext">` +
+        (lesson.step < LESSON.length-1 ? 'Next experiment ➡️' : 'Finish → free play 🎓') + `</button></div>`;
+    }
+    html += `<button class="skiplink" id="skipLesson">Skip the lesson — just let me explore →</button>`;
+    $('simCard').innerHTML = html;
+
+    if (lesson.phase === 'predict'){
+      const box = $('predChoices');
+      shuffle(step.options).forEach(o => {
+        const b = document.createElement('button');
+        b.className = 'choice two'; b.textContent = o.t;
+        b.onclick = () => {
+          [...box.children].forEach(c => c.disabled = true);
+          if (o.ok){ b.classList.add('correct'); lesson.predictedOk = true; }
+          else { b.classList.add('wrong'); lesson.predictedOk = false;
+            [...box.children].forEach(c => { if (step.options.find(x=>x.t===c.textContent)?.ok) c.classList.add('correct'); }); }
+          lesson.phase = 'revealed';
+          setTimeout(renderPunnett, 550);
+        };
+        box.appendChild(b);
+      });
+    } else {
+      $('lessonNext').onclick = () => {
+        lesson.step++; lesson.phase = 'predict'; lesson.predictedOk = null;
+        if (lesson.step >= LESSON.length-1) celebrate(0);
+        renderPunnett();
+      };
+    }
+    $('skipLesson').onclick = () => { lesson.active = false; renderPunnett(); };
+  }
+
+  function renderFree(freeStep){
+    const t = trait(), L = t.letter;
+    let html = '';
+    if (freeStep){
+      html += `<div class="coach"><div class="cstep">Lesson complete 🎓</div>` +
+        `<div class="chead">${freeStep.head}</div><div class="cbody">${freeStep.body}</div></div>`;
+    } else {
+      html += `<div class="qprompt">🧬 Punnett Predictor — free play</div>`;
+    }
+    html += `<div class="traitpick">` + PU.traits.map(x=>`<button data-trait="${x.id}" class="${x.id===bio.traitId?'on':''}">${x.emoji} ${esc(x.name)}</button>`).join('') + `</div>`;
+    html += `<div class="parents">${parentHTML('p1',0,false)}${parentHTML('p2',1,false)}</div>`;
+    html += `<div class="cross-lbl">${genoStr(bio.p1,L)} × ${genoStr(bio.p2,L)}</div>`;
+    html += squareHTML();
+    html += `<div class="reveal" style="margin-top:10px">${eli5Box('Reading it', `Each box is one equally-likely offspring. A capital ${L} is dominant, so any box with at least one ${L} shows “${t.dom.label}.” Only ${L.toLowerCase()}${L.toLowerCase()} shows “${t.rec.label}.”`)}<div class="rev-ex" style="color:#a21caf">🧬 ${esc(t.note)}</div>${srcLink('genome')}</div>`;
+    html += `<button class="skiplink" id="restartLesson">↩ Restart the guided lesson</button>`;
+    $('simCard').innerHTML = html;
+    $('simCard').querySelectorAll('[data-trait]').forEach(b => b.onclick = () => { bio.traitId = b.dataset.trait; renderPunnett(); });
+    $('simCard').querySelectorAll('.gbtns').forEach(g => {
+      const p = g.dataset.parent;
+      g.querySelectorAll('button').forEach(b => b.onclick = () => { bio[p] = b.dataset.g; renderPunnett(); });
+    });
+    $('restartLesson').onclick = () => { lesson = { step:0, phase:'predict', predictedOk:null, active:true }; renderPunnett(); };
+  }
+
+  /* ============ shared FX ============ */
+  function celebrate(n){
+    const msgs = { 5:'🌟 Nice!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>Biologist in the making!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    const colors = ['#a21caf','#d946ef','#16a34a','#84cc16','#f59e0b','#3b82f6'];
+    const box = $('confetti');
+    for (let i=0;i<90;i++){
+      const c = document.createElement('div'); c.className='conf';
+      c.style.left = Math.random()*100+'vw';
+      c.style.background = colors[i%colors.length];
+      c.style.animationDuration = (1.6+Math.random()*1.4)+'s';
+      c.style.animationDelay = (Math.random()*0.4)+'s';
+      c.style.transform = `rotate(${Math.random()*360}deg)`;
+      box.appendChild(c); setTimeout(()=>c.remove(), 3400);
+    }
+  }
+
+  /* ============ popups ============ */
+  function openDict(){
+    const rows = G.TERMS.map(t =>
+      `<div class="trow"><div class="tt">${esc(t.term)}</div><div class="td">${esc(t.def)}</div>` +
+      (t.simple?`<div class="td" style="margin-top:5px">🧒 ${esc(t.simple)}</div>`:'') +
+      `<div class="te">💬 ${esc(t.ex)}</div></div>`).join('');
+    $('dictSheet').innerHTML =
+      `<button class="closeBtn" id="closeDict" title="Close">✕</button>` +
+      `<h2>📖 Biology Dictionary</h2>` +
+      `<p class="sheet-sub">The freshman-bio words you’ll meet on tests — in plain English, each with an example.</p>` + rows;
+    $('closeDict').onclick = closeDict;
+    $('dictModal').className='modal'; $('dictSheet').scrollTop=0;
+  }
+  function closeDict(){ $('dictModal').className='modal hidden'; }
+  function openSources(){
+    const rows = G.SOURCES.map(s => `<div class="srow"><a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)} ↗</a><div class="snote">${esc(s.note)}</div></div>`).join('');
+    $('srcSheet').innerHTML =
+      `<button class="closeBtn" id="closeSrc" title="Close">✕</button>` +
+      `<h2>📚 Where these ideas come from</h2>` +
+      `<p class="sheet-sub">Trusted biology sources — the same life-science basics taught in school.</p>` + rows;
+    $('closeSrc').onclick = closeSources;
+    $('srcModal').className='modal'; $('srcSheet').scrollTop=0;
+  }
+  function closeSources(){ $('srcModal').className='modal hidden'; }
+
+  /* ============ router ============ */
+  function setMode(m){
+    mode = m;
+    [...$('modeSeg').children].forEach(b => b.classList.toggle('on', b.dataset.mode===m));
+    const isSim = m==='punnett';
+    $('quizCard').style.display = isSim ? 'none' : 'flex';
+    $('simCard').style.display = isSim ? 'flex' : 'none';
+    $('scorebar').style.display = isSim ? 'none' : 'flex';
+    clearTimers();
+    if (isSim){ renderPunnett(); }
+    else { resetProgress(); newRound(); }
+  }
+  $('modeSeg').addEventListener('click', e => { const b=e.target.closest('button'); if (b) setMode(b.dataset.mode); });
+  $('nextBtn').onclick = tryAdvance;
+  $('dictBtn').onclick = openDict;
+  $('srcBtn').onclick = openSources;
+  $('srcModal').addEventListener('click', e => { if (e.target===$('srcModal')) closeSources(); });
+  $('dictModal').addEventListener('click', e => { if (e.target===$('dictModal')) closeDict(); });
+  document.addEventListener('keydown', e => {
+    if (e.key==='Escape'){ closeSources(); closeDict(); return; }
+    if (e.key==='Enter' && mode!=='punnett'){ e.preventDefault();
+      if (!$('srcModal').className.includes('hidden')){ closeSources(); return; }
+      if (!$('dictModal').className.includes('hidden')){ closeDict(); return; }
+      if (answered) tryAdvance();
+    }
+  });
+
+  setMode('punnett');
+})();
+</script>
+</body>
+</html>

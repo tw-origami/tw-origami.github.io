@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Integer Island</title>
+<style>
+  :root {
+    --panel:#fff; --ink:#1e293b; --muted:#64748b;
+    --accent:#2563eb; --accent-soft:#dbeafe; --correct:#16a34a; --wrong:#dc2626;
+    --pos:#16a34a; --neg:#dc2626; --line:#94a3b8; --shadow:0 10px 30px rgba(37,99,235,.16);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink); background:linear-gradient(160deg,#eff6ff,#f8fafc); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:24px 16px 60px; }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 18px; font-size:15px; text-align:center; max-width:520px; line-height:1.5; }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; flex-wrap:wrap; justify-content:center; max-width:680px; }
+  .nav a{ text-decoration:none; font-weight:800; font-size:13.5px; color:var(--muted); padding:8px 13px; border-radius:9px; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:var(--panel); border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; }
+  .seg button { border:none; background:transparent; font-family:inherit; font-weight:800; font-size:14.5px; padding:9px 15px; border-radius:10px; cursor:pointer; color:var(--muted); }
+  .seg button.on { background:var(--accent); color:#fff; }
+  .levels { display:flex; gap:8px; align-items:center; }
+  .levels .lbl { font-size:13px; color:var(--muted); font-weight:700; margin-right:2px; }
+  .lvl { width:38px; height:38px; border:none; border-radius:11px; font-weight:800; font-size:15px; cursor:pointer; background:var(--panel); color:var(--muted); box-shadow:var(--shadow); }
+  .lvl.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .chip { background:var(--panel); border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; }
+  .chip.streak { color:#ea580c; }
+
+  .layout { display:flex; gap:24px; width:100%; max-width:1000px; align-items:flex-start; flex-wrap:wrap; justify-content:center; }
+  .card { background:var(--panel); border-radius:24px; box-shadow:var(--shadow); padding:28px; }
+  .quiz { flex:1 1 360px; display:flex; flex-direction:column; align-items:center; min-height:420px; }
+  .visual { flex:1 1 360px; display:flex; flex-direction:column; align-items:center; }
+
+  .prompt { color:var(--muted); font-size:14px; margin:0 0 16px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; text-align:center; }
+  .bigq { font-size:26px; font-weight:800; text-align:center; line-height:1.35; margin:0 auto 6px; max-width:420px; }
+  .bigq .hl { color:var(--accent); }
+  .bigq .pos { color:var(--pos); } .bigq .neg { color:var(--neg); }
+
+  .choices { display:flex; flex-direction:column; gap:11px; width:100%; max-width:340px; margin-top:14px; }
+  .choice { background:#fff; border:3px solid #e2e8f0; border-radius:16px; font-size:20px; font-weight:800; padding:13px 18px; color:var(--ink); cursor:pointer; text-align:center; font-family:inherit; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; color:var(--correct); }
+  .choice.wrong { border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
+  .choice:disabled { cursor:default; }
+
+  .numinput { display:flex; align-items:center; gap:10px; margin:14px 0 2px; justify-content:center; }
+  .numinput input { width:120px; font-size:30px; font-weight:800; text-align:center; border:3px solid #e2e8f0; border-radius:14px; padding:10px 6px; font-family:inherit; color:var(--ink); -moz-appearance:textfield; }
+  .numinput input::-webkit-outer-spin-button, .numinput input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+  .numinput input:focus { border-color:var(--accent); outline:none; box-shadow:0 0 0 4px var(--accent-soft); }
+
+  .feedback { min-height:26px; margin-top:16px; font-weight:700; font-size:17px; text-align:center; }
+  .feedback.good { color:var(--correct); }
+  .feedback.bad { color:var(--wrong); }
+
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; text-align:left; width:100%; max-width:420px; margin:14px auto 4px; padding:13px 16px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
+  .reveal.hidden { display:none; }
+  .reveal b { color:#1d4ed8; }
+
+  button.act { font-family:inherit; font-size:16px; font-weight:700; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; }
+  button.act:disabled { opacity:.55; cursor:default; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#1d4ed8; }
+  .btn-ghost { background:var(--accent-soft); color:var(--accent); }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  .nl-wrap { width:100%; overflow-x:auto; }
+  svg.numline, svg.grid { width:100%; height:auto; display:block; }
+  svg .plotdot { cursor:pointer; }
+
+  .learn-panel { display:flex; flex-direction:column; align-items:center; gap:16px; width:100%; }
+  .stepper-row { display:flex; align-items:center; gap:20px; flex-wrap:wrap; justify-content:center; }
+  .stepper { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .stepper .lbl { font-size:12.5px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); }
+  .stepper .row { display:flex; align-items:center; gap:10px; }
+  .stepbtn { width:40px; height:40px; border:none; border-radius:11px; background:var(--accent-soft); color:var(--accent); font-size:22px; font-weight:800; cursor:pointer; }
+  .stepbtn:hover { background:var(--accent); color:#fff; }
+  .stepval { min-width:60px; text-align:center; font-size:30px; font-weight:800; }
+  .readout { text-align:center; }
+  .readout .eqline { font-size:20px; font-weight:800; margin:8px 0; line-height:1.6; }
+  .readout .sentence { color:var(--muted); font-size:14.5px; max-width:360px; margin:0 auto; line-height:1.5; }
+  .factchip { display:inline-block; margin:3px; padding:6px 12px; border-radius:999px; font-weight:800; font-size:14px; }
+  .factchip.pos { background:#dcfce7; color:#15803d; } .factchip.neg { background:#fee2e2; color:#b91c1c; } .factchip.abs { background:var(--accent-soft); color:#1d4ed8; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner { position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6); background:linear-gradient(135deg,#3b82f6,#2563eb); color:#fff; font-weight:900; font-size:28px; padding:20px 38px; border-radius:22px; box-shadow:0 18px 50px rgba(37,99,235,.45); z-index:60; opacity:0; pointer-events:none; text-align:center; white-space:nowrap; }
+  #streakBanner.show { animation: banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner { 0%{opacity:0; transform:translate(-50%,-50%) scale(.6)} 15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)} 28%{transform:translate(-50%,-50%) scale(1)} 80%{opacity:1; transform:translate(-50%,-50%) scale(1)} 100%{opacity:0; transform:translate(-50%,-60%) scale(.95)} }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <a href="index.html">📊 Blocks</a>
+    <a href="fractions.html">🍰 Fractions</a>
+    <a href="decimals.html">🔟 Decimals</a>
+    <a href="ratios.html">➗ Ratios</a>
+    <a href="integers.html" class="on">➕➖ Integers</a>
+    <a href="stats.html">📊 Data</a>
+    <a href="angles.html">📐 Angles</a>
+    <a href="algebra.html">🧩 Algebra</a>
+  </div>
+  <h1>➕➖ Integer Island</h1>
+  <p class="sub">Meet negative numbers on the number line, master absolute value, and plot points across all four quadrants.</p>
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="learn" class="on">🔎 Learn</button>
+      <button data-mode="compare">⚖️ Compare</button>
+      <button data-mode="abs">📏 Absolute Value</button>
+      <button data-mode="plane">📍 Coordinate Plane</button>
+    </div>
+    <div class="levels" id="levelSeg" style="display:none">
+      <span class="lbl">Level</span>
+      <button class="lvl on" data-lvl="1">1</button>
+      <button class="lvl" data-lvl="2">2</button>
+      <button class="lvl" data-lvl="3">3</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar" id="scorebar" style="display:none">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="layout" id="layout"></div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const rand = (lo,hi) => Math.floor(Math.random()*(hi-lo+1))+lo;
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const shuffle = arr => arr.slice().sort(()=>Math.random()-0.5);
+  const SVGNS='http://www.w3.org/2000/svg';
+
+  let mode='learn', level=1;
+  let correct=0, total=0, streak=0;
+  let answered=false, advanceReady=true, advanceTimer=null, countdownTimer=null;
+  let cur=null, lastKey=null;
+  let lv=-3;  // learn value
+
+  function clearTimers(){ if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;} if(countdownTimer){clearInterval(countdownTimer);countdownTimer=null;} }
+  function updateScore(){ $('correctCount').textContent=correct; $('totalCount').textContent=total; $('streak').textContent=streak; }
+  function resetProgress(){ correct=0; total=0; streak=0; lastKey=null; updateScore(); }
+
+  // ---------- number line ----------
+  function numLine(from, to, marks){
+    // marks: [{v, color, label}]
+    const W=440, H=90, padL=20, padR=20, y=52, inner=W-padL-padR;
+    const X=v=> padL + (v-from)/(to-from)*inner;
+    let s=`<svg class="numline" viewBox="0 0 ${W} ${H}" xmlns="${SVGNS}">`;
+    s+=`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="var(--line)" stroke-width="2.5" marker-start="url(#al)" marker-end="url(#ar)"/>`;
+    s+=`<defs><marker id="ar" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 Z" fill="var(--line)"/></marker><marker id="al" markerWidth="9" markerHeight="9" refX="3" refY="4.5" orient="auto-start-reverse"><path d="M0,0 L8,4.5 L0,9 Z" fill="var(--line)"/></marker></defs>`;
+    for(let v=from; v<=to; v++){
+      const x=X(v); const zero=v===0;
+      s+=`<line x1="${x}" y1="${y-6}" x2="${x}" y2="${y+6}" stroke="${zero?'#1e293b':'var(--line)'}" stroke-width="${zero?3:2}"/>`;
+      s+=`<text x="${x}" y="${y+22}" text-anchor="middle" font-size="11" font-weight="${zero?800:600}" fill="${v<0?'var(--neg)':v>0?'var(--pos)':'#1e293b'}">${v}</text>`;
+    }
+    (marks||[]).forEach(m=>{ const x=X(m.v); s+=`<circle cx="${x}" cy="${y}" r="8" fill="${m.color}" stroke="#fff" stroke-width="2.5"/>`; if(m.label) s+=`<text x="${x}" y="${y-14}" text-anchor="middle" font-size="13" font-weight="800" fill="${m.color}">${m.label}</text>`; });
+    s+=`</svg>`; return s;
+  }
+
+  // ---------- LEARN ----------
+  function renderLearn(){
+    $('scorebar').style.display='none'; $('levelSeg').style.display='none';
+    const abs=Math.abs(lv), opp=-lv;
+    const col=lv<0?'var(--neg)':lv>0?'var(--pos)':'#1e293b';
+    $('layout').innerHTML=`
+      <div class="card visual" style="flex:1 1 340px"><div class="learn-panel">
+        <div class="nl-wrap">${numLine(-8,8,[{v:lv,color:col,label:lv>0?'+'+lv:''+lv}])}</div>
+        <div class="nl-wrap">${numLine(-8,8,[{v:0,color:'#1e293b'},{v:lv,color:col}])}
+        </div>
+        <p class="pcaption" style="color:var(--muted);font-size:13px;font-weight:700">Absolute value = the distance from 0 (always positive).</p>
+      </div></div>
+      <div class="card quiz" style="flex:1 1 300px; min-height:auto"><div class="learn-panel">
+        <div class="stepper"><div class="lbl">Pick a number</div><div class="row"><button class="stepbtn" id="down">−</button><div class="stepval" style="color:${col}">${lv>0?'+':''}${lv}</div><button class="stepbtn" id="up">+</button></div></div>
+        <div class="readout">
+          <div class="eqline">
+            <span class="factchip ${lv<0?'neg':lv>0?'pos':'abs'}">${lv<0?'Negative':lv>0?'Positive':'Zero'}</span>
+            <span class="factchip abs">| ${lv>0?'+':''}${lv} | = ${abs}</span>
+            <span class="factchip ${opp<0?'neg':opp>0?'pos':'abs'}">Opposite = ${opp>0?'+':''}${opp}</span>
+          </div>
+          <p class="sentence">${lv===0?'Zero is neither positive nor negative — it sits right in the middle.':`<b>${lv>0?'+'+lv:lv}</b> is <b>${abs}</b> ${abs===1?'step':'steps'} from zero. Its <b>opposite</b> is on the other side of 0, the same distance away.`}<br>On a number line, numbers get <b>bigger to the right</b> and <b>smaller to the left</b>.</p>
+        </div>
+        <div class="btn-row"><button class="act btn-ghost" id="rnd">🎲 Randomize</button></div>
+      </div></div>`;
+    $('down').onclick=()=>{ lv=Math.max(-8,lv-1); renderLearn(); };
+    $('up').onclick=()=>{ lv=Math.min(8,lv+1); renderLearn(); };
+    $('rnd').onclick=()=>{ lv=rand(-8,8); renderLearn(); };
+  }
+
+  // ---------- shared chrome ----------
+  function quizShell(prompt, subjectHTML, visualHTML){
+    $('scorebar').style.display='flex'; $('levelSeg').style.display='flex';
+    $('layout').innerHTML=`
+      <div class="card quiz">
+        <p class="prompt">${prompt}</p>
+        <div id="subject">${subjectHTML}</div>
+        <div class="choices" id="choices"></div>
+        <div id="inputWrap"></div>
+        <div class="feedback" id="feedback"></div>
+        <div class="reveal hidden" id="reveal"></div>
+        <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">Next ➡️</button></div>
+      </div>
+      <div class="card visual" id="visualCard">${visualHTML||''}</div>`;
+    if(!visualHTML) $('visualCard').style.display='none';
+  }
+  function startReadLock(){
+    advanceReady=false; let secs=3; const nb=$('nextBtn');
+    nb.disabled=true; nb.textContent=`Read it… (${secs})`; $('nextRow').style.display='flex';
+    countdownTimer=setInterval(()=>{ secs--; if(secs>0)nb.textContent=`Read it… (${secs})`; else{clearInterval(countdownTimer);countdownTimer=null;} },1000);
+    advanceTimer=setTimeout(()=>{ advanceReady=true; advanceTimer=null; nb.disabled=false; nb.textContent='Next ➡️'; nb.focus(); },3000);
+  }
+  function tryAdvance(){ if(answered && advanceReady) newRound(); }
+  function celebrate(n){
+    const banner=$('streakBanner'); banner.innerHTML=`🌟 ${n} in a row!<small>Integer expert!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    const colors=['#2563eb','#3b82f6','#16a34a','#dc2626','#f59e0b','#8b5cf6']; const box=$('confetti');
+    for(let i=0;i<90;i++){ const c=document.createElement('div'); c.className='conf'; c.style.left=Math.random()*100+'vw'; c.style.background=colors[i%colors.length]; c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; c.style.animationDelay=(Math.random()*0.4)+'s'; box.appendChild(c); setTimeout(()=>c.remove(),3400); }
+  }
+  function finishAnswer(isCorrect, revealHTML){
+    answered=true; total++;
+    if(isCorrect){ correct++; streak++; } else streak=0;
+    updateScore();
+    const fb=$('feedback');
+    if(isCorrect){ fb.textContent=pick(['🎉 Correct!','⭐ Nice!','✅ You got it!','🧭 Spot on!']); fb.className='feedback good'; }
+    else { fb.textContent='Not quite — here’s how to solve it:'; fb.className='feedback bad'; }
+    const rev=$('reveal'); rev.innerHTML=revealHTML; rev.className='reveal';
+    if(isCorrect && streak>0 && streak%5===0) celebrate(streak);
+    startReadLock();
+  }
+  function buildChoices(opts, correctVal, fmt){
+    const box=$('choices'); box.innerHTML='';
+    shuffle([...new Set(opts)]).forEach(v=>{
+      const btn=document.createElement('button'); btn.className='choice'; btn.innerHTML=fmt?fmt(v):v; btn.dataset.v=v;
+      if(v===correctVal) btn.dataset.correct='1';
+      btn.onclick=()=>{ if(answered)return; [...box.children].forEach(c=>{c.disabled=true; if(c.dataset.correct)c.classList.add('correct');}); if(!btn.dataset.correct)btn.classList.add('wrong'); finishAnswer(!!btn.dataset.correct, box._reveal); };
+      box.appendChild(btn);
+    });
+  }
+  const sign = v => v>0?'+'+v:''+v;
+
+  // ---------- COMPARE ----------
+  function roundCompare(){
+    const R={1:6,2:12,3:20}[level];
+    let a,b,tries=0; do{ a=rand(-R,R); b=rand(-R,R); tries++; }while(a===b && tries<20); lastKey=`${a},${b}`;
+    cur={a,b};
+    quizShell('Which number is GREATER?',
+      `<div class="bigq"><span class="${a<0?'neg':'pos'}">${sign(a)}</span> &nbsp;or&nbsp; <span class="${b<0?'neg':'pos'}">${sign(b)}</span></div>`,
+      `<div class="nl-wrap">${numLine(-Math.max(8,R), Math.max(8,R), [{v:a,color:'var(--neg)',label:sign(a)},{v:b,color:'var(--pos)',label:sign(b)}])}</div><p class="pcaption" style="color:var(--muted);font-size:13px;font-weight:700">Farther RIGHT = greater.</p>`);
+    const bigger=Math.max(a,b);
+    $('choices')._reveal=`On a number line, the number farther to the <b>right</b> is bigger. <b>${sign(bigger)}</b> is to the right of <b>${sign(Math.min(a,b))}</b>, so <b>${sign(bigger)} is greater</b>. (Careful: with negatives, the one closer to zero is larger — ${sign(-2)} is greater than ${sign(-5)}!)`;
+    buildChoices([a,b], bigger, sign);
+  }
+
+  // ---------- ABSOLUTE VALUE ----------
+  function roundAbs(){
+    const R={1:10,2:20,3:50}[level];
+    const kind=pick(['val','which']);
+    if(kind==='val'){
+      let n; do{ n=rand(-R,R); }while(n===0); lastKey='av'+n;
+      quizShell('What is the absolute value?', `<div class="bigq">| <span class="${n<0?'neg':'pos'}">${sign(n)}</span> |</div>`,
+        `<div class="nl-wrap">${numLine(-Math.max(8,Math.abs(n)),Math.max(8,Math.abs(n)),[{v:0,color:'#1e293b'},{v:n,color:n<0?'var(--neg)':'var(--pos)',label:sign(n)}])}</div><p class="pcaption" style="color:var(--muted);font-size:13px;font-weight:700">Count the steps from 0.</p>`);
+      const ans=Math.abs(n);
+      $('choices')._reveal=`Absolute value means <b>distance from zero</b>, and distance is always positive. ${sign(n)} is <b>${ans}</b> steps from 0, so |${sign(n)}| = <b>${ans}</b>.`;
+      buildChoices([ans, -ans, ans+1, Math.max(0,ans-1)], ans, v=>v);
+    } else {
+      const a=rand(1,R), b=rand(1,R); const na=pick([a,-a]), nb=pick([b,-b]);
+      lastKey='aw'+na+nb;
+      quizShell('Which one has the BIGGER absolute value?', `<div class="bigq"><span class="${na<0?'neg':'pos'}">${sign(na)}</span> &nbsp;or&nbsp; <span class="${nb<0?'neg':'pos'}">${sign(nb)}</span></div>`);
+      const win = Math.abs(na)>=Math.abs(nb)?na:nb;
+      $('choices')._reveal=`Ignore the signs and look at distance from 0: |${sign(na)}| = ${Math.abs(na)} and |${sign(nb)}| = ${Math.abs(nb)}. Since ${Math.abs(win)} is larger, <b>${sign(win)}</b> has the bigger absolute value.`;
+      buildChoices([na,nb], win, sign);
+    }
+  }
+
+  // ---------- COORDINATE PLANE ----------
+  function grid(size, pts, clickable){
+    const R=size, S=440, pad=26, span=S-pad*2, step=span/(2*R);
+    const X=x=> pad+(x+R)*step, Y=y=> pad+(R-y)*step;
+    let s=`<svg class="grid" viewBox="0 0 ${S} ${S}" xmlns="${SVGNS}">`;
+    for(let i=-R;i<=R;i++){ s+=`<line x1="${X(i)}" y1="${Y(-R)}" x2="${X(i)}" y2="${Y(R)}" stroke="#e2e8f0" stroke-width="${i===0?0:1}"/>`; s+=`<line x1="${X(-R)}" y1="${Y(i)}" x2="${X(R)}" y2="${Y(i)}" stroke="#e2e8f0" stroke-width="${i===0?0:1}"/>`; }
+    s+=`<line x1="${X(-R)}" y1="${Y(0)}" x2="${X(R)}" y2="${Y(0)}" stroke="#334155" stroke-width="2.5"/>`;
+    s+=`<line x1="${X(0)}" y1="${Y(-R)}" x2="${X(0)}" y2="${Y(R)}" stroke="#334155" stroke-width="2.5"/>`;
+    for(let i=-R;i<=R;i++){ if(i===0) continue; s+=`<text x="${X(i)}" y="${Y(0)+13}" text-anchor="middle" font-size="9" fill="#94a3b8">${i}</text>`; s+=`<text x="${X(0)-7}" y="${Y(i)+3}" text-anchor="end" font-size="9" fill="#94a3b8">${i}</text>`; }
+    s+=`<text x="${X(R)-4}" y="${Y(0)-6}" font-size="11" font-weight="800" fill="#334155">x</text><text x="${X(0)+6}" y="${Y(R)+12}" font-size="11" font-weight="800" fill="#334155">y</text>`;
+    (pts||[]).forEach(p=>{ s+=`<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="8" fill="${p.color||'var(--accent)'}" stroke="#fff" stroke-width="2.5"/>`; if(p.label) s+=`<text x="${X(p.x)+11}" y="${Y(p.y)-8}" font-size="13" font-weight="800" fill="${p.color||'var(--accent)'}">${p.label}</text>`; });
+    if(clickable){ // invisible click targets on every lattice point
+      for(let x=-R;x<=R;x++) for(let y=-R;y<=R;y++){ s+=`<circle class="plotdot" data-x="${x}" data-y="${y}" cx="${X(x)}" cy="${Y(y)}" r="${step*0.42}" fill="transparent"/>`; }
+    }
+    return s;
+  }
+  function quadrant(x,y){ if(x===0||y===0) return 'on an axis'; if(x>0&&y>0) return 'Quadrant I'; if(x<0&&y>0) return 'Quadrant II'; if(x<0&&y<0) return 'Quadrant III'; return 'Quadrant IV'; }
+
+  function roundPlane(){
+    const R={1:5,2:6,3:8}[level];
+    const kind=pick(['read','plot','quad']);
+    let x,y,tries=0; do{ x=rand(-R,R); y=rand(-R,R); tries++; }while((x===0&&y===0) && tries<10);
+    lastKey='pl'+x+y+kind; cur={x,y};
+    if(kind==='read'){
+      quizShell('What are the coordinates of the point?', `<div class="bigq"><span class="hl">?</span></div>`, `<div class="nl-wrap">${grid(R,[{x,y,color:'var(--accent)',label:'★'}])}</div>`);
+      const right=`(${x}, ${y})`;
+      $('choices')._reveal=`Read across first (the <b>x</b>, left/right), then up/down (the <b>y</b>). This point is <b>${x}</b> across and <b>${y}</b> up/down → <b>(${x}, ${y})</b>. It’s in <b>${quadrant(x,y)}</b>.`;
+      buildChoices([right, `(${y}, ${x})`, `(${x}, ${-y})`, `(${-x}, ${y})`], right, v=>v);
+    } else if(kind==='quad'){
+      quizShell('Which quadrant is this point in?', `<div class="bigq">(<span class="${x<0?'neg':'pos'}">${x}</span>, <span class="${y<0?'neg':'pos'}">${y}</span>)</div>`, `<div class="nl-wrap">${grid(R,[{x,y,color:'var(--accent)',label:'★'}])}</div>`);
+      const q=quadrant(x,y);
+      $('choices')._reveal=`x = ${x} (${x>0?'right':'left'}) and y = ${y} (${y>0?'up':'down'}). Quadrants go counter-clockwise from top-right: I (+,+), II (−,+), III (−,−), IV (+,−). So (${x}, ${y}) is in <b>${q}</b>.`;
+      buildChoices(['Quadrant I','Quadrant II','Quadrant III','Quadrant IV'], q, v=>v);
+    } else {
+      // plot: tap the grid
+      quizShell('Tap the grid to PLOT this point:', `<div class="bigq">(<span class="${x<0?'neg':'pos'}">${x}</span>, <span class="${y<0?'neg':'pos'}">${y}</span>)</div>`, `<div class="nl-wrap">${grid(R,[],true)}</div>`);
+      $('choices').style.display='none';
+      $('visualCard').querySelectorAll('.plotdot').forEach(d=>{
+        d.addEventListener('click', ()=>{
+          if(answered) return;
+          const px=+d.dataset.x, py=+d.dataset.y, right=(px===x&&py===y);
+          // draw their pick + correct
+          const svg=d.ownerSVGElement; const cx=d.getAttribute('cx'), cy=d.getAttribute('cy');
+          const mk=(cxx,cyy,color)=>{ const c=document.createElementNS(SVGNS,'circle'); c.setAttribute('cx',cxx); c.setAttribute('cy',cyy); c.setAttribute('r',8); c.setAttribute('fill',color); c.setAttribute('stroke','#fff'); c.setAttribute('stroke-width','2.5'); svg.appendChild(c); };
+          mk(cx,cy, right?'var(--correct)':'var(--wrong)');
+          if(!right){ const t=$('visualCard').querySelector(`.plotdot[data-x="${x}"][data-y="${y}"]`); if(t) mk(t.getAttribute('cx'),t.getAttribute('cy'),'var(--correct)'); }
+          $('visualCard').querySelectorAll('.plotdot').forEach(p=>p.style.pointerEvents='none');
+          finishAnswer(right, `To plot <b>(${x}, ${y})</b>: start at the center (0,0), go <b>${Math.abs(x)} ${x<0?'left':'right'}</b> (the x), then <b>${Math.abs(y)} ${y<0?'down':'up'}</b> (the y). That lands in <b>${quadrant(x,y)}</b>.`);
+        });
+      });
+    }
+  }
+
+  // ---------- dispatch ----------
+  function newRound(){
+    clearTimers(); advanceReady=true; answered=false;
+    if(mode==='learn'){ renderLearn(); return; }
+    if(mode==='compare') roundCompare();
+    else if(mode==='abs') roundAbs();
+    else roundPlane();
+  }
+  $('modeSeg').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b)return; mode=b.dataset.mode; [...$('modeSeg').children].forEach(x=>x.classList.toggle('on',x===b)); resetProgress(); newRound(); });
+  $('levelSeg').addEventListener('click', e=>{ const b=e.target.closest('button.lvl'); if(!b)return; level=+b.dataset.lvl; [...$('levelSeg').children].forEach(x=>x.classList&&x.classList.toggle('on',x===b)); resetProgress(); newRound(); });
+  document.addEventListener('click', e=>{ if(e.target && e.target.id==='nextBtn') tryAdvance(); });
+  document.addEventListener('keydown', e=>{ if(e.key!=='Enter')return; if(answered){ e.preventDefault(); tryAdvance(); } });
+
+  newRound();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Data Detective</title>
+<style>
+  :root {
+    --panel:#fff; --ink:#1e293b; --muted:#64748b;
+    --accent:#d97706; --accent-soft:#fef3c7; --correct:#16a34a; --wrong:#dc2626;
+    --line:#94a3b8; --shadow:0 10px 30px rgba(217,119,6,.16);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink); background:linear-gradient(160deg,#fffbeb,#f8fafc); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:24px 16px 60px; }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 18px; font-size:15px; text-align:center; max-width:520px; line-height:1.5; }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; flex-wrap:wrap; justify-content:center; max-width:680px; }
+  .nav a{ text-decoration:none; font-weight:800; font-size:13.5px; color:var(--muted); padding:8px 13px; border-radius:9px; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:var(--panel); border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; }
+  .seg button { border:none; background:transparent; font-family:inherit; font-weight:800; font-size:14.5px; padding:9px 15px; border-radius:10px; cursor:pointer; color:var(--muted); }
+  .seg button.on { background:var(--accent); color:#fff; }
+  .levels { display:flex; gap:8px; align-items:center; }
+  .levels .lbl { font-size:13px; color:var(--muted); font-weight:700; margin-right:2px; }
+  .lvl { width:38px; height:38px; border:none; border-radius:11px; font-weight:800; font-size:15px; cursor:pointer; background:var(--panel); color:var(--muted); box-shadow:var(--shadow); }
+  .lvl.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .chip { background:var(--panel); border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; }
+  .chip.streak { color:#ea580c; }
+
+  .layout { display:flex; gap:24px; width:100%; max-width:1000px; align-items:flex-start; flex-wrap:wrap; justify-content:center; }
+  .card { background:var(--panel); border-radius:24px; box-shadow:var(--shadow); padding:28px; }
+  .quiz { flex:1 1 360px; display:flex; flex-direction:column; align-items:center; min-height:420px; }
+  .visual { flex:1 1 360px; display:flex; flex-direction:column; align-items:center; }
+
+  .prompt { color:var(--muted); font-size:14px; margin:0 0 16px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; text-align:center; }
+  .bigq { font-size:22px; font-weight:800; text-align:center; line-height:1.4; margin:0 auto 6px; max-width:440px; }
+  .bigq .hl { color:var(--accent); }
+  .dataset { font-size:24px; font-weight:800; letter-spacing:1px; color:var(--ink); background:#fffbeb; border:2px dashed var(--accent); border-radius:12px; padding:12px 16px; margin:8px auto; display:inline-block; }
+
+  .choices { display:flex; flex-direction:column; gap:11px; width:100%; max-width:340px; margin-top:14px; }
+  .choice { background:#fff; border:3px solid #e2e8f0; border-radius:16px; font-size:20px; font-weight:800; padding:13px 18px; color:var(--ink); cursor:pointer; text-align:center; font-family:inherit; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; color:var(--correct); }
+  .choice.wrong { border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
+  .choice:disabled { cursor:default; }
+
+  .numinput { display:flex; align-items:center; gap:10px; margin:14px 0 2px; justify-content:center; }
+  .numinput input { width:120px; font-size:30px; font-weight:800; text-align:center; border:3px solid #e2e8f0; border-radius:14px; padding:10px 6px; font-family:inherit; color:var(--ink); -moz-appearance:textfield; }
+  .numinput input::-webkit-outer-spin-button, .numinput input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+  .numinput input:focus { border-color:var(--accent); outline:none; box-shadow:0 0 0 4px var(--accent-soft); }
+
+  .feedback { min-height:26px; margin-top:16px; font-weight:700; font-size:17px; text-align:center; }
+  .feedback.good { color:var(--correct); }
+  .feedback.bad { color:var(--wrong); }
+
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; text-align:left; width:100%; max-width:420px; margin:14px auto 4px; padding:13px 16px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
+  .reveal.hidden { display:none; }
+  .reveal b { color:#b45309; }
+
+  button.act { font-family:inherit; font-size:16px; font-weight:700; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; }
+  button.act:disabled { opacity:.55; cursor:default; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#b45309; }
+  .btn-ghost { background:var(--accent-soft); color:var(--accent); }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  svg.chart { width:100%; height:auto; display:block; }
+
+  .learn-panel { display:flex; flex-direction:column; align-items:center; gap:16px; width:100%; }
+  .measures { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+  .measure { background:#fffbeb; border:2px solid var(--accent-soft); border-radius:12px; padding:10px 14px; text-align:center; min-width:88px; }
+  .measure .ml { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); }
+  .measure .mv { font-size:24px; font-weight:800; color:var(--accent); }
+  .measure .md { font-size:10.5px; color:var(--muted); margin-top:2px; }
+  .chiprow { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+  .valchip { background:#fff; border:2px solid var(--accent); color:var(--accent); border-radius:10px; padding:8px 12px; font-weight:800; font-size:18px; }
+  .learn-controls { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner { position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6); background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; font-weight:900; font-size:28px; padding:20px 38px; border-radius:22px; box-shadow:0 18px 50px rgba(217,119,6,.45); z-index:60; opacity:0; pointer-events:none; text-align:center; white-space:nowrap; }
+  #streakBanner.show { animation: banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner { 0%{opacity:0; transform:translate(-50%,-50%) scale(.6)} 15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)} 28%{transform:translate(-50%,-50%) scale(1)} 80%{opacity:1; transform:translate(-50%,-50%) scale(1)} 100%{opacity:0; transform:translate(-50%,-60%) scale(.95)} }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <a href="index.html">📊 Blocks</a>
+    <a href="fractions.html">🍰 Fractions</a>
+    <a href="decimals.html">🔟 Decimals</a>
+    <a href="ratios.html">➗ Ratios</a>
+    <a href="integers.html">➕➖ Integers</a>
+    <a href="stats.html" class="on">📊 Data</a>
+    <a href="angles.html">📐 Angles</a>
+    <a href="algebra.html">🧩 Algebra</a>
+  </div>
+  <h1>📊 Data Detective</h1>
+  <p class="sub">Crack the numbers — find the mean, median, mode, and range, and read clues off bar graphs and dot plots.</p>
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="learn" class="on">🔎 Learn</button>
+      <button data-mode="center">🎯 Mean · Median · Mode</button>
+      <button data-mode="range">↔️ Range</button>
+      <button data-mode="graph">📈 Read a Graph</button>
+    </div>
+    <div class="levels" id="levelSeg" style="display:none">
+      <span class="lbl">Level</span>
+      <button class="lvl on" data-lvl="1">1</button>
+      <button class="lvl" data-lvl="2">2</button>
+      <button class="lvl" data-lvl="3">3</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar" id="scorebar" style="display:none">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="layout" id="layout"></div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const rand = (lo,hi) => Math.floor(Math.random()*(hi-lo+1))+lo;
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const shuffle = arr => arr.slice().sort(()=>Math.random()-0.5);
+  const sum = a => a.reduce((s,x)=>s+x,0);
+  const SVGNS='http://www.w3.org/2000/svg';
+
+  let mode='learn', level=1;
+  let correct=0, total=0, streak=0;
+  let answered=false, advanceReady=true, advanceTimer=null, countdownTimer=null;
+  let cur=null, lastKey=null;
+  let learnData=[4,7,4,9,6];
+
+  function clearTimers(){ if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;} if(countdownTimer){clearInterval(countdownTimer);countdownTimer=null;} }
+  function updateScore(){ $('correctCount').textContent=correct; $('totalCount').textContent=total; $('streak').textContent=streak; }
+  function resetProgress(){ correct=0; total=0; streak=0; lastKey=null; updateScore(); }
+
+  // ---------- stats helpers ----------
+  function mean(a){ return sum(a)/a.length; }
+  function median(a){ const s=a.slice().sort((x,y)=>x-y); const m=s.length>>1; return s.length%2 ? s[m] : (s[m-1]+s[m])/2; }
+  function modes(a){ const c={}; a.forEach(x=>c[x]=(c[x]||0)+1); const mx=Math.max(...Object.values(c)); return Object.keys(c).filter(k=>c[k]===mx).map(Number).sort((x,y)=>x-y); }
+  function range(a){ return Math.max(...a)-Math.min(...a); }
+  const round2 = x => Math.round(x*100)/100;
+
+  // build a data set whose mean is a whole number, with a clear single mode
+  function makeData(n, lo, hi){
+    for(let t=0;t<300;t++){
+      const a=Array.from({length:n},()=>rand(lo,hi));
+      if(sum(a)%n!==0) continue;
+      const md=modes(a);
+      if(md.length===1 && a.filter(x=>x===md[0]).length>=2) return a;
+    }
+    // fallback
+    const a=Array.from({length:n},()=>rand(lo,hi)); a[0]=a[1]; return a;
+  }
+
+  // ---------- dot plot ----------
+  function dotPlot(data, lo, hi, highlight){
+    const W=440, colW=(W-40)/(hi-lo+1), baseY=150, dotR=8;
+    const X=v=> 24 + (v-lo)*colW + colW/2;
+    let s=`<svg class="chart" viewBox="0 0 ${W} 180" xmlns="${SVGNS}">`;
+    s+=`<line x1="20" y1="${baseY}" x2="${W-16}" y2="${baseY}" stroke="#334155" stroke-width="2"/>`;
+    const counts={};
+    for(let v=lo;v<=hi;v++){ s+=`<text x="${X(v)}" y="${baseY+18}" text-anchor="middle" font-size="12" font-weight="700" fill="#64748b">${v}</text>`; counts[v]=0; }
+    data.slice().sort((a,b)=>a-b).forEach(v=>{ const y=baseY-12-counts[v]*(dotR*2+2); counts[v]++; const hl=highlight&&highlight.includes(v); s+=`<circle cx="${X(v)}" cy="${y}" r="${dotR}" fill="${hl?'var(--accent)':'#fbbf24'}" stroke="#b45309" stroke-width="1.5"/>`; });
+    s+=`</svg>`; return s;
+  }
+  // ---------- bar graph ----------
+  function barGraph(cats){ // cats: [{label,val,color}]
+    const W=440, H=230, padL=30, padB=40, padT=16, innerW=W-padL-14, innerH=H-padB-padT;
+    const maxV=Math.max(...cats.map(c=>c.val), 1); const step=Math.ceil(maxV/5)||1; const top=Math.ceil(maxV/step)*step;
+    const bw=innerW/cats.length;
+    let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" xmlns="${SVGNS}">`;
+    for(let g=0; g<=top; g+=step){ const y=padT+innerH-(g/top)*innerH; s+=`<line x1="${padL}" y1="${y}" x2="${W-14}" y2="${y}" stroke="#e2e8f0" stroke-width="1"/><text x="${padL-5}" y="${y+4}" text-anchor="end" font-size="10" fill="#94a3b8">${g}</text>`; }
+    cats.forEach((c,i)=>{ const h=(c.val/top)*innerH; const x=padL+i*bw+bw*0.16; const w=bw*0.68; const y=padT+innerH-h;
+      s+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="${c.color||'#f59e0b'}"/>`;
+      s+=`<text x="${x+w/2}" y="${y-4}" text-anchor="middle" font-size="12" font-weight="800" fill="#b45309">${c.val}</text>`;
+      s+=`<text x="${x+w/2}" y="${padT+innerH+16}" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">${c.label}</text>`; });
+    s+=`<line x1="${padL}" y1="${padT+innerH}" x2="${W-14}" y2="${padT+innerH}" stroke="#334155" stroke-width="2"/>`;
+    s+=`</svg>`; return s;
+  }
+
+  // ---------- LEARN ----------
+  function renderLearn(){
+    $('scorebar').style.display='none'; $('levelSeg').style.display='none';
+    const d=learnData; const md=modes(d);
+    const lo=Math.min(...d), hi=Math.max(...d);
+    $('layout').innerHTML=`
+      <div class="card visual" style="flex:1 1 340px"><div class="learn-panel">
+        <div style="width:100%">${dotPlot(d, Math.min(0,lo), Math.max(hi,lo+5), md)}</div>
+        <p class="pcaption" style="color:var(--muted);font-size:13px;font-weight:700">Each dot is one value. The tallest stack is the MODE.</p>
+      </div></div>
+      <div class="card quiz" style="flex:1 1 300px; min-height:auto"><div class="learn-panel">
+        <div class="chiprow" id="chips">${d.map((v,i)=>`<button class="valchip" data-i="${i}" title="Tap to remove">${v}</button>`).join('')}</div>
+        <div class="learn-controls">
+          <button class="act btn-ghost" id="addBtn">＋ Add a value</button>
+          <button class="act btn-ghost" id="rnd">🎲 New data</button>
+        </div>
+        <div class="measures">
+          <div class="measure"><div class="ml">Mean</div><div class="mv">${round2(mean(d))}</div><div class="md">the average</div></div>
+          <div class="measure"><div class="ml">Median</div><div class="mv">${median(d)}</div><div class="md">the middle</div></div>
+          <div class="measure"><div class="ml">Mode</div><div class="mv">${md.join(', ')}</div><div class="md">most common</div></div>
+          <div class="measure"><div class="ml">Range</div><div class="mv">${range(d)}</div><div class="md">high − low</div></div>
+        </div>
+        <p class="sentence" style="color:var(--muted);font-size:13.5px;text-align:center;max-width:340px;line-height:1.5">Tap a value to remove it, or add your own, and watch the four measures change. <b>Mean</b> = add them all, divide by how many. <b>Median</b> = sort, take the middle. <b>Mode</b> = shows up most. <b>Range</b> = biggest − smallest.</p>
+      </div></div>`;
+    $('chips').querySelectorAll('.valchip').forEach(b=>b.onclick=()=>{ if(learnData.length>2){ learnData.splice(+b.dataset.i,1); renderLearn(); } });
+    $('addBtn').onclick=()=>{ if(learnData.length<9){ learnData.push(rand(1,10)); renderLearn(); } };
+    $('rnd').onclick=()=>{ learnData=Array.from({length:rand(5,7)},()=>rand(1,10)); renderLearn(); };
+  }
+
+  // ---------- shared chrome ----------
+  function quizShell(prompt, subjectHTML, visualHTML){
+    $('scorebar').style.display='flex'; $('levelSeg').style.display='flex';
+    $('layout').innerHTML=`
+      <div class="card quiz">
+        <p class="prompt">${prompt}</p>
+        <div id="subject">${subjectHTML}</div>
+        <div class="choices" id="choices"></div>
+        <div id="inputWrap"></div>
+        <div class="feedback" id="feedback"></div>
+        <div class="reveal hidden" id="reveal"></div>
+        <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">Next ➡️</button></div>
+      </div>
+      <div class="card visual" id="visualCard">${visualHTML||''}</div>`;
+    if(!visualHTML) $('visualCard').style.display='none';
+  }
+  function startReadLock(){
+    advanceReady=false; let secs=3; const nb=$('nextBtn');
+    nb.disabled=true; nb.textContent=`Read it… (${secs})`; $('nextRow').style.display='flex';
+    countdownTimer=setInterval(()=>{ secs--; if(secs>0)nb.textContent=`Read it… (${secs})`; else{clearInterval(countdownTimer);countdownTimer=null;} },1000);
+    advanceTimer=setTimeout(()=>{ advanceReady=true; advanceTimer=null; nb.disabled=false; nb.textContent='Next ➡️'; nb.focus(); },3000);
+  }
+  function tryAdvance(){ if(answered && advanceReady) newRound(); }
+  function celebrate(n){
+    const banner=$('streakBanner'); banner.innerHTML=`🌟 ${n} in a row!<small>Data detective!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    const colors=['#d97706','#f59e0b','#16a34a','#dc2626','#0ea5e9','#8b5cf6']; const box=$('confetti');
+    for(let i=0;i<90;i++){ const c=document.createElement('div'); c.className='conf'; c.style.left=Math.random()*100+'vw'; c.style.background=colors[i%colors.length]; c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; c.style.animationDelay=(Math.random()*0.4)+'s'; box.appendChild(c); setTimeout(()=>c.remove(),3400); }
+  }
+  function finishAnswer(isCorrect, revealHTML){
+    answered=true; total++;
+    if(isCorrect){ correct++; streak++; } else streak=0;
+    updateScore();
+    const fb=$('feedback');
+    if(isCorrect){ fb.textContent=pick(['🎉 Correct!','⭐ Nice!','✅ You got it!','🔎 Case closed!']); fb.className='feedback good'; }
+    else { fb.textContent='Not quite — here’s how to solve it:'; fb.className='feedback bad'; }
+    const rev=$('reveal'); rev.innerHTML=revealHTML; rev.className='reveal';
+    if(isCorrect && streak>0 && streak%5===0) celebrate(streak);
+    startReadLock();
+  }
+  function buildChoices(opts, correctVal, fmt){
+    const box=$('choices'); box.style.display='flex'; box.innerHTML='';
+    shuffle([...new Set(opts)]).forEach(v=>{
+      const btn=document.createElement('button'); btn.className='choice'; btn.innerHTML=fmt?fmt(v):v; btn.dataset.v=v;
+      if(v===correctVal) btn.dataset.correct='1';
+      btn.onclick=()=>{ if(answered)return; [...box.children].forEach(c=>{c.disabled=true; if(c.dataset.correct)c.classList.add('correct');}); if(!btn.dataset.correct)btn.classList.add('wrong'); finishAnswer(!!btn.dataset.correct, box._reveal); };
+      box.appendChild(btn);
+    });
+  }
+
+  // ---------- MEAN / MEDIAN / MODE ----------
+  function roundCenter(){
+    const n={1:5,2:6,3:7}[level];
+    const d=makeData(n,1,10);
+    const which=pick(['mean','median','mode']);
+    lastKey='c'+d.join()+which; cur={d,which};
+    const sorted=d.slice().sort((a,b)=>a-b);
+    quizShell(`Find the ${which.toUpperCase()} of this data set.`,
+      `<div class="dataset">${d.join('   ')}</div>`, dotPlot(d, 0, 10, which==='mode'?modes(d):null));
+    let ans, work;
+    if(which==='mean'){ ans=mean(d); work=`<b>Mean</b> = add them all, then divide by how many. ${d.join(' + ')} = ${sum(d)}. ${sum(d)} ÷ ${n} = <b>${round2(ans)}</b>.`; }
+    else if(which==='median'){ ans=median(d); work=`<b>Median</b> = the middle value once sorted. Sorted: ${sorted.join(', ')}. The middle is <b>${median(d)}</b>.`; }
+    else { const m=modes(d); ans=m[0]; work=`<b>Mode</b> = the value that appears most. Here <b>${m.join(' and ')}</b> shows up the most (${d.filter(x=>x===m[0]).length} times).`; }
+    const opts=new Set([ans]);
+    [mean(d),median(d),modes(d)[0], ans+1, Math.max(0,ans-1), Math.max(...d), Math.min(...d)].forEach(x=>{ const r=round2(x); if(opts.size<4) opts.add(r); });
+    let g=0; while(opts.size<4 && g++<40){ opts.add(round2(ans+rand(-3,3))); }
+    $('choices')._reveal=work;
+    const arr=[...opts]; if(!arr.includes(round2(ans))) arr[arr.length-1]=round2(ans);
+    buildChoices(arr.slice(0,4).map(round2), round2(ans), v=>v);
+  }
+
+  // ---------- RANGE ----------
+  function roundRange(){
+    const n={1:4,2:5,3:6}[level];
+    const d=Array.from({length:n},()=>rand(1, level===3?30:15));
+    lastKey='r'+d.join(); cur={d};
+    quizShell('Find the RANGE of this data set.', `<div class="dataset">${d.join('   ')}</div>`, dotPlot(d, 0, Math.max(...d), [Math.max(...d),Math.min(...d)]));
+    const hi=Math.max(...d), lo=Math.min(...d), ans=hi-lo;
+    $('choices')._reveal=`<b>Range</b> = biggest − smallest. The biggest is <b>${hi}</b> and the smallest is <b>${lo}</b>. ${hi} − ${lo} = <b>${ans}</b>.`;
+    buildChoices([ans, hi, hi+lo, Math.max(0,ans-1), ans+2], ans, v=>v);
+  }
+
+  // ---------- READ A GRAPH ----------
+  const FRUITS=[['🍎 Apples','#ef4444'],['🍌 Bananas','#eab308'],['🍇 Grapes','#8b5cf6'],['🍊 Oranges','#f97316'],['🍓 Berries','#ec4899']];
+  const PETS=[['🐶 Dogs','#f59e0b'],['🐱 Cats','#64748b'],['🐟 Fish','#0ea5e9'],['🐰 Rabbits','#a3a3a3'],['🐦 Birds','#22c55e']];
+  function roundGraph(){
+    const theme=pick([FRUITS,PETS]); const nbars={1:3,2:4,3:5}[level];
+    const chosen=shuffle(theme).slice(0,nbars).map(([label,color])=>({label,color,val:rand(2,12)}));
+    // ensure a unique max & min for clean questions
+    lastKey='g'+chosen.map(c=>c.val).join();
+    const cats=chosen;
+    const vals=cats.map(c=>c.val);
+    const maxC=cats[vals.indexOf(Math.max(...vals))], minC=cats[vals.indexOf(Math.min(...vals))];
+    const kind=pick(['most','least','total','diff','howmany']);
+    let q, ans, work, fmt=v=>v;
+    const nameOnly=s=>s.replace(/^[^ ]+ /,'');
+    if(kind==='most'){ q=`Which had the MOST?`; ans=maxC.label; work=`Find the tallest bar. <b>${maxC.label}</b> is highest at ${maxC.val}.`; buildAfter(cats,q,()=>buildChoices(cats.map(c=>c.label), ans)); work=work; }
+    else if(kind==='least'){ q=`Which had the FEWEST?`; ans=minC.label; work=`Find the shortest bar. <b>${minC.label}</b> is lowest at ${minC.val}.`; buildAfter(cats,q,()=>buildChoices(cats.map(c=>c.label), ans)); }
+    else if(kind==='total'){ q=`How many in all (the total)?`; ans=sum(vals); work=`Add every bar: ${vals.join(' + ')} = <b>${ans}</b>.`; buildAfter(cats,q,()=>buildChoices([ans, ans-cats[0].val, ans+2, Math.max(...vals)], ans)); }
+    else if(kind==='diff'){ const two=shuffle(cats).slice(0,2); q=`How many more ${nameOnly(two[0].label)} than ${nameOnly(two[1].label)}?`; ans=Math.abs(two[0].val-two[1].val); work=`${nameOnly(two[0].label)} = ${two[0].val}, ${nameOnly(two[1].label)} = ${two[1].val}. The difference is ${Math.max(two[0].val,two[1].val)} − ${Math.min(two[0].val,two[1].val)} = <b>${ans}</b>.`; buildAfter(cats,q,()=>buildChoices([ans, ans+1, Math.max(1,ans-1), two[0].val+two[1].val], ans)); }
+    else { const one=pick(cats); q=`How many ${nameOnly(one.label)}?`; ans=one.val; work=`Read the top of the ${nameOnly(one.label)} bar: <b>${ans}</b>.`; buildAfter(cats,q,()=>buildChoices([ans, ans+1, Math.max(1,ans-1), ans+2], ans)); }
+    $('choices')._reveal=work;
+  }
+  function buildAfter(cats,q,mkChoices){
+    quizShell('Read the bar graph to answer:', `<div class="bigq">${q}</div>`, barGraph(cats));
+    mkChoices();
+  }
+
+  // ---------- dispatch ----------
+  function newRound(){
+    clearTimers(); advanceReady=true; answered=false;
+    if(mode==='learn'){ renderLearn(); return; }
+    if(mode==='center') roundCenter();
+    else if(mode==='range') roundRange();
+    else roundGraph();
+  }
+  $('modeSeg').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b)return; mode=b.dataset.mode; [...$('modeSeg').children].forEach(x=>x.classList.toggle('on',x===b)); resetProgress(); newRound(); });
+  $('levelSeg').addEventListener('click', e=>{ const b=e.target.closest('button.lvl'); if(!b)return; level=+b.dataset.lvl; [...$('levelSeg').children].forEach(x=>x.classList&&x.classList.toggle('on',x===b)); resetProgress(); newRound(); });
+  document.addEventListener('click', e=>{ if(e.target && e.target.id==='nextBtn') tryAdvance(); });
+  document.addEventListener('keydown', e=>{ if(e.key!=='Enter')return; if(answered){ e.preventDefault(); tryAdvance(); } });
+
+  newRound();
+})();
+</script>
+</body>
+</html>
