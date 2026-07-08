@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Physics Playground</title>
+<style>
+  :root {
+    --ink:#1c1917; --muted:#78716c; --accent:#ea580c; --accent-soft:#ffedd5;
+    --correct:#16a34a; --wrong:#dc2626; --shadow:0 10px 30px rgba(234,88,12,.16);
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#fff7ed,#eff6ff); min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; padding:24px 16px 60px;
+  }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 14px; font-size:15px; text-align:center; max-width:540px; line-height:1.5; }
+  .hero { width:100%; max-width:480px; border-radius:18px; box-shadow:var(--shadow); margin:0 0 18px; display:block; }
+
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; position:sticky; top:10px; z-index:70; }
+  .nav a, .nav button{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 16px; border-radius:9px; border:none; background:transparent; font-family:inherit; cursor:pointer; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+  .nav button:hover{ background:var(--accent-soft); color:var(--accent); }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; }
+  .seg button {
+    border:none; background:transparent; font-family:inherit; font-weight:800;
+    font-size:14.5px; padding:9px 15px; border-radius:10px; cursor:pointer; color:var(--muted);
+    transition:background .15s, color .15s;
+  }
+  .seg button.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .chip { background:#fff; border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; }
+  .chip.streak { color:#ea580c; }
+
+  .stage { width:100%; max-width:600px; }
+  .card { width:100%; background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:28px 24px; display:flex; flex-direction:column; align-items:center; }
+  .qprompt { color:var(--muted); font-size:14px; margin:0 0 16px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; text-align:center; }
+
+  .subject { text-align:center; margin-bottom:22px; width:100%; }
+  .subj-tag { display:inline-block; font-size:12px; font-weight:800; color:var(--accent); background:var(--accent-soft); padding:4px 12px; border-radius:999px; text-transform:uppercase; letter-spacing:.4px; margin-bottom:8px; }
+  .subj-question { font-size:19px; font-weight:800; line-height:1.45; margin:4px auto 0; max-width:500px; }
+  .subj-item { font-size:22px; font-weight:900; line-height:1.3; margin:4px auto 0; }
+
+  .choices { display:flex; flex-direction:column; gap:11px; width:100%; }
+  .choice { background:#fff; border:3px solid #f5e3d3; border-radius:16px; font-size:16.5px; font-weight:700; padding:14px 18px; color:var(--ink); cursor:pointer; text-align:left; display:flex; align-items:center; gap:11px; font-family:inherit; line-height:1.4; }
+  .choice .cico { font-size:24px; flex:none; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.has-sub { align-items:flex-start; }
+  .choice.has-sub .cico { margin-top:1px; }
+  .choice-text { display:flex; flex-direction:column; gap:3px; }
+  .choice-label { font-weight:800; }
+  .choice-sub { font-size:12.5px; font-weight:600; color:var(--muted); line-height:1.4; }
+  .choice.correct .choice-sub, .choice.wrong .choice-sub { color:inherit; opacity:.85; }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; color:var(--correct); }
+  .choice.wrong { border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
+  .choice:disabled { cursor:default; }
+  .choice.two { justify-content:center; font-size:19px; font-weight:900; text-align:center; }
+
+  .feedback { min-height:26px; margin-top:18px; font-weight:800; font-size:17px; text-align:center; }
+  .feedback.good { color:var(--correct); }
+  .feedback.bad { color:var(--wrong); }
+
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; text-align:left; width:100%; margin:10px auto 4px; padding:16px 18px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
+  .reveal.hidden { display:none; }
+  .reveal .rev-title { font-size:18px; font-weight:800; margin-bottom:6px; color:#c2410c; }
+  .reveal .rev-body { color:#7c2d12; }
+  .eli5 { margin-top:14px; background:#eff6ff; border-left:3px solid #3b82f6; border-radius:8px; padding:10px 13px; font-size:14px; color:#1e3a8a; line-height:1.55; }
+  .eli5 b { color:#1d4ed8; }
+  .rev-src { display:inline-block; margin-top:14px; font-size:13px; font-weight:700; color:var(--accent); text-decoration:none; border-bottom:1.5px dotted var(--accent); }
+
+  button.act { font-family:inherit; font-size:16px; font-weight:700; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; transition:transform .1s, background .15s; }
+  button.act:active { transform:scale(.96); }
+  button.act:disabled { opacity:.5; cursor:default; transform:none; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#c2410c; }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  /* ---------- SIM ---------- */
+  .simctl { width:100%; display:flex; flex-direction:column; gap:10px; }
+  .drow { background:#fffaf5; border:2px solid #f5e3d3; border-radius:14px; padding:11px 14px; display:flex; align-items:center; gap:12px; justify-content:space-between; }
+  .drow .dl { font-size:14.5px; font-weight:800; }
+  .drow .dl small { display:block; font-size:12px; font-weight:600; color:var(--muted); }
+  .stepper { display:flex; align-items:center; gap:10px; flex:none; }
+  .stepper button { width:38px; height:38px; border-radius:11px; border:none; background:var(--accent-soft); color:#c2410c; font-size:21px; font-weight:900; cursor:pointer; font-family:inherit; }
+  .stepper button:hover { background:var(--accent); color:#fff; }
+  .stepper .sval { font-size:18px; font-weight:900; min-width:70px; text-align:center; }
+  .surf { display:flex; gap:8px; }
+  .surf button { font-family:inherit; font-weight:800; font-size:14px; border:2px solid #f5e3d3; background:#fff; color:var(--muted); border-radius:11px; padding:8px 12px; cursor:pointer; }
+  .surf button.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+  .eqline { width:100%; text-align:center; font-size:15px; font-weight:800; color:#c2410c; background:var(--accent-soft); border-radius:12px; padding:11px; margin:12px 0; }
+  .eqline b { color:#7c2d12; }
+
+  .track { position:relative; width:100%; height:96px; background:linear-gradient(#e0f2fe,#f0f9ff); border:2px solid #bae6fd; border-radius:14px; overflow:hidden; margin-bottom:6px; }
+  .track .ground { position:absolute; left:0; right:0; bottom:0; height:20px; background:#d6d3d1; border-top:2px solid #a8a29e; }
+  .track .cart { position:absolute; left:6px; bottom:18px; font-size:42px; line-height:1; will-change:transform; }
+  .track .finish { position:absolute; right:8px; bottom:20px; width:6px; top:8px; background:repeating-linear-gradient(45deg,#111 0 6px,#fff 6px 12px); opacity:.5; }
+  .track .boxes { position:absolute; right:14px; bottom:18px; display:flex; flex-direction:column-reverse; gap:1px; }
+  .track .box { font-size:22px; line-height:1; transition:transform .6s cubic-bezier(.3,1.4,.5,1), opacity .6s; }
+  .track .flagpole { position:absolute; right:40px; bottom:18px; font-size:22px; }
+
+  .readouts { display:flex; gap:8px; width:100%; flex-wrap:wrap; }
+  .ro { flex:1 1 120px; background:#f8fafc; border:2px solid #eee; border-radius:12px; padding:9px 12px; text-align:center; }
+  .ro .rl { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); }
+  .ro .rv { font-size:19px; font-weight:900; color:var(--accent); margin-top:2px; }
+  .simmsg { text-align:center; font-weight:800; font-size:14.5px; margin-top:10px; min-height:20px; }
+  .simmsg.warn { color:var(--wrong); }
+  .simmsg.win { color:var(--correct); }
+
+  .runs { width:100%; margin-top:14px; border:2px solid #f5e3d3; border-radius:12px; overflow:hidden; font-size:13px; }
+  .runs .rhead, .runs .rrow { display:grid; grid-template-columns:1.2fr 1.2fr 1fr 1.1fr 1fr; }
+  .runs .rhead { background:var(--accent-soft); font-weight:800; color:#7c2d12; }
+  .runs .rhead span, .runs .rrow span { padding:7px 8px; text-align:center; }
+  .runs .rrow { border-top:1px solid #f5e3d3; }
+  .runs .rrow:nth-child(even) { background:#fffaf5; }
+
+  .modal { position:fixed; inset:0; background:rgba(60,30,10,.45); z-index:80; display:flex; align-items:center; justify-content:center; padding:18px; }
+  .modal.hidden { display:none; }
+  .sheet { background:#fff; border-radius:22px; box-shadow:0 24px 60px rgba(234,88,12,.35); width:100%; max-width:600px; max-height:82vh; overflow-y:auto; padding:26px 24px 30px; position:relative; }
+  .sheet h2 { margin:0 0 4px; font-size:22px; letter-spacing:-.4px; }
+  .sheet .sheet-sub { color:var(--muted); font-size:14px; margin:0 0 18px; line-height:1.5; }
+  .closeBtn { position:sticky; float:right; top:0; width:34px; height:34px; border:none; border-radius:50%; background:var(--accent-soft); color:#c2410c; font-size:17px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .closeBtn:hover { background:var(--accent); color:#fff; }
+  .srow { padding:12px 0; border-top:1px solid #f5e3d3; }
+  .srow:first-of-type { border-top:none; }
+  .srow a { font-weight:800; font-size:15.5px; color:var(--accent); text-decoration:none; }
+  .srow .snote { color:var(--muted); font-size:13.5px; margin-top:3px; line-height:1.45; }
+  .trow { padding:11px 0; border-top:1px solid #f5e3d3; }
+  .trow:first-of-type { border-top:none; }
+  .trow .tt { font-weight:900; font-size:15.5px; color:var(--ink); }
+  .trow .td { font-size:14px; color:#57534e; line-height:1.5; margin-top:2px; }
+  .trow .te { font-size:13px; color:var(--accent); font-weight:700; margin-top:4px; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner {
+    position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6);
+    background:linear-gradient(135deg,#fb923c,#ea580c); color:#fff; font-weight:900;
+    font-size:26px; padding:20px 34px; border-radius:22px; box-shadow:0 18px 50px rgba(234,88,12,.45);
+    z-index:60; opacity:0; pointer-events:none; text-align:center; white-space:nowrap;
+  }
+  #streakBanner.show { animation:banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner {
+    0%{opacity:0; transform:translate(-50%,-50%) scale(.6)}
+    15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)}
+    28%{transform:translate(-50%,-50%) scale(1)}
+    80%{opacity:1; transform:translate(-50%,-50%) scale(1)}
+    100%{opacity:0; transform:translate(-50%,-60%) scale(.95)}
+  }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button id="dictBtn" title="Physics words explained">📖 Dictionary</button>
+    <button id="srcBtn" title="Where these ideas come from">📚 Sources</button>
+  </div>
+  <h1>🔬 Physics Playground</h1>
+  <p class="sub">Play with forces, motion and energy — launch a cart and watch Newton’s laws in action, then master speed vs. velocity, energy, and simple machines.</p>
+  <img class="hero" src="img/hero.png" alt="Kids experimenting with physics" onerror="this.style.display='none'">
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="launch" class="on">🚀 Launch the Cart</button>
+      <button data-mode="laws">⚖️ Newton’s Laws</button>
+      <button data-mode="motion">🧭 Speed·Velocity·Accel</button>
+      <button data-mode="energy">⚡ Kinetic or Potential</button>
+      <button data-mode="machines">🛠️ Simple Machines</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar" id="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="stage">
+    <div class="card" id="quizCard">
+      <p class="qprompt" id="prompt"></p>
+      <div class="subject" id="subject"></div>
+      <div class="choices" id="choices"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="reveal hidden" id="reveal"></div>
+      <div class="btn-row" id="nextRow" style="display:none">
+        <button class="act btn-primary" id="nextBtn">Next ➡️</button>
+      </div>
+    </div>
+    <div class="card" id="simCard" style="display:none"></div>
+  </div>
+
+  <div class="modal hidden" id="srcModal"><div class="sheet" id="srcSheet"></div></div>
+  <div class="modal hidden" id="dictModal"><div class="sheet" id="dictSheet"></div></div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const shuffle = arr => arr.slice().sort(()=>Math.random()-0.5);
+  const P = window.PHYS;
+  const SRC = {}; P.SOURCES.forEach(s => SRC[s.key] = s);
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const r1 = n => Math.round(n*10)/10;
+
+  let mode = 'launch';
+  let correct = 0, total = 0, streak = 0, lastKey = null;
+  let answered = false, advanceReady = true, advanceTimer = null, countdownTimer = null;
+
+  function clearTimers(){
+    if (advanceTimer){ clearTimeout(advanceTimer); advanceTimer = null; }
+    if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
+  }
+  function updateScorebar(){ $('correctCount').textContent = correct; $('totalCount').textContent = total; $('streak').textContent = streak; }
+  function resetProgress(){ correct = 0; total = 0; streak = 0; lastKey = null; updateScorebar(); }
+  const srcLink = key => { const s = SRC[key]; return s ? `<a class="rev-src" href="${s.url}" target="_blank" rel="noopener">📚 Source: ${esc(s.name)} ↗</a>` : ''; };
+  const eli5Box = (label,text) => `<div class="eli5">💡 <b>${esc(label)}:</b> ${esc(text)}</div>`;
+
+  /* ============ QUIZ MODES ============ */
+  function buildRound(){
+    if (mode === 'laws')   return roundLaws();
+    if (mode === 'motion') return roundMotion();
+    if (mode === 'energy') return roundEnergy();
+    return roundMachines();
+  }
+  function roundLaws(){
+    let it, tries=0;
+    do { it = pick(P.LAW_ITEMS); tries++; } while (P.LAW_ITEMS.length>1 && it.q===lastKey && tries<30);
+    lastKey = it.q;
+    const options = shuffle([1,2,3]);
+    const L = P.LAWS[it.law];
+    return {
+      prompt:'⚖️ Which of Newton’s laws does this show?',
+      subjectHTML:`<div class="subj-tag">Newton’s laws</div><div class="subj-question">${esc(it.q)}</div>`,
+      choices: options.map(o => ({
+        html:`<span class="cico">${P.LAWS[o].icon}</span><span class="choice-text"><span class="choice-label">${esc(P.LAWS[o].name)}</span><span class="choice-sub">${esc(P.LAWS[o].desc)}</span></span>`,
+        val:String(o), correct:o===it.law, cls:'has-sub'
+      })),
+      revealHTML:`<div class="rev-title">${L.icon} ${esc(L.name)}</div><div class="rev-body">${esc(it.why)}</div>` + srcLink('physicsclassroom')
+    };
+  }
+  function roundMotion(){
+    let it, tries=0;
+    do { it = pick(P.MOTION_ITEMS); tries++; } while (P.MOTION_ITEMS.length>1 && it.q===lastKey && tries<30);
+    lastKey = it.q;
+    const keys = Object.keys(P.MOTION);
+    const options = shuffle(keys);
+    const M = P.MOTION[it.ans];
+    return {
+      prompt:'🧭 Speed, velocity, or acceleration?',
+      subjectHTML:`<div class="subj-tag">Describe the motion</div><div class="subj-question">${esc(it.q)}</div>`,
+      choices: options.map(o => ({
+        html:`<span class="cico">${P.MOTION[o].icon}</span><span class="choice-text"><span class="choice-label">${esc(o)}</span><span class="choice-sub">${esc(P.MOTION[o].desc)}</span></span>`,
+        val:o, correct:o===it.ans, cls:'has-sub'
+      })),
+      revealHTML:`<div class="rev-title">${M.icon} ${esc(it.ans)}</div><div class="rev-body">${esc(it.why)}</div>` +
+        eli5Box('Quick test','No direction? Speed. Speed + a direction? Velocity. Any CHANGE in velocity (faster, slower, or turning)? Acceleration.') +
+        srcLink('khan')
+    };
+  }
+  function roundEnergy(){
+    let it, tries=0;
+    do { it = pick(P.ENERGY); tries++; } while (P.ENERGY.length>1 && it.item===lastKey && tries<30);
+    lastKey = it.item;
+    const options = shuffle(['Kinetic','Potential']);
+    return {
+      prompt:'⚡ Kinetic or potential energy?',
+      subjectHTML:`<div class="subj-tag">What kind of energy?</div><div class="subj-item">${esc(it.item)}</div>`,
+      choices: options.map(o => ({ html:(o==='Kinetic'?'🏃 Kinetic':'🔋 Potential'), val:o, correct:o===it.ans, cls:'two' })),
+      revealHTML:`<div class="rev-title">${it.ans==='Kinetic'?'🏃 Kinetic energy':'🔋 Potential energy'}</div><div class="rev-body">${esc(it.why)}</div>` +
+        eli5Box('Rule','Moving right now = kinetic. Stored up and waiting (lifted high, stretched, or squeezed) = potential.') +
+        srcLink('khan')
+    };
+  }
+  function roundMachines(){
+    let it, tries=0;
+    do { it = pick(P.MACHINE_ITEMS); tries++; } while (P.MACHINE_ITEMS.length>1 && it.item===lastKey && tries<30);
+    lastKey = it.item;
+    const all = Object.keys(P.MACHINES);
+    const distractors = shuffle(all.filter(c => c!==it.machine)).slice(0,3);
+    const options = shuffle([it.machine, ...distractors]);
+    const M = P.MACHINES[it.machine];
+    return {
+      prompt:'🛠️ Which simple machine is this?',
+      subjectHTML:`<div class="subj-tag">Name that machine</div><div class="subj-item">${esc(it.item)}</div>`,
+      choices: options.map(o => ({
+        html:`<span class="cico">${P.MACHINES[o].icon}</span><span class="choice-text"><span class="choice-label">${esc(o)}</span></span>`,
+        val:o, correct:o===it.machine, cls:'has-sub'
+      })),
+      revealHTML:`<div class="rev-title">${M.icon} ${esc(it.machine)}</div><div class="rev-body">${esc(M.desc)}</div>` + srcLink('physicsclassroom')
+    };
+  }
+
+  let curReveal = '';
+  function newRound(){
+    clearTimers();
+    advanceReady = true; answered = false;
+    $('feedback').textContent=''; $('feedback').className='feedback';
+    $('reveal').className='reveal hidden'; $('reveal').innerHTML='';
+    $('nextRow').style.display='none';
+    const round = buildRound();
+    curReveal = round.revealHTML;
+    $('prompt').textContent = round.prompt;
+    $('subject').innerHTML = round.subjectHTML;
+    const box = $('choices'); box.innerHTML='';
+    round.choices.forEach(ch => {
+      const btn = document.createElement('button');
+      btn.className = ch.cls ? 'choice '+ch.cls : 'choice';
+      btn.innerHTML = ch.html; btn.dataset.val = ch.val;
+      if (ch.correct) btn.dataset.correct='1';
+      btn.onclick = () => answer(btn, ch.correct);
+      box.appendChild(btn);
+    });
+  }
+  function answer(btn, isCorrect){
+    if (answered) return;
+    answered = true; total++;
+    if (isCorrect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+    [...$('choices').children].forEach(c => { c.disabled=true; if (c.dataset.correct==='1') c.classList.add('correct'); });
+    if (!isCorrect) btn.classList.add('wrong');
+    const fb = $('feedback');
+    if (isCorrect){ fb.textContent = pick(['🎉 Correct!','⭐ Nice!','✅ You got it!','🔬 Sharp!','🚀 Yes!']); fb.className='feedback good'; }
+    else { fb.textContent = 'Not quite — here’s the physics:'; fb.className='feedback bad'; }
+    $('reveal').innerHTML = curReveal; $('reveal').className='reveal';
+    if (isCorrect && streak>0 && streak%5===0) celebrate(streak);
+    startReadLock();
+  }
+  function startReadLock(){
+    advanceReady = false;
+    let secs = 3; const nb = $('nextBtn');
+    nb.disabled = true; nb.textContent = `Read it… (${secs})`;
+    $('nextRow').style.display='flex';
+    countdownTimer = setInterval(() => { secs--; if (secs>0) nb.textContent=`Read it… (${secs})`; else { clearInterval(countdownTimer); countdownTimer=null; } }, 1000);
+    advanceTimer = setTimeout(() => { advanceReady=true; advanceTimer=null; nb.disabled=false; nb.textContent='Next ➡️'; nb.focus(); }, 3000);
+  }
+  function tryAdvance(){ if (answered && advanceReady) newRound(); }
+
+  /* ============ GAME 1 · LAUNCH THE CART (F = m·a) ============ */
+  const S = P.SIM;
+  let physx = { mass:S.mass.def, force:S.force.def, surf:'track', runs:[], animating:false, runToken:0 };
+  function surfObj(){ return S.surfaces.find(s => s.id===physx.surf); }
+  function calc(){
+    const s = surfObj();
+    const fric = s.mu * physx.mass * S.g;
+    const net = physx.force - fric;
+    const a = net>0 ? net/physx.mass : 0;
+    return { fric, net, a };
+  }
+  function renderSim(){
+    const s = surfObj(), c = calc();
+    let html = `<div class="qprompt">🚀 Launch the Cart — Newton’s 2nd Law</div>`;
+    html += `<div class="simctl">`;
+    html += drow('⚖️ Mass of the cart', 'Heavier carts are harder to speed up.',
+      stepper('mass', physx.mass + ' ' + S.mass.unit));
+    html += drow('💪 Launch force', 'A bigger push makes it accelerate more.',
+      stepper('force', physx.force + ' ' + S.force.unit));
+    html += `<div class="drow"><div class="dl">🌍 Surface<small>${esc(s.note)}</small></div>` +
+      `<div class="surf">` + S.surfaces.map(x=>`<button data-surf="${x.id}" class="${x.id===physx.surf?'on':''}">${x.icon} ${x.name}</button>`).join('') + `</div></div>`;
+    html += `</div>`;
+    // equation
+    html += `<div class="eqline">a = Net force ÷ mass = (${physx.force} − ${r1(c.fric)} friction) ÷ ${physx.mass} = <b>${r1(c.net)} N ÷ ${physx.mass} kg = ${r1(c.a)} m/s²</b></div>`;
+    // track
+    html += `<div class="track" id="simTrack"><div class="finish"></div>` +
+      `<div class="flagpole">🚩</div>` +
+      `<div class="boxes" id="simBoxes">${'<span class="box">📦</span>'.repeat(4)}</div>` +
+      `<div class="ground"></div><div class="cart" id="simCartEl">🛒</div></div>`;
+    // readouts
+    html += `<div class="readouts">` +
+      ro('roAccel','Acceleration', r1(c.a)+' m/s²') +
+      ro('roVel','Velocity', '0 m/s') +
+      ro('roDist','Distance', '0 m') +
+      ro('roKE','Kinetic energy', '0 J') +
+    `</div>`;
+    html += `<div class="simmsg" id="simMsg"></div>`;
+    html += `<div class="btn-row"><button class="act btn-primary" id="launchBtn">🚀 Launch!</button></div>`;
+    if (physx.runs.length){
+      html += `<div class="runs"><div class="rhead"><span>Mass</span><span>Force</span><span>Accel</span><span>Top speed</span><span>Energy</span></div>` +
+        physx.runs.slice(-4).reverse().map(r=>`<div class="rrow"><span>${r.mass} kg</span><span>${r.force} N</span><span>${r1(r.a)} m/s²</span><span>${r1(r.v)} m/s</span><span>${r1(r.ke)} J</span></div>`).join('') +
+        `</div>`;
+    }
+    $('simCard').innerHTML = html;
+    wireSim();
+  }
+  function drow(label, hint, inner){ return `<div class="drow"><div class="dl">${label}<small>${hint}</small></div>${inner}</div>`; }
+  function stepper(key, val){ return `<div class="stepper" data-step="${key}"><button data-dir="-1">−</button><div class="sval">${val}</div><button data-dir="1">＋</button></div>`; }
+  function ro(id, label, val){ return `<div class="ro"><div class="rl">${label}</div><div class="rv" id="${id}">${val}</div></div>`; }
+  function wireSim(){
+    $('simCard').querySelectorAll('.stepper').forEach(st => {
+      const key = st.dataset.step, cfg = S[key];
+      st.querySelectorAll('button').forEach(b => b.onclick = () => {
+        if (physx.animating) return;
+        const dir = +b.dataset.dir;
+        physx[key] = Math.max(cfg.min, Math.min(cfg.max, physx[key] + dir*cfg.step));
+        renderSim();
+      });
+    });
+    $('simCard').querySelectorAll('[data-surf]').forEach(b => b.onclick = () => {
+      if (physx.animating) return;
+      physx.surf = b.dataset.surf; renderSim();
+    });
+    $('launchBtn').onclick = launch;
+  }
+  function launch(){
+    if (physx.animating) return;
+    const c = calc();
+    const msg = $('simMsg');
+    if (c.a <= 0){
+      msg.className = 'simmsg warn';
+      msg.textContent = '🛑 Not enough force to beat friction — the cart won’t budge! Add force or pick a slicker surface.';
+      return;
+    }
+    physx.animating = true;
+    const token = ++physx.runToken;
+    msg.className = 'simmsg'; msg.textContent = '';
+    $('launchBtn').disabled = true;
+    const track = $('simTrack'), cart = $('simCartEl');
+    const pxLen = track.clientWidth - cart.offsetWidth - 18;
+    const m2px = pxLen / S.trackMeters;
+    const a = c.a;
+    const start = performance.now();
+    function frame(now){
+      if (token !== physx.runToken) return;   // launch was cancelled (mode switch etc.)
+      let t = (now - start) / 1000;
+      let x = 0.5 * a * t * t;
+      let v = a * t;
+      if (x >= S.trackMeters){
+        x = S.trackMeters; v = Math.sqrt(2 * a * S.trackMeters);
+        cart.style.transform = `translateX(${x*m2px}px)`;
+        finishRun(a, v, token);
+        return;
+      }
+      cart.style.transform = `translateX(${x*m2px}px)`;
+      $('roVel').textContent = r1(v) + ' m/s';
+      $('roDist').textContent = r1(x) + ' m';
+      $('roKE').textContent = r1(0.5*physx.mass*v*v) + ' J';
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+  function finishRun(a, v, token){
+    if (token !== physx.runToken) return;
+    const ke = 0.5 * physx.mass * v * v;
+    $('roVel').textContent = r1(v) + ' m/s';
+    $('roDist').textContent = S.trackMeters + ' m';
+    $('roKE').textContent = r1(ke) + ' J';
+    // scatter boxes, more energy = bigger blast
+    const blast = Math.min(1.6, 0.3 + ke/400);
+    $('simBoxes').querySelectorAll('.box').forEach((b,i) => {
+      const dx = (30 + Math.random()*70) * blast;
+      const dy = -(20 + Math.random()*80) * blast;
+      b.style.transform = `translate(${dx}px, ${dy}px) rotate(${Math.random()*360}deg)`;
+      b.style.opacity = '0.85';
+    });
+    const msg = $('simMsg');
+    msg.className = 'simmsg win';
+    msg.textContent = `💥 CRASH! Top speed ${r1(v)} m/s · Kinetic energy ${r1(ke)} J`;
+    physx.runs.push({ mass:physx.mass, force:physx.force, a, v, ke });
+    if (ke > 250) celebrate(0);
+    setTimeout(() => { if (token !== physx.runToken) return; physx.animating = false; renderSim(); }, 1400);
+  }
+
+  /* ============ shared FX ============ */
+  function celebrate(n){
+    if (n){
+      const msgs = { 5:'🌟 Nice!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+      const banner = $('streakBanner');
+      banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>Physics whiz!</small>`;
+      banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    }
+    burst(n?90:40);
+  }
+  function burst(count){
+    const colors = ['#ea580c','#fb923c','#16a34a','#facc15','#3b82f6','#8b5cf6'];
+    const box = $('confetti');
+    for (let i=0;i<count;i++){
+      const c = document.createElement('div'); c.className='conf';
+      c.style.left = Math.random()*100+'vw';
+      c.style.background = colors[i%colors.length];
+      c.style.animationDuration = (1.6+Math.random()*1.4)+'s';
+      c.style.animationDelay = (Math.random()*0.4)+'s';
+      c.style.transform = `rotate(${Math.random()*360}deg)`;
+      box.appendChild(c); setTimeout(()=>c.remove(), 3400);
+    }
+  }
+
+  /* ============ popups ============ */
+  function openDict(){
+    const rows = P.TERMS.map(t =>
+      `<div class="trow"><div class="tt">${esc(t.term)}</div><div class="td">${esc(t.def)}</div>` +
+      (t.simple?`<div class="td" style="margin-top:5px">🧒 ${esc(t.simple)}</div>`:'') +
+      `<div class="te">💬 ${esc(t.ex)}</div></div>`).join('');
+    $('dictSheet').innerHTML =
+      `<button class="closeBtn" id="closeDict" title="Close">✕</button>` +
+      `<h2>📖 Physics Dictionary</h2>` +
+      `<p class="sheet-sub">The forces-and-motion words you’ll meet on tests — in plain English, each with an example.</p>` + rows;
+    $('closeDict').onclick = closeDict;
+    $('dictModal').className='modal'; $('dictSheet').scrollTop=0;
+  }
+  function closeDict(){ $('dictModal').className='modal hidden'; }
+  function openSources(){
+    const rows = P.SOURCES.map(s => `<div class="srow"><a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)} ↗</a><div class="snote">${esc(s.note)}</div></div>`).join('');
+    $('srcSheet').innerHTML =
+      `<button class="closeBtn" id="closeSrc" title="Close">✕</button>` +
+      `<h2>📚 Where these ideas come from</h2>` +
+      `<p class="sheet-sub">Trusted physics-education sources — the same forces-and-motion basics taught in school.</p>` + rows;
+    $('closeSrc').onclick = closeSources;
+    $('srcModal').className='modal'; $('srcSheet').scrollTop=0;
+  }
+  function closeSources(){ $('srcModal').className='modal hidden'; }
+
+  /* ============ router ============ */
+  function setMode(m){
+    mode = m;
+    [...$('modeSeg').children].forEach(b => b.classList.toggle('on', b.dataset.mode===m));
+    const isSim = m==='launch';
+    $('quizCard').style.display = isSim ? 'none' : 'flex';
+    $('simCard').style.display = isSim ? 'flex' : 'none';
+    $('scorebar').style.display = isSim ? 'none' : 'flex';
+    clearTimers();
+    if (isSim){ physx.animating = false; physx.runToken++; renderSim(); }
+    else { resetProgress(); newRound(); }
+  }
+  $('modeSeg').addEventListener('click', e => { const b=e.target.closest('button'); if (b) setMode(b.dataset.mode); });
+  $('nextBtn').onclick = tryAdvance;
+  $('dictBtn').onclick = openDict;
+  $('srcBtn').onclick = openSources;
+  $('srcModal').addEventListener('click', e => { if (e.target===$('srcModal')) closeSources(); });
+  $('dictModal').addEventListener('click', e => { if (e.target===$('dictModal')) closeDict(); });
+  document.addEventListener('keydown', e => {
+    if (e.key==='Escape'){ closeSources(); closeDict(); return; }
+    if (e.key==='Enter' && mode!=='launch'){ e.preventDefault();
+      if (!$('srcModal').className.includes('hidden')){ closeSources(); return; }
+      if (!$('dictModal').className.includes('hidden')){ closeDict(); return; }
+      if (answered) tryAdvance();
+    }
+  });
+
+  setMode('launch');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Budget Boss</title>
+<style>
+  :root {
+    --ink:#152238; --muted:#64748b; --accent:#2563eb; --accent-soft:#dbeafe;
+    --correct:#16a34a; --wrong:#dc2626; --money:#15803d; --shadow:0 10px 30px rgba(37,99,235,.15);
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#eff6ff,#f0fdfa); min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; padding:24px 16px 60px;
+  }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 14px; font-size:15px; text-align:center; max-width:540px; line-height:1.5; }
+  .hero { width:100%; max-width:480px; border-radius:18px; box-shadow:var(--shadow); margin:0 0 18px; display:block; }
+
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; position:sticky; top:10px; z-index:70; }
+  .nav a, .nav button{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 16px; border-radius:9px; border:none; background:transparent; font-family:inherit; cursor:pointer; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+  .nav button:hover{ background:var(--accent-soft); color:var(--accent); }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; }
+  .seg button {
+    border:none; background:transparent; font-family:inherit; font-weight:800;
+    font-size:14.5px; padding:9px 15px; border-radius:10px; cursor:pointer; color:var(--muted);
+    transition:background .15s, color .15s;
+  }
+  .seg button.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .chip { background:#fff; border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; }
+  .chip.streak { color:#ea580c; }
+
+  .stage { width:100%; max-width:600px; }
+  .card { width:100%; background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:28px 24px; display:flex; flex-direction:column; align-items:center; }
+  .qprompt { color:var(--muted); font-size:14px; margin:0 0 16px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; text-align:center; }
+
+  .subject { text-align:center; margin-bottom:22px; width:100%; }
+  .subj-tag { display:inline-block; font-size:12px; font-weight:800; color:var(--accent); background:var(--accent-soft); padding:4px 12px; border-radius:999px; text-transform:uppercase; letter-spacing:.4px; margin-bottom:8px; }
+  .subj-question { font-size:19px; font-weight:800; line-height:1.45; margin:4px auto 0; max-width:500px; }
+  .subj-item { font-size:23px; font-weight:900; line-height:1.3; margin:4px auto 0; }
+
+  .choices { display:flex; flex-direction:column; gap:11px; width:100%; }
+  .choice { background:#fff; border:3px solid #dbe6fb; border-radius:16px; font-size:16.5px; font-weight:700; padding:14px 18px; color:var(--ink); cursor:pointer; text-align:left; display:flex; align-items:center; gap:11px; font-family:inherit; line-height:1.4; }
+  .choice .cico { font-size:24px; flex:none; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.has-sub { align-items:flex-start; }
+  .choice.has-sub .cico { margin-top:1px; }
+  .choice-text { display:flex; flex-direction:column; gap:3px; }
+  .choice-label { font-weight:800; }
+  .choice-sub { font-size:12.5px; font-weight:600; color:var(--muted); line-height:1.4; }
+  .choice.correct .choice-sub, .choice.wrong .choice-sub { color:inherit; opacity:.85; }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; color:var(--correct); }
+  .choice.wrong { border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
+  .choice:disabled { cursor:default; }
+  .choice.nw { justify-content:center; font-size:19px; font-weight:900; text-align:center; }
+
+  .feedback { min-height:26px; margin-top:18px; font-weight:800; font-size:17px; text-align:center; }
+  .feedback.good { color:var(--correct); }
+  .feedback.bad { color:var(--wrong); }
+
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; text-align:left; width:100%; margin:10px auto 4px; padding:16px 18px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
+  .reveal.hidden { display:none; }
+  .reveal .rev-title { font-size:18px; font-weight:800; margin-bottom:6px; color:#1d4ed8; }
+  .reveal .rev-body { color:#1e3a8a; }
+  .eli5 { margin-top:14px; background:#f0fdf4; border-left:3px solid #16a34a; border-radius:8px; padding:10px 13px; font-size:14px; color:#14532d; line-height:1.55; }
+  .eli5 b { color:#15803d; }
+  .rev-src { display:inline-block; margin-top:14px; font-size:13px; font-weight:700; color:var(--accent); text-decoration:none; border-bottom:1.5px dotted var(--accent); }
+
+  button.act { font-family:inherit; font-size:16px; font-weight:700; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; transition:transform .1s, background .15s; }
+  button.act:active { transform:scale(.96); }
+  button.act:disabled { opacity:.5; cursor:default; transform:none; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#1d4ed8; }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  /* ---------- SIM ---------- */
+  .sim-head { display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom:6px; gap:10px; flex-wrap:wrap; }
+  .sim-biz { font-size:19px; font-weight:900; }
+  .sim-cash { font-size:22px; font-weight:900; color:var(--money); }
+  .sim-cash.neg { color:var(--wrong); }
+  .sim-day { font-size:13px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+  .daybar { display:flex; gap:5px; width:100%; margin:8px 0 16px; }
+  .daybar span { flex:1; height:7px; border-radius:4px; background:#e5edf9; }
+  .daybar span.done { background:var(--money); }
+  .daybar span.now { background:var(--accent); }
+
+  .startup-grid { display:flex; flex-direction:column; gap:12px; width:100%; }
+  .startup { text-align:left; background:#fff; border:3px solid #dbe6fb; border-radius:18px; padding:16px 18px; cursor:pointer; font-family:inherit; display:flex; gap:14px; align-items:flex-start; }
+  .startup:hover { border-color:var(--accent); background:var(--accent-soft); }
+  .startup .su-emoji { font-size:40px; flex:none; }
+  .startup .su-name { font-size:18px; font-weight:900; }
+  .startup .su-blurb { font-size:13.5px; color:var(--muted); line-height:1.5; margin:3px 0 8px; }
+  .startup .su-stats { display:flex; gap:8px; flex-wrap:wrap; }
+  .su-pill { font-size:11.5px; font-weight:800; background:#f1f5f9; border:1.5px solid #e2e8f0; border-radius:999px; padding:3px 9px; color:#475569; }
+
+  .fixedbox { width:100%; background:#f8fafc; border:2px solid #e5edf9; border-radius:14px; padding:12px 15px; margin-bottom:14px; }
+  .fixedbox .fx-h { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); margin-bottom:6px; }
+  .fxrow { display:flex; justify-content:space-between; font-size:14px; padding:3px 0; }
+  .fxrow .neg { color:var(--wrong); font-weight:700; }
+  .fxrow.tot { border-top:2px solid #e2e8f0; margin-top:5px; padding-top:7px; font-weight:900; }
+  .leftline { text-align:center; font-weight:900; font-size:16px; margin:2px 0 12px; }
+  .leftline b { color:var(--accent); }
+
+  .decision { width:100%; display:flex; flex-direction:column; gap:10px; }
+  .drow { background:#fafcff; border:2px solid #e5edf9; border-radius:14px; padding:11px 14px; display:flex; align-items:center; gap:12px; justify-content:space-between; }
+  .drow .dl { font-size:14.5px; font-weight:800; }
+  .drow .dl small { display:block; font-size:12px; font-weight:600; color:var(--muted); }
+  .drow .dl .need { color:var(--wrong); }
+  .stepper { display:flex; align-items:center; gap:10px; flex:none; }
+  .stepper button { width:38px; height:38px; border-radius:11px; border:none; background:var(--accent-soft); color:#1d4ed8; font-size:21px; font-weight:900; cursor:pointer; font-family:inherit; }
+  .stepper button:hover { background:var(--accent); color:#fff; }
+  .stepper .sval { font-size:18px; font-weight:900; min-width:76px; text-align:center; }
+
+  .summary { width:100%; background:#f8fafc; border-radius:14px; padding:14px 16px; margin-top:12px; }
+  .sumrow { display:flex; justify-content:space-between; font-size:14.5px; padding:4px 0; }
+  .sumrow.tot { border-top:2px solid #e2e8f0; margin-top:6px; padding-top:8px; font-weight:900; font-size:16px; }
+  .sumrow .pos { color:var(--money); font-weight:800; }
+  .sumrow .neg { color:var(--wrong); font-weight:800; }
+  .warn { color:var(--wrong); font-weight:800; font-size:13px; text-align:center; margin-top:10px; }
+  .okmsg { color:var(--money); font-weight:800; font-size:13px; text-align:center; margin-top:10px; }
+
+  .result-profit { font-size:32px; font-weight:900; text-align:center; margin:8px 0 2px; }
+  .result-profit.pos { color:var(--money); }
+  .result-profit.neg { color:var(--wrong); }
+  .event-card { width:100%; background:linear-gradient(135deg,#eff6ff,#dbeafe); border:2px solid #bfdbfe; border-radius:16px; padding:14px 16px; display:flex; gap:12px; align-items:center; margin:14px 0; }
+  .event-card .ev-ico { font-size:34px; flex:none; }
+  .event-card .ev-text { font-weight:800; font-size:15px; line-height:1.4; }
+  .event-card .ev-tip { font-size:12.5px; color:#1d4ed8; font-weight:700; margin-top:3px; }
+  .endgrade { font-size:54px; font-weight:900; text-align:center; }
+  .endline { text-align:center; font-size:17px; font-weight:800; margin:2px 0 4px; }
+
+  .modal { position:fixed; inset:0; background:rgba(15,30,60,.45); z-index:80; display:flex; align-items:center; justify-content:center; padding:18px; }
+  .modal.hidden { display:none; }
+  .sheet { background:#fff; border-radius:22px; box-shadow:0 24px 60px rgba(37,99,235,.35); width:100%; max-width:600px; max-height:82vh; overflow-y:auto; padding:26px 24px 30px; position:relative; }
+  .sheet h2 { margin:0 0 4px; font-size:22px; letter-spacing:-.4px; }
+  .sheet .sheet-sub { color:var(--muted); font-size:14px; margin:0 0 18px; line-height:1.5; }
+  .closeBtn { position:sticky; float:right; top:0; width:34px; height:34px; border:none; border-radius:50%; background:var(--accent-soft); color:#1d4ed8; font-size:17px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .closeBtn:hover { background:var(--accent); color:#fff; }
+  .srow { padding:12px 0; border-top:1px solid #e5edf9; }
+  .srow:first-of-type { border-top:none; }
+  .srow a { font-weight:800; font-size:15.5px; color:var(--accent); text-decoration:none; }
+  .srow .snote { color:var(--muted); font-size:13.5px; margin-top:3px; line-height:1.45; }
+  .trow { padding:11px 0; border-top:1px solid #e5edf9; }
+  .trow:first-of-type { border-top:none; }
+  .trow .tt { font-weight:900; font-size:15.5px; color:var(--ink); }
+  .trow .td { font-size:14px; color:#475569; line-height:1.5; margin-top:2px; }
+  .trow .te { font-size:13px; color:var(--accent); font-weight:700; margin-top:4px; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner {
+    position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6);
+    background:linear-gradient(135deg,#3b82f6,#2563eb); color:#fff; font-weight:900;
+    font-size:26px; padding:20px 34px; border-radius:22px; box-shadow:0 18px 50px rgba(37,99,235,.45);
+    z-index:60; opacity:0; pointer-events:none; text-align:center; white-space:nowrap;
+  }
+  #streakBanner.show { animation:banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner {
+    0%{opacity:0; transform:translate(-50%,-50%) scale(.6)}
+    15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)}
+    28%{transform:translate(-50%,-50%) scale(1)}
+    80%{opacity:1; transform:translate(-50%,-50%) scale(1)}
+    100%{opacity:0; transform:translate(-50%,-60%) scale(.95)}
+  }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button id="dictBtn" title="Money words explained">📖 Dictionary</button>
+    <button id="srcBtn" title="Where these ideas come from">📚 Sources</button>
+  </div>
+  <h1>💵 Budget Boss</h1>
+  <p class="sub">Take charge of your own money — build a monthly budget, tell needs from wants, handle life’s surprise expenses, and grow your savings without falling into debt.</p>
+  <img class="hero" src="img/hero.png" alt="Planning a budget at the kitchen table" onerror="this.style.display='none'">
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="builder" class="on">📊 Budget Builder</button>
+      <button data-mode="needwant">🆚 Need or Want?</button>
+      <button data-mode="catsort">🗂️ Expense Sorter</button>
+      <button data-mode="smart">💡 Smart Money</button>
+      <button data-mode="math">📐 Budget Math</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar" id="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="stage">
+    <div class="card" id="quizCard">
+      <p class="qprompt" id="prompt"></p>
+      <div class="subject" id="subject"></div>
+      <div class="choices" id="choices"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="reveal hidden" id="reveal"></div>
+      <div class="btn-row" id="nextRow" style="display:none">
+        <button class="act btn-primary" id="nextBtn">Next ➡️</button>
+      </div>
+    </div>
+    <div class="card" id="simCard" style="display:none"></div>
+  </div>
+
+  <div class="modal hidden" id="srcModal"><div class="sheet" id="srcSheet"></div></div>
+  <div class="modal hidden" id="dictModal"><div class="sheet" id="dictSheet"></div></div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const shuffle = arr => arr.slice().sort(()=>Math.random()-0.5);
+  const B = window.BUD;
+  const SRC = {}; B.SOURCES.forEach(s => SRC[s.key] = s);
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const money = n => (n<0?'−$':'$') + Math.abs(Math.round(n)).toLocaleString();
+
+  let mode = 'builder';
+  let correct = 0, total = 0, streak = 0, lastKey = null;
+  let answered = false, advanceReady = true, advanceTimer = null, countdownTimer = null;
+
+  function clearTimers(){
+    if (advanceTimer){ clearTimeout(advanceTimer); advanceTimer = null; }
+    if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
+  }
+  function updateScorebar(){ $('correctCount').textContent = correct; $('totalCount').textContent = total; $('streak').textContent = streak; }
+  function resetProgress(){ correct = 0; total = 0; streak = 0; lastKey = null; updateScorebar(); }
+  const srcLink = key => { const s = SRC[key]; return s ? `<a class="rev-src" href="${s.url}" target="_blank" rel="noopener">📚 Source: ${esc(s.name)} ↗</a>` : ''; };
+  const eli5Box = (label,text) => `<div class="eli5">💡 <b>${esc(label)}:</b> ${esc(text)}</div>`;
+
+  /* ============ QUIZ MODES ============ */
+  function buildRound(){
+    if (mode === 'needwant') return roundNeedWant();
+    if (mode === 'catsort')  return roundCatSort();
+    if (mode === 'smart')    return roundSmart();
+    return roundMath();
+  }
+  function roundNeedWant(){
+    let it, tries=0;
+    do { it = pick(B.NEEDWANT); tries++; } while (B.NEEDWANT.length>1 && it.item===lastKey && tries<30);
+    lastKey = it.item;
+    const options = shuffle(['Need','Want']);
+    return {
+      prompt:'🆚 Is this a NEED or a WANT?',
+      subjectHTML:`<div class="subj-tag">Need or want?</div><div class="subj-item">${esc(it.item)}</div>`,
+      choices: options.map(o => ({ html:(o==='Need'?'✅ Need':'✨ Want'), val:o, correct:o===it.answer, cls:'nw' })),
+      revealHTML:`<div class="rev-title">${it.answer==='Need'?'✅ Need':'✨ Want'}</div><div class="rev-body">${esc(it.why)}</div>` +
+        eli5Box('Rule of thumb','Needs keep you housed, fed, healthy and working. Everything else is a want — fine to enjoy, but only after needs and savings are covered.') +
+        srcLink('cfpb')
+    };
+  }
+  function roundCatSort(){
+    let it, tries=0;
+    do { it = pick(B.CATSORT); tries++; } while (B.CATSORT.length>1 && it.item===lastKey && tries<30);
+    lastKey = it.item;
+    const all = Object.keys(B.CATEGORIES);
+    const distractors = shuffle(all.filter(c => c!==it.cat)).slice(0,3);
+    const options = shuffle([it.cat, ...distractors]);
+    const c = B.CATEGORIES[it.cat];
+    return {
+      prompt:'🗂️ Which budget category does this belong to?',
+      subjectHTML:`<div class="subj-tag">Sort the expense</div><div class="subj-item">${esc(it.item)}</div>`,
+      choices: options.map(o => ({
+        html:`<span class="cico">${B.CATEGORIES[o].icon}</span><span class="choice-text"><span class="choice-label">${esc(o)}</span></span>`,
+        val:o, correct:o===it.cat, cls:'has-sub'
+      })),
+      revealHTML:`<div class="rev-title">${c.icon} ${esc(it.cat)}</div><div class="rev-body">${esc(c.desc)}</div>` + srcLink('khan')
+    };
+  }
+  function roundSmart(){
+    let p, tries=0;
+    do { p = pick(B.SMART); tries++; } while (B.SMART.length>1 && p.q===lastKey && tries<30);
+    lastKey = p.q;
+    const options = shuffle([p.correct, ...p.distractors]);
+    return {
+      prompt:'💡 What’s the smart money move?',
+      subjectHTML:`<div class="subj-tag">Smart money</div><div class="subj-question">${esc(p.q)}</div>`,
+      choices: options.map(o => ({ html:esc(o), val:o, correct:o===p.correct })),
+      revealHTML:`<div class="rev-title">✅ ${esc(p.correct)}</div><div class="rev-body">${esc(p.why)}</div>` + srcLink('mymoney')
+    };
+  }
+  function roundMath(){
+    let p, tries=0;
+    do { p = pick(B.MATH); tries++; } while (B.MATH.length>1 && p.q===lastKey && tries<30);
+    lastKey = p.q;
+    const fmt = v => p.unit==='%' ? v+'%' : money(v);
+    const options = shuffle([p.answer, ...p.wrongs]);
+    return {
+      prompt:'📐 Budget math',
+      subjectHTML:`<div class="subj-tag">Do the math</div><div class="subj-question">${esc(p.q)}</div>`,
+      choices: options.map(v => ({ html:fmt(v), val:String(v), correct:v===p.answer })),
+      revealHTML:`<div class="rev-title">✅ ${fmt(p.answer)}</div><div class="rev-body">${esc(p.why)}</div>` + srcLink('khan')
+    };
+  }
+
+  let curReveal = '';
+  function newRound(){
+    clearTimers();
+    advanceReady = true; answered = false;
+    $('feedback').textContent=''; $('feedback').className='feedback';
+    $('reveal').className='reveal hidden'; $('reveal').innerHTML='';
+    $('nextRow').style.display='none';
+    const round = buildRound();
+    curReveal = round.revealHTML;
+    $('prompt').textContent = round.prompt;
+    $('subject').innerHTML = round.subjectHTML;
+    const box = $('choices'); box.innerHTML='';
+    round.choices.forEach(ch => {
+      const btn = document.createElement('button');
+      btn.className = ch.cls ? 'choice '+ch.cls : 'choice';
+      btn.innerHTML = ch.html; btn.dataset.val = ch.val;
+      if (ch.correct) btn.dataset.correct='1';
+      btn.onclick = () => answer(btn, ch.correct);
+      box.appendChild(btn);
+    });
+  }
+  function answer(btn, isCorrect){
+    if (answered) return;
+    answered = true; total++;
+    if (isCorrect){ correct++; streak++; } else streak = 0;
+    updateScorebar();
+    [...$('choices').children].forEach(c => { c.disabled=true; if (c.dataset.correct==='1') c.classList.add('correct'); });
+    if (!isCorrect) btn.classList.add('wrong');
+    const fb = $('feedback');
+    if (isCorrect){ fb.textContent = pick(['🎉 Correct!','⭐ Smart!','✅ Nice!','💰 Money-smart!','🌟 Sharp!']); fb.className='feedback good'; }
+    else { fb.textContent = 'Not quite — here’s the thinking:'; fb.className='feedback bad'; }
+    $('reveal').innerHTML = curReveal; $('reveal').className='reveal';
+    if (isCorrect && streak>0 && streak%5===0) celebrate(streak);
+    startReadLock();
+  }
+  function startReadLock(){
+    advanceReady = false;
+    let secs = 3; const nb = $('nextBtn');
+    nb.disabled = true; nb.textContent = `Read it… (${secs})`;
+    $('nextRow').style.display='flex';
+    countdownTimer = setInterval(() => { secs--; if (secs>0) nb.textContent=`Read it… (${secs})`; else { clearInterval(countdownTimer); countdownTimer=null; } }, 1000);
+    advanceTimer = setTimeout(() => { advanceReady=true; advanceTimer=null; nb.disabled=false; nb.textContent='Next ➡️'; nb.focus(); }, 3000);
+  }
+  function tryAdvance(){ if (answered && advanceReady) newRound(); }
+
+  /* ============ GAME 1 · BUDGET BUILDER (sim) ============ */
+  let sim = null;
+  const STEP = 25;
+  function fixedTotal(life){ return life.fixed.reduce((s,f)=>s+f.amt,0); }
+  function minFor(life, key){ return (life.mins && life.mins[key]!=null) ? life.mins[key] : (B.SIM.cats.find(c=>c.key===key).min); }
+
+  function renderSetup(){
+    let html = `<div class="qprompt">📊 Choose your life</div>` +
+      `<p class="sub" style="margin:0 0 16px">Pick a situation and budget your paycheck for ${B.SIM.months} months. Cover your needs, enjoy some wants, and build savings for life’s surprises!</p>` +
+      `<div class="startup-grid">`;
+    B.SIM.lives.forEach(l => {
+      html += `<button class="startup" data-life="${l.id}"><span class="su-emoji">${l.emoji}</span><span>` +
+        `<div class="su-name">${esc(l.name)}</div>` +
+        `<div class="su-blurb">${esc(l.blurb)}</div>` +
+        `<div class="su-stats"><span class="su-pill">💵 Take-home: ${money(l.income)}/mo</span>` +
+        `<span class="su-pill">🧾 Fixed bills: ${money(fixedTotal(l))}</span>` +
+        `<span class="su-pill">🎯 To budget: ${money(l.income - fixedTotal(l))}</span></div>` +
+        `</span></button>`;
+    });
+    html += `</div>`;
+    $('simCard').innerHTML = html;
+    $('simCard').querySelectorAll('[data-life]').forEach(b => b.onclick = () => startSim(b.dataset.life));
+  }
+  function startSim(id){
+    const l = B.SIM.lives.find(x => x.id===id);
+    const left = l.income - fixedTotal(l);
+    const foodMin = minFor(l,'food'), transMin = minFor(l,'transport');
+    sim = { l, month:1, savings:0, phase:'month', log:[], lastEvent:null,
+            alloc:{ food:foodMin, transport:transMin, fun:0, savings:Math.max(0, left - foodMin - transMin) } };
+    renderMonth();
+  }
+  function simHead(){
+    const l = sim.l;
+    let h = `<div class="sim-head"><div class="sim-biz">${l.emoji} ${esc(l.name)}</div>` +
+      `<div style="text-align:right"><div class="sim-day">Month ${sim.month} of ${B.SIM.months}</div>` +
+      `<div class="sim-cash${sim.savings<0?' neg':''}">${sim.savings<0?'Debt ':'Saved '}${money(Math.abs(sim.savings))}</div></div></div>`;
+    h += '<div class="daybar">';
+    for (let m=1;m<=B.SIM.months;m++) h += `<span class="${m<sim.month?'done':m===sim.month?'now':''}"></span>`;
+    return h + '</div>';
+  }
+  function renderMonth(){
+    const l = sim.l, a = sim.alloc;
+    const left = l.income - fixedTotal(l);
+    const used = a.food + a.transport + a.fun + a.savings;
+    const unalloc = left - used;
+    const foodMin = minFor(l,'food'), transMin = minFor(l,'transport');
+    let html = simHead();
+    if (sim.interestMsg){ html += `<div class="warn">💸 ${esc(sim.interestMsg)}</div>`; sim.interestMsg = null; }
+    // fixed bills
+    html += `<div class="fixedbox"><div class="fx-h">🧾 Bills paid automatically (fixed costs)</div>` +
+      l.fixed.map(f=>`<div class="fxrow"><span>${f.icon} ${esc(f.name)}</span><span class="neg">−${money(f.amt)}</span></div>`).join('') +
+      `<div class="fxrow tot"><span>Take-home ${money(l.income)} − bills</span><span>${money(left)} left</span></div></div>`;
+    html += `<div class="leftline">You have <b>${money(left)}</b> to budget — put every dollar to work.</div>`;
+    // category steppers
+    html += `<div class="decision">`;
+    B.SIM.cats.forEach(c => {
+      const val = a[c.key];
+      const isNeed = (c.key==='food'||c.key==='transport');
+      const below = (c.key==='food' && val<foodMin) || (c.key==='transport' && val<transMin);
+      html += `<div class="drow"><div class="dl">${c.icon} ${c.name}` +
+        `<small class="${below?'need':''}">${below?'⚠️ below what you need!':esc(c.note)}</small></div>` +
+        `<div class="stepper" data-cat="${c.key}"><button data-dir="-1">−</button>` +
+        `<div class="sval">${money(val)}</div><button data-dir="1">＋</button></div></div>`;
+    });
+    html += `</div>`;
+    // allocation status
+    const over = unalloc < 0;
+    html += `<div class="leftline" style="margin-top:12px">Unbudgeted: <b style="color:${over?'var(--wrong)':unalloc===0?'var(--money)':'var(--accent)'}">${money(unalloc)}</b></div>`;
+    if (over) html += `<div class="warn">⚠️ You’ve budgeted more than you have. Lower a category.</div>`;
+    else if (unalloc>0) html += `<div class="warn" style="color:var(--muted)">Tip: leftover money will roll into savings automatically.</div>`;
+    html += `<div class="btn-row"><button class="act btn-primary" id="liveBtn"${over?' disabled':''}>▶ Live the month</button></div>`;
+    $('simCard').innerHTML = html;
+    // wire steppers
+    $('simCard').querySelectorAll('.stepper').forEach(st => {
+      const key = st.dataset.cat;
+      st.querySelectorAll('button').forEach(b => b.onclick = () => {
+        const dir = +b.dataset.dir;
+        const leftNow = l.income - fixedTotal(l);
+        sim.alloc[key] = Math.max(0, Math.min(leftNow, sim.alloc[key] + dir*STEP));
+        renderMonth();
+      });
+    });
+    $('liveBtn').onclick = liveMonth;
+  }
+  function liveMonth(){
+    const l = sim.l, a = sim.alloc;
+    const left = l.income - fixedTotal(l);
+    const used = a.food + a.transport + a.fun + a.savings;
+    const unalloc = Math.max(0, left - used);
+    const savedThisMonth = a.savings + unalloc;
+    const foodMin = minFor(l,'food'), transMin = minFor(l,'transport');
+    const rough = (a.food < foodMin) || (a.transport < transMin);
+    // pick event
+    let e, tries=0;
+    do { e = pick(B.SIM.events); tries++; } while (sim.lastEvent && e.text===sim.lastEvent && tries<10);
+    sim.lastEvent = e.text;
+    const before = sim.savings;
+    sim.savings = before + savedThisMonth + e.amt;
+    sim.log.push({ month:sim.month, savedThisMonth, event:e, savings:sim.savings, rough });
+    sim.result = { e, savedThisMonth, rough, before, foodMin, transMin };
+    sim.phase = 'result';
+    renderResult();
+  }
+  function renderResult(){
+    const l = sim.l, a = sim.alloc, r = sim.result;
+    let html = simHead();
+    html += `<div class="qprompt" style="margin-bottom:2px">📅 Month ${sim.month} recap</div>`;
+    html += `<div class="summary">` +
+      `<div class="sumrow"><span>Take-home pay</span><span class="pos">+${money(l.income)}</span></div>` +
+      `<div class="sumrow"><span>Fixed bills</span><span class="neg">−${money(fixedTotal(l))}</span></div>` +
+      `<div class="sumrow"><span>🍎 Food + 🚗 Transport + 🎉 Fun</span><span class="neg">−${money(a.food + a.transport + a.fun)}</span></div>` +
+      `<div class="sumrow tot"><span>💰 Saved this month</span><span class="pos">+${money(r.savedThisMonth)}</span></div>` +
+      `</div>`;
+    html += `<div class="event-card"><span class="ev-ico">${r.e.icon}</span><span><div class="ev-text">${esc(r.e.text)}</div>` +
+      (r.e.amt!==0?`<div class="ev-tip">${r.e.amt<0?'Pulled from savings':'Added to savings'}: ${r.e.amt<0?'−':'+'}${money(Math.abs(r.e.amt))} — ${esc(r.e.tip)}</div>`:`<div class="ev-tip">${esc(r.e.tip)}</div>`) +
+      `</span></div>`;
+    const pc = sim.savings>=0 ? 'pos':'neg';
+    html += `<div class="result-profit ${pc}">${sim.savings>=0?'💰 ':'⚠️ '}${sim.savings<0?'In debt: ':'Total saved: '}${money(Math.abs(sim.savings))}</div>`;
+    if (r.rough) html += `<div class="warn">You underfunded a need this month — a rough month for you.</div>`;
+    else if (r.e.amt<0 && r.before + r.savedThisMonth >= 0 && sim.savings>=0) html += `<div class="okmsg">Your savings absorbed the surprise — no debt. That’s the power of an emergency fund!</div>`;
+    else if (sim.savings<0) html += `<div class="warn">The surprise cost more than you had saved, so you slipped into debt.</div>`;
+    html += `<div class="btn-row">` +
+      (sim.month < B.SIM.months
+        ? `<button class="act btn-primary" id="nextMonthBtn">Next month ➡️</button>`
+        : `<button class="act btn-primary" id="endBtn">See how you did 🏁</button>`) + `</div>`;
+    $('simCard').innerHTML = html;
+    const nm = $('nextMonthBtn'); if (nm) nm.onclick = advanceMonth;
+    const eb = $('endBtn'); if (eb) eb.onclick = renderEnd;
+    if (sim.savings > r.before) burstSmall();
+  }
+  function advanceMonth(){
+    sim.month++;
+    sim.phase = 'month';
+    // interest on debt
+    if (sim.savings < 0){
+      const interest = Math.ceil(Math.abs(sim.savings) * 0.05);
+      sim.savings -= interest;
+      sim.interestMsg = `Debt grew by ${money(interest)} in interest — borrowing isn’t free.`;
+    }
+    renderMonth();
+  }
+  function renderEnd(){
+    const l = sim.l;
+    const s = sim.savings;
+    const everDebt = sim.log.some(x => x.savings < 0) || s < 0;
+    const rough = sim.log.filter(x => x.rough).length;
+    let grade, line;
+    if (s < 0){ grade='📉 D'; line='You ended in debt. Try saving a bit more each month as a cushion.'; }
+    else if (s >= l.income*1.5){ grade='🏆 A+'; line='Money master! You built a serious safety net.'; }
+    else if (s >= l.income*0.8){ grade='🌟 A'; line='Excellent — a strong, healthy savings cushion.'; }
+    else if (s >= l.income*0.3){ grade='✅ B'; line='Solid — you saved steadily and stayed out of debt.'; }
+    else { grade='😊 C'; line='You stayed afloat. Aim to save a little more next time.'; }
+    let html = `<div class="qprompt">🏁 ${l.emoji} ${esc(l.name)} — ${B.SIM.months} months done</div>`;
+    html += `<div class="endgrade">${grade}</div><div class="endline">${esc(line)}</div>`;
+    html += `<div class="summary">` +
+      `<div class="sumrow"><span>Monthly take-home</span><span>${money(l.income)}</span></div>` +
+      `<div class="sumrow"><span>Ever went into debt?</span><span class="${everDebt?'neg':'pos'}">${everDebt?'Yes':'No 🎉'}</span></div>` +
+      `<div class="sumrow"><span>Rough months (a need underfunded)</span><span class="${rough?'neg':'pos'}">${rough}</span></div>` +
+      `<div class="sumrow tot"><span>Final savings</span><span class="${s>=0?'pos':'neg'}">${money(s)}</span></div>` +
+      `</div>`;
+    html += `<div class="summary" style="margin-top:10px">` +
+      sim.log.map(x => `<div class="sumrow"><span>Month ${x.month} ${x.event.icon}</span><span class="${x.savings>=0?'pos':'neg'}">${money(x.savings)} saved</span></div>`).join('') +
+      `</div>`;
+    html += eli5Box('What you practiced','Pay your needs first, keep wants in check, and save every month — so a surprise bill is a bump, not a disaster. Debt charges interest, so avoiding it keeps more money yours.');
+    html += `<div class="btn-row"><button class="act btn-primary" id="againBtn">🔄 Try another budget</button></div>`;
+    $('simCard').innerHTML = `<div style="width:100%">${html}</div>`;
+    $('againBtn').onclick = renderSetup;
+    if (s >= 0 && !everDebt) celebrate(5);
+  }
+
+  /* ============ shared FX ============ */
+  function celebrate(n){
+    const msgs = { 5:'🌟 Nice saving!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>Money-smart!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    burst(90);
+  }
+  function burstSmall(){ burst(24); }
+  function burst(count){
+    const colors = ['#2563eb','#3b82f6','#16a34a','#facc15','#0ea5e9','#8b5cf6'];
+    const box = $('confetti');
+    for (let i=0;i<count;i++){
+      const c = document.createElement('div'); c.className='conf';
+      c.style.left = Math.random()*100+'vw';
+      c.style.background = colors[i%colors.length];
+      c.style.animationDuration = (1.6+Math.random()*1.4)+'s';
+      c.style.animationDelay = (Math.random()*0.4)+'s';
+      c.style.transform = `rotate(${Math.random()*360}deg)`;
+      box.appendChild(c); setTimeout(()=>c.remove(), 3400);
+    }
+  }
+
+  /* ============ popups ============ */
+  function openDict(){
+    const rows = B.TERMS.map(t =>
+      `<div class="trow"><div class="tt">${esc(t.term)}</div><div class="td">${esc(t.def)}</div>` +
+      (t.simple?`<div class="td" style="margin-top:5px">🧒 ${esc(t.simple)}</div>`:'') +
+      `<div class="te">💬 ${esc(t.ex)}</div></div>`).join('');
+    $('dictSheet').innerHTML =
+      `<button class="closeBtn" id="closeDict" title="Close">✕</button>` +
+      `<h2>📖 Money Dictionary</h2>` +
+      `<p class="sheet-sub">The money words you’ll meet on tests and in real life — in plain English, each with an example.</p>` + rows;
+    $('closeDict').onclick = closeDict;
+    $('dictModal').className='modal'; $('dictSheet').scrollTop=0;
+  }
+  function closeDict(){ $('dictModal').className='modal hidden'; }
+  function openSources(){
+    const rows = B.SOURCES.map(s => `<div class="srow"><a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)} ↗</a><div class="snote">${esc(s.note)}</div></div>`).join('');
+    $('srcSheet').innerHTML =
+      `<button class="closeBtn" id="closeSrc" title="Close">✕</button>` +
+      `<h2>📚 Where these ideas come from</h2>` +
+      `<p class="sheet-sub">Trusted personal-finance sources — the same money basics taught in school and by the U.S. government.</p>` + rows;
+    $('closeSrc').onclick = closeSources;
+    $('srcModal').className='modal'; $('srcSheet').scrollTop=0;
+  }
+  function closeSources(){ $('srcModal').className='modal hidden'; }
+
+  /* ============ router ============ */
+  function setMode(m){
+    mode = m;
+    [...$('modeSeg').children].forEach(b => b.classList.toggle('on', b.dataset.mode===m));
+    const isBuilder = m==='builder';
+    $('quizCard').style.display = isBuilder ? 'none' : 'flex';
+    $('simCard').style.display = isBuilder ? 'flex' : 'none';
+    $('scorebar').style.display = isBuilder ? 'none' : 'flex';
+    clearTimers();
+    if (isBuilder){ if (!sim) renderSetup(); }
+    else { resetProgress(); newRound(); }
+  }
+  $('modeSeg').addEventListener('click', e => { const b=e.target.closest('button'); if (b) setMode(b.dataset.mode); });
+  $('nextBtn').onclick = tryAdvance;
+  $('dictBtn').onclick = openDict;
+  $('srcBtn').onclick = openSources;
+  $('srcModal').addEventListener('click', e => { if (e.target===$('srcModal')) closeSources(); });
+  $('dictModal').addEventListener('click', e => { if (e.target===$('dictModal')) closeDict(); });
+  document.addEventListener('keydown', e => {
+    if (e.key==='Escape'){ closeSources(); closeDict(); return; }
+    if (e.key==='Enter' && mode!=='builder'){ e.preventDefault();
+      if (!$('srcModal').className.includes('hidden')){ closeSources(); return; }
+      if (!$('dictModal').className.includes('hidden')){ closeDict(); return; }
+      if (answered) tryAdvance();
+    }
+  });
+
+  setMode('builder');
+})();
+</script>
+</body>
+</html>
