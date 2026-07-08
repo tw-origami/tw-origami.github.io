@@ -60,11 +60,17 @@ window.DEBATE = {
     { term:'Claim', def:'The main point you are arguing is true.', simple:'The stance you’re taking — the thing you want people to agree with.', ex:'“School lunches should be healthier.”' },
     { term:'Evidence', def:'Facts, data, or examples that support a claim.', simple:'The proof you bring to back up your point.', ex:'A study, a statistic, or a real example.' },
     { term:'Reasoning', def:'The explanation of HOW your evidence supports your claim.', simple:'The “this shows that…” — you connect the dots for the reader.', ex:'“This proves healthier food helps kids focus.”' },
-    { term:'Rebuttal', def:'A response that argues against an opposing point.', simple:'Your comeback — but a smart one that actually answers their point.', ex:'“You say it’s too expensive, but the long-term savings are bigger.”' }
+    { term:'Rebuttal', def:'A response that argues against an opposing point.', simple:'Your comeback — but a smart one that actually answers their point.', ex:'“You say it’s too expensive, but the long-term savings are bigger.”' },
+    { term:'Post Hoc (False Cause)', def:'Assuming that because one thing happened before another, the first caused the second.', simple:'“It happened after, so it must be because of it.” Order alone isn’t proof of cause.', ex:'“I washed my car, then it rained — so washing it caused the rain.”' },
+    { term:'Tu Quoque (Whataboutism)', def:'Dodging a criticism by pointing out that the critic does the same thing.', simple:'“Well, YOU do it too!” — it deflects instead of answering the point.', ex:'“You can’t tell me to slow down, you speed all the time!”' },
+    { term:'Loaded Question', def:'A question with an unfair assumption built in, so any answer traps you.', simple:'A trick question that assumes something bad about you before you even answer.', ex:'“Have you stopped copying homework yet?”' },
+    { term:'Appeal to Ignorance', def:'Claiming something is true just because it hasn’t been proven false (or the reverse).', simple:'“You can’t prove it’s NOT true, so it must be true.” Missing proof isn’t proof.', ex:'“No one’s proven aliens aren’t here, so they must be.”' },
+    { term:'Bias', def:'A leaning toward one side that can make an argument or source unfair.', simple:'A slant — when someone favors one side and it colors what they say.', ex:'A team’s own coach isn’t a neutral judge of that team.' },
+    { term:'Concession', def:'Admitting a fair point from the other side before you answer it.', simple:'Saying “you’re right about that part, but…” — it makes you look reasonable and strengthens your case.', ex:'“Yes, it costs money — but it saves more over time.”' }
   ],
 
   /* ───── GAME 1 · SPOT THE FALLACY ───── */
-  FALLACIES: ['Ad Hominem','Straw Man','Slippery Slope','Bandwagon','False Dilemma','Hasty Generalization','Appeal to Authority','Circular Reasoning','Red Herring'],
+  FALLACIES: ['Ad Hominem','Straw Man','Slippery Slope','Bandwagon','False Dilemma','Hasty Generalization','Appeal to Authority','Circular Reasoning','Red Herring','Post Hoc','Tu Quoque','Loaded Question','Appeal to Ignorance'],
   SPOT: [
     { text:'“Don’t trust Maya’s idea for the fundraiser — she can’t even keep her locker clean.”', fallacy:'Ad Hominem', why:'It attacks Maya personally (her messy locker) instead of dealing with her actual idea.' },
     { text:'“If we let students use calculators on one quiz, next they’ll want them on every test, then they’ll forget how to add at all!”', fallacy:'Slippery Slope', why:'It claims one small step leads straight to disaster, with no evidence for the chain of events.' },
@@ -77,7 +83,29 @@ window.DEBATE = {
     { text:'“Sure, I forgot my homework again — but did you SEE how much homework other teachers assign?”', fallacy:'Red Herring', why:'It dodges the missing homework by changing the subject to other teachers.' },
     { text:'“Coach Ramirez’s strategy is bad because he’s always late to practice.”', fallacy:'Ad Hominem', why:'Being late says nothing about whether the strategy works — it attacks the coach, not the plan.' },
     { text:'“Nine out of ten students chose pizza, so pizza is obviously the best food there is.”', fallacy:'Bandwagon', why:'What’s popular isn’t automatically “the best” — that’s the bandwagon trap.' },
-    { text:'“If I don’t get a phone this year, my whole future will be ruined and I’ll have no friends ever.”', fallacy:'Slippery Slope', why:'It leaps from “no phone” to total catastrophe with no logical steps in between.' }
+    { text:'“If I don’t get a phone this year, my whole future will be ruined and I’ll have no friends ever.”', fallacy:'Slippery Slope', why:'It leaps from “no phone” to total catastrophe with no logical steps in between.' },
+    { text:'“Ignore the new kid’s science-fair idea — he just moved here and barely knows anyone.”', fallacy:'Ad Hominem', why:'Being new says nothing about whether the idea is good; it targets the person, not the science.' },
+    { text:'“Why would we take budget advice from him? He wears the same hoodie every single day.”', fallacy:'Ad Hominem', why:'His clothing has nothing to do with his budget plan — it’s a personal attack.' },
+    { text:'“You want salad options in the cafeteria? So you want to ban pizza and force everyone to eat rabbit food!”', fallacy:'Straw Man', why:'It twists “add salad” into “ban pizza,” a distorted, easier-to-attack version of the point.' },
+    { text:'“Oh, you support a longer passing period? I guess you just want kids wandering the halls all day doing nothing.”', fallacy:'Straw Man', why:'It exaggerates a small request into an absurd one that was never made.' },
+    { text:'“If the teacher accepts one late essay, soon no one will turn anything in on time and grades will collapse.”', fallacy:'Slippery Slope', why:'It assumes one exception triggers total chaos, skipping every step in between.' },
+    { text:'“This app has ten million downloads, so it’s obviously the safest one to use.”', fallacy:'Bandwagon', why:'Popularity (downloads) isn’t the same as safety — that’s the bandwagon trap.' },
+    { text:'“Our whole friend group is skipping the meeting, so it clearly doesn’t matter.”', fallacy:'Bandwagon', why:'What the group does isn’t evidence about whether the meeting matters.' },
+    { text:'“Either we cancel the field trip completely, or we accept that someone’s going to get hurt.”', fallacy:'False Dilemma', why:'It offers only two extremes and ignores safe middle options like better supervision.' },
+    { text:'“The first two episodes were boring, so the entire series is a total waste of time.”', fallacy:'Hasty Generalization', why:'It draws a big conclusion about the whole show from a tiny sample of it.' },
+    { text:'“A kid from that school was rude to me once, so everyone there must be rude.”', fallacy:'Hasty Generalization', why:'One person’s behavior can’t fairly stand in for an entire school.' },
+    { text:'“This diet definitely works — a famous singer swears by it.”', fallacy:'Appeal to Authority', why:'A singer’s fame isn’t medical evidence; it uses celebrity in place of proof.' },
+    { text:'“This is the best book ever, because nothing else is as good as it is.”', fallacy:'Circular Reasoning', why:'The reason just restates the claim — it never gives an actual reason.' },
+    { text:'“You’re asking why I failed the quiz? Did you know the school Wi-Fi has been terrible lately?”', fallacy:'Red Herring', why:'The Wi-Fi is an off-topic distraction that dodges the real question about the quiz.' },
+    { text:'“I wore my lucky socks and we won the game, so the socks are what made us win.”', fallacy:'Post Hoc', why:'The socks came before the win, but that doesn’t mean they caused it — that’s false cause.' },
+    { text:'“Ever since the new principal arrived, it’s rained a lot. She must be bad luck.”', fallacy:'Post Hoc', why:'Two things happening in order isn’t proof one caused the other.' },
+    { text:'“I started drinking this smoothie and then aced my test, so the smoothie made me smarter.”', fallacy:'Post Hoc', why:'The smoothie came first, but studying — not the drink — is the likely cause.' },
+    { text:'“You’re telling ME not to text and walk? I’ve seen you do it a hundred times!”', fallacy:'Tu Quoque', why:'It dodges the point by accusing the other person of the same thing, instead of answering it.' },
+    { text:'“How can Mom say I stay up too late when Dad does the exact same thing?”', fallacy:'Tu Quoque', why:'Whether Dad does it doesn’t change whether the advice is correct — it just deflects.' },
+    { text:'“So, are you going to keep cheating on your homework, or finally start being honest?”', fallacy:'Loaded Question', why:'It sneaks in the assumption that you were cheating — any answer makes you look guilty.' },
+    { text:'“Why do you always ruin every single group project?”', fallacy:'Loaded Question', why:'It assumes you always ruin projects before you’ve even responded.' },
+    { text:'“No one has ever proven that ghosts aren’t real, so they must exist.”', fallacy:'Appeal to Ignorance', why:'A lack of disproof isn’t proof — you can’t conclude something is true just because it isn’t disproven.' },
+    { text:'“You can’t prove the new student is trustworthy, so we shouldn’t trust them at all.”', fallacy:'Appeal to Ignorance', why:'Missing proof of trustworthiness isn’t proof of the opposite.' }
   ],
 
   /* ───── GAME 2 · ARGUMENT BUILDER (Claim–Evidence–Reasoning) ───── */
@@ -114,6 +142,61 @@ window.DEBATE = {
         { text:'This means starting young gives students a real head start that’s harder to gain later.', good:true },
         { text:'So we should start early because early is the best time.', good:false, note:'circular — restates the claim' },
         { text:'Plus, traveling is exciting.', good:false, note:'off-topic; doesn’t link evidence to claim' }
+      ] },
+    { claim:'Schools should teach students how to manage money.',
+      evidences:[
+        { text:'A survey found most teens graduate without knowing how to budget or read a paycheck.', good:true },
+        { text:'Money is used in almost every country on Earth.', good:false, note:'true, but it doesn’t support teaching it in school' },
+        { text:'Some people are just naturally good with money.', good:false, note:'an opinion, not evidence' }
+      ],
+      reasonings:[
+        { text:'This shows students are leaving school missing a skill they’ll use for the rest of their lives.', good:true },
+        { text:'So they should learn it because money skills are important to learn.', good:false, note:'circular — repeats the claim' },
+        { text:'Besides, math class is already hard enough.', good:false, note:'off-topic; doesn’t connect to the evidence' }
+      ] },
+    { claim:'Communities should protect their local parks.',
+      evidences:[
+        { text:'Neighborhoods with parks nearby report lower stress and more daily exercise.', good:true },
+        { text:'Parks usually have grass and some trees.', good:false, note:'irrelevant description, not support' },
+        { text:'A lot of people say they enjoy parks.', good:false, note:'popular opinion, not proof' }
+      ],
+      reasonings:[
+        { text:'This shows parks directly improve the health of the people who live around them.', good:true },
+        { text:'Therefore parks should be protected because they’re worth protecting.', good:false, note:'circular reasoning' },
+        { text:'And the leaves look pretty in the fall.', good:false, note:'off-topic; ignores the evidence' }
+      ] },
+    { claim:'Students should get short breaks during long classes.',
+      evidences:[
+        { text:'Studies show attention drops sharply after about 20 minutes of nonstop focus.', good:true },
+        { text:'Classes are held in rooms with desks and chairs.', good:false, note:'irrelevant to the claim' },
+        { text:'Pretty much everybody enjoys a break.', good:false, note:'opinion, not evidence' }
+      ],
+      reasonings:[
+        { text:'This means a short break resets focus so the rest of class isn’t wasted staring blankly.', good:true },
+        { text:'So breaks help because breaks are helpful.', good:false, note:'circular — restates itself' },
+        { text:'Plus, lunch is the best part of the day.', good:false, note:'off-topic' }
+      ] },
+    { claim:'Libraries should stay open later in the evening.',
+      evidences:[
+        { text:'A city that extended library hours saw a big jump in teens using it for homework.', good:true },
+        { text:'Libraries hold thousands of books.', good:false, note:'a fact, but it doesn’t support later hours' },
+        { text:'Reading is a really nice hobby.', good:false, note:'opinion, not evidence' }
+      ],
+      reasonings:[
+        { text:'This shows longer hours give students who are busy after school a quiet place to work.', good:true },
+        { text:'Therefore hours should be longer because longer hours are better.', good:false, note:'circular reasoning' },
+        { text:'Also, the library is usually pretty quiet.', good:false, note:'off-topic; ignores the evidence' }
+      ] },
+    { claim:'Sports teams should rotate who gets to be captain.',
+      evidences:[
+        { text:'Groups that shared leadership roles reported members felt more motivated and included.', good:true },
+        { text:'Captains often wear a special armband or “C” on their jersey.', good:false, note:'irrelevant detail' },
+        { text:'Being captain is a lot of fun.', good:false, note:'opinion, not proof' }
+      ],
+      reasonings:[
+        { text:'This shows spreading the role builds motivation and leadership across the whole team.', good:true },
+        { text:'So we should rotate captains because rotating captains is a good idea.', good:false, note:'circular reasoning' },
+        { text:'Besides, everybody likes winning games.', good:false, note:'off-topic' }
       ] }
   ],
 
@@ -132,7 +215,18 @@ window.DEBATE = {
     { text:'“Recommended by the American Academy of Pediatrics, this is a choice you can rely on.”', appeal:'Ethos', why:'It borrows the credibility of a respected authority to build trust.' },
     { text:'“Studies from three universities all reached the same conclusion: it works.”', appeal:'Logos', why:'Multiple studies and evidence appeal to your reason — that’s logos.' },
     { text:'“Don’t let your family shiver through another freezing winter. Act now.”', appeal:'Pathos', why:'Fear and worry for your family are emotional levers — an appeal to pathos.' },
-    { text:'“I’ve coached championship teams for two decades, so trust me on this drill.”', appeal:'Ethos', why:'The speaker’s track record and authority are the persuasion — an ethos appeal.' }
+    { text:'“I’ve coached championship teams for two decades, so trust me on this drill.”', appeal:'Ethos', why:'The speaker’s track record and authority are the persuasion — an ethos appeal.' },
+    { text:'“Trusted by teachers across the country for more than 30 years.”', appeal:'Ethos', why:'It leans on a long, trusted reputation to build credibility.' },
+    { text:'“As the team’s longtime captain, I’ve earned the right to call this play.”', appeal:'Ethos', why:'It persuades through the speaker’s experience and standing — an ethos appeal.' },
+    { text:'“Our founder is a former NASA engineer, so you know the science is solid.”', appeal:'Ethos', why:'It borrows the founder’s credentials to make you trust the product.' },
+    { text:'“Picture your little sister’s face if she opens an empty box this holiday.”', appeal:'Pathos', why:'It works on your emotions — guilt and love — not on evidence.' },
+    { text:'“Thousands of families will go cold and hungry tonight. You can change that.”', appeal:'Pathos', why:'It stirs sympathy and urgency to move you, rather than presenting data.' },
+    { text:'“Remember how proud you felt crossing that finish line? Chase that feeling again.”', appeal:'Pathos', why:'It appeals to pride and nostalgia — pure emotion.' },
+    { text:'“Don’t let another lonely senior spend the holidays with no one to call.”', appeal:'Pathos', why:'It targets your compassion and guilt — an emotional appeal.' },
+    { text:'“Switching saved the average family $340 a year across our study of 5,000 homes.”', appeal:'Logos', why:'A specific number from a large study appeals to logic and evidence.' },
+    { text:'“If we recycle just half our waste, the landfill lasts twice as long — that’s simple math.”', appeal:'Logos', why:'It reasons from numbers and cause-and-effect — an appeal to logic.' },
+    { text:'“Three out of four users finished the course when lessons were under ten minutes.”', appeal:'Logos', why:'It uses a statistic and reasoning to make its point.' },
+    { text:'“The bridge holds 40 tons and the truck weighs 12, so it’s well within the limit.”', appeal:'Logos', why:'It persuades with facts and arithmetic — a logos appeal.' }
   ],
 
   /* ───── GAME 4 · BEST REBUTTAL ───── */
@@ -152,6 +246,30 @@ window.DEBATE = {
     { argument:'“Phones should never be allowed in class — they’re only a distraction.”',
       best:'They can distract, but with clear rules phones can also be useful tools for quick research and learning apps.',
       distractors:['People who say that are stuck in the past.','Yeah, but the cafeteria food is way worse.','All my friends use phones in class, so it’s fine.'],
-      why:'The best answer acknowledges the concern and adds a reasoned counter-benefit. The others attack, distract, or lean on popularity.' }
+      why:'The best answer acknowledges the concern and adds a reasoned counter-benefit. The others attack, distract, or lean on popularity.' },
+    { argument:'“We shouldn’t start a school garden — nobody will take care of it.”',
+      best:'Actually, the science club already offered to run it, and it can be built into class projects.',
+      distractors:['Only a lazy person would be against a garden.','Speaking of ugly, the parking lot is a mess too.','Everyone wants a garden, so let’s just build it.'],
+      why:'The strong rebuttal answers the real worry (upkeep) with a concrete plan. The others attack, distract, or bandwagon.' },
+    { argument:'“Video games are a complete waste of time.”',
+      best:'Some games actually build problem-solving and teamwork — it depends on the game and how long you play.',
+      distractors:['People who say that are just old and out of touch.','What about how much TV everyone watches, though?','All my friends game, so it can’t be a waste.'],
+      why:'The best answer draws a reasoned distinction. The others insult, change the subject, or lean on popularity.' },
+    { argument:'“Our class shouldn’t recycle — one person will just put trash in the wrong bin.”',
+      best:'One slip-up doesn’t ruin the effort — clear labels and a quick reminder fix most mix-ups.',
+      distractors:['That’s honestly a dumb thing to say.','Speaking of trash, the hallways are filthy.','Nobody else worries about it, so why should we?'],
+      why:'The strong rebuttal addresses the objection head-on. The rest attack, distract, or bandwagon.' },
+    { argument:'“Longer P.E. is pointless because not everyone likes sports.”',
+      best:'P.E. can be more than sports — walking, dance, and yoga keep everyone active, not just athletes.',
+      distractors:['You only say that because you’re bad at sports.','What about how boring math class is?','Most kids hate P.E., so let’s just cut it.'],
+      why:'The best response reframes the concern with a real solution. The others attack, distract, or over-generalize.' },
+    { argument:'“There’s no point voting in the student election — one vote never matters.”',
+      best:'Close elections are often decided by a handful of votes, and turnout shows leaders what students care about.',
+      distractors:['People who don’t vote are just lazy.','Anyway, the vending machines are always broken.','Nobody I know votes, so why bother?'],
+      why:'The strong rebuttal answers the “one vote” claim with real reasoning. The others attack, distract, or bandwagon.' },
+    { argument:'“Summer homework is a great idea — kids forget everything otherwise.”',
+      best:'A little review helps, but piling on full assignments burns kids out — light, optional practice is the balance.',
+      distractors:['Only a teacher’s pet would agree with that.','What about how short summer already is?','My whole class hates summer homework, so it’s bad.'],
+      why:'The best answer weighs both sides and offers a middle ground. The others insult, distract, or over-generalize.' }
   ]
 };
