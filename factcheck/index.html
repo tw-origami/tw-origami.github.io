@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Fact Checker</title>
+<style>
+  :root {
+    --ink:#0f2233; --muted:#5c728a; --accent:#0369a1; --accent-soft:#e0f2fe;
+    --correct:#16a34a; --wrong:#dc2626; --shadow:0 10px 30px rgba(3,105,161,.15);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#f0f9ff,#f8fafc); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:22px 16px 60px; }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 16px; font-size:15px; text-align:center; max-width:540px; line-height:1.5; }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; position:sticky; top:10px; z-index:70; }
+  .nav a, .nav button{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 15px; border-radius:9px; border:none; background:transparent; font-family:inherit; cursor:pointer; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+  .nav button:hover{ background:var(--accent-soft); color:var(--accent); }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; max-width:660px; }
+  .seg button { border:none; background:transparent; font-family:inherit; font-weight:800; font-size:14.5px; padding:9px 15px; border-radius:10px; cursor:pointer; color:var(--muted); transition:background .15s, color .15s; }
+  .seg button.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .chip { background:#fff; border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; } .chip.streak { color:#ea580c; }
+
+  .stage { width:100%; max-width:620px; }
+  .card { width:100%; background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:24px; }
+  .qprompt { color:var(--muted); font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; text-align:center; margin:0 0 10px; }
+  .howto { background:var(--accent-soft); border-radius:12px; padding:10px 14px; font-size:13.5px; color:#075985; font-weight:600; text-align:center; margin:0 0 16px; line-height:1.5; } .howto b { font-weight:800; }
+  .feedback { min-height:24px; margin-top:14px; font-weight:800; font-size:16px; text-align:center; }
+  .feedback.good { color:var(--correct); } .feedback.bad { color:var(--wrong); }
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; margin:12px 0 2px; padding:14px 16px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
+  .reveal .rev-title { font-weight:900; font-size:16px; margin-bottom:4px; color:#075985; }
+  .rev-src { display:inline-block; margin-top:12px; font-size:13px; font-weight:700; color:var(--accent); text-decoration:none; border-bottom:1.5px dotted var(--accent); }
+  button.act { font-family:inherit; font-size:16px; font-weight:800; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; }
+  button.act:disabled { opacity:.5; cursor:default; }
+  .btn-primary { background:var(--accent); color:#fff; } .btn-primary:hover { background:#075985; }
+  .btn-ghost { background:var(--accent-soft); color:var(--accent); }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  /* article / post cards */
+  .headline { font-family:Georgia,"Times New Roman",serif; font-size:22px; font-weight:800; line-height:1.35; text-align:center; margin-bottom:12px; }
+  .article { background:#f8fafc; border:2px solid #e6eef6; border-radius:14px; padding:14px 16px; font-size:15.5px; line-height:1.6; color:#334155; margin-bottom:16px; }
+  .post { border:2px solid #e6eef6; border-radius:14px; overflow:hidden; margin-bottom:16px; }
+  .post .p-head { background:#f1f5f9; padding:12px 16px; }
+  .post .p-title { font-weight:900; font-size:17px; line-height:1.3; }
+  .post .p-meta { font-size:12px; color:#94a3b8; font-weight:700; margin-top:4px; }
+  .post .p-body { padding:14px 16px; font-size:15px; line-height:1.6; color:#334155; }
+
+  .choices { display:flex; flex-direction:column; gap:11px; }
+  .choice { background:#fff; border:3px solid #e2e8f0; border-radius:14px; font-size:15.5px; font-weight:600; padding:14px 16px; color:var(--ink); cursor:pointer; text-align:left; font-family:inherit; line-height:1.45; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; } .choice.wrong { border-color:var(--wrong); background:#fee2e2; } .choice:disabled { cursor:default; }
+  .verdict-row { display:flex; gap:12px; }
+  .verdict-row .choice { flex:1; text-align:center; font-size:17px; font-weight:800; }
+
+  /* red flags checklist */
+  .flag-list { display:flex; flex-direction:column; gap:9px; }
+  .flag { display:flex; align-items:center; gap:11px; border:2px solid #e2e8f0; border-radius:12px; padding:11px 14px; cursor:pointer; font-size:15px; font-weight:600; }
+  .flag .box { width:22px; height:22px; border-radius:6px; border:2px solid #cbd5e1; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-weight:900; color:#fff; }
+  .flag.on { border-color:var(--accent); background:var(--accent-soft); }
+  .flag.on .box { background:var(--accent); border-color:var(--accent); }
+  .flag.miss { border-color:var(--wrong); background:#fee2e2; }
+  .flag.missed { border-color:#f59e0b; background:#fffbeb; }
+  .flag.hit { border-color:var(--correct); background:#dcfce7; }
+
+  /* Teacher Guide */
+  .teacher { width:100%; max-width:620px; margin-top:22px; background:#fffdf5; border:1px solid #eee6cf; border-radius:18px; box-shadow:var(--shadow); overflow:hidden; }
+  .teacher summary { list-style:none; cursor:pointer; padding:15px 20px; display:flex; align-items:center; gap:9px; font-weight:800; font-size:15px; color:#8a6d1f; }
+  .teacher summary::-webkit-details-marker { display:none; }
+  .teacher summary .chev { margin-left:auto; transition:transform .2s; color:#b89b45; font-size:13px; }
+  .teacher[open] summary .chev { transform:rotate(180deg); }
+  .teacher .tg-body { padding:0 20px 18px; }
+  .tg-item { margin-bottom:12px; } .tg-item .k { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:#b8860b; margin-bottom:3px; } .tg-item .v { font-size:14px; line-height:1.6; color:#4b4658; }
+  .tg-explore { background:var(--accent-soft); border-radius:12px; padding:12px 14px; font-size:13.5px; color:#075985; line-height:1.6; } .tg-explore .k { color:var(--accent); }
+
+  /* popups */
+  .modal{ position:fixed; inset:0; z-index:90; background:rgba(15,34,51,.5); display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; } .modal.hidden{ display:none; }
+  .sheet{ background:#fff; border-radius:20px; max-width:560px; width:100%; padding:26px 24px; position:relative; box-shadow:0 24px 60px rgba(15,34,51,.4); }
+  .sheet h2{ margin:0 0 6px; font-size:20px; } .sheet-sub{ color:var(--muted); font-size:14px; margin:0 0 18px; line-height:1.5; }
+  .closeBtn{ position:absolute; top:14px; right:14px; border:none; background:#e0f2fe; color:var(--accent); width:34px; height:34px; border-radius:50%; font-size:16px; font-weight:800; cursor:pointer; }
+  .trow{ padding:11px 0; border-top:1px solid #eef3f8; } .trow:first-of-type{ border-top:none; }
+  .trow .tt{ font-weight:900; font-size:15.5px; } .trow .td{ font-size:14px; color:#48586a; line-height:1.5; margin-top:2px; }
+  .trow .ts{ font-size:13.5px; color:#075985; line-height:1.55; margin-top:6px; background:#eff8ff; border-left:3px solid var(--accent); border-radius:0 8px 8px 0; padding:8px 11px; }
+  .trow .te{ font-size:13px; color:var(--accent); font-weight:700; margin-top:6px; font-style:italic; }
+  .srow{ padding:10px 0; border-top:1px solid #eef3f8; } .srow a{ color:var(--accent); font-weight:800; text-decoration:none; } .snote{ color:var(--muted); font-size:13px; margin-top:3px; line-height:1.5; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner { position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6); background:linear-gradient(135deg,#38bdf8,#0369a1); color:#fff; font-weight:900; font-size:28px; padding:20px 38px; border-radius:22px; box-shadow:0 18px 50px rgba(3,105,161,.45); z-index:95; opacity:0; pointer-events:none; text-align:center; white-space:nowrap; }
+  #streakBanner.show { animation: banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner { 0%{opacity:0; transform:translate(-50%,-50%) scale(.6)} 15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)} 28%{transform:translate(-50%,-50%) scale(1)} 80%{opacity:1; transform:translate(-50%,-50%) scale(1)} 100%{opacity:0; transform:translate(-50%,-60%) scale(.95)} }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button id="dictBtn" title="Media literacy glossary">📖 Glossary</button>
+    <button id="srcBtn" title="Where these ideas come from">📚 Sources</button>
+  </div>
+  <h1>🔎 Fact Checker</h1>
+  <p class="sub">Don’t get fooled online: catch clickbait, spot the red flags of shady posts, pick trustworthy sources, and fact-check like a pro.</p>
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="headline" class="on">📰 Real or Clickbait?</button>
+      <button data-mode="redflags">🚩 Spot the Red Flags</button>
+      <button data-mode="source">🗂️ Source Showdown</button>
+      <button data-mode="verify">🕵️ Fact-Check Detective</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar" id="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="stage" id="stage"></div>
+
+  <details class="teacher" id="teacher" open>
+    <summary>👩‍🏫 Teacher Guide <span class="chev">▲</span></summary>
+    <div class="tg-body" id="tgBody"></div>
+  </details>
+
+  <div class="modal hidden" id="dictModal"><div class="sheet" id="dictSheet"></div></div>
+  <div class="modal hidden" id="srcModal"><div class="sheet" id="srcSheet"></div></div>
+
+<script src="data.js?v=1"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const F = window.FC;
+  const SRC = {}; F.SOURCES.forEach(s => SRC[s.key] = s);
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const pick = a => a[Math.floor(Math.random()*a.length)];
+  const shuffle = a => a.slice().sort(()=>Math.random()-0.5);
+  const stage = $('stage');
+  const howBar = () => `<div class="howto">▶ <b>How to play:</b> ${esc(F.TEACHER[mode].how)}</div>`;
+
+  let mode = 'headline';
+  let correct = 0, total = 0, streak = 0;
+  function updateScore(){ $('correctCount').textContent=correct; $('totalCount').textContent=total; $('streak').textContent=streak; }
+  function score(ok){ total++; if(ok){ correct++; streak++; } else streak=0; updateScore(); if(ok && streak>0 && streak%5===0) celebrate(streak); }
+  function resetProgress(){ correct=0; total=0; streak=0; updateScore(); }
+  const srcLink = key => { const s=SRC[key]; return s ? `<a class="rev-src" href="${s.url}" target="_blank" rel="noopener">📚 Source: ${esc(s.name)} ↗</a>` : ''; };
+  function renderTeacher(){
+    const t = F.TEACHER[mode];
+    $('tgBody').innerHTML =
+      `<div class="tg-item"><div class="k">🎯 The point of this game</div><div class="v">${esc(t.point)}</div></div>`+
+      `<div class="tg-item"><div class="k">📘 What your student practices</div><div class="v">${esc(t.learn)}</div></div>`+
+      `<div class="tg-explore"><div class="k">🔎 Explore &amp; ask more</div>${esc(t.explore)}</div>`;
+  }
+  function celebrate(n){
+    const msgs = { 5:'🌟 5 in a row!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>Sharp skeptic!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    const colors = ['#0369a1','#38bdf8','#f59e0b','#16a34a','#ef4444','#a855f7'];
+    const box = $('confetti');
+    for (let i=0;i<80;i++){ const c=document.createElement('div'); c.className='conf';
+      c.style.left=Math.random()*100+'vw'; c.style.background=colors[i%colors.length];
+      c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; c.style.animationDelay=(Math.random()*0.4)+'s';
+      c.style.transform=`rotate(${Math.random()*360}deg)`; box.appendChild(c); setTimeout(()=>c.remove(),3400); }
+  }
+
+  // ============ GAME 1 · REAL OR CLICKBAIT? ============
+  let lastHead = null;
+  function mountHeadline(){
+    let it, tries=0;
+    do { it = pick(F.HEADLINES); tries++; } while (F.HEADLINES.length>1 && it.headline===lastHead && tries<20);
+    lastHead = it.headline;
+    const opts = shuffle([{t:'✅ Fair headline', v:'Fair'},{t:'🎣 Clickbait / misleading', v:'Clickbait'}]);
+    stage.innerHTML = `<div class="card"><p class="qprompt">📰 Real or Clickbait?</p>${howBar()}
+      <div class="headline">“${esc(it.headline)}”</div>
+      <div class="article"><b>The actual article:</b> ${esc(it.article)}</div>
+      <p class="qprompt" style="margin-bottom:12px">Does the headline fairly match the story?</p>
+      <div class="verdict-row" id="choices"></div>
+      <div class="feedback" id="fb"></div>
+      <div class="reveal" id="reveal" style="display:none"></div>
+      <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">Next ➡️</button></div>
+    </div>`;
+    const box=$('choices'); let answered=false;
+    opts.forEach(o=>{
+      const b=document.createElement('button'); b.className='choice'; b.textContent=o.t;
+      b.onclick=()=>{
+        if(answered) return; answered=true;
+        const ok = o.v===it.verdict; score(ok);
+        [...box.children].forEach(c=>c.disabled=true);
+        [...box.children].forEach((c,i)=>{ if(opts[i].v===it.verdict) c.classList.add('correct'); });
+        if(!ok) b.classList.add('wrong');
+        $('fb').textContent = ok ? pick(['🎉 Correct!','⭐ Nice!','✅ Sharp eye!']) : 'Not quite — here’s why:';
+        $('fb').className='feedback '+(ok?'good':'bad');
+        const rev=$('reveal'); rev.style.display=''; rev.innerHTML=`<div class="rev-title">${it.verdict==='Clickbait'?'🎣 Clickbait':'✅ Fair'}</div><div>${esc(it.why)}</div>`+srcLink('newseum');
+        $('nextRow').style.display='flex'; $('nextBtn').focus();
+      };
+      box.appendChild(b);
+    });
+    $('nextBtn').onclick = mountHeadline;
+  }
+
+  // ============ GAME 2 · SPOT THE RED FLAGS (multi-select) ============
+  let lastPost = null;
+  function mountRedflags(){
+    let p, tries=0;
+    do { p = pick(F.POSTS); tries++; } while (F.POSTS.length>1 && p===lastPost && tries<20);
+    lastPost = p;
+    const present = new Set(p.flags);
+    const sel = new Set();
+    stage.innerHTML = `<div class="card"><p class="qprompt">🚩 Spot the Red Flags</p>${howBar()}
+      <div class="post"><div class="p-head"><div class="p-title">${esc(p.headline)}</div><div class="p-meta">${esc(p.meta)}</div></div><div class="p-body">${esc(p.body)}</div></div>
+      <p class="qprompt" style="margin-bottom:10px">Check every red flag this post shows${p.flags.length===0?' (careful — this one might be fine!)':''}</p>
+      <div class="flag-list" id="flags"></div>
+      <div class="feedback" id="fb"></div>
+      <div class="btn-row" id="btnRow"><button class="act btn-primary" id="checkBtn">Check my answer</button></div>
+    </div>`;
+    $('flags').innerHTML = F.RED_FLAGS.map(fl=>`<div class="flag" data-k="${fl.key}"><span class="box"></span><span>${esc(fl.label)}</span></div>`).join('');
+    stage.querySelectorAll('.flag').forEach(el => el.onclick = () => {
+      const k=el.dataset.k;
+      if(sel.has(k)){ sel.delete(k); el.classList.remove('on'); el.querySelector('.box').textContent=''; }
+      else { sel.add(k); el.classList.add('on'); el.querySelector('.box').textContent='✓'; }
+    });
+    $('checkBtn').onclick = () => {
+      const chosen=[...sel].sort().join(','), answer=[...present].sort().join(',');
+      const ok = chosen===answer;
+      score(ok);
+      stage.querySelectorAll('.flag').forEach(el=>{
+        const k=el.dataset.k, isPresent=present.has(k), isChosen=sel.has(k);
+        el.onclick=null; el.style.cursor='default';
+        el.classList.remove('on');
+        if(isPresent && isChosen){ el.classList.add('hit'); el.querySelector('.box').textContent='✓'; }
+        else if(isPresent && !isChosen){ el.classList.add('missed'); el.querySelector('.box').textContent='•'; } // you missed this one
+        else if(!isPresent && isChosen){ el.classList.add('miss'); el.querySelector('.box').textContent='✕'; } // wrongly picked
+      });
+      const fb=$('fb');
+      if(ok){ fb.textContent = present.size===0 ? '🎉 Right — this one is actually trustworthy!' : `🎉 You found all ${present.size} red flag${present.size>1?'s':''}!`; fb.className='feedback good'; }
+      else { fb.textContent = present.size===0 ? '❌ This post is actually fine — it has no red flags.' : 'Close — green = correct, yellow = missed, red = not a flag here.'; fb.className='feedback bad'; }
+      $('checkBtn').style.display='none';
+      const nb=document.createElement('button'); nb.className='act btn-primary'; nb.textContent='Next post ➡️'; nb.onclick=mountRedflags; $('btnRow').appendChild(nb); nb.focus();
+    };
+  }
+
+  // ============ GAMES 3 & 4 · SOURCE + VERIFY (shared MCQ) ============
+  let lastSrc=null, lastVer=null;
+  function mountSource(){
+    let it, tries=0;
+    do { it=pick(F.SOURCE_Q); tries++; } while (F.SOURCE_Q.length>1 && it.q===lastSrc && tries<20);
+    lastSrc=it.q;
+    const opts = shuffle(it.options.map(o=>({t:o.t, ok:o.best})));
+    genMCQ('🗂️ Source Showdown', `<div class="article" style="font-weight:700;font-size:16.5px;text-align:center">${esc(it.q)}</div>`, opts, `<div class="rev-title">Most trustworthy source</div><div>${esc(it.why)}</div>`, 'ala', mountSource);
+  }
+  function mountVerify(){
+    let it, tries=0;
+    do { it=pick(F.VERIFY); tries++; } while (F.VERIFY.length>1 && it.claim===lastVer && tries<20);
+    lastVer=it.claim;
+    const opts = shuffle([{t:it.best,ok:true}, ...it.distractors.map(d=>({t:d,ok:false}))]);
+    genMCQ('🕵️ Fact-Check Detective', `<div class="article" style="text-align:center"><b>Viral claim:</b> ${esc(it.claim)}</div><p class="qprompt" style="margin-bottom:12px">What’s the smartest way to check it?</p>`, opts, `<div class="rev-title">Best move</div><div>${esc(it.why)}</div>`, 'factcheck', mountVerify);
+  }
+  function genMCQ(title, subjectHTML, opts, revealHTML, srcKey, nextFn){
+    stage.innerHTML = `<div class="card"><p class="qprompt">${title}</p>${howBar()}
+      ${subjectHTML}<div class="choices" id="choices"></div>
+      <div class="feedback" id="fb"></div>
+      <div class="reveal" id="reveal" style="display:none"></div>
+      <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">Next ➡️</button></div>
+    </div>`;
+    const box=$('choices'); let answered=false;
+    opts.forEach(o=>{
+      const b=document.createElement('button'); b.className='choice'; b.textContent=o.t;
+      b.onclick=()=>{
+        if(answered) return; answered=true; score(o.ok);
+        [...box.children].forEach((c,i)=>{ c.disabled=true; if(opts[i].ok) c.classList.add('correct'); });
+        if(!o.ok) b.classList.add('wrong');
+        $('fb').textContent = o.ok ? pick(['🎉 Correct!','⭐ Nice!','✅ Sharp!']) : 'Not quite — here’s why:';
+        $('fb').className='feedback '+(o.ok?'good':'bad');
+        const rev=$('reveal'); rev.style.display=''; rev.innerHTML=revealHTML+srcLink(srcKey);
+        $('nextRow').style.display='flex'; $('nextBtn').focus();
+      };
+      box.appendChild(b);
+    });
+    $('nextBtn').onclick = nextFn;
+  }
+
+  // ---- dispatch ----
+  const MOUNTS = { headline:mountHeadline, redflags:mountRedflags, source:mountSource, verify:mountVerify };
+  function newRound(){ renderTeacher(); MOUNTS[mode](); }
+
+  // ---- popups ----
+  function openDict(){
+    const rows = F.TERMS.map(t =>
+      `<div class="trow"><div class="tt">${esc(t.term)}</div><div class="td">${esc(t.def)}</div>`+
+      (t.simple?`<div class="ts">💡 <b>In simple terms:</b> ${esc(t.simple)}</div>`:``)+
+      (t.ex?`<div class="te">e.g. ${esc(t.ex)}</div>`:``)+`</div>`).join('');
+    $('dictSheet').innerHTML = `<button class="closeBtn" id="closeDict">✕</button><h2>📖 Media Literacy Glossary</h2>`+
+      `<p class="sheet-sub">The vocabulary of a smart online reader — the definition, the plain-terms version, and an example.</p>` + rows;
+    $('closeDict').onclick = ()=> $('dictModal').className='modal hidden';
+    $('dictModal').className='modal';
+  }
+  function openSources(){
+    const rows = F.SOURCES.map(s => `<div class="srow"><a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)} ↗</a><div class="snote">${esc(s.note)}</div></div>`).join('');
+    $('srcSheet').innerHTML = `<button class="closeBtn" id="closeSrc">✕</button><h2>📚 Where these ideas come from</h2>`+
+      `<p class="sheet-sub">Trusted places to go deeper on media literacy and fact-checking.</p>` + rows;
+    $('closeSrc').onclick = ()=> $('srcModal').className='modal hidden';
+    $('srcModal').className='modal';
+  }
+
+  // ---- wiring ----
+  $('modeSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.mode;
+    [...$('modeSeg').children].forEach(x => x.classList.toggle('on', x===b));
+    resetProgress(); newRound();
+  });
+  $('dictBtn').onclick = openDict;
+  $('srcBtn').onclick = openSources;
+  [$('dictModal'), $('srcModal')].forEach(m => m.addEventListener('click', e => { if (e.target === m) m.className='modal hidden'; }));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape'){ $('dictModal').className='modal hidden'; $('srcModal').className='modal hidden'; } });
+
+  newRound();
+})();
+</script>
+</body>
+</html>
