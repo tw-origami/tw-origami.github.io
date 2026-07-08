@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Español Start</title>
+<style>
+  :root {
+    --ink:#3a1220; --muted:#8a6474; --accent:#e11d48; --accent-soft:#ffe4e9;
+    --correct:#16a34a; --wrong:#dc2626; --shadow:0 10px 30px rgba(225,29,72,.15);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#fff1f4,#fffafb); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:22px 16px 60px; }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 16px; font-size:15px; text-align:center; max-width:540px; line-height:1.5; }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; position:sticky; top:10px; z-index:70; }
+  .nav a, .nav button{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 15px; border-radius:9px; border:none; background:transparent; font-family:inherit; cursor:pointer; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+  .nav button:hover{ background:var(--accent-soft); color:var(--accent); }
+
+  .controls { display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:16px; }
+  .seg { display:flex; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; max-width:660px; }
+  .seg button { border:none; background:transparent; font-family:inherit; font-weight:800; font-size:14.5px; padding:9px 15px; border-radius:10px; cursor:pointer; color:var(--muted); transition:background .15s, color .15s; }
+  .seg button.on { background:var(--accent); color:#fff; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center; }
+  .chip { background:#fff; border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; } .chip.streak { color:#ea580c; }
+
+  .stage { width:100%; max-width:620px; }
+  .card { width:100%; background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:24px; }
+  .qprompt { color:var(--muted); font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; text-align:center; margin:0 0 10px; }
+  .howto { background:var(--accent-soft); border-radius:12px; padding:10px 14px; font-size:13.5px; color:#9f1239; font-weight:600; text-align:center; margin:0 0 16px; line-height:1.5; } .howto b { font-weight:800; }
+  .feedback { min-height:24px; margin-top:14px; font-weight:800; font-size:16px; text-align:center; }
+  .feedback.good { color:var(--correct); } .feedback.bad { color:var(--wrong); }
+  .reveal { color:var(--ink); font-size:14.5px; line-height:1.6; margin:12px 0 2px; padding:14px 16px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; }
+  .reveal .rev-title { font-weight:900; font-size:16px; margin-bottom:4px; color:#9f1239; }
+  .rev-src { display:inline-block; margin-top:12px; font-size:13px; font-weight:700; color:var(--accent); text-decoration:none; border-bottom:1.5px dotted var(--accent); }
+  button.act { font-family:inherit; font-size:16px; font-weight:800; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; }
+  button.act:disabled { opacity:.5; cursor:default; }
+  .btn-primary { background:var(--accent); color:#fff; } .btn-primary:hover { background:#be123c; }
+  .btn-ghost { background:var(--accent-soft); color:var(--accent); }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  .choices { display:flex; flex-direction:column; gap:11px; }
+  .choice { background:#fff; border:3px solid #f3e0e5; border-radius:14px; font-size:16px; font-weight:600; padding:14px 16px; color:var(--ink); cursor:pointer; text-align:left; font-family:inherit; line-height:1.45; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; } .choice.wrong { border-color:var(--wrong); background:#fee2e2; } .choice:disabled { cursor:default; }
+
+  /* ---- Cognate Detective ---- */
+  .cog-word { text-align:center; font-family:Georgia,serif; font-size:46px; font-weight:800; margin:6px 0 4px; color:var(--accent); }
+  .cog-look { text-align:center; font-size:16px; color:var(--muted); margin-bottom:18px; }
+  .cog-look b { color:var(--ink); }
+  .cog-row { display:flex; gap:12px; }
+  .cog-row .choice { flex:1; text-align:center; font-size:16px; font-weight:800; }
+
+  /* ---- Match Up ---- */
+  .match-cat { text-align:center; font-weight:800; font-size:15px; color:var(--accent); margin-bottom:12px; }
+  .match-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .match-col { display:flex; flex-direction:column; gap:9px; }
+  .mitem { border:3px solid #f3e0e5; background:#fff; border-radius:13px; padding:13px 10px; font-weight:700; font-size:16px; cursor:pointer; text-align:center; font-family:inherit; color:var(--ink); }
+  .mitem.es { font-style:italic; }
+  .mitem:hover:not(.done) { border-color:var(--accent); background:var(--accent-soft); }
+  .mitem.sel { border-color:var(--accent); background:var(--accent-soft); }
+  .mitem.done { border-color:var(--correct); background:#dcfce7; color:#166534; cursor:default; }
+  .mitem.badflash { border-color:var(--wrong); background:#fee2e2; }
+
+  /* ---- Sentence Builder ---- */
+  .build-en { text-align:center; font-size:18px; font-weight:800; margin-bottom:4px; }
+  .build-sub { text-align:center; font-size:13px; color:var(--muted); margin-bottom:16px; }
+  .build-slots { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; min-height:52px; background:#fff5f7; border:2px dashed #f6c9d3; border-radius:14px; padding:12px; margin-bottom:14px; }
+  .build-slots .placed { background:var(--accent); color:#fff; border-radius:10px; padding:8px 14px; font-weight:800; font-size:16px; }
+  .build-slots .ph { color:#d9a3b1; align-self:center; font-size:14px; }
+  .build-pool { display:flex; flex-wrap:wrap; gap:9px; justify-content:center; }
+  .wtile { border:3px solid #f3e0e5; background:#fff; border-radius:12px; padding:10px 16px; font-weight:800; font-size:16px; cursor:pointer; font-family:inherit; color:var(--ink); }
+  .wtile:hover { border-color:var(--accent); background:var(--accent-soft); }
+  .wtile.used { display:none; }
+  .wtile.miss { border-color:var(--wrong); background:#fee2e2; animation:shake .35s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+
+  /* Teacher Guide */
+  .teacher { width:100%; max-width:620px; margin-top:22px; background:#fffdf5; border:1px solid #eee6cf; border-radius:18px; box-shadow:var(--shadow); overflow:hidden; }
+  .teacher summary { list-style:none; cursor:pointer; padding:15px 20px; display:flex; align-items:center; gap:9px; font-weight:800; font-size:15px; color:#8a6d1f; }
+  .teacher summary::-webkit-details-marker { display:none; }
+  .teacher summary .chev { margin-left:auto; transition:transform .2s; color:#b89b45; font-size:13px; }
+  .teacher[open] summary .chev { transform:rotate(180deg); }
+  .teacher .tg-body { padding:0 20px 18px; }
+  .tg-item { margin-bottom:12px; } .tg-item .k { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:#b8860b; margin-bottom:3px; } .tg-item .v { font-size:14px; line-height:1.6; color:#4b4658; }
+  .tg-explore { background:var(--accent-soft); border-radius:12px; padding:12px 14px; font-size:13.5px; color:#9f1239; line-height:1.6; } .tg-explore .k { color:var(--accent); }
+
+  /* popups */
+  .modal{ position:fixed; inset:0; z-index:90; background:rgba(58,18,32,.5); display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; } .modal.hidden{ display:none; }
+  .sheet{ background:#fff; border-radius:20px; max-width:560px; width:100%; padding:26px 24px; position:relative; box-shadow:0 24px 60px rgba(58,18,32,.4); }
+  .sheet h2{ margin:0 0 6px; font-size:20px; } .sheet-sub{ color:var(--muted); font-size:14px; margin:0 0 18px; line-height:1.5; }
+  .closeBtn{ position:absolute; top:14px; right:14px; border:none; background:#ffe4e9; color:var(--accent); width:34px; height:34px; border-radius:50%; font-size:16px; font-weight:800; cursor:pointer; }
+  .pb-cat { font-weight:900; font-size:15px; color:var(--accent); margin:16px 0 6px; }
+  .pb-row { display:grid; grid-template-columns:1fr 1fr; gap:6px 14px; padding:6px 0; border-top:1px solid #f6e6ea; }
+  .pb-row:first-of-type { border-top:none; }
+  .pb-es { font-weight:800; } .pb-es .say { display:block; font-size:12px; color:var(--muted); font-weight:600; font-style:italic; }
+  .pb-en { color:#6b5560; text-align:right; align-self:center; }
+  .srow{ padding:10px 0; border-top:1px solid #f6e6ea; } .srow a{ color:var(--accent); font-weight:800; text-decoration:none; } .snote{ color:var(--muted); font-size:13px; margin-top:3px; line-height:1.5; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+  #streakBanner { position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6); background:linear-gradient(135deg,#fb7185,#e11d48); color:#fff; font-weight:900; font-size:28px; padding:20px 38px; border-radius:22px; box-shadow:0 18px 50px rgba(225,29,72,.45); z-index:95; opacity:0; pointer-events:none; text-align:center; white-space:nowrap; }
+  #streakBanner.show { animation: banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small { display:block; font-size:15px; font-weight:700; opacity:.9; margin-top:4px; }
+  @keyframes banner { 0%{opacity:0; transform:translate(-50%,-50%) scale(.6)} 15%{opacity:1; transform:translate(-50%,-50%) scale(1.08)} 28%{transform:translate(-50%,-50%) scale(1)} 80%{opacity:1; transform:translate(-50%,-50%) scale(1)} 100%{opacity:0; transform:translate(-50%,-60%) scale(.95)} }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button id="dictBtn" title="Phrasebook with pronunciations">📖 Phrasebook</button>
+    <button id="srcBtn" title="Where to learn more">📚 Sources</button>
+  </div>
+  <h1>🇪🇸 Español Start</h1>
+  <p class="sub">Walk into Spanish 1 already ahead: unlock the cognate superpower, match essential words, respond in real conversations, and build your first sentences.</p>
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="cognate" class="on">🔤 True or False Friend?</button>
+      <button data-mode="match">🔗 Match Up</button>
+      <button data-mode="sayit">🗣️ Say It</button>
+      <button data-mode="build">🧩 Sentence Builder</button>
+    </div>
+  </div>
+
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="scorebar" id="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="stage" id="stage"></div>
+
+  <details class="teacher" id="teacher" open>
+    <summary>👩‍🏫 Teacher Guide <span class="chev">▲</span></summary>
+    <div class="tg-body" id="tgBody"></div>
+  </details>
+
+  <div class="modal hidden" id="dictModal"><div class="sheet" id="dictSheet"></div></div>
+  <div class="modal hidden" id="srcModal"><div class="sheet" id="srcSheet"></div></div>
+
+<script src="data.js?v=1"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const S = window.ES;
+  const SRC = {}; S.SOURCES.forEach(s => SRC[s.key] = s);
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const pick = a => a[Math.floor(Math.random()*a.length)];
+  const shuffle = a => a.slice().sort(()=>Math.random()-0.5);
+  const sample = (a,n) => shuffle(a).slice(0,n);
+  const stage = $('stage');
+  const howBar = () => `<div class="howto">▶ <b>How to play:</b> ${esc(S.TEACHER[mode].how)}</div>`;
+
+  let mode = 'cognate';
+  let correct = 0, total = 0, streak = 0;
+  function updateScore(){ $('correctCount').textContent=correct; $('totalCount').textContent=total; $('streak').textContent=streak; }
+  function score(ok){ total++; if(ok){ correct++; streak++; } else streak=0; updateScore(); if(ok && streak>0 && streak%5===0) celebrate(streak); }
+  function resetProgress(){ correct=0; total=0; streak=0; updateScore(); }
+  const srcLink = key => { const s=SRC[key]; return s ? `<a class="rev-src" href="${s.url}" target="_blank" rel="noopener">📚 Source: ${esc(s.name)} ↗</a>` : ''; };
+  function renderTeacher(){
+    const t = S.TEACHER[mode];
+    $('tgBody').innerHTML =
+      `<div class="tg-item"><div class="k">🎯 The point of this game</div><div class="v">${esc(t.point)}</div></div>`+
+      `<div class="tg-item"><div class="k">📘 What your student practices</div><div class="v">${esc(t.learn)}</div></div>`+
+      `<div class="tg-explore"><div class="k">🔎 Explore &amp; ask more</div>${esc(t.explore)}</div>`;
+  }
+  function celebrate(n){
+    const msgs = { 5:'🌟 5 in a row!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>¡Excelente!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    const colors = ['#e11d48','#fb7185','#f59e0b','#16a34a','#0ea5e9','#a855f7'];
+    const box = $('confetti');
+    for (let i=0;i<80;i++){ const c=document.createElement('div'); c.className='conf';
+      c.style.left=Math.random()*100+'vw'; c.style.background=colors[i%colors.length];
+      c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; c.style.animationDelay=(Math.random()*0.4)+'s';
+      c.style.transform=`rotate(${Math.random()*360}deg)`; box.appendChild(c); setTimeout(()=>c.remove(),3400); }
+  }
+
+  // ============ GAME 1 · COGNATE DETECTIVE ============
+  let lastCog = null;
+  function mountCognate(){
+    let it, tries=0;
+    do { it = pick(S.COGNATES); tries++; } while (S.COGNATES.length>1 && it.word===lastCog && tries<20);
+    lastCog = it.word;
+    stage.innerHTML = `<div class="card"><p class="qprompt">🔤 True Friend or False Friend?</p>${howBar()}
+      <div class="cog-word">${esc(it.word)}</div>
+      <div class="cog-look">It looks like the English word <b>“${esc(it.looks)}”</b>. Is that what it really means?</div>
+      <div class="cog-row" id="choices">
+        <button class="choice" data-v="true">✅ True friend<br><small style="font-weight:600;color:var(--muted)">yes, it means that</small></button>
+        <button class="choice" data-v="false">🎭 False friend<br><small style="font-weight:600;color:var(--muted)">trap — means something else</small></button>
+      </div>
+      <div class="feedback" id="fb"></div>
+      <div class="reveal" id="reveal" style="display:none"></div>
+      <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">Next ➡️</button></div>
+    </div>`;
+    let answered=false;
+    stage.querySelectorAll('.cog-row .choice').forEach(b => b.onclick = () => {
+      if(answered) return; answered=true;
+      const chose = b.dataset.v==='true';
+      const ok = chose===it.friend;
+      score(ok);
+      stage.querySelectorAll('.cog-row .choice').forEach(c=>{ c.disabled=true; if((c.dataset.v==='true')===it.friend) c.classList.add('correct'); });
+      if(!ok) b.classList.add('wrong');
+      $('fb').textContent = ok ? pick(['🎉 ¡Correcto!','⭐ Nice!','✅ Sharp!']) : 'Not quite!';
+      $('fb').className='feedback '+(ok?'good':'bad');
+      const rev=$('reveal'); rev.style.display='';
+      rev.innerHTML = it.friend
+        ? `<div class="rev-title">✅ True friend</div><div><b>${esc(it.word)}</b> really does mean <b>“${esc(it.meaning)}.”</b> About a third of Spanish words are guessable like this!</div>`
+        : `<div class="rev-title">🎭 False friend — trap!</div><div><b>${esc(it.word)}</b> does NOT mean “${esc(it.looks)}.” It actually means <b>“${esc(it.meaning)}”</b> ${esc(it.real||'')}</div>`;
+      rev.innerHTML += srcLink('spanishdict');
+      $('nextRow').style.display='flex'; $('nextBtn').focus();
+    });
+    $('nextBtn').onclick = mountCognate;
+  }
+
+  // ============ GAME 2 · MATCH UP ============
+  let lastCat = null;
+  function mountMatch(){
+    const cats = Object.keys(S.VOCAB);
+    let cat, tries=0;
+    do { cat = pick(cats); tries++; } while (cats.length>1 && cat===lastCat && tries<20);
+    lastCat = cat;
+    const pairs = sample(S.VOCAB[cat], 5);
+    const leftOrder = shuffle(pairs.map((p,i)=>({...p, id:i})));
+    const rightOrder = shuffle(pairs.map((p,i)=>({...p, id:i})));
+    let selLeft = null, done = 0;
+
+    stage.innerHTML = `<div class="card"><p class="qprompt">🔗 Match Up</p>${howBar()}
+      <div class="match-cat">Category: ${esc(cat)}</div>
+      <div class="match-grid">
+        <div class="match-col" id="colEs"></div>
+        <div class="match-col" id="colEn"></div>
+      </div>
+      <div class="feedback" id="fb"></div>
+      <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">New set ➡️</button></div>
+    </div>`;
+    $('colEs').innerHTML = leftOrder.map(p=>`<button class="mitem es" data-id="${p.id}">${esc(p.es)}</button>`).join('');
+    $('colEn').innerHTML = rightOrder.map(p=>`<button class="mitem en" data-id="${p.id}">${esc(p.en)}</button>`).join('');
+
+    function clearSel(){ if(selLeft){ selLeft.classList.remove('sel'); selLeft=null; } }
+    stage.querySelectorAll('#colEs .mitem').forEach(el => el.onclick = () => {
+      if(el.classList.contains('done')) return;
+      clearSel(); selLeft = el; el.classList.add('sel');
+    });
+    stage.querySelectorAll('#colEn .mitem').forEach(el => el.onclick = () => {
+      if(el.classList.contains('done') || !selLeft) return;
+      if(el.dataset.id === selLeft.dataset.id){
+        el.classList.add('done'); selLeft.classList.add('done'); selLeft.classList.remove('sel'); selLeft=null;
+        score(true); done++;
+        if(done===pairs.length){ $('fb').textContent='🎉 ¡Todo correcto! All matched!'; $('fb').className='feedback good'; $('nextRow').style.display='flex'; $('nextBtn').focus(); }
+      } else {
+        score(false);
+        const a=selLeft; el.classList.add('badflash'); a.classList.add('badflash');
+        setTimeout(()=>{ el.classList.remove('badflash'); a.classList.remove('badflash'); },400);
+        clearSel();
+        $('fb').textContent='Not a match — try again.'; $('fb').className='feedback bad';
+      }
+    });
+    $('nextBtn').onclick = mountMatch;
+  }
+
+  // ============ GAME 3 · SAY IT ============
+  let lastSay = null;
+  function mountSayit(){
+    let it, tries=0;
+    do { it = pick(S.SAYIT); tries++; } while (S.SAYIT.length>1 && it.prompt===lastSay && tries<20);
+    lastSay = it.prompt;
+    const opts = shuffle([{t:it.correct,ok:true}, ...it.distractors.map(d=>({t:d,ok:false}))]);
+    stage.innerHTML = `<div class="card"><p class="qprompt">🗣️ Say It</p>${howBar()}
+      <div class="reveal" style="background:#fff5f7;border-left-color:var(--accent);margin-top:0;font-weight:700;font-size:16px">${esc(it.prompt)}</div>
+      <p class="qprompt" style="margin:14px 0 12px">Pick the best response</p>
+      <div class="choices" id="choices"></div>
+      <div class="feedback" id="fb"></div>
+      <div class="reveal" id="revealX" style="display:none"></div>
+      <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">Next ➡️</button></div>
+    </div>`;
+    const box=$('choices'); let answered=false;
+    opts.forEach(o=>{
+      const b=document.createElement('button'); b.className='choice'; b.textContent=o.t;
+      b.onclick=()=>{
+        if(answered) return; answered=true; score(o.ok);
+        [...box.children].forEach((c,i)=>{ c.disabled=true; if(opts[i].ok) c.classList.add('correct'); });
+        if(!o.ok) b.classList.add('wrong');
+        $('fb').textContent = o.ok ? pick(['🎉 ¡Perfecto!','⭐ ¡Bien!','✅ Sharp!']) : 'Not quite — here’s why:';
+        $('fb').className='feedback '+(o.ok?'good':'bad');
+        const rev=$('revealX'); rev.style.display=''; rev.innerHTML=`<div class="rev-title">${esc(it.correct)}</div><div>${esc(it.why)}</div>`+srcLink('studyspanish');
+        $('nextRow').style.display='flex'; $('nextBtn').focus();
+      };
+      box.appendChild(b);
+    });
+    $('nextBtn').onclick = mountSayit;
+  }
+
+  // ============ GAME 4 · SENTENCE BUILDER ============
+  let lastSent = null;
+  function mountBuild(){
+    let it, tries=0;
+    do { it = pick(S.SENTENCES); tries++; } while (S.SENTENCES.length>1 && it===lastSent && tries<20);
+    lastSent = it;
+    const pool = shuffle(it.words.map((w,i)=>({w, i})));
+    let filled = 0;
+    stage.innerHTML = `<div class="card"><p class="qprompt">🧩 Sentence Builder</p>${howBar()}
+      <div class="build-en">“${esc(it.en)}”</div>
+      <div class="build-sub">Tap the Spanish words in order</div>
+      <div class="build-slots" id="slots"></div>
+      <div class="build-pool" id="pool"></div>
+      <div class="feedback" id="fb"></div>
+      <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">Next sentence ➡️</button></div>
+    </div>`;
+    function renderSlots(){
+      $('slots').innerHTML = filled===0 ? '<span class="ph">your sentence appears here…</span>'
+        : it.words.slice(0,filled).map(w=>`<span class="placed">${esc(w)}</span>`).join('');
+    }
+    $('pool').innerHTML = pool.map(p=>`<button class="wtile" data-i="${p.i}">${esc(p.w)}</button>`).join('');
+    stage.querySelectorAll('.wtile').forEach(btn => btn.onclick = () => {
+      const idx = +btn.dataset.i;
+      if (idx === filled){
+        score(true); btn.classList.add('used'); filled++; renderSlots();
+        if (filled >= it.words.length){
+          $('fb').innerHTML = `🎉 ¡Correcto! <span style="font-weight:600;color:var(--muted)">${esc(it.note)}</span>`; $('fb').className='feedback good';
+          $('nextRow').style.display='flex'; $('nextBtn').focus();
+        }
+      } else {
+        score(false); btn.classList.add('miss'); setTimeout(()=>btn.classList.remove('miss'),400);
+        $('fb').textContent = `That word comes later — which word starts “${esc(it.en)}”?`; $('fb').className='feedback bad';
+      }
+    });
+    $('nextBtn').onclick = mountBuild;
+    renderSlots();
+  }
+
+  // ---- dispatch ----
+  const MOUNTS = { cognate:mountCognate, match:mountMatch, sayit:mountSayit, build:mountBuild };
+  function newRound(){ renderTeacher(); MOUNTS[mode](); }
+
+  // ---- popups ----
+  function openDict(){
+    const cats = Object.keys(S.VOCAB).map(cat =>
+      `<div class="pb-cat">${esc(cat)}</div>` +
+      S.VOCAB[cat].map(v=>`<div class="pb-row"><div class="pb-es">${esc(v.es)}<span class="say">${esc(v.say||'')}</span></div><div class="pb-en">${esc(v.en)}</div></div>`).join('')
+    ).join('');
+    $('dictSheet').innerHTML = `<button class="closeBtn" id="closeDict">✕</button><h2>📖 Beginner Phrasebook</h2>`+
+      `<p class="sheet-sub">Your first Spanish words, with a rough “sound-it-out” pronunciation under each. Cognate tip: if a word looks like English, it often means the same — just watch for false friends!</p>` + cats;
+    $('closeDict').onclick = ()=> $('dictModal').className='modal hidden';
+    $('dictModal').className='modal';
+  }
+  function openSources(){
+    const rows = S.SOURCES.map(s => `<div class="srow"><a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)} ↗</a><div class="snote">${esc(s.note)}</div></div>`).join('');
+    $('srcSheet').innerHTML = `<button class="closeBtn" id="closeSrc">✕</button><h2>📚 Where to learn more</h2>`+
+      `<p class="sheet-sub">Free places to keep building your Spanish.</p>` + rows;
+    $('closeSrc').onclick = ()=> $('srcModal').className='modal hidden';
+    $('srcModal').className='modal';
+  }
+
+  // ---- wiring ----
+  $('modeSeg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    mode = b.dataset.mode;
+    [...$('modeSeg').children].forEach(x => x.classList.toggle('on', x===b));
+    resetProgress(); newRound();
+  });
+  $('dictBtn').onclick = openDict;
+  $('srcBtn').onclick = openSources;
+  [$('dictModal'), $('srcModal')].forEach(m => m.addEventListener('click', e => { if (e.target === m) m.className='modal hidden'; }));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape'){ $('dictModal').className='modal hidden'; $('srcModal').className='modal hidden'; } });
+
+  newRound();
+})();
+</script>
+</body>
+</html>
