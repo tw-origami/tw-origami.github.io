@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Sign &amp; Say</title>
+<style>
+  :root {
+    --ink:#0f2833; --muted:#5b7480; --accent:#0891b2; --accent-soft:#cffafe;
+    --correct:#16a34a; --wrong:#dc2626; --shadow:0 10px 30px rgba(8,145,178,.16);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink); background:linear-gradient(160deg,#ecfeff,#f8fafc); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:24px 16px 60px; }
+  h1 { font-size:26px; margin:6px 0 2px; letter-spacing:-.5px; }
+  .sub { color:var(--muted); margin:0 0 12px; font-size:15px; text-align:center; max-width:540px; line-height:1.5; }
+  .note { color:var(--muted); font-size:13px; text-align:center; max-width:540px; line-height:1.5; margin:0 0 18px; background:#fff; border-radius:12px; padding:9px 14px; box-shadow:var(--shadow); }
+  .note b { color:var(--accent); }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; }
+  .nav a{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 16px; border-radius:9px; }
+
+  .seg { display:flex; background:#fff; border-radius:14px; padding:5px; box-shadow:var(--shadow); gap:4px; flex-wrap:wrap; justify-content:center; margin-bottom:14px; }
+  .seg button { border:none; background:transparent; font-family:inherit; font-weight:800; font-size:14.5px; padding:9px 16px; border-radius:10px; cursor:pointer; color:var(--muted); }
+  .seg button.on { background:var(--accent); color:#fff; }
+  .seg.cats { max-width:720px; }
+  .seg.cats button { font-size:13px; padding:7px 12px; }
+
+  .scorebar { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; justify-content:center; }
+  .chip { background:#fff; border-radius:999px; padding:8px 16px; font-weight:700; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small { color:var(--muted); font-weight:600; }
+  .chip.streak { color:#ea580c; }
+
+  .wrap { width:100%; max-width:900px; }
+
+  /* video card */
+  .vid { position:relative; width:100%; aspect-ratio:16/10; border-radius:14px; overflow:hidden; background:#0f2833; cursor:pointer; }
+  .vid img { width:100%; height:100%; object-fit:cover; display:block; opacity:.92; }
+  .vid iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+  .vid .play { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+  .vid .play::after { content:'▶'; color:#fff; font-size:30px; width:64px; height:64px; border-radius:50%; background:rgba(8,145,178,.85); display:flex; align-items:center; justify-content:center; padding-left:5px; box-shadow:0 6px 20px rgba(0,0,0,.3); }
+  .vid:hover .play::after { background:var(--accent); }
+
+  /* dictionary grid */
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px; }
+  .card { background:#fff; border-radius:18px; box-shadow:var(--shadow); padding:12px; }
+  .card .cap { display:flex; align-items:center; gap:8px; margin-top:10px; padding:0 4px 2px; }
+  .card .cap .em { font-size:22px; } .card .cap .wd { font-weight:800; font-size:17px; }
+
+  /* single-stage modes (flashcards / quiz) */
+  .stage { max-width:520px; margin:0 auto; }
+  .panel { background:#fff; border-radius:22px; box-shadow:var(--shadow); padding:24px; text-align:center; }
+  .prompt { color:var(--muted); font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; margin:0 0 14px; }
+  .flashword { font-size:40px; font-weight:800; margin:6px 0 4px; }
+  .flashword .em { font-size:52px; display:block; }
+  .choices { display:grid; grid-template-columns:1fr 1fr; gap:11px; margin-top:16px; }
+  .choice { background:#fff; border:3px solid #e2e8f0; border-radius:16px; font-size:18px; font-weight:800; padding:14px 10px; color:var(--ink); cursor:pointer; font-family:inherit; }
+  .choice:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+  .choice.correct { border-color:var(--correct); background:#dcfce7; color:var(--correct); }
+  .choice.wrong { border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
+  .choice:disabled { cursor:default; }
+  .feedback { min-height:24px; margin-top:14px; font-weight:800; font-size:17px; }
+  .feedback.good { color:var(--correct); } .feedback.bad { color:var(--wrong); }
+
+  button.act { font-family:inherit; font-size:16px; font-weight:800; border:none; border-radius:14px; padding:13px 24px; cursor:pointer; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#0e7490; }
+  .btn-ghost { background:var(--accent-soft); color:#0e7490; }
+  .btn-row { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+
+  /* sentence builder */
+  .sent-group { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--accent); margin:18px 4px 8px; }
+  .sentence { background:#fff; border-radius:18px; box-shadow:var(--shadow); padding:16px; margin-bottom:14px; }
+  .sentence .eng { font-size:19px; font-weight:800; margin-bottom:4px; }
+  .sentence .howto { font-size:12.5px; color:var(--muted); margin-bottom:12px; }
+  .signrow { display:flex; gap:10px; flex-wrap:wrap; }
+  .signcard { width:150px; }
+  .signcard .cap { display:flex; align-items:center; gap:6px; justify-content:center; margin-top:7px; font-weight:800; font-size:15px; }
+  .signcard .cap .em { font-size:18px; }
+  .order { display:inline-flex; width:20px; height:20px; border-radius:50%; background:var(--accent); color:#fff; font-size:11px; font-weight:800; align-items:center; justify-content:center; margin-right:2px; }
+
+  .attribution { color:var(--muted); font-size:12px; text-align:center; margin-top:26px; max-width:520px; line-height:1.5; }
+  .attribution a { color:var(--accent); }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf { position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; opacity:.95; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(105vh) rotate(720deg); opacity:1; } }
+</style>
+</head>
+<body>
+  <div class="nav"><a href="../index.html">🏠 Home</a></div>
+  <h1>🤟 Sign &amp; Say</h1>
+  <p class="sub">Learn to talk with your hands! Watch real signers, then try basic words and simple sentences to communicate.</p>
+  <p class="note">👀 These are <b>basic ASL / baby signs</b> — a friendly place to start. Watch the signer in each video, then copy the handshape and movement yourself. Real practice with a fluent signer is the best next step!</p>
+
+  <div class="seg" id="modeSeg">
+    <button data-mode="learn" class="on">📖 Learn Signs</button>
+    <button data-mode="flash">🃏 Flashcards</button>
+    <button data-mode="quiz">🎯 Quiz</button>
+    <button data-mode="sentence">💬 Sentences</button>
+  </div>
+  <div class="seg cats" id="catSeg" style="display:none"></div>
+
+  <div id="confetti"></div>
+  <div class="scorebar" id="scorebar" style="display:none">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="wrap" id="wrap"></div>
+
+  <p class="attribution" id="attribution"></p>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const shuffle = arr => arr.slice().sort(()=>Math.random()-0.5);
+  const S = window.SIGN;
+  const BY = {}; S.WORDS.forEach(w=>BY[w.slug]=w);
+  $('attribution').innerHTML = '🎥 ' + S.ATTRIBUTION + ' Sign &amp; Say is a learning aid, not a substitute for learning from the Deaf community.';
+
+  let mode='learn', cat='all';
+  let correct=0, total=0, streak=0, answered=false, lastKey=null;
+
+  const thumb = id => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+  const embed = id => `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
+
+  // A lazy video: shows a thumbnail with a play button; loads the iframe on click.
+  function videoHTML(w){
+    return `<div class="vid" data-id="${w.id}" title="Play the sign for ${w.word}">`+
+      `<img loading="lazy" src="${thumb(w.id)}" alt="Sign for ${w.word}">`+
+      `<div class="play"></div></div>`;
+  }
+  function wireVideos(root){
+    (root||document).querySelectorAll('.vid').forEach(v=>{
+      if(v._wired) return; v._wired=true;
+      v.addEventListener('click', ()=>{
+        if(v.querySelector('iframe')) return;
+        v.innerHTML = `<iframe src="${embed(v.dataset.id)}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
+      });
+    });
+  }
+
+  function updateScore(){ $('correctCount').textContent=correct; $('totalCount').textContent=total; $('streak').textContent=streak; }
+  function resetProgress(){ correct=0; total=0; streak=0; lastKey=null; updateScore(); }
+
+  function renderCats(){
+    const seg=$('catSeg'); seg.style.display = mode==='learn'?'flex':'none';
+    if(mode!=='learn'){ seg.innerHTML=''; return; }
+    seg.innerHTML='';
+    S.CATS.forEach(([k,l])=>{ const b=document.createElement('button'); b.dataset.cat=k; b.textContent=l; if(k===cat)b.classList.add('on'); seg.appendChild(b); });
+  }
+
+  // ---------- LEARN (dictionary) ----------
+  function renderLearn(){
+    $('scorebar').style.display='none';
+    const list = cat==='all' ? S.WORDS : S.WORDS.filter(w=>w.cat===cat);
+    $('wrap').innerHTML = `<div class="grid">`+ list.map(w=>
+      `<div class="card">${videoHTML(w)}<div class="cap"><span class="em">${w.emoji}</span><span class="wd">${w.word}</span></div></div>`).join('') +`</div>`;
+    wireVideos($('wrap'));
+  }
+
+  // ---------- FLASHCARDS ----------
+  let flashWord=null, flashShown=false;
+  function renderFlash(){
+    $('scorebar').style.display='flex';
+    let w,tries=0; do{ w=pick(S.WORDS); tries++; }while(S.WORDS.length>1 && w.slug===lastKey && tries<20); lastKey=w.slug; flashWord=w; flashShown=false;
+    $('wrap').innerHTML=`<div class="stage"><div class="panel">
+      <p class="prompt">How do you sign this word?</p>
+      <div class="flashword"><span class="em">${w.emoji}</span>${w.word}</div>
+      <div id="flashReveal"></div>
+      <div class="btn-row"><button class="act btn-primary" id="showBtn">👀 Show me the sign</button></div>
+    </div></div>`;
+    $('showBtn').onclick=()=>{
+      if(flashShown) return; flashShown=true;
+      $('flashReveal').innerHTML = `<div style="margin-top:14px">${videoHTML(w)}</div>`;
+      wireVideos($('flashReveal'));
+      // auto-play the reveal
+      $('flashReveal').querySelector('.vid').click();
+      $('showBtn').outerHTML = `<div class="btn-row"><button class="act btn-ghost" id="againBtn">🔁 Practice again</button><button class="act btn-primary" id="nextBtn">Next ➡️</button></div>`;
+      $('againBtn').onclick=()=>{ total++; streak=0; updateScore(); renderFlash(); };
+      $('nextBtn').onclick=()=>{ total++; correct++; streak++; updateScore(); if(streak>0&&streak%5===0)celebrate(); renderFlash(); };
+    };
+  }
+
+  // ---------- QUIZ ----------
+  function renderQuiz(){
+    $('scorebar').style.display='flex';
+    answered=false;
+    let w,tries=0; do{ w=pick(S.WORDS); tries++; }while(S.WORDS.length>1 && w.slug===lastKey && tries<20); lastKey=w.slug;
+    const distract=shuffle(S.WORDS.filter(x=>x.slug!==w.slug)).slice(0,3);
+    const opts=shuffle([w,...distract]);
+    $('wrap').innerHTML=`<div class="stage"><div class="panel">
+      <p class="prompt">Watch the sign — which word is it?</p>
+      <div>${videoHTML(w)}</div>
+      <div class="choices" id="choices"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="btn-row" id="nextRow" style="display:none"><button class="act btn-primary" id="nextBtn">Next ➡️</button></div>
+    </div></div>`;
+    wireVideos($('wrap'));
+    $('wrap').querySelector('.vid').click();  // auto-play so they can watch
+    const box=$('choices');
+    opts.forEach(o=>{ const b=document.createElement('button'); b.className='choice'; b.innerHTML=`${o.emoji} ${o.word}`; b.dataset.slug=o.slug;
+      b.onclick=()=>answerQuiz(b,o.slug,w.slug); box.appendChild(b); });
+    $('nextRow').querySelector('#nextBtn').onclick=renderQuiz;
+  }
+  function answerQuiz(btn, chosen, correctSlug){
+    if(answered) return; answered=true; total++;
+    const isRight = chosen===correctSlug;
+    if(isRight){ correct++; streak++; } else streak=0; updateScore();
+    [...$('choices').children].forEach(c=>{ c.disabled=true; if(c.dataset.slug===correctSlug) c.classList.add('correct'); });
+    if(!isRight) btn.classList.add('wrong');
+    const fb=$('feedback');
+    if(isRight){ fb.textContent=pick(['🎉 Correct!','⭐ Nice!','✅ You got it!','🤟 Yes!']); fb.className='feedback good'; }
+    else { fb.textContent=`It’s “${BY[correctSlug].word}.”`; fb.className='feedback bad'; }
+    if(isRight && streak>0 && streak%5===0) celebrate();
+    $('nextRow').style.display='flex'; $('nextRow').querySelector('#nextBtn').focus();
+  }
+
+  // ---------- SENTENCES ----------
+  function renderSentence(){
+    $('scorebar').style.display='none';
+    let html=''; let lastGroup=null;
+    S.SENTENCES.forEach(s=>{
+      if(s.group!==lastGroup){ html+=`<div class="sent-group">${s.group}</div>`; lastGroup=s.group; }
+      const cards = s.signs.map((slug,i)=>{ const w=BY[slug]; if(!w) return '';
+        return `<div class="signcard">${videoHTML(w)}<div class="cap"><span class="order">${i+1}</span><span class="em">${w.emoji}</span>${w.word}</div></div>`; }).join('');
+      html+=`<div class="sentence"><div class="eng">“${s.text}”</div><div class="howto">✋ Sign each word in order: ${s.signs.map(x=>BY[x]?BY[x].word:x).join(' → ')}</div><div class="signrow">${cards}</div></div>`;
+    });
+    $('wrap').innerHTML=html; wireVideos($('wrap'));
+  }
+
+  function celebrate(){
+    const colors=['#0891b2','#22d3ee','#f59e0b','#16a34a','#ec4899','#8b5cf6']; const box=$('confetti');
+    for(let i=0;i<80;i++){ const c=document.createElement('div'); c.className='conf'; c.style.left=Math.random()*100+'vw'; c.style.background=colors[i%colors.length]; c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; c.style.animationDelay=(Math.random()*0.3)+'s'; box.appendChild(c); setTimeout(()=>c.remove(),3400); }
+  }
+
+  function render(){
+    renderCats();
+    if(mode==='learn') renderLearn();
+    else if(mode==='flash') renderFlash();
+    else if(mode==='quiz') renderQuiz();
+    else renderSentence();
+  }
+  $('modeSeg').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b)return; mode=b.dataset.mode; cat='all'; [...$('modeSeg').children].forEach(x=>x.classList.toggle('on',x===b)); resetProgress(); render(); });
+  $('catSeg').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b)return; cat=b.dataset.cat; [...$('catSeg').children].forEach(x=>x.classList.toggle('on',x===b)); renderLearn(); renderCats(); });
+
+  render();
+})();
+</script>
+</body>
+</html>
