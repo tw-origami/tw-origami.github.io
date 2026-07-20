@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Spell It!</title>
+<style>
+  :root{
+    --ink:#1f2937; --muted:#6b7280; --accent:#d97706; --accent2:#f59e0b;
+    --accent-soft:#fff7ed; --accent-soft-2:#fef3c7; --line:#f3e6d3;
+    --good:#16a34a; --bad:#dc2626; --shadow:0 16px 36px rgba(120,53,15,.14);
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    min-height:100vh; padding:22px 14px 60px; display:flex; flex-direction:column; align-items:center;
+    background:
+      radial-gradient(circle at 12% 4%, rgba(245,158,11,.18), transparent 32%),
+      radial-gradient(circle at 88% 8%, rgba(250,204,21,.16), transparent 26%),
+      linear-gradient(160deg,#fffdf7,#fff7ed 46%,#f8fafc);
+  }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:16px; flex-wrap:wrap; justify-content:center; }
+  .nav a, .nav button{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 15px; border-radius:9px; border:none; background:transparent; font-family:inherit; cursor:pointer; }
+  .nav a:hover, .nav button:hover{ background:var(--accent-soft-2); color:var(--accent); }
+
+  header{ text-align:center; max-width:640px; margin-bottom:14px; }
+  .eyebrow{ display:inline-flex; gap:7px; align-items:center; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.14em; color:var(--accent); background:var(--accent-soft); border:1px solid rgba(217,119,6,.2); padding:6px 11px; border-radius:999px; margin-bottom:10px; }
+  h1{ margin:0; font-size:clamp(32px,5vw,46px); letter-spacing:-1.2px; line-height:1; }
+  .sub{ margin:10px auto 0; max-width:520px; color:var(--muted); font-size:15px; line-height:1.5; }
+
+  .levels{ display:flex; flex-wrap:wrap; gap:6px; background:#fff; border-radius:14px; padding:6px; box-shadow:var(--shadow); margin-bottom:14px; justify-content:center; }
+  .levels button{ border:none; background:transparent; font-family:inherit; font-weight:800; font-size:14px; padding:9px 13px; border-radius:10px; cursor:pointer; color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:1px; line-height:1.15; }
+  .levels button small{ font-size:10.5px; font-weight:700; opacity:.8; }
+  .levels button.on{ background:var(--accent); color:#fff; }
+  .levels button.on small{ opacity:.92; }
+
+  .scorebar{ display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; justify-content:center; }
+  .chip{ background:#fff; border-radius:999px; padding:8px 16px; font-weight:800; font-size:14px; box-shadow:var(--shadow); display:flex; align-items:center; gap:6px; }
+  .chip small{ color:var(--muted); font-weight:700; }
+  .chip.streak{ color:var(--accent); }
+
+  .stage{ width:100%; max-width:600px; }
+  .card{ width:100%; background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:26px 22px; }
+
+  .warn{ background:#fef2f2; border:1px solid #fecaca; color:#991b1b; border-radius:12px; padding:10px 13px; font-size:13.5px; font-weight:700; margin-bottom:14px; line-height:1.45; }
+  .warn.hidden{ display:none; }
+
+  .hearwrap{ text-align:center; }
+  .bigbee{ font-size:40px; line-height:1; margin-bottom:6px; }
+  .hearBtn{ font-family:inherit; font-weight:900; font-size:19px; border:none; border-radius:16px; padding:16px 26px; cursor:pointer; background:linear-gradient(180deg,var(--accent2),var(--accent)); color:#fff; box-shadow:0 12px 22px rgba(217,119,6,.28); transition:transform .1s, filter .12s; }
+  .hearBtn:hover{ filter:brightness(1.05); }
+  .hearBtn:active{ transform:scale(.97); }
+  .hearBtn.pulse{ animation:pulse 1.7s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{ box-shadow:0 12px 22px rgba(217,119,6,.28); } 50%{ box-shadow:0 12px 30px rgba(217,119,6,.5); } }
+
+  .helpers{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:14px; }
+  .help{ font-family:inherit; font-weight:800; font-size:13.5px; border:2px solid var(--line); background:#fff; color:#92400e; border-radius:11px; padding:9px 13px; cursor:pointer; display:inline-flex; gap:6px; align-items:center; transition:background .12s, border-color .12s; }
+  .help:hover{ background:var(--accent-soft); border-color:var(--accent2); }
+
+  .clue{ margin-top:16px; min-height:22px; background:var(--accent-soft); border-left:3px solid var(--accent2); border-radius:10px; padding:0; overflow:hidden; transition:padding .15s; }
+  .clue.show{ padding:13px 15px; }
+  .clue .row{ font-size:14.5px; line-height:1.55; color:#78350f; }
+  .clue .row + .row{ margin-top:8px; }
+  .clue .lab{ font-weight:900; text-transform:uppercase; letter-spacing:.08em; font-size:11px; color:var(--accent); margin-right:6px; }
+  .clue .pos{ font-style:italic; color:#b45309; }
+  .clue .blank{ letter-spacing:2px; color:#c2410c; font-weight:900; }
+
+  form{ margin-top:18px; display:flex; gap:10px; }
+  #answer{
+    flex:1; font-family:inherit; font-size:24px; font-weight:800; text-align:center; letter-spacing:.06em;
+    padding:14px 12px; border:3px solid var(--line); border-radius:14px; color:var(--ink); background:#fffdfa; min-width:0;
+  }
+  #answer:focus{ outline:none; border-color:var(--accent2); background:#fff; }
+  #answer:disabled{ background:#f8fafc; color:var(--muted); }
+  .check{ font-family:inherit; font-weight:900; font-size:16px; border:none; border-radius:14px; padding:0 20px; cursor:pointer; background:var(--accent); color:#fff; transition:background .15s, transform .1s; }
+  .check:hover{ background:#c46a05; } .check:active{ transform:scale(.97); }
+
+  .feedback{ min-height:24px; margin-top:14px; font-weight:800; font-size:16px; text-align:center; color:var(--muted); }
+  .feedback.good{ color:var(--good); } .feedback.bad{ color:var(--bad); }
+
+  .reveal{ margin-top:12px; text-align:center; }
+  .reveal.hidden{ display:none; }
+  .reveal .word{ font-size:30px; font-weight:900; letter-spacing:.05em; }
+  .reveal .word .c{ color:var(--good); } .reveal .word .x{ color:var(--bad); text-decoration:underline; }
+  .reveal .word .extra{ color:var(--bad); opacity:.7; text-decoration:line-through; }
+  .reveal .yours{ margin-top:6px; font-size:13.5px; color:var(--muted); font-weight:700; }
+  .reveal .yours b{ color:var(--bad); }
+  .reveal .full{ margin-top:12px; font-size:14px; color:#57534e; line-height:1.55; text-align:left; background:#f8fafc; border-radius:10px; padding:11px 14px; }
+  .reveal .full .lab{ font-weight:900; text-transform:uppercase; letter-spacing:.08em; font-size:11px; color:var(--accent); }
+
+  .btn-row{ display:flex; gap:10px; justify-content:center; margin-top:16px; flex-wrap:wrap; }
+  .btn-row.hidden{ display:none; }
+  .act{ font-family:inherit; font-weight:900; font-size:16px; border:none; border-radius:14px; padding:13px 22px; cursor:pointer; transition:transform .1s, background .15s; }
+  .act:active{ transform:scale(.97); }
+  .btn-primary{ background:var(--accent); color:#fff; } .btn-primary:hover{ background:#c46a05; }
+  .btn-ghost{ background:#fff; color:#374151; border:2px solid var(--line); }
+  .btn-ghost:hover{ background:var(--accent-soft); }
+
+  /* modal */
+  .modal{ position:fixed; inset:0; background:rgba(60,30,10,.45); z-index:80; display:flex; align-items:center; justify-content:center; padding:18px; }
+  .modal.hidden{ display:none; }
+  .sheet{ background:#fff; border-radius:22px; box-shadow:0 24px 60px rgba(217,119,6,.35); width:100%; max-width:600px; max-height:82vh; overflow-y:auto; padding:24px 22px 28px; }
+  .sheet h2{ margin:0 0 4px; font-size:22px; }
+  .sheet .sheet-sub{ color:var(--muted); font-size:14px; margin:0 0 16px; line-height:1.5; }
+  .closeBtn{ position:sticky; float:right; top:0; width:34px; height:34px; border:none; border-radius:50%; background:var(--accent-soft-2); color:#92400e; font-size:17px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .closeBtn:hover{ background:var(--accent); color:#fff; }
+  .trow{ padding:11px 0; border-top:1px solid var(--line); }
+  .trow:first-of-type{ border-top:none; }
+  .trow .tt{ font-weight:900; font-size:15.5px; }
+  .trow .td{ font-size:14px; color:#57534e; line-height:1.5; margin-top:2px; }
+  .wl{ display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; }
+  .wl .wli{ padding:8px 0; border-top:1px solid var(--line); }
+  .wl .wli:nth-child(-n+2){ border-top:none; }
+  .wl .wword{ font-weight:900; font-size:15px; }
+  .wl .wword button{ border:none; background:none; cursor:pointer; font-size:14px; padding:0 0 0 5px; }
+  .wl .wdef{ font-size:12.5px; color:var(--muted); line-height:1.4; }
+  .srow{ padding:12px 0; border-top:1px solid var(--line); }
+  .srow:first-of-type{ border-top:none; }
+  .srow a{ font-weight:800; font-size:15.5px; color:var(--accent); text-decoration:none; }
+  .srow .snote{ color:var(--muted); font-size:13.5px; margin-top:3px; line-height:1.45; }
+  @media (max-width:520px){ .wl{ grid-template-columns:1fr; } .wl .wli:nth-child(2){ border-top:1px solid var(--line); } }
+
+  #confetti{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf{ position:absolute; top:-20px; width:10px; height:14px; border-radius:2px; animation:fall linear forwards; }
+  @keyframes fall{ to{ transform:translateY(110vh) rotate(720deg); } }
+  #streakBanner{ position:fixed; left:50%; top:22%; transform:translate(-50%,-50%) scale(.6); background:linear-gradient(135deg,var(--accent2),var(--accent)); color:#fff; font-weight:900; font-size:24px; padding:18px 30px; border-radius:20px; box-shadow:0 18px 50px rgba(217,119,6,.45); z-index:60; opacity:0; pointer-events:none; text-align:center; }
+  #streakBanner.show{ animation:banner 1.9s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  #streakBanner small{ display:block; font-size:14px; font-weight:700; opacity:.9; margin-top:3px; }
+  @keyframes banner{ 0%{opacity:0;transform:translate(-50%,-50%) scale(.6)} 15%{opacity:1;transform:translate(-50%,-50%) scale(1.08)} 28%{transform:translate(-50%,-50%) scale(1)} 80%{opacity:1;transform:translate(-50%,-50%) scale(1)} 100%{opacity:0;transform:translate(-50%,-60%) scale(.95)} }
+  @keyframes shake{ 10%,90%{transform:translateX(-2px)} 30%,70%{transform:translateX(4px)} 50%{transform:translateX(-6px)} }
+  .shake{ animation:shake .4s; }
+</style>
+</head>
+<body>
+  <div id="confetti"></div>
+  <div id="streakBanner"></div>
+
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button id="listBtn" title="Study this level's words">📖 Word list</button>
+    <button id="tipsBtn" title="Spelling strategies">💡 Tips</button>
+    <button id="srcBtn" title="Where to learn more">📚 Sources</button>
+  </div>
+
+  <header>
+    <div class="eyebrow">🐝 Say it, spell it</div>
+    <h1>Spell It!</h1>
+    <p class="sub">Listen to the word, then type how it’s spelled. Ask for the definition or hear it in a sentence — just like a real spelling bee.</p>
+  </header>
+
+  <div class="levels" id="levels"></div>
+
+  <div class="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="triedCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="stage">
+    <div class="card">
+      <div class="hearwrap">
+        <div class="bigbee">🐝</div>
+        <button class="hearBtn pulse" id="hearBtn">🔊 Hear the word</button>
+        <div class="helpers">
+          <button class="help" id="againBtn">🔁 Say again</button>
+          <button class="help" id="slowBtn">🐢 Slower</button>
+          <button class="help" id="defBtn">📖 Definition</button>
+          <button class="help" id="sentBtn">💬 In a sentence</button>
+          <button class="help" id="firstBtn">🔤 First letter</button>
+        </div>
+      </div>
+
+      <div class="clue" id="clue"></div>
+
+      <form id="spellForm" autocomplete="off">
+        <input id="answer" type="text" inputmode="text" autocomplete="off" autocorrect="off"
+               autocapitalize="off" spellcheck="false" aria-label="Type the word you heard"
+               placeholder="type the word…">
+        <button class="check" type="submit" id="checkBtn">Check ✓</button>
+      </form>
+
+      <div class="feedback" id="feedback">Press <b>🔊 Hear the word</b> to begin.</div>
+
+      <div class="reveal hidden" id="reveal"></div>
+
+      <div class="btn-row hidden" id="nextRow">
+        <button class="act btn-primary" id="nextBtn">Next word ➡️</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="listModal"><div class="sheet" id="listSheet"></div></div>
+  <div class="modal hidden" id="tipsModal"><div class="sheet" id="tipsSheet"></div></div>
+  <div class="modal hidden" id="srcModal"><div class="sheet" id="srcSheet"></div></div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const shuffle = arr => arr.slice().sort(()=>Math.random()-0.5);
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const S = window.SPELL;
+
+  /* ---------- speech ---------- */
+  const synth = window.speechSynthesis;
+  let enVoice = null;
+  function loadVoices(){
+    if(!synth) return;
+    const vs = synth.getVoices() || [];
+    enVoice = vs.find(v=>/en[-_]US/i.test(v.lang)) ||
+              vs.find(v=>/^en\b/i.test(v.lang)) ||
+              vs.find(v=>/^en/i.test(v.lang)) || null;
+  }
+  if(synth){ loadVoices(); synth.onvoiceschanged = loadVoices; }
+  function say(text, rate){
+    if(!synth || !text) return;
+    try{ synth.cancel(); }catch(e){}
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; if(enVoice) u.voice = enVoice;
+    u.rate = rate || 0.9; u.pitch = 1;
+    synth.speak(u);
+  }
+  // Recorded voice (ElevenLabs / Quinn). File name = slug of the word.
+  function slugify(w){ return w.normalize('NFKD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_+|_+$/g,'').toLowerCase(); }
+  let curAudio = null;
+  function stopSpeaking(){
+    if(curAudio){ try{ curAudio.pause(); }catch(e){} curAudio = null; }
+    if(synth){ try{ synth.cancel(); }catch(e){} }
+  }
+  // Play a word: prefer the recorded mp3, fall back to browser speech if it's missing.
+  function playWord(word, rate){
+    stopSpeaking();
+    const a = new Audio('audio/' + slugify(word) + '.mp3');
+    a.playbackRate = rate || 1;
+    try{ if('preservesPitch' in a) a.preservesPitch = true; }catch(e){}
+    a.onerror = () => { curAudio = null; say(word, (rate && rate < 1) ? 0.5 : 0.85); };
+    curAudio = a;
+    a.play().catch(()=>{});   // clicks satisfy the autoplay gesture; onerror covers a missing file
+  }
+  // Play a recorded clip (e.g. the example sentence), falling back to browser speech.
+  function playClip(fileBase, fallbackText, fallbackRate){
+    stopSpeaking();
+    const a = new Audio('audio/' + fileBase + '.mp3');
+    a.onerror = () => { curAudio = null; if(fallbackText) say(fallbackText, fallbackRate || 0.92); };
+    curAudio = a;
+    a.play().catch(()=>{});
+  }
+
+  /* ---------- state ---------- */
+  let level = S.LEVELS[0];
+  let queue = [], qi = 0, cur = null;
+  let correct = 0, tried = 0, streak = 0;
+  let answered = false, misses = 0, lastAttempt = '';
+
+  function buildLevelSeg(){
+    const box = $('levels'); box.innerHTML = '';
+    S.LEVELS.forEach(lv => {
+      const b = document.createElement('button');
+      b.className = lv.id===level.id ? 'on' : '';
+      b.innerHTML = `${lv.emoji} ${esc(lv.name)}<small>${esc(lv.grade)}</small>`;
+      b.onclick = () => { if(lv.id!==level.id){ setLevel(lv, true); } };
+      box.appendChild(b);
+    });
+  }
+  function setLevel(lv, speak){
+    level = lv; buildLevelSeg();
+    correct = 0; tried = 0; streak = 0; updateScore();
+    newQueue(); newWord(speak);
+  }
+  function newQueue(){ queue = shuffle(level.words.map((_,i)=>i)); qi = 0; }
+  function updateScore(){ $('correctCount').textContent=correct; $('triedCount').textContent=tried; $('streak').textContent=streak; }
+
+  /* mask the target word inside a definition/sentence so it isn't a giveaway */
+  function maskIn(text, word){
+    if(!text) return '';
+    const escd = word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const re = new RegExp('\\b'+escd+'\\b','gi');
+    return esc(text).replace(re, `<span class="blank">${'＿'.repeat(Math.min(9,Math.max(3,Math.ceil(word.length/1.3))))}</span>`);
+  }
+
+  function newWord(speak){
+    if(qi >= queue.length){ newQueue(); }
+    cur = level.words[queue[qi++]];
+    answered = false; misses = 0; lastAttempt = '';
+    $('feedback').textContent=''; $('feedback').className='feedback';
+    $('clue').className='clue'; $('clue').innerHTML='';
+    $('reveal').className='reveal hidden'; $('reveal').innerHTML='';
+    $('nextRow').className='btn-row hidden';
+    const inp = $('answer'); inp.value=''; inp.disabled=false;
+    $('checkBtn').disabled=false;
+    $('hearBtn').classList.remove('pulse');
+    // reset the "show answer" button if present
+    setShowAnswerBtn(false);
+    if(speak){
+      sayWord();
+    } else {
+      $('feedback').innerHTML = 'Press <b>🔊 Hear the word</b> to begin.';
+      $('hearBtn').classList.add('pulse');
+    }
+    inp.focus();
+  }
+  function sayWord(){ playWord(cur.w, 1); }
+  function slowWord(){ playWord(cur.w, 0.6); }
+
+  /* helper buttons */
+  function showClue(kind){
+    const box = $('clue'); box.className='clue show';
+    let html = '';
+    if(kind==='def'){
+      html = `<div class="row"><span class="lab">Definition</span><span class="pos">${esc(cur.pos)}</span> — ${answered?esc(cur.def):maskIn(cur.def,cur.w)}</div>`;
+      say(`${cur.pos}. ${cur.def}`, 0.92);
+    } else if(kind==='sent'){
+      html = `<div class="row"><span class="lab">Sentence</span>${answered?esc(cur.s):maskIn(cur.s,cur.w)}</div>`;
+      playClip(slugify(cur.w) + '_s', cur.s, 0.92);
+    }
+    box.innerHTML = html;
+  }
+  function firstLetter(){
+    $('clue').className='clue show';
+    $('clue').innerHTML = `<div class="row"><span class="lab">Starts with</span><b style="font-size:18px">${esc(cur.w[0].toUpperCase())}</b> &nbsp;·&nbsp; ${cur.w.length} letters</div>`;
+  }
+
+  /* ---------- checking ---------- */
+  function normalize(s){ return s.trim().toLowerCase().replace(/\s+/g,' '); }
+  function onSubmit(e){
+    e.preventDefault();
+    if(answered) return;
+    const val = $('answer').value;
+    if(!normalize(val)) { $('answer').focus(); return; }
+    lastAttempt = val.trim();
+    if(normalize(val) === normalize(cur.w)){
+      finish(true);
+    } else {
+      misses++;
+      const fb = $('feedback'); fb.className='feedback bad';
+      fb.textContent = misses>=2 ? 'Still not right — listen once more, or show the answer.' : 'Not quite — give it another listen and try again.';
+      const inp = $('answer'); inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake');
+      inp.select();
+      sayWord();
+      setShowAnswerBtn(true);
+    }
+  }
+  function finish(solved){
+    answered = true;
+    tried++;
+    if(solved){ correct++; streak++; } else { streak = 0; }
+    updateScore();
+    $('answer').disabled = true; $('checkBtn').disabled = true;
+    const fb = $('feedback');
+    if(solved){ fb.className='feedback good'; fb.textContent = pick(['🎉 Correct!','⭐ Perfect!','✅ You spelled it!','🐝 Bee-rilliant!','🍯 Sweet — got it!']); }
+    else { fb.className='feedback bad'; fb.textContent = 'The correct spelling is:'; }
+    renderReveal(solved);
+    $('nextRow').className='btn-row';
+    if(solved && streak>0 && streak%5===0) celebrate(streak); else if(solved) burst(26);
+    $('nextBtn').focus();
+  }
+  function renderReveal(solved){
+    const box = $('reveal'); box.className='reveal';
+    const correctW = cur.w;
+    let letters = '';
+    if(solved){
+      letters = [...correctW].map(ch=>`<span class="c">${esc(ch)}</span>`).join('');
+    } else {
+      // letter-by-letter diff vs their last attempt
+      const att = lastAttempt;
+      letters = [...correctW].map((ch,i)=>{
+        const a = att[i];
+        const okc = a && a.toLowerCase()===ch.toLowerCase();
+        return `<span class="${okc?'c':'x'}">${esc(ch)}</span>`;
+      }).join('');
+    }
+    let html = `<div class="word">${letters}</div>`;
+    if(!solved && lastAttempt){ html += `<div class="yours">you wrote: <b>${esc(lastAttempt)}</b></div>`; }
+    html += `<div class="full"><span class="lab">${esc(cur.pos)}</span> — ${esc(cur.def)}<br><span style="color:#78350f">“${esc(cur.s)}”</span></div>`;
+    box.innerHTML = html;
+    // stop pulsing the show-answer button by removing it
+    setShowAnswerBtn(false);
+  }
+
+  /* a "Show answer" button appears in the helper row after a miss */
+  function setShowAnswerBtn(on){
+    let b = $('showAnsBtn');
+    if(on){
+      if(!b){
+        b = document.createElement('button');
+        b.className='help'; b.id='showAnsBtn'; b.innerHTML='🏳️ Show answer';
+        b.style.borderColor='#fecaca'; b.style.color='#b91c1c';
+        b.onclick = () => { if(!answered) finish(false); };
+        $('firstBtn').parentNode.appendChild(b);
+      }
+    } else if(b){ b.remove(); }
+  }
+
+  /* ---------- fx ---------- */
+  function celebrate(n){
+    const msgs = { 5:'🌟 5 in a row!', 10:'🔥 10 streak!', 15:'⚡ 15 in a row!', 20:'🏆 20 streak!' };
+    const banner = $('streakBanner');
+    banner.innerHTML = `${msgs[n] || '🌟 '+n+' in a row!'}<small>Spelling champ!</small>`;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+    burst(90);
+  }
+  function burst(count){
+    const colors = ['#d97706','#f59e0b','#facc15','#16a34a','#3b82f6','#8b5cf6'];
+    const box = $('confetti');
+    for(let i=0;i<count;i++){
+      const c = document.createElement('div'); c.className='conf';
+      c.style.left = Math.random()*100+'vw';
+      c.style.background = colors[i%colors.length];
+      c.style.animationDuration = (1.6+Math.random()*1.4)+'s';
+      c.style.animationDelay = (Math.random()*0.3)+'s';
+      c.style.transform = `rotate(${Math.random()*360}deg)`;
+      box.appendChild(c); setTimeout(()=>c.remove(), 3200);
+    }
+  }
+
+  /* ---------- modals ---------- */
+  function openList(){
+    const rows = level.words.map(v =>
+      `<div class="wli"><div class="wword">${esc(v.w)} <button title="Hear it" data-say="${esc(v.w)}">🔊</button></div><div class="wdef">${esc(v.def)}</div></div>`
+    ).join('');
+    $('listSheet').innerHTML =
+      `<button class="closeBtn" data-close="listModal">✕</button>` +
+      `<h2>${level.emoji} ${esc(level.name)} — word list</h2>` +
+      `<p class="sheet-sub">${esc(level.grade)} · ${level.words.length} words. Study them, then close this and spell them by ear. Tap 🔊 to hear any word.</p>` +
+      `<div class="wl">${rows}</div>`;
+    $('listModal').className='modal'; $('listSheet').scrollTop=0;
+  }
+  function openTips(){
+    const rows = S.TIPS.map(t => `<div class="trow"><div class="tt">${esc(t.t)}</div><div class="td">${esc(t.d)}</div></div>`).join('');
+    $('tipsSheet').innerHTML =
+      `<button class="closeBtn" data-close="tipsModal">✕</button>` +
+      `<h2>💡 Spelling tips</h2><p class="sheet-sub">Tricks that spelling-bee champs use.</p>` + rows;
+    $('tipsModal').className='modal'; $('tipsSheet').scrollTop=0;
+  }
+  function openSrc(){
+    const rows = S.SOURCES.map(s => `<div class="srow"><a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)} ↗</a><div class="snote">${esc(s.note)}</div></div>`).join('');
+    $('srcSheet').innerHTML =
+      `<button class="closeBtn" data-close="srcModal">✕</button>` +
+      `<h2>📚 Learn more</h2><p class="sheet-sub">Trusted places to look up words and practice.</p>` + rows;
+    $('srcModal').className='modal'; $('srcSheet').scrollTop=0;
+  }
+  function closeModal(id){ $(id).className='modal hidden'; }
+
+  /* ---------- wire ---------- */
+  $('hearBtn').onclick = () => { if(cur) sayWord(); $('hearBtn').classList.remove('pulse'); $('answer').focus(); };
+  $('againBtn').onclick = () => { if(cur) sayWord(); };
+  $('slowBtn').onclick = () => { if(cur) slowWord(); };
+  $('defBtn').onclick = () => { if(cur) showClue('def'); };
+  $('sentBtn').onclick = () => { if(cur) showClue('sent'); };
+  $('firstBtn').onclick = () => { if(cur) firstLetter(); };
+  $('spellForm').addEventListener('submit', onSubmit);
+  $('nextBtn').onclick = () => newWord(true);
+  $('listBtn').onclick = openList;
+  $('tipsBtn').onclick = openTips;
+  $('srcBtn').onclick = openSrc;
+
+  document.addEventListener('click', e => {
+    const c = e.target.closest('[data-close]'); if(c){ closeModal(c.dataset.close); return; }
+    const say2 = e.target.closest('[data-say]'); if(say2){ playWord(say2.dataset.say, 1); return; }
+    ['listModal','tipsModal','srcModal'].forEach(id => { if(e.target===$(id)) closeModal(id); });
+  });
+  document.addEventListener('keydown', e => {
+    if(e.key==='Escape'){ ['listModal','tipsModal','srcModal'].forEach(closeModal); return; }
+    if(e.key==='Enter' && answered && $('nextRow').className.indexOf('hidden')<0){ e.preventDefault(); newWord(true); }
+  });
+
+  buildLevelSeg();
+  newQueue();
+  newWord(false);
+})();
+</script>
+</body>
+</html>
