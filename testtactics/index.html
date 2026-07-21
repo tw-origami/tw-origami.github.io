@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Test Tactics</title>
+<style>
+  :root{
+    --ink:#1f2937; --muted:#64748b; --accent:#ea580c; --accent2:#2563eb;
+    --accent-soft:#fff7ed; --panel:#ffffff; --correct:#16a34a; --wrong:#dc2626;
+    --shadow:0 12px 34px rgba(31,41,55,.14);
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; min-height:100vh; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    color:var(--ink); background:
+      radial-gradient(circle at top left, rgba(59,130,246,.15), transparent 35%),
+      radial-gradient(circle at bottom right, rgba(249,115,22,.14), transparent 38%),
+      linear-gradient(160deg,#fff7ed,#f8fafc);
+    display:flex; flex-direction:column; align-items:center; padding:22px 16px 60px;
+  }
+  .nav{
+    position:sticky; top:10px; z-index:70; display:flex; gap:8px; flex-wrap:wrap; justify-content:center;
+    background:rgba(255,255,255,.94); backdrop-filter:blur(8px); padding:6px; border-radius:14px; box-shadow:var(--shadow);
+    margin-bottom:14px;
+  }
+  .nav a,.nav button{
+    text-decoration:none; border:none; background:transparent; color:var(--muted); cursor:pointer;
+    font-family:inherit; font-weight:800; font-size:14px; padding:8px 14px; border-radius:10px;
+  }
+  .nav a.on,.nav button.on{ background:var(--accent); color:#fff; }
+  .nav button:hover{ background:var(--accent-soft); color:var(--accent); }
+  h1{ margin:4px 0 4px; font-size:28px; letter-spacing:-.6px; text-align:center; }
+  .sub{ margin:0 auto 18px; max-width:640px; text-align:center; color:var(--muted); font-size:15px; line-height:1.5; }
+  .scorebar{ display:flex; gap:10px; margin:0 0 16px; flex-wrap:wrap; justify-content:center; }
+  .chip{
+    background:#fff; border-radius:999px; padding:8px 16px; box-shadow:var(--shadow); font-weight:800; font-size:14px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .chip small{ font-weight:600; color:var(--muted); }
+  .chip.streak{ color:var(--accent); }
+
+  .modes{
+    display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:16px; max-width:980px;
+  }
+  .mode{
+    border:2px solid transparent; background:#fff; color:var(--muted); box-shadow:var(--shadow); border-radius:999px;
+    padding:10px 15px; font-family:inherit; font-weight:800; cursor:pointer; transition:transform .12s, border-color .15s, background .15s;
+  }
+  .mode:hover{ transform:translateY(-2px); border-color:#fed7aa; }
+  .mode.on{ background:var(--accent); color:#fff; }
+  .mode .ico{ margin-right:6px; }
+
+  .stage{ width:100%; max-width:780px; }
+  .card{
+    background:rgba(255,255,255,.96); border-radius:26px; box-shadow:var(--shadow); padding:28px 24px;
+  }
+  .hero{
+    display:flex; gap:16px; align-items:flex-start; margin-bottom:18px; flex-wrap:wrap;
+  }
+  .badge{
+    display:inline-flex; align-items:center; gap:8px; background:var(--accent-soft); color:var(--accent); font-weight:900;
+    text-transform:uppercase; letter-spacing:.45px; font-size:12px; padding:7px 12px; border-radius:999px;
+  }
+  .modeTitle{ margin:8px 0 4px; font-size:22px; letter-spacing:-.4px; }
+  .modeHelp{ margin:0; color:var(--muted); line-height:1.5; }
+  .scenario{
+    margin:18px 0 14px; background:linear-gradient(160deg,#fff7ed,#eff6ff); border-left:4px solid var(--accent2);
+    border-radius:14px; padding:16px 18px; font-size:17px; line-height:1.6;
+  }
+  .scenario b{ color:#0f172a; }
+  .q{
+    font-size:18px; font-weight:900; line-height:1.45; margin:0 0 14px;
+  }
+  .choices{ display:grid; grid-template-columns:1fr; gap:10px; }
+  .choice{
+    border:3px solid #e2e8f0; background:#fff; color:var(--ink); border-radius:16px; padding:14px 16px;
+    font:inherit; font-weight:800; font-size:16px; text-align:left; cursor:pointer; transition:border-color .15s, background .15s, transform .1s;
+  }
+  .choice:hover:not(:disabled){ border-color:var(--accent2); background:#eff6ff; }
+  .choice:active{ transform:scale(.98); }
+  .choice.correct{ border-color:var(--correct); background:#dcfce7; color:var(--correct); }
+  .choice.wrong{ border-color:var(--wrong); background:#fee2e2; color:var(--wrong); }
+  .choice:disabled{ cursor:default; }
+  .feedback{ min-height:26px; margin:16px 0 8px; font-weight:900; font-size:17px; text-align:center; }
+  .feedback.good{ color:var(--correct); }
+  .feedback.bad{ color:var(--wrong); }
+  .coach{
+    background:var(--accent-soft); border-radius:16px; padding:16px 18px; border:1px solid #fed7aa;
+    margin-top:8px; color:#7c2d12; line-height:1.55;
+  }
+  .coach .label{ display:block; font-size:12px; font-weight:900; letter-spacing:.4px; text-transform:uppercase; margin-bottom:6px; color:var(--accent); }
+  .row{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:18px; }
+  .btn{
+    font-family:inherit; font-size:16px; font-weight:800; border:none; border-radius:14px; padding:13px 20px; cursor:pointer;
+    transition:transform .1s, background .15s;
+  }
+  .btn:active{ transform:scale(.96); }
+  .btn-primary{ background:var(--accent); color:#fff; }
+  .btn-primary:hover{ background:#c2410c; }
+  .btn-ghost{ background:var(--accent-soft); color:var(--accent); }
+  .btn-ghost:hover{ background:#ffedd5; }
+
+  .guide{
+    position:fixed; inset:0; background:rgba(15,23,42,.45); display:flex; align-items:center; justify-content:center;
+    padding:18px; z-index:90;
+  }
+  .guide.hidden{ display:none; }
+  .sheet{
+    width:100%; max-width:620px; max-height:82vh; overflow:auto; background:#fff; border-radius:22px; box-shadow:0 24px 60px rgba(31,41,55,.32); padding:24px;
+  }
+  .sheet h2{ margin:0 0 4px; font-size:22px; }
+  .sheet .sub2{ margin:0 0 16px; color:var(--muted); font-size:14px; line-height:1.5; }
+  .tip{
+    padding:12px 0; border-top:1px solid #e2e8f0;
+  }
+  .tip:first-of-type{ border-top:none; }
+  .tip h3{ margin:0 0 4px; font-size:16px; color:#0f172a; }
+  .tip p{ margin:0; color:var(--muted); font-size:14px; line-height:1.5; }
+
+  @media (max-width:640px){
+    h1{ font-size:24px; }
+    .card{ padding:22px 18px; }
+    .modeTitle{ font-size:20px; }
+    .q{ font-size:17px; }
+    .choice{ font-size:15px; }
+  }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button class="on" id="guideBtn">🧭 Guide</button>
+  </div>
+  <h1>🧭 Test Tactics</h1>
+  <p class="sub">Learn the habits that raise scores on placement tests and SAT-style questions: eliminate wrong answers, notice the keywords, pace yourself, bubble carefully, skip and return, and decode what the question is really asking.</p>
+
+  <div class="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="modes" id="modeBar">
+    <button class="mode on" data-mode="mix"><span class="ico">🎒</span>All Skills</button>
+    <button class="mode" data-mode="eliminate"><span class="ico">✂️</span>Eliminate</button>
+    <button class="mode" data-mode="keyword"><span class="ico">🔎</span>Keyword Hunt</button>
+    <button class="mode" data-mode="pace"><span class="ico">⏱️</span>Pace It</button>
+    <button class="mode" data-mode="bubble"><span class="ico">🫧</span>Bubble In</button>
+    <button class="mode" data-mode="skip"><span class="ico">↩️</span>Skip & Return</button>
+    <button class="mode" data-mode="decode"><span class="ico">🧠</span>Decode It</button>
+  </div>
+
+  <div class="stage">
+    <div class="card" id="card">
+      <div class="hero">
+        <div>
+          <div class="badge" id="modeBadge">🎒 All Skills</div>
+          <h2 class="modeTitle" id="modeTitle">Warm up every test habit.</h2>
+          <p class="modeHelp" id="modeHelp">Mix it up and build the instincts that save points when the test gets tricky.</p>
+        </div>
+      </div>
+
+      <div class="scenario" id="scenario"></div>
+      <div class="q" id="question"></div>
+      <div class="choices" id="choices"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="coach hidden" id="coach"><span class="label">Coach move</span><span id="coachText"></span></div>
+      <div class="row">
+        <button class="btn btn-primary" id="nextBtn" style="display:none;">Next question ➡️</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="guide hidden" id="guide">
+    <div class="sheet">
+      <button class="btn btn-ghost" id="closeGuide" style="float:right;">Close</button>
+      <h2>Test Tactics Guide</h2>
+      <p class="sub2">These are the habits the app trains over and over. The goal is not only to know the answer, but to move through a test calmly and strategically.</p>
+      <div class="tip">
+        <h3>Eliminate</h3>
+        <p>Cross out answers that are impossible, too big, too small, or off topic before you do the full work.</p>
+      </div>
+      <div class="tip">
+        <h3>Keyword Hunt</h3>
+        <p>Underline words like <b>in all</b>, <b>how many more</b>, <b>best evidence</b>, and <b>still on</b> so you know what the question wants.</p>
+      </div>
+      <div class="tip">
+        <h3>Pace It</h3>
+        <p>Do not let one hard item eat the clock. Build a quick-win habit and come back later if time allows.</p>
+      </div>
+      <div class="tip">
+        <h3>Bubble In</h3>
+        <p>Keep the question number and answer sheet number matched, and check your line before moving on.</p>
+      </div>
+      <div class="tip">
+        <h3>Skip & Return</h3>
+        <p>Mark tough questions, move ahead, and return with fresh eyes if there is time at the end.</p>
+      </div>
+      <div class="tip">
+        <h3>Decode It</h3>
+        <p>Say the question in simpler words first. If you can explain the task clearly, the solving gets easier.</p>
+      </div>
+    </div>
+  </div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const shuffle = arr => arr.slice().sort(() => Math.random() - 0.5);
+
+  const DATA = window.TEST_TACTICS;
+  const MODES = DATA.MODES;
+  const modeOrder = ["mix","eliminate","keyword","pace","bubble","skip","decode"];
+  const modeButtons = [...document.querySelectorAll('.mode')];
+
+  let mode = 'mix';
+  let current = null;
+  let locked = false;
+  let correct = 0, total = 0, streak = 0;
+  const used = { mix: [], eliminate: [], keyword: [], pace: [], bubble: [], skip: [], decode: [] };
+
+  function allItems(){
+    return modeOrder
+      .filter(m => m !== 'mix')
+      .flatMap(m => MODES[m].items.map(item => Object.assign({ skill: m }, item)));
+  }
+
+  function poolFor(selected){
+    if (selected === 'mix') return allItems();
+    return MODES[selected].items.map(item => Object.assign({ skill: selected }, item));
+  }
+
+  function nextItem(){
+    const pool = poolFor(mode);
+    const key = mode;
+    if (used[key].length >= pool.length) used[key] = [];
+    const available = pool.filter((_, i) => !used[key].includes(i));
+    if (!available.length) used[key] = [];
+    const fresh = pool.filter((_, i) => !used[key].includes(i));
+    const item = pick(fresh.length ? fresh : pool);
+    const idx = pool.indexOf(item);
+    if (idx >= 0) used[key].push(idx);
+    return item;
+  }
+
+  function setScores(ok){
+    total++;
+    if (ok){
+      correct++;
+      streak++;
+    } else {
+      streak = 0;
+    }
+    $('correctCount').textContent = correct;
+    $('totalCount').textContent = total;
+    $('streak').textContent = streak;
+  }
+
+  function setMode(nextMode){
+    mode = nextMode;
+    modeButtons.forEach(btn => btn.classList.toggle('on', btn.dataset.mode === nextMode));
+    const base = nextMode === 'mix' ? { label: '🎒 All Skills', title: 'Warm up every test habit.', help: 'Mix it up and build the instincts that save points when the test gets tricky.' } : {
+      label: MODES[nextMode].icon + ' ' + MODES[nextMode].label,
+      title: MODES[nextMode].label + ' practice.',
+      help: MODES[nextMode].help
+    };
+    $('modeBadge').textContent = base.label;
+    $('modeTitle').textContent = base.title;
+    $('modeHelp').textContent = base.help;
+    renderRound();
+  }
+
+  function renderRound(){
+    locked = false;
+    current = nextItem();
+    $('scenario').innerHTML = '<b>Situation</b><br>' + esc(current.scenario);
+    $('question').innerHTML = esc(current.question);
+    $('feedback').textContent = '';
+    $('feedback').className = 'feedback';
+    $('coach').classList.add('hidden');
+    $('coachText').textContent = '';
+    $('nextBtn').style.display = 'none';
+    const box = $('choices');
+    box.innerHTML = '';
+    current.choices.forEach((choice, index) => {
+      const btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.innerHTML = esc(choice);
+      btn.onclick = () => answer(index, btn);
+      box.appendChild(btn);
+    });
+  }
+
+  function answer(index, clicked){
+    if (locked) return;
+    locked = true;
+    const buttons = [...$('choices').children];
+    const ok = index === current.answer;
+    buttons.forEach((btn, i) => {
+      btn.disabled = true;
+      if (i === current.answer) btn.classList.add('correct');
+      else if (i === index) btn.classList.add(ok ? 'correct' : 'wrong');
+    });
+    setScores(ok);
+    $('feedback').textContent = ok ? 'Correct - nice test move.' : 'Not quite, but the strategy matters.';
+    $('feedback').className = 'feedback ' + (ok ? 'good' : 'bad');
+    $('coach').classList.remove('hidden');
+    $('coachText').innerHTML = current.coach;
+    $('nextBtn').style.display = 'inline-block';
+  }
+
+  modeButtons.forEach(btn => btn.onclick = () => setMode(btn.dataset.mode));
+  $('nextBtn').onclick = renderRound;
+  $('guideBtn').onclick = () => $('guide').classList.remove('hidden');
+  $('closeGuide').onclick = () => $('guide').classList.add('hidden');
+  $('guide').onclick = e => { if (e.target === $('guide')) $('guide').classList.add('hidden'); };
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') $('guide').classList.add('hidden');
+    if (!locked && e.key >= '1' && e.key <= '4') {
+      const idx = Number(e.key) - 1;
+      const btn = $('choices').children[idx];
+      if (btn) btn.click();
+    }
+  });
+
+  renderRound();
+})();
+</script>
+</body>
+</html>

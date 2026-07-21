@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Spelling Bee</title>
+<style>
+  :root{
+    --ink:#1f2937;
+    --muted:#6b7280;
+    --accent:#d97706;
+    --accent2:#f59e0b;
+    --accent-soft:#fff7ed;
+    --accent-soft-2:#fef3c7;
+    --success:#16a34a;
+    --danger:#dc2626;
+    --shadow:0 18px 38px rgba(120,53,15,.12);
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    color:var(--ink);
+    min-height:100vh;
+    padding:20px 14px 52px;
+    background:
+      radial-gradient(circle at top left, rgba(245,158,11,.20), transparent 34%),
+      radial-gradient(circle at 85% 10%, rgba(250,204,21,.18), transparent 24%),
+      linear-gradient(160deg,#fffdf7,#fff7ed 46%,#f8fafc);
+  }
+  .nav{
+    display:flex; justify-content:center; margin-bottom:14px;
+  }
+  .nav a{
+    text-decoration:none; font-weight:800; color:var(--muted); background:#fff;
+    padding:9px 14px; border-radius:999px; box-shadow:var(--shadow);
+  }
+  header{
+    text-align:center; max-width:780px; margin:0 auto 18px;
+  }
+  .eyebrow{
+    display:inline-flex; gap:8px; align-items:center; font-size:12px; font-weight:900;
+    text-transform:uppercase; letter-spacing:.16em; color:var(--accent);
+    background:var(--accent-soft); border:1px solid rgba(217,119,6,.2);
+    padding:6px 10px; border-radius:999px; margin-bottom:10px;
+  }
+  h1{
+    margin:0; font-size:clamp(34px,5vw,52px); letter-spacing:-1.4px; line-height:1;
+  }
+  .sub{
+    margin:10px auto 0; max-width:620px; color:var(--muted); font-size:16px; line-height:1.5;
+  }
+  .meta{
+    display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin:14px auto 18px;
+  }
+  .chip{
+    background:#fff; color:var(--ink); box-shadow:var(--shadow); border-radius:999px;
+    padding:8px 14px; font-size:13px; font-weight:800; display:inline-flex; gap:6px; align-items:center;
+  }
+  .chip small{ color:var(--muted); font-weight:700; }
+  .layout{
+    width:min(100%, 1140px);
+    margin:0 auto;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(300px, 340px);
+    gap:18px;
+    align-items:start;
+  }
+  .card{
+    background:rgba(255,255,255,.88);
+    backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,.72);
+    border-radius:26px;
+    box-shadow:var(--shadow);
+    padding:22px;
+  }
+  .playcard{ min-width:0; }
+  .sidepanel{
+    display:grid;
+    gap:14px;
+    position:sticky;
+    top:14px;
+  }
+  .panelhead{
+    display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:18px;
+  }
+  .panelhead h2{ margin:0; font-size:20px; letter-spacing:-.4px; }
+  .panelhead p{ margin:4px 0 0; color:var(--muted); font-size:13px; line-height:1.45; }
+  .rank{
+    min-width:120px; text-align:right;
+  }
+  .rank b{ display:block; font-size:22px; color:var(--accent); }
+  .rank span{ color:var(--muted); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; }
+  .sectiontitle{
+    display:flex; justify-content:space-between; align-items:end; gap:10px; margin-bottom:10px;
+  }
+  .sectiontitle h3{ margin:0; font-size:18px; }
+  .sectiontitle .mini{ color:var(--muted); font-size:13px; }
+  .wordgrid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:10px;
+    max-height:320px; overflow:auto; padding-right:2px;
+  }
+  .word{
+    border-radius:999px; padding:9px 10px; text-align:center; font-size:14px; font-weight:900;
+    border:1px solid #e5e7eb; background:#fff; color:#6b7280;
+  }
+  .word.found{
+    background:linear-gradient(180deg,#ecfdf5,#fff); border-color:#bbf7d0; color:#166534;
+  }
+  .word.pangram{
+    background:linear-gradient(180deg,#fff7ed,#ffffff); border-color:#fdba74; color:#92400e;
+  }
+  .word .pts{ display:block; margin-top:2px; font-size:10px; text-transform:uppercase; letter-spacing:.1em; opacity:.78; }
+  .wordbutton{
+    width:100%;
+    border:none;
+    cursor:pointer;
+    font:inherit;
+    transition:transform .1s, box-shadow .1s, border-color .1s;
+  }
+  .wordbutton:hover{ transform:translateY(-1px); box-shadow:0 10px 20px rgba(120,53,15,.08); }
+  .wordbutton.active{
+    outline:2px solid rgba(217,119,6,.22);
+    box-shadow:0 10px 20px rgba(120,53,15,.1);
+  }
+  .scoreline{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:0 0 18px;
+  }
+  .scorebox{
+    background:linear-gradient(180deg,#fff,#fffaf0);
+    border:1px solid rgba(217,119,6,.12); border-radius:18px; padding:12px 14px;
+    text-align:center;
+  }
+  .scorebox b{ display:block; font-size:30px; color:var(--accent); line-height:1; }
+  .scorebox span{ display:block; margin-top:4px; font-size:11px; color:var(--muted); font-weight:800; text-transform:uppercase; letter-spacing:.08em; }
+  .hivewrap{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:20px;
+    align-items:start;
+    justify-items:stretch;
+    width:100%;
+  }
+  .hive{
+    position:relative; width:min(100%, 360px); aspect-ratio:1/1; margin:0 auto;
+  }
+  .hex{
+    position:absolute; transform:translate(-50%,-50%);
+    width:clamp(60px,9vw,78px); height:clamp(60px,9vw,78px);
+    border:none; cursor:pointer; clip-path:polygon(25% 6%,75% 6%,100% 50%,75% 94%,25% 94%,0 50%);
+    display:flex; align-items:center; justify-content:center;
+    font-size:clamp(26px,4vw,34px); font-weight:900; letter-spacing:-.03em;
+    box-shadow:0 10px 20px rgba(120,53,15,.18); transition:transform .12s, box-shadow .12s, filter .12s;
+    user-select:none;
+    text-shadow:0 1px 0 rgba(255,255,255,.45);
+  }
+  .hex:hover{ transform:translate(-50%,-52%) scale(1.03); box-shadow:0 14px 24px rgba(120,53,15,.22); }
+  .hex:active{ transform:translate(-50%,-50%) scale(.97); }
+  .hex.outer{
+    color:#b45309; background:linear-gradient(180deg,#fff4bf,#fde68a);
+    border:3px solid rgba(146,64,14,.46);
+    box-shadow:0 0 0 1px rgba(255,255,255,.7), 0 10px 20px rgba(120,53,15,.22);
+    text-shadow:0 1px 0 rgba(255,255,255,.65);
+  }
+  .hex.center{
+    color:#fff; background:linear-gradient(180deg,#f59e0b,#d97706);
+    border:3px solid #fff8ed;
+    box-shadow:0 0 0 1px rgba(120,53,15,.08), 0 18px 30px rgba(217,119,6,.28);
+  }
+  .hex.active{ filter:brightness(1.08); transform:translate(-50%,-52%) scale(1.06); }
+  .hex.pangram{
+    box-shadow:0 0 0 4px rgba(245,158,11,.22), 0 18px 30px rgba(217,119,6,.28), 0 0 0 1px rgba(120,53,15,.12);
+  }
+  .entrybox{
+    margin-top:10px;
+    background:linear-gradient(180deg,#fff,#fff7ed);
+    border:1px solid rgba(217,119,6,.14); border-radius:20px;
+    padding:16px 18px; text-align:center;
+    width:100%;
+  }
+  .entrylabel{
+    font-size:11px; font-weight:900; letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
+  }
+  .entry{
+    min-height:54px; display:flex; align-items:center; justify-content:center; gap:4px;
+    font-size:28px; font-weight:900; letter-spacing:.08em; margin-top:4px; word-break:break-all;
+  }
+  .entry .ghost{ color:#cbd5e1; font-weight:800; }
+  .actions{
+    display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:14px;
+    width:100%;
+  }
+  .btn{
+    border:none; border-radius:14px; font:inherit; font-weight:900; font-size:15px;
+    padding:12px 18px; cursor:pointer; transition:transform .1s, background .15s, color .15s;
+  }
+  .btn:active{ transform:scale(.97); }
+  .btn-primary{ background:var(--accent); color:#fff; }
+  .btn-primary:hover{ background:#c46a05; }
+  .btn-soft{ background:var(--accent-soft-2); color:#92400e; }
+  .btn-soft:hover{ background:#fde68a; }
+  .btn-ghost{ background:#fff; color:#374151; border:1px solid #e5e7eb; }
+  .feedback{
+    min-height:26px; margin-top:12px; font-weight:800; text-align:center; color:var(--muted);
+  }
+  .feedback.good{ color:var(--success); }
+  .feedback.bad{ color:var(--danger); }
+  .progress{
+    height:12px; background:#fde68a; border-radius:999px; overflow:hidden; margin-top:14px;
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.06);
+  }
+  .progress > div{
+    height:100%; width:0%; background:linear-gradient(90deg,#f59e0b,#16a34a); border-radius:999px; transition:width .3s;
+  }
+  .cluebox{
+    margin-top:14px; background:#fffbeb; border:1px solid #fde68a; border-radius:18px; padding:14px 16px;
+  }
+  .cluebox .label{ color:var(--muted); font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.12em; }
+  .cluebox .txt{ margin-top:6px; font-size:14px; line-height:1.45; color:#78350f; min-height:21px; }
+  .defcard{
+    background:rgba(255,255,255,.92);
+    border:1px solid rgba(217,119,6,.12);
+    border-radius:22px;
+    box-shadow:var(--shadow);
+    padding:18px;
+  }
+  .defcard h3{
+    margin:0;
+    font-size:18px;
+    letter-spacing:-.3px;
+  }
+  .defpos{
+    margin-top:4px;
+    color:var(--accent);
+    font-size:12px;
+    font-weight:900;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+  }
+  .deftext{
+    margin-top:10px;
+    font-size:15px;
+    line-height:1.55;
+    color:#374151;
+  }
+  .defexample{
+    margin-top:12px;
+    font-size:14px;
+    line-height:1.5;
+    color:#6b7280;
+    font-style:italic;
+  }
+  .defmeta{
+    margin-top:12px;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .wordhint{
+    margin-top:10px;
+    font-size:12px;
+    color:var(--muted);
+  }
+  footer{
+    max-width:1140px; margin:16px auto 0; color:var(--muted); font-size:12px; text-align:center;
+  }
+  #confetti{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf{ position:absolute; top:-20px; width:10px; height:14px; border-radius:2px; animation:fall linear forwards; }
+  @keyframes fall{ to{ transform:translateY(110vh) rotate(720deg); } }
+  @media (max-width:980px){
+    .layout{ grid-template-columns:1fr; }
+    .sidepanel{ position:static; }
+    .wordgrid{ max-height:none; }
+  }
+  @media (max-width:560px){
+    body{ padding-left:10px; padding-right:10px; }
+    .card{ padding:18px; border-radius:22px; }
+    .scoreline{ grid-template-columns:1fr; }
+    .hex{ width:56px; height:56px; font-size:22px; }
+  }
+</style>
+</head>
+<body>
+  <div id="confetti"></div>
+  <div class="nav"><a href="../index.html">🏠 Home</a></div>
+
+  <header>
+    <div class="eyebrow">Daily word hive</div>
+    <h1>Spelling Bee</h1>
+    <p class="sub">Build words from the hive, keep the center letter in every answer, and hunt for the pangram that uses every letter.</p>
+  </header>
+
+  <div class="meta" id="meta"></div>
+
+  <div class="layout">
+    <section class="card playcard" id="playcard">
+      <div class="panelhead">
+        <div>
+          <h2 id="puzzleTitle">Today's hive</h2>
+          <p id="puzzleMeta">Loading the puzzle...</p>
+        </div>
+        <div class="rank">
+          <b id="rankName">Seedling</b>
+          <span id="rankNote">points</span>
+        </div>
+      </div>
+
+      <div class="scoreline">
+        <div class="scorebox"><b id="score">0</b><span>score</span></div>
+        <div class="scorebox"><b id="foundCount">0</b><span>found</span></div>
+        <div class="scorebox"><b id="pangramCount">0</b><span>pangrams</span></div>
+      </div>
+
+      <div class="hivewrap">
+        <div>
+          <div class="hive" id="hive"></div>
+          <div class="entrybox">
+            <div class="entrylabel">Current word</div>
+            <div class="entry" id="entry"><span class="ghost">Tap letters or type</span></div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" id="submitBtn">Submit</button>
+            <button class="btn btn-soft" id="shuffleBtn">Shuffle hive</button>
+            <button class="btn btn-ghost" id="clearBtn">Clear</button>
+            <button class="btn btn-ghost" id="hintBtn">Hint</button>
+            <button class="btn btn-ghost" id="nextBtn">Next hive</button>
+          </div>
+          <div class="progress" aria-label="score progress"><div id="progressBar"></div></div>
+          <div class="feedback" id="feedback">Words must use only the hive letters and include the center letter.</div>
+          <div class="cluebox">
+            <div class="label">Hint</div>
+            <div class="txt" id="clueText">A pangram uses every letter at least once.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="sidepanel">
+      <section class="defcard">
+        <div class="sectiontitle">
+          <div>
+            <h3 id="definitionWord">Definition</h3>
+            <div class="mini" id="definitionPos">Select a found word</div>
+          </div>
+        </div>
+        <div class="deftext" id="definitionText">When you solve a word, its definition will appear here. Tap a found word to revisit it.</div>
+        <div class="defexample" id="definitionExample"></div>
+        <div class="defmeta" id="definitionMeta"></div>
+      </section>
+
+      <section class="card">
+        <div class="sectiontitle" style="margin-bottom:12px;">
+          <div>
+            <h3>Found words</h3>
+            <div class="mini" id="foundMeta">0 of 0 words</div>
+          </div>
+          <div class="mini" id="maxScore">0 pts possible</div>
+        </div>
+        <div class="wordgrid" id="foundWords"></div>
+        <div class="wordhint">Found words stay on the right so the puzzle stays open and easier to scan.</div>
+      </section>
+    </aside>
+  </div>
+
+  <footer>Inspired by the classic spelling-bee format. Built as a fresh local version for this app hub.</footer>
+
+<script src="words.js?v=1"></script>
+<script src="app.js?v=3"></script>
+</body>
+</html>

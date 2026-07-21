@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Reading Rescue</title>
+<style>
+  :root{
+    --ink:#1d2a31; --muted:#5d7280; --accent:#0f766e; --accent-soft:#ccfbf1;
+    --accent2:#f59e0b; --paper:#fffef8; --line:#e5efe9; --correct:#16a34a; --wrong:#dc2626;
+    --evidence:#fef3c7; --shadow:0 14px 38px rgba(15,118,110,.14);
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; min-height:100vh; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:
+      radial-gradient(circle at top left, rgba(245,158,11,.18), transparent 28%),
+      radial-gradient(circle at 85% 10%, rgba(20,184,166,.14), transparent 26%),
+      linear-gradient(160deg,#f6fffb,#f8fafc 45%,#fffaf0);
+    display:flex; flex-direction:column; align-items:center; padding:22px 16px 60px;
+  }
+  .nav{
+    position:sticky; top:10px; z-index:70; display:flex; gap:8px; flex-wrap:wrap; justify-content:center;
+    background:rgba(255,255,255,.94); backdrop-filter:blur(8px); border-radius:14px; box-shadow:var(--shadow); padding:6px; margin-bottom:14px;
+  }
+  .nav a,.nav button{
+    text-decoration:none; border:none; background:transparent; color:var(--muted); font-family:inherit; font-weight:800;
+    font-size:14px; padding:8px 14px; border-radius:10px; cursor:pointer;
+  }
+  .nav a.on,.nav button.on{ background:var(--accent); color:#fff; }
+  .nav button:hover{ background:var(--accent-soft); color:var(--accent); }
+  h1{ margin:4px 0 4px; font-size:28px; letter-spacing:-.6px; }
+  .sub{ margin:0 0 18px; max-width:760px; text-align:center; color:var(--muted); font-size:15px; line-height:1.55; }
+
+  .controls{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:14px; }
+  .seg{
+    display:flex; gap:4px; flex-wrap:wrap; justify-content:center; background:#fff; border-radius:14px; box-shadow:var(--shadow); padding:5px;
+  }
+  .seg button{
+    border:none; background:transparent; color:var(--muted); font-family:inherit; font-weight:800; font-size:14px;
+    padding:9px 15px; border-radius:10px; cursor:pointer; transition:background .15s, color .15s;
+  }
+  .seg button.on{ background:var(--accent); color:#fff; }
+  .seg button.warn.on{ background:var(--accent2); color:#1d2a31; }
+
+  .scorebar{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:18px; }
+  .chip{
+    background:#fff; border-radius:999px; box-shadow:var(--shadow); padding:8px 16px; font-weight:800; font-size:14px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .chip small{ color:var(--muted); font-weight:600; }
+  .chip.timer{ color:var(--accent2); }
+  .chip.streak{ color:#ea580c; }
+  .chip.hidden{ display:none; }
+
+  .stage{ width:100%; max-width:860px; }
+  .card{
+    background:rgba(255,255,255,.97); border-radius:28px; box-shadow:var(--shadow); overflow:hidden;
+  }
+  .mast{
+    padding:26px 24px 18px;
+    background:
+      linear-gradient(135deg, rgba(15,118,110,.08), rgba(245,158,11,.10)),
+      linear-gradient(160deg,#ffffff,#f8fffd);
+    border-bottom:1px solid var(--line);
+  }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px; background:var(--accent-soft); color:var(--accent); font-weight:900;
+    text-transform:uppercase; letter-spacing:.45px; font-size:12px; padding:7px 12px; border-radius:999px;
+  }
+  .titleRow{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:10px; }
+  .ptitle{ margin:0; font-size:28px; letter-spacing:-.7px; }
+  .phook{ margin:6px 0 0; color:var(--muted); line-height:1.5; max-width:560px; }
+  .byline{ margin:8px 0 0; color:var(--accent); font-size:13px; font-weight:800; letter-spacing:.2px; }
+  .burst{
+    display:inline-flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--line); border-radius:14px; padding:10px 12px;
+    font-size:13px; font-weight:800; color:var(--muted);
+  }
+  .burst b{ color:var(--ink); }
+
+  .body{ padding:22px 24px 26px; }
+  .passageWrap{
+    background:var(--paper); border:1px solid #efe7d2; border-radius:20px; padding:20px 18px; margin-bottom:18px;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.6);
+  }
+  .passageHead{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:10px;
+  }
+  .passageHead .label{ font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.5px; color:var(--accent); }
+  .passageHead .level{ font-size:12px; font-weight:800; color:var(--muted); }
+  .passage{
+    font-family:Georgia,"Times New Roman",serif; font-size:19px; line-height:1.95; color:#28343c;
+  }
+  .passage p{ margin:0 0 14px; }
+  .passage p:last-child{ margin-bottom:0; }
+  .chunk{
+    border-radius:8px; padding:1px 2px; transition:background .18s, box-shadow .18s;
+  }
+  .chunk.hi{
+    background:var(--evidence);
+    box-shadow:0 0 0 2px rgba(245,158,11,.14);
+  }
+
+  .qcard{
+    background:#fff; border:1px solid var(--line); border-radius:22px; padding:20px 18px;
+  }
+  .qtop{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .skill{
+    display:inline-flex; align-items:center; gap:8px; background:#ecfeff; color:#0f766e; border-radius:999px; padding:6px 11px;
+    font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.45px;
+  }
+  .qnum{ font-size:12px; font-weight:800; color:var(--muted); }
+  .prompt{ font-size:20px; font-weight:900; line-height:1.45; margin:0 0 14px; }
+  .choices{ display:flex; flex-direction:column; gap:10px; }
+  .choice{
+    border:3px solid #dce9e3; background:#fff; border-radius:16px; color:var(--ink); font:inherit; font-weight:700; font-size:16px;
+    line-height:1.45; text-align:left; padding:14px 16px; cursor:pointer; transition:border-color .15s, background .15s, transform .1s;
+  }
+  .choice:hover:not(:disabled){ border-color:var(--accent); background:#f0fdfa; }
+  .choice:active{ transform:scale(.99); }
+  .choice.correct{ border-color:var(--correct); background:#dcfce7; color:#166534; }
+  .choice.wrong{ border-color:var(--wrong); background:#fee2e2; color:#991b1b; }
+  .choice:disabled{ cursor:default; }
+  .feedback{ min-height:26px; margin-top:14px; text-align:center; font-size:17px; font-weight:900; }
+  .feedback.good{ color:var(--correct); }
+  .feedback.bad{ color:var(--wrong); }
+  .explain{
+    display:none; margin-top:12px; background:#f8fffd; border-left:4px solid var(--accent); border-radius:10px; padding:13px 14px;
+    color:#21505a; line-height:1.55; font-size:14.5px;
+  }
+  .explain.show{ display:block; }
+  .explain .xk{ display:block; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.5px; color:var(--accent); margin-bottom:4px; }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:16px; }
+  .btn{
+    border:none; border-radius:14px; font-family:inherit; font-size:15px; font-weight:800; padding:13px 18px; cursor:pointer;
+    transition:transform .1s, background .15s, color .15s;
+  }
+  .btn:active{ transform:scale(.97); }
+  .btn-primary{ background:var(--accent); color:#fff; }
+  .btn-primary:hover{ background:#0d5f58; }
+  .btn-ghost{ background:var(--accent-soft); color:var(--accent); }
+  .btn-ghost:hover{ background:#b8f3ea; }
+  .btn-warn{ background:#fef3c7; color:#a16207; }
+  .btn-warn:hover{ background:#fde68a; }
+
+  .modal{ position:fixed; inset:0; background:rgba(20,28,38,.45); z-index:90; display:flex; align-items:center; justify-content:center; padding:18px; }
+  .modal.hidden{ display:none; }
+  .sheet{
+    width:100%; max-width:620px; max-height:82vh; overflow:auto; background:#fff; border-radius:22px; box-shadow:0 24px 60px rgba(29,42,49,.32); padding:24px;
+  }
+  .sheet h2{ margin:0 0 4px; font-size:22px; }
+  .sheet .sub2{ margin:0 0 16px; color:var(--muted); font-size:14px; line-height:1.5; }
+  .tip{ padding:12px 0; border-top:1px solid var(--line); }
+  .tip:first-of-type{ border-top:none; }
+  .tip h3{ margin:0 0 4px; font-size:16px; }
+  .tip p{ margin:0; color:var(--muted); font-size:14px; line-height:1.5; }
+
+  @media (max-width:720px){
+    .ptitle{ font-size:24px; }
+    .prompt{ font-size:18px; }
+    .passage{ font-size:18px; line-height:1.85; }
+    .mast,.body{ padding-left:18px; padding-right:18px; }
+  }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">Home</a>
+    <button id="guideBtn" class="on">Guide</button>
+  </div>
+  <h1>Reading Rescue</h1>
+  <p class="sub">Read short passages, answer a burst of test-style questions, and reveal the exact evidence that supports each answer. Practice mode lets you slow down. Timed mode trains the steady pace placement tests reward.</p>
+
+  <div class="controls">
+    <div class="seg" id="modeSeg">
+      <button data-mode="practice" class="on">Practice Mode</button>
+      <button data-mode="timed" class="warn">Timed Burst</button>
+    </div>
+  </div>
+
+  <div class="scorebar">
+    <div class="chip">Correct <span id="correctCount">0</span> <small>right</small></div>
+    <div class="chip">Tried <span id="totalCount">0</span> <small>answered</small></div>
+    <div class="chip streak">Streak <span id="streak">0</span> <small>in a row</small></div>
+    <div class="chip">Passages <span id="passageCount">0</span> <small>finished</small></div>
+    <div class="chip timer hidden" id="timerChip">Time <span id="timerText">1:35</span> <small>left</small></div>
+  </div>
+
+  <div class="stage" id="stage"></div>
+
+  <div class="modal hidden" id="guideModal">
+    <div class="sheet">
+      <button class="btn btn-ghost" id="closeGuide" style="float:right;">Close</button>
+      <h2>Reading Rescue Guide</h2>
+      <p class="sub2">Each passage comes with a question burst. After each answer, you can reveal highlighted evidence in the text so the app teaches the habit, not just the score.</p>
+      <div class="tip">
+        <h3>Main Idea</h3>
+        <p>Ask what the whole passage is mostly about, not which one detail sounds impressive.</p>
+      </div>
+      <div class="tip">
+        <h3>Inference</h3>
+        <p>Use clues from the text to figure out something the author suggests without stating directly.</p>
+      </div>
+      <div class="tip">
+        <h3>Author's Purpose</h3>
+        <p>Think about why the writer included a detail, sentence, or whole section.</p>
+      </div>
+      <div class="tip">
+        <h3>Text Evidence</h3>
+        <p>Pick the line that best proves an answer. Strong evidence is direct and specific.</p>
+      </div>
+      <div class="tip">
+        <h3>Vocabulary in Context</h3>
+        <p>Use nearby words and the situation in the passage to figure out what a word means there.</p>
+      </div>
+      <div class="tip">
+        <h3>Timed Burst</h3>
+        <p>The timer covers the whole passage burst, not one question at a time. Move steadily, skip panic, and keep reading with purpose.</p>
+      </div>
+    </div>
+  </div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const shuffle = a => { const b = a.slice(); for (let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]]; } return b; };
+
+  const DATA = window.READING_RESCUE;
+  const stage = $("stage");
+  const modeButtons = [...document.querySelectorAll("#modeSeg button")];
+
+  let mode = "practice";
+  let queue = shuffle(DATA.passages.slice());
+  let currentPassage = null;
+  let qi = 0;
+  let answered = false;
+  let evidenceShown = false;
+  let timer = null;
+  let timeLeft = DATA.burstTime;
+  let correct = 0, total = 0, streak = 0, passagesDone = 0;
+
+  function updateStats(){
+    $("correctCount").textContent = correct;
+    $("totalCount").textContent = total;
+    $("streak").textContent = streak;
+    $("passageCount").textContent = passagesDone;
+  }
+
+  function formatTime(sec){
+    const m = Math.floor(sec / 60);
+    const s = String(sec % 60).padStart(2, "0");
+    return m + ":" + s;
+  }
+
+  function showTimer(show){
+    $("timerChip").classList.toggle("hidden", !show);
+    $("timerText").textContent = formatTime(timeLeft);
+  }
+
+  function stopTimer(){
+    if (timer){ clearInterval(timer); timer = null; }
+  }
+
+  function startTimer(reset){
+    stopTimer();
+    if (reset) timeLeft = currentPassage.time || DATA.burstTime;
+    showTimer(mode === "timed");
+    if (mode !== "timed") return;
+    timer = setInterval(() => {
+      timeLeft--;
+      $("timerText").textContent = formatTime(Math.max(0, timeLeft));
+      if (timeLeft <= 0){
+        stopTimer();
+        timeExpired();
+      }
+    }, 1000);
+  }
+
+  function nextPassage(){
+    if (!queue.length) queue = shuffle(DATA.passages.slice());
+    currentPassage = queue.shift();
+    qi = 0;
+    answered = false;
+    evidenceShown = false;
+    startTimer(true);
+    render();
+  }
+
+  function setMode(nextMode){
+    mode = nextMode;
+    modeButtons.forEach(btn => btn.classList.toggle("on", btn.dataset.mode === nextMode));
+    if (currentPassage) startTimer(true);
+    render();
+  }
+
+  function passageHTML(){
+    const paras = currentPassage.paragraphs.map(group => {
+      const spans = group.map(part => `<span class="chunk" data-ev="${esc(part.id)}">${esc(part.text)}</span>`).join(" ");
+      return `<p>${spans}</p>`;
+    }).join("");
+    return `
+      <div class="passageWrap">
+        <div class="passageHead">
+          <div class="label">${esc(currentPassage.tag)}</div>
+          <div class="level">${esc(currentPassage.level)}</div>
+        </div>
+        <div class="passage">${paras}</div>
+      </div>
+    `;
+  }
+
+  function clearEvidence(){
+    stage.querySelectorAll(".chunk.hi").forEach(el => el.classList.remove("hi"));
+  }
+
+  function showEvidence(ids){
+    clearEvidence();
+    ids.forEach(id => {
+      stage.querySelectorAll(".chunk").forEach(el => {
+        if (el.dataset.ev === id) el.classList.add("hi");
+      });
+    });
+    evidenceShown = true;
+  }
+
+  function bump(ok){
+    total++;
+    if (ok){
+      correct++;
+      streak++;
+    } else {
+      streak = 0;
+    }
+    updateStats();
+  }
+
+  function revealResult(ok, selectedIndex, timedOut){
+    const q = currentPassage.questions[qi];
+    stopTimer();
+    const choices = [...stage.querySelectorAll(".choice")];
+    choices.forEach((btn, i) => {
+      btn.disabled = true;
+      if (i === q.answer) btn.classList.add("correct");
+      else if (!timedOut && i === selectedIndex) btn.classList.add("wrong");
+    });
+    if (timedOut){
+      total++;
+      streak = 0;
+      updateStats();
+    } else {
+      bump(ok);
+    }
+    answered = true;
+    const fb = $("feedback");
+    fb.textContent = timedOut ? "Time is up. Use the evidence and keep moving." : (ok ? "Correct." : "Not quite.");
+    fb.className = "feedback " + ((timedOut || !ok) ? "bad" : "good");
+    const ex = $("explain");
+    ex.classList.add("show");
+    ex.innerHTML = `<span class="xk">Why this answer works</span>${esc(q.explain)}${q.note ? ` <br><br><b>Evidence clue:</b> ${esc(q.note)}` : ""}`;
+    $("evidenceBtn").style.display = "inline-block";
+    $("nextBtn").style.display = "inline-block";
+  }
+
+  function answer(i){
+    if (answered) return;
+    const q = currentPassage.questions[qi];
+    revealResult(i === q.answer, i, false);
+  }
+
+  function timeExpired(){
+    if (answered) return;
+    revealResult(false, -1, true);
+  }
+
+  function advance(){
+    clearEvidence();
+    evidenceShown = false;
+    if (qi < currentPassage.questions.length - 1){
+      qi++;
+      answered = false;
+      if (mode === "timed") startTimer(false);
+      render();
+      return;
+    }
+    passagesDone++;
+    updateStats();
+    nextPassage();
+  }
+
+  function render(){
+    if (!currentPassage) return;
+    showTimer(mode === "timed");
+    const q = currentPassage.questions[qi];
+    stage.innerHTML = `
+      <div class="card">
+        <div class="mast">
+          <div class="eyebrow">Reading Rescue</div>
+          <div class="titleRow">
+            <div>
+              <h2 class="ptitle">${esc(currentPassage.title)}</h2>
+              <p class="phook">${esc(currentPassage.hook)}</p>
+              ${currentPassage.author ? `<p class="byline">by ${esc(currentPassage.author)}</p>` : ""}
+            </div>
+            <div class="burst">Burst <b>${qi + 1} / ${currentPassage.questions.length}</b></div>
+          </div>
+        </div>
+        <div class="body">
+          ${passageHTML()}
+          <div class="qcard">
+            <div class="qtop">
+              <div class="skill">${esc(q.skill)}</div>
+              <div class="qnum">${mode === "timed" ? "Timed burst" : "Practice burst"}</div>
+            </div>
+            <p class="prompt">${esc(q.prompt)}</p>
+            <div class="choices">
+              ${q.choices.map((choice, i) => `<button class="choice" data-i="${i}">${esc(choice)}</button>`).join("")}
+            </div>
+            <div class="feedback" id="feedback"></div>
+            <div class="explain" id="explain"></div>
+            <div class="row">
+              <button class="btn btn-warn" id="evidenceBtn" style="display:none;">Show the evidence</button>
+              <button class="btn btn-primary" id="nextBtn" style="display:none;">${qi < currentPassage.questions.length - 1 ? "Next question" : "Next passage"}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    [...stage.querySelectorAll(".choice")].forEach(btn => {
+      btn.onclick = () => answer(Number(btn.dataset.i));
+    });
+    $("evidenceBtn").onclick = () => {
+      if (!evidenceShown) showEvidence(q.evidence);
+      else clearEvidence();
+      evidenceShown = !evidenceShown;
+      $("evidenceBtn").textContent = evidenceShown ? "Hide the evidence" : "Show the evidence";
+    };
+    $("nextBtn").onclick = advance;
+  }
+
+  modeButtons.forEach(btn => btn.onclick = () => setMode(btn.dataset.mode));
+  $("guideBtn").onclick = () => $("guideModal").classList.remove("hidden");
+  $("closeGuide").onclick = () => $("guideModal").classList.add("hidden");
+  $("guideModal").onclick = e => { if (e.target === $("guideModal")) $("guideModal").classList.add("hidden"); };
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") $("guideModal").classList.add("hidden");
+    if (!answered && e.key >= "1" && e.key <= "4"){
+      const btn = stage.querySelector(`.choice[data-i="${Number(e.key)-1}"]`);
+      if (btn) btn.click();
+    } else if (answered && e.key === "Enter"){
+      const next = $("nextBtn");
+      if (next && next.style.display !== "none") next.click();
+    }
+  });
+
+  updateStats();
+  nextPassage();
+})();
+</script>
+</body>
+</html>
