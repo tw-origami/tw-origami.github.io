@@ -47,6 +47,9 @@
   .app.soon .icon{ background:#eef2ff; }
 
   footer{ margin-top:44px; color:var(--muted); font-size:13px; text-align:center; }
+  .dev-wrap{ margin-top:14px; }
+  .dev-btn{ display:inline-flex; align-items:center; gap:7px; text-decoration:none; font-weight:800; font-size:13px; color:var(--muted); background:#fff; border:1.5px dashed #c7d2fe; padding:9px 16px; border-radius:999px; transition:color .15s, border-color .15s, border-style .15s; }
+  .dev-btn:hover{ color:var(--accent); border-color:var(--accent); border-style:solid; }
 </style>
 </head>
 <body>
@@ -173,20 +176,6 @@
       <div class="go">Open →</div>
     </a>
 
-    <!-- FRACTION KITCHEN -->
-    <a class="app" href="fractionkitchen/index.html">
-      <div class="icon">🍳</div>
-      <h2>Fraction Kitchen</h2>
-      <p>Run a virtual kitchen by scaling recipes, reading measuring bars, and fixing wrong batches so fractions, ratios, and proportions feel hands-on instead of abstract.</p>
-      <div class="tags">
-        <span class="tag">Scale Recipes</span>
-        <span class="tag">Measure Fractions</span>
-        <span class="tag">Fix the Batch</span>
-        <span class="tag">Ratios</span>
-        <span class="tag">Proportions</span>
-      </div>
-      <div class="go">Open →</div>
-    </a>
 
     <!-- TYPING APP -->
     <a class="app" href="typing/index.html">
@@ -313,19 +302,6 @@
       <div class="go">Open →</div>
     </a>
 
-    <!-- TRADE TOWN -->
-    <a class="app" href="trades/index.html">
-      <div class="icon">🔧</div>
-      <h2>Trade Town</h2>
-      <p>Learn the trades by building. Wire a circuit until the bulb lights, run pipes till the water flows, draw a floor plan, and raise a house step by step.</p>
-      <div class="tags">
-        <span class="tag">Circuits</span>
-        <span class="tag">Plumbing</span>
-        <span class="tag">Blueprints</span>
-        <span class="tag">Building</span>
-      </div>
-      <div class="go">Open →</div>
-    </a>
 
     <!-- MONEY SMARTS -->
     <a class="app" href="money/index.html">
@@ -341,50 +317,9 @@
       <div class="go">Open →</div>
     </a>
 
-    <!-- CARS APP -->
-    <a class="app" href="cars/index.html">
-      <div class="icon">🔧</div>
-      <h2>Grease Monkey Garage</h2>
-      <p>Learn what's inside a car and how it works — name the parts, find them under the hood, see how engines run, and fix what's broken like a real mechanic.</p>
-      <div class="tags">
-        <span class="tag">Name That Part</span>
-        <span class="tag">Under the Hood</span>
-        <span class="tag">How It Works</span>
-        <span class="tag">Fix It Shop</span>
-        <span class="tag">Dashboard</span>
-      </div>
-      <div class="go">Open →</div>
-    </a>
 
-    <!-- STARTUP STUDIO -->
-    <a class="app" href="business/index.html">
-      <div class="icon">📈</div>
-      <h2>Startup Studio</h2>
-      <p>Run your own company for 7 days — buy stock, set prices, market it, and chase profit — then master the money math, departments, and smart boss moves behind a business.</p>
-      <div class="tags">
-        <span class="tag">Run It</span>
-        <span class="tag">Profit or Loss</span>
-        <span class="tag">Pricing</span>
-        <span class="tag">Departments</span>
-        <span class="tag">Strategy</span>
-      </div>
-      <div class="go">Open →</div>
-    </a>
 
-    <!-- BUDGET BOSS -->
-    <a class="app" href="budget/index.html">
-      <div class="icon">💵</div>
-      <h2>Budget Boss</h2>
-      <p>Take charge of your own money — build a monthly budget, tell needs from wants, handle life's surprise expenses, and grow your savings without falling into debt.</p>
-      <div class="tags">
-        <span class="tag">Budget Builder</span>
-        <span class="tag">Need or Want</span>
-        <span class="tag">Expense Sorter</span>
-        <span class="tag">Smart Money</span>
-        <span class="tag">Budget Math</span>
-      </div>
-      <div class="go">Open →</div>
-    </a>
+
 
     <!-- LIT DEVICES LAB -->
     <a class="app" href="english/index.html">
@@ -471,19 +406,6 @@
       <div class="go">Open →</div>
     </a>
 
-    <!-- ESPAÑOL START -->
-    <a class="app" href="espanol/index.html">
-      <div class="icon">🇪🇸</div>
-      <h2>Español Start</h2>
-      <p>Walk into Spanish 1 already ahead: unlock the cognate superpower (and dodge the false-friend traps), match essential words, respond in real conversations, and build your first sentences.</p>
-      <div class="tags">
-        <span class="tag">Cognates</span>
-        <span class="tag">Vocabulary</span>
-        <span class="tag">Phrases</span>
-        <span class="tag">Sentences</span>
-      </div>
-      <div class="go">Open →</div>
-    </a>
 
     <!-- GEOMETRY GYM -->
     <a class="app" href="geometry/index.html">
@@ -529,19 +451,6 @@
       <div class="go">Open →</div>
     </a>
 
-    <!-- SIGN LANGUAGE APP -->
-    <a class="app" href="signs/index.html">
-      <div class="icon">🤟</div>
-      <h2>Sign &amp; Say</h2>
-      <p>Learn basic ASL / baby signs from real signer videos — everyday words, flashcards, a watch-and-guess quiz, and simple sentences to start communicating with your hands.</p>
-      <div class="tags">
-        <span class="tag">Learn Signs</span>
-        <span class="tag">Flashcards</span>
-        <span class="tag">Quiz</span>
-        <span class="tag">Sentences</span>
-      </div>
-      <div class="go">Open →</div>
-    </a>
 
     <!-- Placeholder for future apps -->
     <div class="app soon">
@@ -551,7 +460,10 @@
     </div>
   </div>
 
-  <footer>Made with ❤️</footer>
+  <footer>
+    Made with ❤️
+    <div class="dev-wrap"><a href="dev.html" class="dev-btn">🚧 Under development</a></div>
+  </footer>
 
 <script>
   // A fresh learning quote each visit (from growthengineering.co.uk/quotes-about-learning).

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Under Development · The Learn Zone</title>
+<style>
+  :root{
+    --ink:#1e293b; --muted:#64748b; --accent:#4f46e5; --accent-soft:#eef2ff;
+    --shadow:0 10px 30px rgba(30,41,99,.12);
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#eef2ff,#f8fafc); min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; padding:48px 18px 60px;
+  }
+  header{ text-align:center; margin-bottom:36px; }
+  h1{ font-size:38px; margin:0 0 6px; letter-spacing:-1px; }
+  .tagline{ color:var(--muted); font-size:17px; margin:0 auto; max-width:620px; line-height:1.5; font-style:italic; min-height:1.5em; }
+  .tagline .qa{ display:block; margin-top:8px; font-size:14px; font-style:normal; font-weight:700; opacity:.85; }
+
+  .grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+    gap:20px; width:100%; max-width:900px;
+  }
+  .app{
+    display:flex; flex-direction:column; text-decoration:none; color:inherit;
+    background:#fff; border-radius:22px; box-shadow:var(--shadow); padding:26px;
+    transition:transform .15s, box-shadow .15s; border:2px solid transparent;
+  }
+  .app:hover{ transform:translateY(-4px); box-shadow:0 18px 40px rgba(30,41,99,.18); border-color:var(--accent); }
+  .app .icon{
+    width:64px; height:64px; border-radius:16px; display:flex; align-items:center; justify-content:center;
+    font-size:34px; margin-bottom:16px; background:var(--accent-soft);
+  }
+  .app h2{ margin:0 0 6px; font-size:22px; }
+  .app p{ margin:0 0 14px; color:var(--muted); font-size:15px; line-height:1.4; flex:1; }
+  .app .tags{ display:flex; gap:6px; flex-wrap:wrap; }
+  .tag{ font-size:12px; font-weight:700; color:var(--accent); background:var(--accent-soft); padding:4px 10px; border-radius:999px; }
+  .app .go{ margin-top:16px; font-weight:800; color:var(--accent); font-size:15px; }
+
+  /* placeholder card for future apps */
+  .app.soon{ background:transparent; box-shadow:none; border:2px dashed #c7d2fe; cursor:default; align-items:center; justify-content:center; text-align:center; color:var(--muted); }
+  .app.soon:hover{ transform:none; border-color:#c7d2fe; box-shadow:none; }
+  .app.soon .icon{ background:#eef2ff; }
+
+  footer{ margin-top:44px; color:var(--muted); font-size:13px; text-align:center; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>🚧 Under Development</h1>
+    <p class="tagline">Apps I’m still building and testing — expect rough edges. <a href="index.html" style="color:var(--accent);font-weight:700;font-style:normal;text-decoration:none;">← Back to The Learn Zone</a></p>
+  </header>
+
+  <div class="grid">
+    <!-- SIGN LANGUAGE APP -->
+    <a class="app" href="signs/index.html">
+      <div class="icon">🤟</div>
+      <h2>Sign &amp; Say</h2>
+      <p>Learn basic ASL / baby signs from real signer videos — everyday words, flashcards, a watch-and-guess quiz, and simple sentences to start communicating with your hands.</p>
+      <div class="tags">
+        <span class="tag">Learn Signs</span>
+        <span class="tag">Flashcards</span>
+        <span class="tag">Quiz</span>
+        <span class="tag">Sentences</span>
+      </div>
+      <div class="go">Open →</div>
+    </a>
+
+    <!-- ESPAÑOL START -->
+    <a class="app" href="espanol/index.html">
+      <div class="icon">🇪🇸</div>
+      <h2>Español Start</h2>
+      <p>Walk into Spanish 1 already ahead: unlock the cognate superpower (and dodge the false-friend traps), match essential words, respond in real conversations, and build your first sentences.</p>
+      <div class="tags">
+        <span class="tag">Cognates</span>
+        <span class="tag">Vocabulary</span>
+        <span class="tag">Phrases</span>
+        <span class="tag">Sentences</span>
+      </div>
+      <div class="go">Open →</div>
+    </a>
+
+    <!-- BUDGET BOSS -->
+    <a class="app" href="budget/index.html">
+      <div class="icon">💵</div>
+      <h2>Budget Boss</h2>
+      <p>Take charge of your own money — build a monthly budget, tell needs from wants, handle life's surprise expenses, and grow your savings without falling into debt.</p>
+      <div class="tags">
+        <span class="tag">Budget Builder</span>
+        <span class="tag">Need or Want</span>
+        <span class="tag">Expense Sorter</span>
+        <span class="tag">Smart Money</span>
+        <span class="tag">Budget Math</span>
+      </div>
+      <div class="go">Open →</div>
+    </a>
+
+    <!-- STARTUP STUDIO -->
+    <a class="app" href="business/index.html">
+      <div class="icon">📈</div>
+      <h2>Startup Studio</h2>
+      <p>Run your own company for 7 days — buy stock, set prices, market it, and chase profit — then master the money math, departments, and smart boss moves behind a business.</p>
+      <div class="tags">
+        <span class="tag">Run It</span>
+        <span class="tag">Profit or Loss</span>
+        <span class="tag">Pricing</span>
+        <span class="tag">Departments</span>
+        <span class="tag">Strategy</span>
+      </div>
+      <div class="go">Open →</div>
+    </a>
+
+    <!-- CARS APP -->
+    <a class="app" href="cars/index.html">
+      <div class="icon">🔧</div>
+      <h2>Grease Monkey Garage</h2>
+      <p>Learn what's inside a car and how it works — name the parts, find them under the hood, see how engines run, and fix what's broken like a real mechanic.</p>
+      <div class="tags">
+        <span class="tag">Name That Part</span>
+        <span class="tag">Under the Hood</span>
+        <span class="tag">How It Works</span>
+        <span class="tag">Fix It Shop</span>
+        <span class="tag">Dashboard</span>
+      </div>
+      <div class="go">Open →</div>
+    </a>
+
+    <!-- TRADE TOWN -->
+    <a class="app" href="trades/index.html">
+      <div class="icon">🔧</div>
+      <h2>Trade Town</h2>
+      <p>Learn the trades by building. Wire a circuit until the bulb lights, run pipes till the water flows, draw a floor plan, and raise a house step by step.</p>
+      <div class="tags">
+        <span class="tag">Circuits</span>
+        <span class="tag">Plumbing</span>
+        <span class="tag">Blueprints</span>
+        <span class="tag">Building</span>
+      </div>
+      <div class="go">Open →</div>
+    </a>
+
+    <!-- FRACTION KITCHEN -->
+    <a class="app" href="fractionkitchen/index.html">
+      <div class="icon">🍳</div>
+      <h2>Fraction Kitchen</h2>
+      <p>Run a virtual kitchen by scaling recipes, reading measuring bars, and fixing wrong batches so fractions, ratios, and proportions feel hands-on instead of abstract.</p>
+      <div class="tags">
+        <span class="tag">Scale Recipes</span>
+        <span class="tag">Measure Fractions</span>
+        <span class="tag">Fix the Batch</span>
+        <span class="tag">Ratios</span>
+        <span class="tag">Proportions</span>
+      </div>
+      <div class="go">Open →</div>
+    </a>
+  </div>
+
+  <footer>Work in progress · <a href="index.html" style="color:var(--accent);text-decoration:none;">← Home</a></footer>
+</body>
+</html>
