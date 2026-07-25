@@ -10,12 +10,48 @@
   const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(0,i);[a[i],a[j]]=[a[j],a[i]];}return a;};
   const money=c=>'$'+(c/100).toFixed(2);
   const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  // if a coin/bill image 404s, try the other extension (png<->jpg), then fall back to the plain coin
+  window._coinImgAlt=function(img){ if(img.dataset.alt){ img.remove(); return; } img.dataset.alt='1';
+    var s=img.src; img.src = /\.png$/i.test(s) ? s.replace(/\.png$/i,'.jpg') : s.replace(/\.jpe?g$/i,'.png'); };
 
   // denominations in cents
-  const COINS=[{k:'penny',v:1,lbl:'1¢'},{k:'nickel',v:5,lbl:'5¢'},{k:'dime',v:10,lbl:'10¢'},{k:'quarter',v:25,lbl:'25¢'}];
-  const BILLS=[{v:100,lbl:'$1'},{v:500,lbl:'$5'},{v:1000,lbl:'$10'},{v:2000,lbl:'$20'}];
-  const coinHTML=c=>`<div class="coin ${c.k}">${c.lbl}</div>`;
-  const billHTML=b=>`<div class="bill">${b.lbl}</div>`;
+  // img: front/back photos dropped into money/coins/<coin>/ and money/bills/<bill>/.
+  // Missing images fall back to a plain colored coin/bill automatically.
+  const COINS=[
+    {k:'penny',  v:1, lbl:'1¢',  name:'penny',   img:{front:'coins/penny/front.png',   back:'coins/penny/back.png'}},
+    {k:'nickel', v:5, lbl:'5¢',  name:'nickel',  img:{front:'coins/nickel/front.png',  back:'coins/nickel/back.png'}},
+    {k:'dime',   v:10,lbl:'10¢', name:'dime',    img:{front:'coins/dime/front.png',    back:'coins/dime/back.png'}},
+    {k:'quarter',v:25,lbl:'25¢', name:'quarter', img:{front:'coins/quarter/front.png', back:'coins/quarter/back.png'}}
+  ];
+  const BILLS=[
+    {v:100,  lbl:'$1',   name:'dollar',              img:{front:'bills/dollar/front.jpg',  back:'bills/dollar/back.jpg'}},
+    {v:500,  lbl:'$5',   name:'five dollars',        img:{front:'bills/five/front.jpg',    back:'bills/five/back.jpg'}},
+    {v:1000, lbl:'$10',  name:'ten dollars',         img:{front:'bills/ten/front.jpg',     back:'bills/ten/back.jpg'}},
+    {v:2000, lbl:'$20',  name:'twenty dollars',      img:{front:'bills/twenty/front.jpg',  back:'bills/twenty/back.jpg'}},
+    {v:5000, lbl:'$50',  name:'fifty dollars',       img:{front:'bills/fifty/front.jpg',   back:'bills/fifty/back.jpg'}},
+    {v:10000,lbl:'$100', name:'one hundred dollars', img:{front:'bills/hundred/front.jpg', back:'bills/hundred/back.jpg'}}
+  ];
+  const BIG_BILLS=[5000,10000];   // $50 / $100 — only used in occasional "big" rounds
+  const SIDES=['front','back'];
+  const randSide=()=>SIDES[Math.floor(Math.random()*2)];
+  // one rendered coin/bill: real photo (random front or back) with the value overlaid.
+  // `hide` drops the value overlay (used by Make Change to raise difficulty).
+  function tokenHTML(d, side, hide){
+    side = side || randSide();
+    const cls = d.k ? ('coin '+d.k) : 'bill';
+    const val = hide ? '' : `<span class="tok-val">${d.lbl}</span>`;
+    return `<div class="${cls} tok"><img class="tok-img" alt="" src="${d.img[side]}" onerror="_coinImgAlt(this)">${val}</div>`;
+  }
+  const coinHTML=(c,hide)=>tokenHTML(c,null,hide);
+  const billHTML=(b,hide)=>tokenHTML(b,null,hide);
+
+  // Make Change: progressively hide a coin's printed value as the kid masters adding it.
+  const CHANGE_HIDE_AT={penny:10,nickel:15,dime:20,quarter:25};   // first hide @10, then every 5
+  const CHANGE_HIDE_LABEL={10:'penny',15:'nickel',20:'dime',25:'quarter'};
+  function lsGet(k,dflt){ try{ const v=localStorage.getItem(k); return v==null?dflt:v; }catch(e){ return dflt; } }
+  function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+  let changeCorrect = parseInt(lsGet('money_change_correct','0'),10) || 0;
+  const hideVal = d => d.k && CHANGE_HIDE_AT[d.k]!=null && changeCorrect>=CHANGE_HIDE_AT[d.k];
 
   // ---- score ----------------------------------------------------------------
   let correct=0, streak=0;
@@ -100,10 +136,16 @@
   const changeGame={ icon:'🧾', name:'Make Change',
     mount(){
       function round(){
-        const price=rnd(15,1885); // 0.15 .. 18.85
-        // pay with a tidy amount above the price
-        const payOpts=[Math.ceil(price/100)*100, Math.ceil(price/500)*500, Math.ceil(price/1000)*1000];
-        const paid=pick(payOpts.filter(p=>p>price)) || Math.ceil(price/100)*100+100;
+        let price, paid;
+        if(Math.random()<0.10){
+          // ~10% "big" sale: customer pays with a $50 or $100, so those bills come into play
+          price = rnd(200,4800);            // $2 .. $48
+          paid  = pick(BIG_BILLS);          // $50 or $100 (always above the price)
+        } else {
+          price = rnd(15,1885);             // $0.15 .. $18.85
+          const payOpts=[Math.ceil(price/100)*100, Math.ceil(price/500)*500, Math.ceil(price/1000)*1000];
+          paid = pick(payOpts.filter(p=>p>price)) || Math.ceil(price/100)*100+100;
+        }
         const due=paid-price;
 
         const denoms=[...COINS, ...BILLS.filter(b=>b.v<=paid)];
@@ -128,14 +170,14 @@
         </div>`;
         const drawer=stage.querySelector('#drawer');
         denoms.forEach(d=>{ const b=document.createElement('button'); b.className='denom';
-          b.innerHTML = d.k ? coinHTML(d) : billHTML(d);
-          b.onclick=()=>{ tray.push(d); redraw(); };
+          b.innerHTML = tokenHTML(d, randSide(), hideVal(d)) + `<span class="denom-name">${d.name}</span>`;
+          b.onclick=()=>{ tray.push({d, side:randSide()}); redraw(); };
           drawer.appendChild(b);
         });
-        function total(){ return tray.reduce((s,d)=>s+d.v,0); }
+        function total(){ return tray.reduce((s,it)=>s+it.d.v,0); }
         function redraw(){
           const t=stage.querySelector('#tray');
-          t.innerHTML=tray.map(d=>d.k?coinHTML(d):billHTML(d)).join('');
+          t.innerHTML=tray.map(it=>tokenHTML(it.d, it.side, hideVal(it.d))).join('');
           const g=total(); const gr=stage.querySelector('#cgiven');
           gr.textContent=money(g); gr.style.color = g>due ? 'var(--wrong)' : g===due ? 'var(--correct)' : 'inherit';
         }
@@ -143,7 +185,9 @@
         stage.querySelector('#clear').onclick=()=>{ tray=[]; redraw(); };
         stage.querySelector('#give').onclick=()=>{
           const g=total(), fb=stage.querySelector('#fb');
-          if(g===due){ score(true); celebrate(); fb.className='feedback good'; fb.textContent='Perfect change — '+money(due)+'!';
+          if(g===due){ score(true); changeCorrect++; lsSet('money_change_correct',changeCorrect); celebrate();
+            fb.className='feedback good'; fb.textContent='Perfect change — '+money(due)+'!';
+            if(CHANGE_HIDE_LABEL[changeCorrect]) fb.textContent+=' 🏆 New challenge: the '+CHANGE_HIDE_LABEL[changeCorrect]+'’s value is now hidden — add it from memory!';
             stage.querySelector('#give').disabled=true; addNext(stage.querySelector('.card'), round);
           } else if(g>due){ score(false); fb.className='feedback bad'; fb.textContent='That’s '+money(g-due)+' too much — take some back.'; }
           else { score(false); fb.className='feedback bad'; fb.textContent='Still '+money(due-g)+' short.'; }
