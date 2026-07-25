@@ -125,6 +125,46 @@
   .dailybox .gt{ display:block; margin-bottom:4px; font-size:14px; }
   .dailybox .gr{ margin:3px 0; }
 
+  /* ===== Food Explorer ===== */
+  .fx-search{ margin:14px 0 16px; }
+  .fx-search input{ width:100%; font-family:inherit; font-size:16px; font-weight:600; padding:13px 16px; border:2px solid #e2e8f0; border-radius:14px; background:#f8fafc; color:var(--ink); }
+  .fx-search input:focus{ outline:none; border-color:var(--accent); background:#fff; }
+  .fx-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(128px,1fr)); gap:12px; }
+  .fx-item{ background:#fff; border:2px solid #e2e8f0; border-radius:16px; padding:0; cursor:pointer; overflow:hidden; text-align:left; font-family:inherit; transition:transform .1s, border-color .1s, box-shadow .1s; }
+  .fx-item:hover{ transform:translateY(-3px); border-color:var(--accent); box-shadow:var(--shadow); }
+  .fx-item img{ width:100%; aspect-ratio:1; object-fit:cover; display:block; background:#f1f5f9; }
+  .fx-item .fx-name{ display:block; padding:9px 11px; font-weight:800; font-size:14px; }
+  .fx-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  .fx-none{ grid-column:1/-1; text-align:center; color:var(--muted); padding:34px; font-weight:700; }
+  .r-everyday{ background:#16a34a; } .r-sometimes{ background:#f59e0b; } .r-treat{ background:#dc2626; }
+
+  .fx-detail .fx-top{ display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start; margin-top:6px; }
+  .fx-detail .fx-hero{ width:220px; height:220px; object-fit:cover; border-radius:18px; flex:0 0 auto; box-shadow:var(--shadow); background:#f1f5f9; }
+  .fx-detail .fx-head{ flex:1; min-width:200px; }
+  .fx-detail h2{ margin:0 0 3px; font-size:26px; }
+  .fx-detail .fx-group{ color:var(--muted); font-weight:700; font-size:14px; margin-bottom:10px; }
+  .fx-badge{ display:inline-flex; align-items:center; gap:6px; font-weight:800; font-size:12px; padding:5px 13px; border-radius:999px; color:#fff; text-transform:uppercase; letter-spacing:.4px; }
+  .fx-badge.r-everyday{ background:#16a34a; } .fx-badge.r-sometimes{ background:#f59e0b; } .fx-badge.r-treat{ background:#dc2626; }
+  .fx-serve{ display:flex; gap:10px; flex-wrap:wrap; margin:14px 0 0; }
+  .fx-serve .pill{ background:#f1f5f9; border-radius:10px; padding:8px 13px; font-size:13.5px; font-weight:700; }
+  .fx-serve .pill b{ color:var(--accent2); } .fx-serve .pill.cal b{ color:var(--accent); }
+  .fx-stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(88px,1fr)); gap:8px; margin:16px 0 0; }
+  .fx-stat{ background:#f8fafc; border:1px solid #eef2f7; border-radius:12px; padding:10px 6px; text-align:center; }
+  .fx-stat .v{ font-weight:900; font-size:15px; } .fx-stat .k{ font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; font-weight:800; margin-top:3px; }
+  .fx-sec{ margin-top:18px; } .fx-sec h3{ margin:0 0 8px; font-size:16px; }
+  .fx-nut{ display:flex; flex-direction:column; gap:6px; }
+  .fx-nut .row{ background:var(--accent-soft); border-radius:10px; padding:9px 13px; font-size:14px; line-height:1.4; }
+  .fx-nut .row b{ color:#15803d; }
+  .fx-why{ font-size:15px; line-height:1.55; background:#fefce8; border:2px solid #fde68a; border-radius:12px; padding:13px 15px; }
+  .fx-pc{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .fx-pc .box{ border-radius:12px; padding:12px 15px; }
+  .fx-pc .pros{ background:#ecfdf5; border:2px solid #bbf7d0; } .fx-pc .cons{ background:#fef2f2; border:2px solid #fecaca; }
+  .fx-pc h4{ margin:0 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.5px; }
+  .fx-pc .pros h4{ color:#15803d; } .fx-pc .cons h4{ color:#b91c1c; }
+  .fx-pc ul{ margin:0; padding-left:18px; font-size:13.5px; line-height:1.55; }
+  .fx-body{ font-size:15px; line-height:1.6; background:var(--accent2-soft); border-left:4px solid var(--accent2); border-radius:10px; padding:14px 16px; }
+  @media (max-width:560px){ .fx-pc{ grid-template-columns:1fr; } .fx-detail .fx-hero{ width:100%; height:auto; aspect-ratio:1; } }
+
   /* streak celebration */
   #confetti{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
   .conf{ position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; animation:fall linear forwards; }
@@ -150,6 +190,7 @@
 
   <!-- MENU -->
   <div class="menu" id="menu">
+    <button class="gamecard" data-game="explorer"><span class="icon">🔎</span><h3>Food Explorer</h3><p>Look up any food — see a real photo, its serving and nutrients, why it's healthy or not, and what it does inside your body.</p></button>
     <button class="gamecard" data-game="match"><span class="icon">🔗</span><h3>What's Inside?</h3><p>Pick every nutrient a food has, then learn what each one does for your body — and how much the food packs.</p></button>
     <button class="gamecard" data-game="fuel"><span class="icon">⚡</span><h3>Best Fuel</h3><p>Pick the best food for the situation — and learn <em>why</em> it's the smart choice.</p></button>
     <button class="gamecard" data-game="label"><span class="icon">🏷️</span><h3>Label Reader</h3><p>Read real nutrition labels: serving size, servings per box, and spot the hidden sugar.</p></button>
@@ -161,6 +202,7 @@
   <div class="stage hidden" id="stage"></div>
 
 <script src="library.js?v=4"></script>
-<script src="app.js?v=5"></script>
+<script src="explorer.js?v=1"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>

@@ -355,11 +355,74 @@
 
   function mkBtn(label,fn){ const b=el('button','btn btn-primary',label); b.onclick=fn; return b; }
 
-  const GAMES={ match:gameMatch, fuel:gameFuel, label:gameLabel, plate:gamePlate, swap:gameSwap };
+  // ============ 6) FOOD EXPLORER — look up a real food ============
+  function gameExplorer(){
+    $('scorebar').style.display='none';                 // reference tool, not scored
+    const FX = window.FOODX || [];
+    const RMETA = { everyday:'Everyday food', sometimes:'Sometimes food', treat:'Treat' };
+    const photo = (f,cls) => `<img class="${cls}" alt="${f.name}" loading="lazy" src="realfood/${f.slug}/${f.slug}.jpg" onerror="this.onerror=null;this.src='realfood/${f.slug}/${f.slug}.png'">`;
+    let filter='';
+
+    function frame(){ stage.innerHTML=''; const card=el('div','card'); card.appendChild(backBtn()); stage.appendChild(card); return card; }
+
+    function showBrowse(){
+      const card=frame();
+      const h=el('div');
+      h.innerHTML = `<p class="prompt" style="margin-top:10px">Food Explorer</p>`+
+        `<p class="promptsub">Search or tap a food to see a real photo, its nutrition, and what it does for your body.</p>`+
+        `<div class="fx-search"><input id="fxSearch" type="text" placeholder="Search or type a food…" autocomplete="off"></div>`+
+        `<div class="fx-grid" id="fxGrid"></div>`;
+      card.appendChild(h);
+      const input=h.querySelector('#fxSearch'); input.value=filter;
+      const grid=h.querySelector('#fxGrid');
+      function fill(){
+        const q=filter.trim().toLowerCase();
+        const list=FX.filter(f=> !q || f.name.toLowerCase().includes(q) || f.group.toLowerCase().includes(q));
+        grid.innerHTML='';
+        if(!list.length){ grid.innerHTML='<div class="fx-none">No food found — try another name.</div>'; return; }
+        list.forEach(f=>{
+          const b=el('button','fx-item');
+          b.innerHTML=photo(f,'')+`<span class="fx-name"><span class="fx-dot r-${f.rating}"></span>${f.name}</span>`;
+          b.onclick=()=>showDetail(f.slug);
+          grid.appendChild(b);
+        });
+      }
+      input.addEventListener('input', ()=>{ filter=input.value; fill(); });
+      fill();
+    }
+
+    function showDetail(slug){
+      const f=FX.find(x=>x.slug===slug); if(!f) return showBrowse();
+      const card=frame();
+      const d=el('div','fx-detail');
+      const stats=f.stats.map(s=>`<div class="fx-stat"><div class="v">${s.v}</div><div class="k">${s.k}</div></div>`).join('');
+      const nut=f.nutrients.map(n=>`<div class="row"><b>${n.n}</b> — ${n.does}</div>`).join('');
+      const pros=f.pros.map(p=>`<li>${p}</li>`).join('');
+      const cons=f.cons.map(c=>`<li>${c}</li>`).join('');
+      d.innerHTML =
+        `<div class="fx-top">${photo(f,'fx-hero')}`+
+          `<div class="fx-head"><h2>${f.name}</h2><div class="fx-group">${f.group}</div>`+
+          `<span class="fx-badge r-${f.rating}">${RMETA[f.rating]}</span>`+
+          `<div class="fx-serve"><span class="pill">Serving: <b>${f.serving}</b></span><span class="pill cal">Calories: <b>${f.calories}</b></span></div>`+
+          `</div></div>`+
+        `<div class="fx-stats">${stats}</div>`+
+        `<div class="fx-sec"><h3>Key nutrients</h3><div class="fx-nut">${nut}</div></div>`+
+        `<div class="fx-sec"><div class="fx-why">${f.why}</div></div>`+
+        `<div class="fx-sec fx-pc"><div class="box pros"><h4>Pros</h4><ul>${pros}</ul></div><div class="box cons"><h4>Cons</h4><ul>${cons}</ul></div></div>`+
+        `<div class="fx-sec"><h3>What it’s doing in your body</h3><div class="fx-body">${f.body}</div></div>`+
+        `<div class="center"><button class="btn btn-ghost" id="fxBack2">← All foods</button></div>`;
+      card.appendChild(d);
+      d.querySelector('#fxBack2').onclick=showBrowse;
+    }
+
+    showBrowse();
+  }
+
+  const GAMES={ explorer:gameExplorer, match:gameMatch, fuel:gameFuel, label:gameLabel, plate:gamePlate, swap:gameSwap };
 
   document.querySelectorAll('.gamecard').forEach(c=> c.onclick=()=>openGame(c.dataset.game));
   // build the persistent game tabs from the menu cards
-  const TABMETA={ match:'🔗 What’s Inside?', fuel:'⚡ Best Fuel', label:'🏷️ Label Reader', plate:'🍽️ Complete the Meal', swap:'🔀 Healthier Swap' };
+  const TABMETA={ explorer:'🔎 Food Explorer', match:'🔗 What’s Inside?', fuel:'⚡ Best Fuel', label:'🏷️ Label Reader', plate:'🍽️ Complete the Meal', swap:'🔀 Healthier Swap' };
   const gt=$('gametabs');
   Object.keys(GAMES).forEach(k=>{ const b=document.createElement('button'); b.dataset.game=k; b.textContent=TABMETA[k]||k; b.onclick=()=>openGame(k); gt.appendChild(b); });
   $('navMenu').onclick=showMenu;
