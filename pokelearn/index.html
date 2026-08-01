@@ -31,6 +31,21 @@
   .seg.cats button{ box-shadow:none; background:var(--accent-soft); color:#7f1d1d; font-size:12.5px; padding:6px 12px; }
   .seg.cats button.on{ background:var(--accent); color:#fff; }
 
+  /* per-game instruction box, sits directly above the play area */
+  .guide{ background:#fff; border-radius:18px; box-shadow:var(--shadow); margin:12px 0; overflow:hidden; border:2px solid #fecaca; }
+  .guide .ghead{ display:flex; align-items:center; gap:10px; width:100%; font-family:inherit; text-align:left;
+    background:linear-gradient(120deg,#fff1f2,#fff); border:none; cursor:pointer; padding:13px 17px; font-size:16px; font-weight:900; color:var(--ink); }
+  .guide .ghead .grow{ flex:1; }
+  .guide .ghead .gtoggle{ font-size:12.5px; font-weight:800; color:var(--accent); background:var(--accent-soft); padding:5px 12px; border-radius:999px; white-space:nowrap; }
+  .guide .gbody{ padding:2px 17px 17px; font-size:14.5px; line-height:1.6; }
+  .guide .gbody > p{ margin:0 0 12px; }
+  .guide h5{ margin:14px 0 7px; font-size:13px; text-transform:uppercase; letter-spacing:.7px; color:var(--muted); }
+  .guide .ex{ background:#f8fafc; border-radius:12px; padding:11px 14px; margin-bottom:8px; }
+  .guide .ex b.q{ color:var(--accent); }
+  .guide .ex .arrow{ display:block; margin-top:4px; color:var(--muted); }
+  .guide .learn{ background:#fffbeb; border-radius:12px; padding:11px 14px; margin-top:12px; }
+  .guide .learn b{ color:#b45309; }
+
   .scorebar{ display:flex; gap:8px; margin:12px 0; flex-wrap:wrap; }
   .chip{ background:#fff; border-radius:999px; padding:7px 14px; font-weight:800; font-size:14px; box-shadow:var(--shadow); }
   .chip small{ color:var(--muted); font-weight:700; font-size:12px; }
@@ -127,12 +142,12 @@
   <div class="nav">
     <a href="../index.html">🏠 Home</a>
     <button id="chartBtn" title="The full type effectiveness chart">📊 Type Chart</button>
-    <button id="howBtn" title="How each game works">❓ How to Play</button>
+    <button id="howBtn" title="A one-line summary of all six games">❓ All Six Games</button>
     <button id="srcBtn" title="Where this data comes from">📚 Sources</button>
   </div>
 
   <h1>⚡ PokéLearn</h1>
-  <p class="sub">Six games built on the <b>real</b> Pokédex — actual base stats, catch rates and the true type chart, pulled straight from PokéAPI. Multiply fractions, predict probabilities, read data, break apart words, and meet the real animals behind the designs.</p>
+  <p class="sub">Six games built from the <b>real</b> Pokédex. Every stat, catch rate and type match-up in here is the real thing. You will multiply, work out your chances, read charts, take words apart, and meet the real animals behind the designs.</p>
 
   <div class="seg" id="modeSeg">
     <button data-mode="types" class="on">⚔️ Type Lab</button>
@@ -143,6 +158,8 @@
     <button data-mode="team">🛡️ Team Architect</button>
   </div>
   <div class="seg cats" id="catSeg"></div>
+
+  <div class="guide" id="guide"></div>
 
   <div id="streakBanner"></div>
 
@@ -566,7 +583,7 @@ function renderTeam(cat){
               ok: m => team.reduce((s, t) => s + bst(t), 0) + bst(m) <= BUDGET }
   }[cat] || { text:'Pick any six.', ok: () => true };
 
-  function analyse(){
+  function analyze(){
     const rows = TYPES.map(atk => {
       const worst = Math.min(...team.map(m => effVs(atk, m.types)));      // best resistance available
       const hits  = Math.max(...team.map(m => Math.max(...m.types.map(t => effVs(t, [atk])))));
@@ -581,10 +598,10 @@ function renderTeam(cat){
     const used = team.reduce((s, t) => s + bst(t), 0);
     const full = team.length === 6;
     // Under the tighter rules the pool can run out of legal picks before six.
-    // That is a real (and interesting) dead end, so allow analysing anyway.
+    // That is a real (and interesting) dead end, so allow analyzing anyway.
     const stuck = !full && team.length > 0 && pool.every(m => team.includes(m) || !rules.ok(m));
     const canCheck = full || stuck;
-    const a = canCheck ? analyse() : null;
+    const a = canCheck ? analyze() : null;
 
     stage.innerHTML = `
       <p class="qprompt">Build a team of six. <span style="font-weight:600;color:var(--muted)">${rules.text}</span></p>
@@ -593,7 +610,7 @@ function renderTeam(cat){
       </div>
       ${stuck ? `<p style="background:#fffbeb;border-radius:10px;padding:10px 13px;font-size:14px;margin:0 0 10px">
         <b>Dead end!</b> Nothing left in the pool is legal under this rule, so you are stuck on ${team.length}.
-        That is worth noticing — a constraint that looks easy can box you in. Analyse what you have,
+        That is worth noticing — a constraint that looks easy can box you in. Analyze what you have,
         start over and pick in a different order, or get a fresh pool.</p>` : ''}
       <div class="pool">${pool.map(m => {
         const on = team.includes(m);
@@ -605,7 +622,7 @@ function renderTeam(cat){
           <div style="font-size:11px;color:var(--muted);font-weight:800;margin-top:2px">${bst(m)} pts</div>
         </button>`; }).join('')}</div>
       <div class="btn-row">
-        <button class="act btn-primary" id="checkBtn" ${canCheck ? '' : 'disabled style="opacity:.45"'}>🔍 Analyse my team</button>
+        <button class="act btn-primary" id="checkBtn" ${canCheck ? '' : 'disabled style="opacity:.45"'}>🔍 Analyze my team</button>
         <button class="act btn-ghost" id="clearBtn">↺ Start over</button>
         <button class="act btn-ghost" id="poolBtn">🔄 New pool</button>
       </div>
@@ -635,7 +652,7 @@ function renderTeam(cat){
           `<div class="${r.resisted ? '' : 'miss'}" style="background:${TYPE_COLOR[r.atk]}">
              <span>${r.atk}</span><span>${r.resisted ? '🛡️' : '⚠️'}</span></div>`).join('')}</div>
         <p style="margin-top:12px">${holes.length
-          ? `<b>Your holes:</b> ${holes.map(h => cap(h)).join(', ')}. A single Pokémon that resists one of those would patch it — try swapping someone out and analysing again.`
+          ? `<b>Your holes:</b> ${holes.map(h => cap(h)).join(', ')}. A single Pokémon that resists one of those would patch it — try swapping someone out and analyzing again.`
           : `<b>No holes at all.</b> Something on this team resists every single attacking type. That is genuinely hard to do.`}</p>
         <p>${blind.length
           ? `<b>You cannot hit these hard:</b> ${blind.map(h => cap(h)).join(', ')}. Defence is only half the job.`
@@ -648,6 +665,151 @@ function renderTeam(cat){
   }
 
   draw();
+}
+
+/* ==================================================================
+   THE GUIDE — what to do, two worked examples, and the skill behind it.
+   Shown above the play area. Assumes the reader knows nothing about
+   Pokémon, so every term is explained before it is used.
+   ================================================================== */
+const GUIDE = {
+  types: {
+    title: '⚔️ Type Lab',
+    what: `Every Pokémon is a type. Fire, Water, Grass — there are 18 in all.
+      Attacks have types too. And some types beat other types. Water beats Fire. Fire beats Grass.
+      We show you an attack and the Pokémon it hits. You say <b>how hard the hit lands</b>.
+      <b>2×</b> means double damage. <b>½×</b> means half. <b>0×</b> means it does nothing at all.`,
+    hint: `Watch out: some Pokémon have <b>two</b> types. Then you check the attack against each type,
+      one at a time. Then you <b>multiply</b> your two answers together.`,
+    examples: [
+      { q: 'A <b>Fire</b> attack hits <b>Bulbasaur</b>. Bulbasaur is a Grass type.',
+        a: 'Fire burns Grass. So the hit does double damage. The answer is <b>2×</b>.' },
+      { q: 'A <b>Rock</b> attack hits <b>Charizard</b>. Charizard is Fire <i>and</i> Flying.',
+        a: 'Rock beats Fire. That is 2×. Rock beats Flying too. That is another 2×. Now multiply them: 2 × 2 = <b>4×</b>. Ouch!' }
+    ],
+    learn: `You are <b>multiplying</b>. Sometimes one type doubles the hit and the other type cuts it in half.
+      Then you get 2 × ½ = 1, and they cancel each other out. That is the same math as multiplying fractions.`
+  },
+
+  catch: {
+    title: '🔴 Catch Master',
+    what: `You throw a ball at a wild Pokémon to catch it. Sometimes it works. Sometimes it does not.
+      Four things change your luck. How easy it is to catch (that is a number out of 255 — rare ones have
+      low numbers). How much <b>health</b> it has left. Whether it is <b>asleep or poisoned</b>. And which
+      <b>ball</b> you use. We show you all four. You guess your chance of catching it.`,
+    hint: `Then click <b>Throw 100 balls</b>. You get to see what really happens. That part is the best bit.`,
+    examples: [
+      { q: 'A <b>Rattata</b>. Super easy to catch (255 out of 255). It is healthy. You use a plain ball.',
+        a: '255 out of 255 is as easy as it gets. Nothing is making it harder. You will almost always catch it. Pick the biggest number.' },
+      { q: 'An <b>Articuno</b>. Very rare (only 3 out of 255). It is hurt, it is asleep, and you use a strong ball.',
+        a: '3 out of 255 is tiny. Being hurt, being asleep, and the better ball all help a lot. But you still only get to about <b>12%</b>. Rare ones stay hard, even when everything goes your way.' }
+    ],
+    learn: `<b>Percents and chance.</b> Here is the big idea. A 1-in-4 chance does <i>not</i> mean you win
+      every 4th try. You can miss five times in a row. The next throw is still 1 in 4. Missing a lot never
+      means you are "due" for a win.`
+  },
+
+  stats: {
+    title: '📊 Stat Squad',
+    what: `Every Pokémon has six numbers called <b>stats</b>. HP is how much damage it can take.
+      Attack is how hard it hits. Speed is how fast it is. We show you a few Pokémon and one of their stats.
+      Then we ask you a question about those numbers.`,
+    hint: `We might ask for the <b>mean</b> (the average), the <b>median</b> (the middle one), or the
+      <b>range</b> (the biggest minus the smallest). One round just asks you to read a bar chart.`,
+    examples: [
+      { q: 'Four Pokémon have Speed <b>80, 40, 120, 48</b>. What is the mean?',
+        a: 'Add them all up. 80 + 40 + 120 + 48 = 288. Now divide by how many there are. 288 ÷ 4 = <b>72</b>.' },
+      { q: 'Five Pokémon have HP <b>35, 60, 45, 90, 55</b>. What is the median?',
+        a: 'Put them in order first. 35, 45, <b>55</b>, 60, 90. Now grab the one in the middle. It is <b>55</b>. That is all there is to it.' }
+    ],
+    learn: `<b>Reading numbers.</b> Mean, median and range are how people sum up a big pile of numbers.
+      Test scores. Prices. How much it rained. You are reading bar charts too, and those turn up on
+      almost every test you will ever take.`
+  },
+
+  names: {
+    title: '🔤 Name Forge',
+    what: `Most Pokémon names are really <b>two words stuck together</b>. Once you spot where they join,
+      the name tells you what the Pokémon is. We split a name into its pieces and turn one piece
+      <b class="q">red</b>. You pick what that red piece means.`,
+    hint: `Other rounds show you a <b>root</b>. A root is a little word piece we borrowed from Greek or Latin
+      a long time ago. You pick a normal English word that uses the same root.`,
+    examples: [
+      { q: '<b>Bulbasaur</b> splits into <b class="q">Bulb</b> + asaur.',
+        a: 'A <b>bulb</b> is the round root that a tulip grows from. And look — this Pokémon has a plant bulb on its back! (The other piece, <i>saur</i>, means lizard.)' },
+      { q: '<b>Charmander</b> has the root <b class="q">char</b> in it. What English word has it too?',
+        a: '<b>Charcoal</b>. To <i>char</i> something means to burn it black. And Charmander has a flame on its tail.' }
+    ],
+    learn: `<b>Word parts.</b> This one is a reading superpower. Once you know that <i>saur</i> means lizard,
+      you can work out <i>dinosaur</i> and <i>tyrannosaur</i> on your own — even words nobody ever taught you.`
+  },
+
+  bio: {
+    title: '🦔 Creature Connection',
+    what: `Nobody made these creatures up out of nothing. Every single one started with something
+      <b>real</b> — an animal, a plant, an object, or an old story. We show you a Pokémon. You pick the real
+      thing it came from. Other rounds ask where that real thing lives, or what group it belongs to.`,
+    hint: `Right or wrong, the answer box tells you something true about the <i>real</i> creature.
+      How it stays alive, and the science behind it.`,
+    examples: [
+      { q: 'What is <b>Pikachu</b> based on?',
+        a: 'A <b>pika</b>. It is a real animal — a round, squeaky cousin of the rabbit that lives up on rocky mountains. Not a mouse, even with that tail.' },
+      { q: 'What is <b>Zubat</b> based on?',
+        a: 'A <b>bat</b>. Real bats cannot see well in the dark. So they squeak, and then listen for the echo to bounce back. That is how they know where things are. It is called <b>echolocation</b>.' }
+    ],
+    learn: `<b>Science.</b> Where animals live. How they stay alive. And how we sort living things into
+      groups like mammals, insects and fungi. Every fact in the answer box is true about the real creature.`
+  },
+
+  team: {
+    title: '🛡️ Team Architect',
+    what: `There is no one right answer in this game. You get a bunch of Pokémon and you pick <b>six</b>.
+      You want a team where, no matter what kind of attack comes at you, <b>somebody can take the hit</b>.
+      We call that <b>resisting</b> — it just means the attack hurts them less than normal.`,
+    hint: `Once you have six, press <b>Analyze my team</b>. Any attack type that nobody can handle gets a
+      <b>red box</b>. Now you can see your weak spots and try again. Two of the rounds add an extra rule to
+      follow while you pick.`,
+    examples: [
+      { q: 'You pick six Water Pokémon, because Water is strong.',
+        a: 'Careful! They all have the same weak spots. One Electric attack could take out your whole team at once. <b>A mix beats six of the same.</b>' },
+      { q: 'You press Analyze, and <b>Ground</b> comes back with a red box.',
+        a: 'That means nobody on your team can handle Ground attacks. Swap someone out for a Flying or a Grass Pokémon. Both of those handle Ground just fine. Then analyze again.' }
+    ],
+    learn: `<b>Thinking it through.</b> You are following a few rules at the same time, and giving up one
+      thing to get another. It is the same thinking you use to plan your day or pack a backpack.
+      There is usually no perfect answer — just better ones and worse ones.`
+  }
+};
+
+// Remember whether the box is folded away, per game. localStorage is blocked on
+// some file:// setups, so never let it break the page.
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v === null ? d : v; } catch { return d; } },
+  set(k, v){ try { localStorage.setItem(k, v); } catch {} }
+};
+
+function drawGuide(){
+  const g = GUIDE[mode], el = $('#guide');
+  const open = store.get('pl-guide-' + mode, '1') === '1';
+  el.innerHTML = `
+    <button class="ghead" id="gheadBtn" aria-expanded="${open}">
+      <span>📋</span>
+      <span class="grow">How to play ${g.title}</span>
+      <span class="gtoggle">${open ? 'Hide' : 'Show me how'}</span>
+    </button>
+    <div class="gbody ${open ? '' : 'hidden'}" id="gbody">
+      <p>${g.what}</p>
+      <p>${g.hint}</p>
+      <h5>Two examples</h5>
+      ${g.examples.map(x => `<div class="ex"><b class="q">${x.q}</b><span class="arrow">→ ${x.a}</span></div>`).join('')}
+      <div class="learn"><b>What you're learning:</b> ${g.learn}</div>
+    </div>`;
+  $('#gheadBtn').onclick = () => {
+    const nowOpen = $('#gbody').classList.toggle('hidden') === false;
+    store.set('pl-guide-' + mode, nowOpen ? '1' : '0');
+    $('#gheadBtn').setAttribute('aria-expanded', nowOpen);
+    el.querySelector('.gtoggle').textContent = nowOpen ? 'Hide' : 'Show me how';
+  };
 }
 
 /* ============================ engine ============================ */
@@ -712,7 +874,7 @@ function drawCats(){
 $('#modeSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
   mode = b.dataset.mode;
   $('#modeSeg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-  drawCats(); nextQ();
+  drawGuide(); drawCats(); nextQ();
 });
 
 /* ============================ modals ============================ */
@@ -754,6 +916,7 @@ $('#srcBtn').onclick = () => openModal(`<h2>📚 Where this comes from</h2><ul>
   </ul>`);
 
 /* ============================ boot ============================ */
+drawGuide();
 drawCats();
 nextQ();
 })();
