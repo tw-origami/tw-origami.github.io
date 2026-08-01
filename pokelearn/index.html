@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>PokéLearn</title>
+<style>
+  :root{
+    --ink:#1e293b; --muted:#64748b; --accent:#dc2626; --accent-soft:#fee2e2;
+    --gold:#f59e0b; --good:#16a34a; --bad:#dc2626;
+    --shadow:0 10px 30px rgba(30,41,99,.12);
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    color:var(--ink); background:linear-gradient(160deg,#fef2f2,#f8fafc); min-height:100vh;
+    padding:16px 16px 70px; max-width:940px; margin:0 auto;
+  }
+  h1{ font-size:32px; margin:6px 0 4px; letter-spacing:-1px; }
+  .sub{ color:var(--muted); font-size:15px; line-height:1.5; margin:0 0 16px; }
+
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; position:sticky; top:10px; z-index:70; flex-wrap:wrap; }
+  .nav a, .nav button{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 16px; border-radius:9px; border:none; background:transparent; font-family:inherit; cursor:pointer; }
+  .nav a:hover, .nav button:hover{ background:var(--accent-soft); color:var(--accent); }
+
+  .seg{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .seg button{ font-family:inherit; font-weight:800; font-size:13.5px; border:none; background:#fff;
+    color:var(--muted); padding:9px 14px; border-radius:999px; cursor:pointer; box-shadow:var(--shadow); }
+  .seg button.on{ background:var(--accent); color:#fff; }
+  .seg.cats button{ box-shadow:none; background:var(--accent-soft); color:#7f1d1d; font-size:12.5px; padding:6px 12px; }
+  .seg.cats button.on{ background:var(--accent); color:#fff; }
+
+  .scorebar{ display:flex; gap:8px; margin:12px 0; flex-wrap:wrap; }
+  .chip{ background:#fff; border-radius:999px; padding:7px 14px; font-weight:800; font-size:14px; box-shadow:var(--shadow); }
+  .chip small{ color:var(--muted); font-weight:700; font-size:12px; }
+  .chip.streak{ background:linear-gradient(120deg,#fef3c7,#fde68a); }
+
+  .card{ background:#fff; border-radius:20px; box-shadow:var(--shadow); padding:22px; }
+  .qprompt{ font-size:19px; font-weight:800; margin:0 0 16px; line-height:1.35; }
+  .subject{ text-align:center; margin-bottom:16px; }
+
+  .mon{ display:inline-flex; flex-direction:column; align-items:center; gap:2px; }
+  .mon img{ width:150px; height:150px; object-fit:contain; image-rendering:auto; filter:drop-shadow(0 6px 12px rgba(0,0,0,.15)); }
+  .mon .nm{ font-weight:900; font-size:18px; }
+  .mon .gen{ color:var(--muted); font-size:12.5px; font-weight:700; }
+  .mon.sm img{ width:78px; height:78px; }
+  .mon.sm .nm{ font-size:13.5px; }
+
+  .types{ display:flex; gap:5px; justify-content:center; margin-top:5px; flex-wrap:wrap; }
+  .tp{ font-size:11.5px; font-weight:900; color:#fff; padding:3px 11px; border-radius:999px; text-transform:uppercase; letter-spacing:.4px; }
+
+  .choices{ display:grid; grid-template-columns:repeat(auto-fit,minmax(128px,1fr)); gap:10px; }
+  .choices button{ font-family:inherit; font-size:15px; font-weight:700; text-align:left; line-height:1.35;
+    padding:14px 16px; border-radius:14px; border:2px solid #e2e8f0; background:#f8fafc; cursor:pointer; transition:.12s; }
+  .choices button:hover:not(:disabled){ border-color:var(--accent); background:#fff; transform:translateY(-2px); }
+  .choices button:disabled{ cursor:default; }
+  .choices button.right{ border-color:var(--good); background:#dcfce7; }
+  .choices button.wrong{ border-color:var(--bad); background:#fee2e2; }
+  .choices.wide{ grid-template-columns:1fr; }
+
+  .feedback{ font-weight:900; font-size:17px; margin-top:14px; min-height:22px; }
+  .feedback.ok{ color:var(--good); } .feedback.no{ color:var(--bad); }
+
+  .reveal{ margin-top:14px; background:#f8fafc; border-left:5px solid var(--accent); border-radius:0 14px 14px 0; padding:14px 16px; font-size:15px; line-height:1.55; }
+  .reveal h4{ margin:0 0 7px; font-size:15px; }
+  .reveal p{ margin:0 0 8px; } .reveal p:last-child{ margin-bottom:0; }
+  .reveal .work{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:15px; font-weight:700; background:#fff; border-radius:9px; padding:9px 12px; display:block; width:fit-content; max-width:100%; margin:6px 0; }
+  .reveal .eli5{ background:#fffbeb; border-radius:10px; padding:9px 12px; margin-top:8px; font-size:14px; }
+  .reveal .eli5 b{ color:#b45309; }
+  .hidden{ display:none !important; }
+
+  .btn-row{ margin-top:16px; display:flex; gap:9px; flex-wrap:wrap; }
+  .act{ font-family:inherit; font-weight:800; font-size:15px; padding:12px 22px; border-radius:12px; border:none; cursor:pointer; }
+  .btn-primary{ background:var(--accent); color:#fff; }
+  .btn-ghost{ background:var(--accent-soft); color:#7f1d1d; }
+
+  /* stat bars */
+  .bars{ display:grid; gap:6px; max-width:430px; margin:0 auto; text-align:left; }
+  .bar{ display:grid; grid-template-columns:52px 1fr 38px; align-items:center; gap:9px; font-size:13px; font-weight:800; }
+  .bar .track{ background:#f1f5f9; border-radius:999px; height:17px; overflow:hidden; }
+  .bar .fill{ height:100%; border-radius:999px; background:linear-gradient(90deg,#fca5a5,#dc2626); }
+  .bar .val{ text-align:right; font-variant-numeric:tabular-nums; }
+
+  /* multi-mon row */
+  .row{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+
+  /* catch */
+  .knobs{ display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin:10px 0 4px; }
+  .knob{ background:#f8fafc; border-radius:12px; padding:9px 14px; font-size:13.5px; font-weight:800; }
+  .knob small{ display:block; color:var(--muted); font-size:11.5px; text-transform:uppercase; letter-spacing:.5px; }
+  .hpbar{ width:230px; height:15px; background:#e2e8f0; border-radius:999px; overflow:hidden; margin:5px auto 0; }
+  .hpbar div{ height:100%; border-radius:999px; }
+  .tally{ display:flex; gap:2px; flex-wrap:wrap; max-width:430px; margin:10px auto; }
+  .tally i{ width:15px; height:15px; border-radius:4px; display:block; }
+  .tally i.c{ background:var(--good); } .tally i.f{ background:#e2e8f0; }
+
+  /* team builder */
+  .pool{ display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:9px; }
+  .pool .pick{ background:#f8fafc; border:2.5px solid #e2e8f0; border-radius:14px; padding:8px 5px; cursor:pointer; text-align:center; font-family:inherit; transition:.12s; }
+  .pool .pick:hover{ border-color:var(--accent); }
+  .pool .pick.on{ border-color:var(--good); background:#dcfce7; }
+  .pool .pick.dim{ opacity:.4; }
+  .cov{ display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:6px; margin-top:10px; }
+  .cov div{ font-size:11.5px; font-weight:900; color:#fff; padding:6px 9px; border-radius:9px; display:flex; justify-content:space-between; gap:5px; }
+  .cov div.miss{ outline:3px solid var(--bad); outline-offset:-3px; }
+
+  table.chart{ border-collapse:collapse; font-size:10.5px; }
+  table.chart th, table.chart td{ border:1px solid #e2e8f0; padding:2px 3px; text-align:center; min-width:21px; }
+  table.chart th{ font-size:9px; }
+
+  /* modal */
+  .modal{ position:fixed; inset:0; background:rgba(15,23,42,.55); display:flex; align-items:center; justify-content:center; padding:18px; z-index:100; }
+  .sheet{ background:#fff; border-radius:20px; padding:24px; max-width:760px; width:100%; max-height:84vh; overflow:auto; }
+  .sheet h2{ margin:0 0 12px; font-size:22px; }
+  .sheet li{ margin-bottom:9px; line-height:1.5; font-size:14.5px; }
+  .sheet a{ color:var(--accent); }
+
+  #streakBanner{ position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); font-size:38px; font-weight:900;
+    color:var(--gold); text-shadow:0 3px 10px rgba(0,0,0,.2); pointer-events:none; z-index:90; opacity:0; }
+  #streakBanner.go{ animation:pop 1.1s ease-out; }
+  @keyframes pop{ 0%{opacity:0;transform:translate(-50%,-50%) scale(.6)} 25%{opacity:1;transform:translate(-50%,-50%) scale(1.1)} 75%{opacity:1} 100%{opacity:0;transform:translate(-50%,-60%) scale(.95)} }
+  @media (max-width:560px){ .mon img{ width:120px; height:120px; } h1{ font-size:26px; } }
+</style>
+</head>
+<body>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button id="chartBtn" title="The full type effectiveness chart">📊 Type Chart</button>
+    <button id="howBtn" title="How each game works">❓ How to Play</button>
+    <button id="srcBtn" title="Where this data comes from">📚 Sources</button>
+  </div>
+
+  <h1>⚡ PokéLearn</h1>
+  <p class="sub">Six games built on the <b>real</b> Pokédex — actual base stats, catch rates and the true type chart, pulled straight from PokéAPI. Multiply fractions, predict probabilities, read data, break apart words, and meet the real animals behind the designs.</p>
+
+  <div class="seg" id="modeSeg">
+    <button data-mode="types" class="on">⚔️ Type Lab</button>
+    <button data-mode="catch">🔴 Catch Master</button>
+    <button data-mode="stats">📊 Stat Squad</button>
+    <button data-mode="names">🔤 Name Forge</button>
+    <button data-mode="bio">🦔 Creature Connection</button>
+    <button data-mode="team">🛡️ Team Architect</button>
+  </div>
+  <div class="seg cats" id="catSeg"></div>
+
+  <div id="streakBanner"></div>
+
+  <div class="scorebar">
+    <div class="chip">✅ <span id="correctCount">0</span> <small>correct</small></div>
+    <div class="chip">🎯 <span id="totalCount">0</span> <small>tried</small></div>
+    <div class="chip streak">🔥 <span id="streak">0</span> <small>streak</small></div>
+  </div>
+
+  <div class="card" id="stage"></div>
+
+  <div class="modal hidden" id="modal"><div class="sheet" id="sheet"></div></div>
+
+<script src="dex.js"></script>
+<script src="data.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ============================ helpers ============================ */
+const $  = s => document.querySelector(s);
+const DEX = window.PL_DEX, CHART = window.PL_CHART, CHAINS = window.PL_CHAINS, TYPES = window.PL_TYPES;
+const NAMES = window.PL_NAMES || [], CREATURES = window.PL_CREATURES || [];
+const byId = {}; DEX.forEach(m => byId[m.id] = m);
+
+// PokéAPI slugs a few species names ("nidoran-f", "mr-mime"); restore them.
+const NAME_FIX = { 29:'Nidoran ♀', 32:'Nidoran ♂', 83:"Farfetch'd", 122:'Mr. Mime' };
+for (const id in NAME_FIX) byId[id].name = NAME_FIX[id];
+
+const rand  = n => Math.floor(Math.random() * n);
+const pick  = a => a[rand(a.length)];
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = rand(i+1); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+const sample = (a, n) => shuffle(a).slice(0, n);
+const cap = s => s.replace(/^./, c => c.toUpperCase());
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const TYPE_COLOR = { normal:'#9ca3af', fire:'#f97316', water:'#3b82f6', electric:'#eab308', grass:'#22c55e',
+  ice:'#67e8f9', fighting:'#b91c1c', poison:'#a855f7', ground:'#c2833c', flying:'#818cf8', psychic:'#ec4899',
+  bug:'#84cc16', rock:'#a8a29e', ghost:'#6d28d9', dragon:'#4f46e5', dark:'#44403c', steel:'#94a3b8', fairy:'#f9a8d4' };
+const tpTag = t => `<span class="tp" style="background:${TYPE_COLOR[t]}">${t}</span>`;
+
+const eff = (atk, defType) => { const r = CHART[atk]; return (r && r[defType] !== undefined) ? r[defType] : 1; };
+const effVs = (atk, defTypes) => defTypes.reduce((m, t) => m * eff(atk, t), 1);
+const fmtX = n => (n === 0 ? '0×' : n === 0.25 ? '¼×' : n === 0.5 ? '½×' : n + '×');
+const article = w => /^[aeiou]/i.test(w) ? 'An' : 'A';
+
+function monHTML(m, small){
+  return `<div class="mon${small ? ' sm' : ''}">
+    <img src="img/${m.id}.png" alt="${esc(m.name)}" loading="lazy">
+    <span class="nm">${esc(m.name)}</span>
+    ${small ? '' : `<span class="gen">#${String(m.id).padStart(3,'0')} · ${esc(m.genus)}</span>`}
+    <span class="types">${m.types.map(tpTag).join('')}</span>
+  </div>`;
+}
+function statBars(m, only){
+  const L = { hp:'HP', atk:'Attack', def:'Defense', spa:'Sp. Atk', spd:'Sp. Def', spe:'Speed' };
+  return `<div class="bars">` + Object.keys(L).filter(k => !only || only.includes(k)).map(k =>
+    `<div class="bar"><span>${L[k]}</span><span class="track"><span class="fill" style="width:${Math.min(100, m.stats[k]/180*100)}%"></span></span><span class="val">${m.stats[k]}</span></div>`
+  ).join('') + `</div>`;
+}
+
+/* ============================ score ============================ */
+let correct = 0, total = 0, streak = 0, best = 0;
+function score(ok){
+  total++; if (ok){ correct++; streak++; best = Math.max(best, streak); } else streak = 0;
+  $('#correctCount').textContent = correct; $('#totalCount').textContent = total; $('#streak').textContent = streak;
+  if (ok && streak > 0 && streak % 5 === 0){
+    const b = $('#streakBanner');
+    b.textContent = `🔥 ${streak} in a row!`; b.classList.remove('go'); void b.offsetWidth; b.classList.add('go');
+  }
+}
+
+/* ==================================================================
+   GAME 1 — TYPE LAB
+   Multiplying the effectiveness fractions: 2 × 0.5 = 1, 2 × 2 = 4.
+   ================================================================== */
+const TYPE_CATS = [
+  { key:'single', label:'One-type targets' },
+  { key:'dual',   label:'Two-type targets' },
+  { key:'all',    label:'Mixed' }
+];
+function makeTypes(cat){
+  const pool = DEX.filter(m => cat === 'all' ? true : cat === 'dual' ? m.types.length === 2 : m.types.length === 1);
+  let def, atk, mult, tries = 0;
+  do {
+    def = pick(pool); atk = pick(TYPES); mult = effVs(atk, def.types); tries++;
+    // Don't serve too many boring 1× questions.
+  } while (mult === 1 && tries < 6);
+
+  const MULTS = [0, 0.25, 0.5, 1, 2, 4];
+  const choices = shuffle(sample(MULTS.filter(v => v !== mult), 3).concat([mult]))
+    .map(v => ({ html:`<b style="font-size:20px">${fmtX(v)}</b>`, ok: v === mult, val: v }));
+
+  const work = def.types.map(t => `${cap(atk)} → ${cap(t)} = ${fmtX(eff(atk, t))}`).join('<br>');
+  const product = def.types.map(t => fmtX(eff(atk, t))).join(' × ') + ' = <b>' + fmtX(mult) + '</b>';
+  const verdict = mult === 0 ? 'It does nothing at all — the attack has no effect.'
+    : mult === 4 ? 'Both of its types are weak to this. Four times damage!'
+    : mult === 2 ? 'Super effective — double damage.'
+    : mult === 1 ? 'Normal damage. The two multipliers cancelled each other out.'
+    : mult === 0.5 ? 'Not very effective — only half damage.'
+    : 'Barely a scratch — both types resist it, so it is a quarter of the damage.';
+
+  return {
+    prompt: `${article(atk)} <b>${cap(atk)}</b> attack hits ${def.name}. How much damage does it do?`,
+    subject: `<div class="row"><div style="align-self:center">${tpTag(atk)}<div style="font-size:26px;margin:6px 0">👊</div></div>${monHTML(def)}</div>`,
+    choices,
+    reveal: `<h4>${fmtX(mult)} damage</h4>
+      <p>${def.name} is ${def.types.map(t => `<b>${cap(t)}</b>`).join(' and ')}. Check the attacking type against <i>each</i> of its types, then multiply:</p>
+      <p class="work">${work}</p>
+      <p class="work">${product}</p>
+      <p>${verdict}</p>
+      ${def.types.length === 2 && mult === 1 ? `<div class="eli5"><b>Notice:</b> one type doubled it and the other halved it. 2 × ½ = 1, so they cancel out — exactly like multiplying fractions in math class.</div>` : ''}`
+  };
+}
+
+/* ==================================================================
+   GAME 2 — CATCH MASTER
+   Probability, percent, and why a 1-in-4 chance is not a promise.
+   Simplified model (see Sources) so the arithmetic is followable.
+   ================================================================== */
+const BALLS  = [ {n:'Poké Ball', e:'⚪', f:1}, {n:'Great Ball', e:'🔵', f:1.5}, {n:'Ultra Ball', e:'🟡', f:2} ];
+const STATUS = [ {n:'Healthy', e:'💚', f:1}, {n:'Poisoned', e:'☠️', f:1.5}, {n:'Paralyzed', e:'⚡', f:1.5}, {n:'Asleep', e:'💤', f:2}, {n:'Frozen', e:'🧊', f:2} ];
+const CATCH_CATS = [ {key:'easy', label:'Common Pokémon'}, {key:'hard', label:'Rare & legendary'}, {key:'all', label:'Mixed'} ];
+
+function catchChance(m, hpFrac, st, ball){
+  const hpF = hpFrac > .66 ? 1 : hpFrac > .33 ? 1.5 : 2.5;
+  const p = (m.catch / 255) * hpF * st.f * ball.f;
+  // Never 0 or 100: a catch is never guaranteed and never impossible, and the
+  // whole lesson is that even a 99% throw can miss.
+  return { pct: Math.max(2, Math.min(99, Math.round(p * 100))), hpF };
+}
+function makeCatch(cat){
+  const pool = DEX.filter(m => cat === 'all' ? true : cat === 'hard' ? m.catch <= 60 : m.catch > 60);
+  const m = pick(pool);
+  const hpFrac = pick([1, .8, .5, .4, .2, .1]);
+  const st = pick(STATUS), ball = pick(BALLS);
+  const { pct, hpF } = catchChance(m, hpFrac, st, ball);
+
+  const buckets = [5, 15, 25, 40, 60, 80, 95];
+  const truth = buckets.reduce((a, b) => Math.abs(b - pct) < Math.abs(a - pct) ? b : a);
+  const choices = shuffle(sample(buckets.filter(b => b !== truth), 3).concat([truth]))
+    .map(v => ({ html:`<b style="font-size:19px">about ${v}%</b>`, ok: v === truth }));
+
+  const hpColor = hpFrac > .5 ? '#22c55e' : hpFrac > .2 ? '#eab308' : '#dc2626';
+  return {
+    prompt: `You throw a <b>${ball.n}</b> at this ${m.name}. What is your chance of catching it?`,
+    subject: `${monHTML(m)}
+      <div class="knobs">
+        <div class="knob"><small>Catch rate</small>${m.catch} / 255</div>
+        <div class="knob"><small>Its health</small>${Math.round(hpFrac*100)}%
+          <div class="hpbar"><div style="width:${hpFrac*100}%;background:${hpColor}"></div></div></div>
+        <div class="knob"><small>Condition</small>${st.e} ${st.n}</div>
+        <div class="knob"><small>Ball</small>${ball.e} ${ball.n}</div>
+      </div>`,
+    choices,
+    reveal: `<h4>About ${pct}% — ${pct >= 85 ? 'nearly a sure thing, but not quite'
+        : pct >= 50 ? 'better odds than a coin flip' : pct >= 20 ? 'worse odds than a coin flip'
+        : 'a long shot'}</h4>
+      <p>Start from its catch rate as a fraction, then multiply in each thing that helps you:</p>
+      <p class="work">${m.catch} ÷ 255 = ${(m.catch/255).toFixed(2)}<br>
+        × ${hpF} (health ${Math.round(hpFrac*100)}%)<br>
+        × ${st.f} (${st.n.toLowerCase()})<br>
+        × ${ball.f} (${ball.n})<br>
+        = ${(pct/100).toFixed(2)} → <b>${pct}%</b></p>
+      <p>${pct}% means that if you threw this ball 100 times, you would expect about ${pct} catches — but any single throw is still a gamble.</p>
+      <div id="simWrap"><button class="act btn-ghost" id="simBtn">🎲 Throw 100 balls and see</button></div>`,
+    after(){
+      const btn = document.getElementById('simBtn');
+      if (!btn) return;
+      btn.onclick = () => {
+        let hit = 0; const cells = [];
+        for (let i = 0; i < 100; i++){ const c = Math.random() * 100 < pct; if (c) hit++; cells.push(`<i class="${c?'c':'f'}"></i>`); }
+        let longest = 0, run = 0;
+        cells.forEach(c => { if (c.includes('"f"')) { run++; longest = Math.max(longest, run); } else run = 0; });
+        document.getElementById('simWrap').innerHTML =
+          `<div class="tally">${cells.join('')}</div>
+           <p><b>${hit} caught out of 100.</b> You predicted ${pct}. ${
+             Math.abs(hit - pct) <= 5 ? 'Very close to the prediction!' :
+             hit > pct ? 'Lucky run — that is higher than expected.' : 'Unlucky run — that is lower than expected.'}</p>
+           <p>Your longest streak of misses in a row was <b>${longest}</b>. Missing several times in a row does not mean the next throw is "due" — every throw is a fresh ${pct}% chance.</p>
+           <button class="act btn-ghost" id="simBtn">🎲 Throw 100 more</button>`;
+        this.after();
+      };
+    }
+  };
+}
+
+/* ==================================================================
+   GAME 3 — STAT SQUAD
+   Mean, median, range, outliers and reading a bar chart.
+   ================================================================== */
+const STAT_CATS = [
+  { key:'mean',   label:'Mean (average)' },
+  { key:'median', label:'Median' },
+  { key:'range',  label:'Range' },
+  { key:'read',   label:'Read the chart' },
+  { key:'all',    label:'Mixed' }
+];
+const STAT_LABEL = { hp:'HP', atk:'Attack', def:'Defense', spa:'Special Attack', spd:'Special Defense', spe:'Speed' };
+const STAT_KEYS = Object.keys(STAT_LABEL);
+
+function teamRow(team, key){
+  return `<div class="row">${team.map(m =>
+    `<div style="text-align:center">${monHTML(m, true)}
+      <div style="font-weight:900;font-size:17px;margin-top:3px">${m.stats[key]}</div></div>`).join('')}</div>`;
+}
+function numChoices(truth, spread){
+  const set = new Set([truth]);
+  while (set.size < 4){ const d = truth + (rand(2) ? 1 : -1) * (1 + rand(spread)); if (d > 0) set.add(d); }
+  return shuffle([...set]).map(v => ({ html:`<b style="font-size:19px">${v}</b>`, ok: v === truth }));
+}
+
+function makeStats(cat){
+  const kind = cat === 'all' ? pick(['mean','median','range','read']) : cat;
+  const key = pick(STAT_KEYS), L = STAT_LABEL[key];
+
+  if (kind === 'read'){
+    const m = pick(DEX);
+    const best = STAT_KEYS.reduce((a, b) => m.stats[b] > m.stats[a] ? b : a);
+    const worst = STAT_KEYS.reduce((a, b) => m.stats[b] < m.stats[a] ? b : a);
+    const askHigh = Math.random() < .5;
+    const answer = askHigh ? best : worst;
+    const opts = shuffle(STAT_KEYS.filter(k => k !== answer)).slice(0, 3).concat([answer]);
+    const totalS = STAT_KEYS.reduce((s, k) => s + m.stats[k], 0);
+    return {
+      prompt: `Reading the chart: which is ${m.name}'s <b>${askHigh ? 'strongest' : 'weakest'}</b> stat?`,
+      subject: monHTML(m) + statBars(m),
+      choices: shuffle(opts).map(k => ({ html: STAT_LABEL[k], ok: k === answer })),
+      reveal: `<h4>${STAT_LABEL[answer]} — ${m.stats[answer]}</h4>
+        <p>On a bar chart the ${askHigh ? 'longest' : 'shortest'} bar wins. ${m.name}'s ${L === STAT_LABEL[answer] ? '' : ''}${STAT_LABEL[answer]} is ${m.stats[answer]}, while its ${askHigh ? 'weakest' : 'strongest'} stat, ${STAT_LABEL[askHigh ? worst : best]}, is ${m.stats[askHigh ? worst : best]}.</p>
+        <p>All six stats add up to a <b>base stat total of ${totalS}</b>. That total is how players compare overall power — ${totalS > 500 ? 'this is a very strong Pokémon.' : totalS > 400 ? 'this is a middling Pokémon.' : 'this is on the weaker end.'}</p>`
+    };
+  }
+
+  const n = kind === 'median' ? 5 : 4;
+  // For median the five values must be distinct, or a tie would make more than
+  // one choice correct. Resample until they are (falling back after 40 tries).
+  let team = sample(DEX, n);
+  if (kind === 'median')
+    for (let t = 0; t < 40 && new Set(team.map(m => m.stats[key])).size < n; t++) team = sample(DEX, n);
+  const vals = team.map(m => m.stats[key]);
+  const sorted = vals.slice().sort((a, b) => a - b);
+  const sum = vals.reduce((a, b) => a + b, 0);
+
+  if (kind === 'mean'){
+    const truth = Math.round(sum / n);
+    return {
+      prompt: `What is the <b>mean (average) ${L}</b> of these ${n} Pokémon?`,
+      subject: teamRow(team, key),
+      choices: numChoices(truth, 14),
+      reveal: `<h4>Mean ${L} = ${truth}</h4>
+        <p>To find a mean, add every value then divide by how many there are:</p>
+        <p class="work">${vals.join(' + ')} = ${sum}<br>${sum} ÷ ${n} = ${(sum/n).toFixed(2)} ≈ <b>${truth}</b></p>
+        <div class="eli5"><b>Like you're 5:</b> imagine pouring all ${n} piles of ${L} into one bucket, then sharing it back out so everyone gets exactly the same amount. That fair share is the mean.</div>`
+    };
+  }
+  if (kind === 'median'){
+    const truth = sorted[2];
+    return {
+      prompt: `What is the <b>median ${L}</b> of these 5 Pokémon?`,
+      subject: teamRow(team, key),
+      choices: shuffle(sample(vals.filter(v => v !== truth), 3).concat([truth]))
+        .map(v => ({ html:`<b style="font-size:19px">${v}</b>`, ok: v === truth })),
+      reveal: `<h4>Median ${L} = ${truth}</h4>
+        <p>The median is the <i>middle</i> value once you line them up smallest to largest:</p>
+        <p class="work">${sorted.map(v => v === truth ? `<b>${v}</b>` : v).join(' · ')}</p>
+        <p>With 5 numbers the median is the 3rd one — two below it, two above it. The mean here would be ${Math.round(sum/5)}, which is ${Math.round(sum/5) === truth ? 'the same this time' : Math.round(sum/5) > truth ? 'higher, pulled up by the big values' : 'lower, dragged down by the small values'}.</p>
+        <div class="eli5"><b>Why it matters:</b> one enormous value can yank the mean around, but the median barely moves. That is why people report the <i>median</i> house price, not the average.</div>`
+    };
+  }
+  // range
+  const lo = sorted[0], hi = sorted[n-1], truth = hi - lo;
+  return {
+    prompt: `What is the <b>range</b> of ${L} across these ${n} Pokémon?`,
+    subject: teamRow(team, key),
+    choices: numChoices(truth, 16),
+    reveal: `<h4>Range = ${truth}</h4>
+      <p>The range is the biggest value minus the smallest:</p>
+      <p class="work">${hi} − ${lo} = <b>${truth}</b></p>
+      <p>Highest was ${team.find(m => m.stats[key] === hi).name} at ${hi}; lowest was ${team.find(m => m.stats[key] === lo).name} at ${lo}. The range tells you how <i>spread out</i> the group is — a small range means everyone is similar.</p>`
+  };
+}
+
+/* ==================================================================
+   GAME 4 — NAME FORGE
+   Word roots, morphology, and splitting names into meaningful parts.
+   ================================================================== */
+const NAME_CATS = [
+  { key:'part', label:'What does this part mean?' },
+  { key:'root', label:'Root words' },
+  { key:'all',  label:'Mixed' }
+];
+function makeNames(cat){
+  if (!NAMES.length) return null;
+  const withRoots = NAMES.filter(e => e.root && e.rootWords && e.rootWords.length >= 2);
+  const kind = cat === 'all' ? (withRoots.length && Math.random() < .4 ? 'root' : 'part')
+             : (cat === 'root' && !withRoots.length) ? 'part' : cat;
+
+  if (kind === 'root'){
+    const e = pick(withRoots);
+    const answer = pick(e.rootWords);
+    const others = NAMES.filter(x => x.rootWords && x.root !== e.root).flatMap(x => x.rootWords);
+    const wrong = sample([...new Set(others)].filter(w => !e.rootWords.includes(w)), 3);
+    if (wrong.length < 3) return makeNames('part');
+    const m = byId[e.id];
+    return {
+      prompt: `<b>${e.name}</b> contains the root <b>"${esc(e.root)}"</b>, meaning <i>${esc(e.rootMean)}</i>. Which other English word uses that same root?`,
+      subject: m ? monHTML(m) : '',
+      choices: shuffle(wrong.concat([answer])).map(w => ({ html: cap(w), ok: w === answer })),
+      reveal: `<h4>${cap(answer)}</h4>
+        <p>The root <b>"${esc(e.root)}"</b> means <i>${esc(e.rootMean)}</i>, and it shows up in ${e.rootWords.map(w => `<b>${esc(w)}</b>`).join(', ')}.</p>
+        <p>${esc(e.why)}</p>
+        <div class="eli5"><b>The trick:</b> once you know a root, you can guess at words you have never seen before. Meet an unfamiliar word with "${esc(e.root)}" in it and you already know part of the answer.</div>`
+    };
+  }
+
+  const e = pick(NAMES);
+  const idx = rand(e.parts.length);
+  const part = e.parts[idx];
+  const otherMeanings = NAMES.filter(x => x.id !== e.id).flatMap(x => x.parts).map(p => p.mean);
+  const wrong = sample([...new Set(otherMeanings)].filter(mm => mm !== part.mean), 3);
+  const m = byId[e.id];
+  const split = e.parts.map((p, i) =>
+    i === idx ? `<b style="color:var(--accent)">${esc(p.text)}</b>` : esc(p.text)).join('<span style="opacity:.35"> + </span>');
+
+  return {
+    prompt: `<b>${e.name}</b> splits into ${split}. What does the red part mean?`,
+    subject: (m ? monHTML(m) : '') + `<div style="font-size:24px;font-weight:900;margin-top:8px">${split}</div>`,
+    wide: true,
+    choices: shuffle(wrong.concat([part.mean])).map(mm => ({ html: esc(mm), ok: mm === part.mean })),
+    reveal: `<h4>"${esc(part.text)}" — ${esc(part.mean)} <span style="font-weight:600;color:var(--muted)">(${esc(part.src)})</span></h4>
+      <p>The whole name breaks down like this:</p>
+      ${e.parts.map(p => `<p class="work">${esc(p.text)} = ${esc(p.mean)} <span style="opacity:.6">[${esc(p.src)}]</span></p>`).join('')}
+      <p>${esc(e.why)}</p>
+      ${e.root ? `<div class="eli5"><b>Root to remember:</b> "${esc(e.root)}" means <i>${esc(e.rootMean)}</i> — the same root in ${e.rootWords.map(w => `<b>${esc(w)}</b>`).join(', ')}.</div>` : ''}`
+  };
+}
+
+/* ==================================================================
+   GAME 5 — CREATURE CONNECTION
+   The real animals, plants and objects behind the designs.
+   ================================================================== */
+const BIO_CATS = [
+  { key:'real',    label:'Real-world basis' },
+  { key:'habitat', label:'Habitat' },
+  { key:'kind',    label:'Classify it' },
+  { key:'all',     label:'Mixed' }
+];
+const HABITATS = { forest:'🌲 Forest', grassland:'🌾 Grassland', desert:'🏜️ Desert', mountain:'⛰️ Mountain',
+  freshwater:'🏞️ Freshwater', ocean:'🌊 Ocean', cave:'🕳️ Cave', urban:'🏙️ Towns & cities',
+  volcanic:'🌋 Volcanic', polar:'❄️ Polar' };
+const KINDS = { mammal:'Mammal', bird:'Bird', reptile:'Reptile', amphibian:'Amphibian', fish:'Fish', insect:'Insect',
+  mollusk:'Mollusk', plant:'Plant', fungus:'Fungus', 'other-invertebrate':'Other invertebrate',
+  object:'Not alive — an object', mythology:'A creature from mythology',
+  other:'Not alive — a gas or natural effect' };
+
+function bioReveal(e){
+  return `<h4>${esc(e.real)}</h4>
+    <p>${esc(e.realFact)}</p>
+    <p><b>Its adaptation:</b> ${esc(e.adapt)}</p>
+    <div class="eli5"><b>The science idea:</b> ${esc(e.lesson)}</div>`;
+}
+function makeBio(cat){
+  if (!CREATURES.length) return null;
+  const kind = cat === 'all' ? pick(['real','habitat','kind']) : cat;
+  const e = pick(CREATURES), m = byId[e.id];
+  const subject = m ? monHTML(m) : `<div style="font-size:22px;font-weight:900">${esc(e.name)}</div>`;
+
+  if (kind === 'habitat'){
+    const answer = e.habitat;
+    const wrong = sample(Object.keys(HABITATS).filter(h => h !== answer), 3);
+    return {
+      prompt: `${e.name} is based on something real — <b>${esc(e.real)}</b>. Where would you find it in the wild?`,
+      subject,
+      choices: shuffle(wrong.concat([answer])).map(h => ({ html: HABITATS[h], ok: h === answer })),
+      reveal: `<h4>${HABITATS[answer]}</h4><p>${esc(e.realFact)}</p>
+        <p><b>Why that habitat:</b> ${esc(e.adapt)}</p>
+        <div class="eli5"><b>The science idea:</b> ${esc(e.lesson)}</div>`
+    };
+  }
+  if (kind === 'kind'){
+    const answer = e.realKind;
+    const wrong = sample(Object.keys(KINDS).filter(k => k !== answer), 3);
+    return {
+      prompt: `${e.name} is based on something real — <b>${esc(e.real)}</b>. Which group does the real thing belong to?`,
+      subject,
+      choices: shuffle(wrong.concat([answer])).map(k => ({ html: KINDS[k], ok: k === answer })),
+      reveal: bioReveal(e)
+    };
+  }
+  return {
+    prompt: `Every Pokémon starts from something real. What is <b>${e.name}</b> based on?`,
+    subject,
+    choices: shuffle(e.distractors.slice(0, 3).concat([e.real])).map(r => ({ html: esc(r), ok: r === e.real })),
+    reveal: bioReveal(e)
+  };
+}
+
+/* ==================================================================
+   GAME 6 — TEAM ARCHITECT
+   Open-ended constraint reasoning: cover every weakness, explain holes.
+   ================================================================== */
+const TEAM_CATS = [
+  { key:'free',   label:'No limits' },
+  { key:'notype', label:'No repeated types' },
+  { key:'budget', label:'Stat budget: 2000' }
+];
+const bst = m => STAT_KEYS.reduce((s, k) => s + m.stats[k], 0);
+
+function renderTeam(cat){
+  const stage = $('#stage');
+  const pool = sample(DEX.filter(m => !m.legendary), 18);
+  let team = [];
+  const BUDGET = 2000;
+
+  const rules = {
+    free:   { text:'Pick any six.', ok: () => true },
+    notype: { text:'No two team members may share a type.',
+              ok: m => !team.some(t => t.types.some(x => m.types.includes(x))) },
+    budget: { text:`Your six must total under ${BUDGET} base stat points.`,
+              ok: m => team.reduce((s, t) => s + bst(t), 0) + bst(m) <= BUDGET }
+  }[cat] || { text:'Pick any six.', ok: () => true };
+
+  function analyse(){
+    const rows = TYPES.map(atk => {
+      const worst = Math.min(...team.map(m => effVs(atk, m.types)));      // best resistance available
+      const hits  = Math.max(...team.map(m => Math.max(...m.types.map(t => effVs(t, [atk])))));
+      return { atk, resisted: worst < 1, hittable: hits > 1 };
+    });
+    const def = rows.filter(r => r.resisted).length;
+    const off = rows.filter(r => r.hittable).length;
+    return { rows, def, off };
+  }
+
+  function draw(){
+    const used = team.reduce((s, t) => s + bst(t), 0);
+    const full = team.length === 6;
+    // Under the tighter rules the pool can run out of legal picks before six.
+    // That is a real (and interesting) dead end, so allow analysing anyway.
+    const stuck = !full && team.length > 0 && pool.every(m => team.includes(m) || !rules.ok(m));
+    const canCheck = full || stuck;
+    const a = canCheck ? analyse() : null;
+
+    stage.innerHTML = `
+      <p class="qprompt">Build a team of six. <span style="font-weight:600;color:var(--muted)">${rules.text}</span></p>
+      <div style="margin-bottom:10px;font-weight:800">
+        Chosen: ${team.length}/6${cat === 'budget' ? ` · ${used}/${BUDGET} points` : ''}
+      </div>
+      ${stuck ? `<p style="background:#fffbeb;border-radius:10px;padding:10px 13px;font-size:14px;margin:0 0 10px">
+        <b>Dead end!</b> Nothing left in the pool is legal under this rule, so you are stuck on ${team.length}.
+        That is worth noticing — a constraint that looks easy can box you in. Analyse what you have,
+        start over and pick in a different order, or get a fresh pool.</p>` : ''}
+      <div class="pool">${pool.map(m => {
+        const on = team.includes(m);
+        const blocked = !on && !full && !rules.ok(m);
+        return `<button class="pick${on ? ' on' : ''}${blocked ? ' dim' : ''}" data-id="${m.id}" ${blocked ? 'disabled' : ''}>
+          <img src="img/${m.id}.png" alt="" style="width:56px;height:56px;object-fit:contain">
+          <div style="font-size:12px;font-weight:900">${esc(m.name)}</div>
+          <div class="types" style="margin-top:3px">${m.types.map(tpTag).join('')}</div>
+          <div style="font-size:11px;color:var(--muted);font-weight:800;margin-top:2px">${bst(m)} pts</div>
+        </button>`; }).join('')}</div>
+      <div class="btn-row">
+        <button class="act btn-primary" id="checkBtn" ${canCheck ? '' : 'disabled style="opacity:.45"'}>🔍 Analyse my team</button>
+        <button class="act btn-ghost" id="clearBtn">↺ Start over</button>
+        <button class="act btn-ghost" id="poolBtn">🔄 New pool</button>
+      </div>
+      <div id="teamOut"></div>`;
+
+    stage.querySelectorAll('.pick').forEach(b => b.onclick = () => {
+      const m = byId[+b.dataset.id];
+      if (team.includes(m)) team = team.filter(t => t !== m);
+      else if (team.length < 6 && rules.ok(m)) team.push(m);
+      draw();
+    });
+    $('#clearBtn').onclick = () => { team = []; draw(); };
+    $('#poolBtn').onclick = () => renderTeam(cat);
+    if (canCheck) $('#checkBtn').onclick = () => show(a, team.length);
+  }
+
+  function show(a, size){
+    const holes = a.rows.filter(r => !r.resisted).map(r => r.atk);
+    const blind = a.rows.filter(r => !r.hittable).map(r => r.atk);
+    const grade = a.def >= 12 ? 'Excellent' : a.def >= 9 ? 'Solid' : a.def >= 6 ? 'Shaky' : 'Fragile';
+    score(a.def >= 9);
+    $('#teamOut').innerHTML = `
+      <div class="reveal">
+        <h4>${grade} — your ${size === 6 ? 'team' : `team of ${size}`} resists ${a.def} of the 18 attacking types and can hit ${a.off} of them super-effectively.</h4>
+        <p>Each box below is an attacking type. A red outline means <b>nobody on your team resists it</b>:</p>
+        <div class="cov">${a.rows.map(r =>
+          `<div class="${r.resisted ? '' : 'miss'}" style="background:${TYPE_COLOR[r.atk]}">
+             <span>${r.atk}</span><span>${r.resisted ? '🛡️' : '⚠️'}</span></div>`).join('')}</div>
+        <p style="margin-top:12px">${holes.length
+          ? `<b>Your holes:</b> ${holes.map(h => cap(h)).join(', ')}. A single Pokémon that resists one of those would patch it — try swapping someone out and analysing again.`
+          : `<b>No holes at all.</b> Something on this team resists every single attacking type. That is genuinely hard to do.`}</p>
+        <p>${blind.length
+          ? `<b>You cannot hit these hard:</b> ${blind.map(h => cap(h)).join(', ')}. Defence is only half the job.`
+          : `You can also hit every type super-effectively. Complete coverage both ways.`}</p>
+        <div class="eli5"><b>The thinking skill:</b> there is no single right team here. You are juggling several rules at once and trading one thing off against another — the same reasoning you use to plan a schedule, pack a bag, or spend a budget.</div>
+        <div class="btn-row"><button class="act btn-primary" id="againBtn">🔄 New pool of Pokémon</button></div>
+      </div>`;
+    $('#againBtn').onclick = () => renderTeam(cat);
+    $('#teamOut').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+
+  draw();
+}
+
+/* ============================ engine ============================ */
+const MODES = {
+  types: { cats: TYPE_CATS,  make: makeTypes  },
+  catch: { cats: CATCH_CATS, make: makeCatch  },
+  stats: { cats: STAT_CATS,  make: makeStats  },
+  names: { cats: NAME_CATS,  make: makeNames  },
+  bio:   { cats: BIO_CATS,   make: makeBio    },
+  team:  { cats: TEAM_CATS,  custom: renderTeam }
+};
+let mode = 'types', cat = TYPE_CATS[0].key;
+
+function nextQ(){
+  const M = MODES[mode];
+  if (M.custom) return M.custom(cat);
+
+  const q = M.make(cat);
+  if (!q){
+    $('#stage').innerHTML = `<p class="qprompt">This game's word list didn't load.</p>
+      <p>Check that <code>data.js</code> is sitting next to <code>index.html</code>, then reload the page.</p>`;
+    return;
+  }
+
+  $('#stage').innerHTML = `
+    <p class="qprompt">${q.prompt}</p>
+    <div class="subject">${q.subject || ''}</div>
+    <div class="choices${q.wide ? ' wide' : ''}" id="choices">
+      ${q.choices.map((c, i) => `<button data-i="${i}">${c.html}</button>`).join('')}
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="reveal hidden" id="reveal"></div>
+    <div class="btn-row hidden" id="nextRow"><button class="act btn-primary" id="nextBtn">Next ➡️</button></div>`;
+
+  const btns = [...document.querySelectorAll('#choices button')];
+  btns.forEach(b => b.onclick = () => {
+    const c = q.choices[+b.dataset.i];
+    btns.forEach((x, i) => { x.disabled = true; if (q.choices[i].ok) x.classList.add('right'); });
+    if (!c.ok) b.classList.add('wrong');
+    const fb = $('#feedback');
+    fb.textContent = c.ok ? pick(['✅ Correct!','✅ Nailed it!','✅ Exactly right!']) : '❌ Not quite — here is why:';
+    fb.className = 'feedback ' + (c.ok ? 'ok' : 'no');
+    const rv = $('#reveal'); rv.innerHTML = q.reveal; rv.classList.remove('hidden');
+    $('#nextRow').classList.remove('hidden');
+    $('#nextBtn').onclick = nextQ;
+    if (q.after) q.after();
+    score(c.ok);
+  });
+}
+
+function drawCats(){
+  const cats = MODES[mode].cats;
+  cat = cats[0].key;
+  $('#catSeg').innerHTML = cats.map((c, i) =>
+    `<button data-cat="${c.key}" class="${i === 0 ? 'on' : ''}">${c.label}</button>`).join('');
+  $('#catSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
+    cat = b.dataset.cat;
+    $('#catSeg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    nextQ();
+  });
+}
+$('#modeSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
+  mode = b.dataset.mode;
+  $('#modeSeg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  drawCats(); nextQ();
+});
+
+/* ============================ modals ============================ */
+function openModal(html){ $('#sheet').innerHTML = html + `<div class="btn-row"><button class="act btn-primary" id="closeM">Close</button></div>`;
+  $('#modal').classList.remove('hidden'); $('#closeM').onclick = () => $('#modal').classList.add('hidden'); }
+$('#modal').onclick = e => { if (e.target.id === 'modal') $('#modal').classList.add('hidden'); };
+
+$('#chartBtn').onclick = () => {
+  const cell = v => v === 1 ? '<td style="color:#cbd5e1">·</td>'
+    : `<td style="background:${v === 0 ? '#1e293b' : v === 2 ? '#dcfce7' : '#fee2e2'};color:${v === 0 ? '#fff' : '#1e293b'};font-weight:800">${v === 0 ? '0' : v === 2 ? '2' : '½'}</td>`;
+  openModal(`<h2>📊 The type chart</h2>
+    <p style="font-size:14px;line-height:1.5">Rows are the <b>attacking</b> type, columns are the <b>defending</b> type.
+    <b style="background:#dcfce7;padding:1px 5px;border-radius:4px">2</b> is double damage,
+    <b style="background:#fee2e2;padding:1px 5px;border-radius:4px">½</b> is half,
+    <b style="background:#1e293b;color:#fff;padding:1px 5px;border-radius:4px">0</b> means no effect at all,
+    and a dot is ordinary damage. Against a two-type Pokémon you multiply both numbers together.</p>
+    <div style="overflow:auto"><table class="chart"><tr><th></th>${TYPES.map(t =>
+      `<th style="color:${TYPE_COLOR[t]}">${t.slice(0,3)}</th>`).join('')}</tr>
+      ${TYPES.map(a => `<tr><th style="text-align:right;color:${TYPE_COLOR[a]}">${a}</th>${
+        TYPES.map(d => cell(eff(a, d))).join('')}</tr>`).join('')}</table></div>`);
+};
+
+$('#howBtn').onclick = () => openModal(`<h2>❓ How to play</h2><ul>
+  <li><b>⚔️ Type Lab</b> — Work out how much damage an attack does. Against a two-type Pokémon you multiply the two effectiveness numbers together, so 2 × ½ = 1 and 2 × 2 = 4. It is fraction and decimal multiplication with a battle attached.</li>
+  <li><b>🔴 Catch Master</b> — Estimate your chance of catching a Pokémon from its real catch rate, its health, its condition and your ball. Then throw 100 balls and watch how the results scatter around your prediction. Teaches percent, expected value, and why a losing streak does not make you "due".</li>
+  <li><b>📊 Stat Squad</b> — Mean, median, range and outliers, using real base stats. Also practice reading a bar chart.</li>
+  <li><b>🔤 Name Forge</b> — Almost every Pokémon name is two words fused together. Split them apart, learn what each piece means, and collect roots like <i>saur</i> (lizard) that unlock words you have never seen before.</li>
+  <li><b>🦔 Creature Connection</b> — Every design starts from a real animal, plant, object or myth. Find the real thing, then learn its habitat and its actual adaptation.</li>
+  <li><b>🛡️ Team Architect</b> — Pick six Pokémon so that your team resists as many of the 18 attacking types as possible. There is no single right answer; the game shows you exactly where your holes are.</li>
+  </ul>`);
+
+$('#srcBtn').onclick = () => openModal(`<h2>📚 Where this comes from</h2><ul>
+  <li><b><a href="https://pokeapi.co/" target="_blank" rel="noopener">PokéAPI</a></b> — the free, open Pokémon database. Every base stat, type, catch rate, evolution and Pokédex entry in this app was downloaded from it, and the artwork comes from its sprite collection. Nothing here was typed in from memory.</li>
+  <li><b>The type chart</b> — pulled directly from PokéAPI's damage-relation data, so it is the real, current chart rather than an approximation.</li>
+  <li><b>Catch chances</b> — a deliberately <i>simplified</i> model: catch rate ÷ 255, then multiplied by bonuses for low health, status conditions and better balls. The real games use a messier formula with random number checks, so treat these percentages as close-but-not-exact. The probability lesson is the same either way.</li>
+  <li><b>Name origins</b> — etymologies are given only where the word parts are well established. Where a name's origin is disputed or guesswork, it was left out rather than invented.</li>
+  <li><b>Real-world creatures</b> — the natural history facts describe the real organism, not the Pokémon. Where a design's inspiration is only a fan theory, it was left out.</li>
+  <li>Pokémon is a trademark of Nintendo, Creatures Inc. and GAME FREAK. This is a personal, non-commercial learning project.</li>
+  </ul>`);
+
+/* ============================ boot ============================ */
+drawCats();
+nextQ();
+})();
+</script>
+</body>
+</html>
