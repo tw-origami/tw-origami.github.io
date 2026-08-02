@@ -100,10 +100,50 @@
   /* multi-mon row */
   .row{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
 
+  /* two-column question layout: play on the left, worksheet on the right */
+  .split{ display:grid; grid-template-columns:1fr 296px; gap:18px; align-items:start; }
+  @media (max-width:840px){ .split{ grid-template-columns:1fr; } }
+  .sideCol{ background:#f8fafc; border-radius:16px; padding:14px; }
+  .sideCol h4{ margin:0 0 4px; font-size:15px; }
+  .sideCol .tip{ font-size:12.5px; color:var(--muted); font-weight:700; margin:0 0 10px; line-height:1.45; }
+  .step{ background:#fff; border-radius:11px; padding:8px 11px; margin-bottom:6px; font-size:13.5px; font-weight:800;
+    display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .step small{ display:block; color:var(--muted); font-weight:700; font-size:11.5px; }
+  .step .num{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--accent); font-size:15px; }
+  .step .use{ font-size:11px; padding:5px 10px; border-radius:999px; border:none; background:var(--accent-soft);
+    color:#7f1d1d; font-weight:800; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .step .use:hover{ background:var(--accent); color:#fff; }
+  .warn{ background:#fffbeb; border-radius:10px; padding:9px 11px; font-size:12.5px; font-weight:700; margin:10px 0; line-height:1.45; }
+  .warn b{ color:#b45309; }
+
+  /* the calculator */
+  .calc{ background:#1e293b; border-radius:14px; padding:10px; margin-top:10px; }
+  .calc .disp{ background:#0f172a; color:#fff; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:21px; font-weight:700; text-align:right; padding:11px 13px; border-radius:10px;
+    min-height:46px; overflow-x:auto; white-space:nowrap; }
+  .calc .sum{ color:#94a3b8; font-size:12px; text-align:right; padding:5px 13px 0; font-family:ui-monospace,Menlo,monospace;
+    white-space:nowrap; overflow-x:auto; min-height:17px; }
+  .calc .keys{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:9px; }
+  .calc button{ padding:13px 0; font-size:16px; font-weight:800; border:none; border-radius:10px;
+    background:#334155; color:#fff; cursor:pointer; font-family:inherit; }
+  .calc button:hover{ background:#475569; }
+  .calc button.op{ background:var(--accent); } .calc button.op:hover{ background:#b91c1c; }
+  .calc button.eq{ background:var(--good); } .calc button.eq:hover{ background:#15803d; }
+  .calc button.clr{ background:#64748b; }
+
+  details.key{ margin-top:10px; font-size:12.5px; }
+  details.key summary{ cursor:pointer; font-weight:800; color:var(--accent); }
+  details.key table{ border-collapse:collapse; margin-top:7px; width:100%; }
+  details.key td{ padding:3px 5px; border-bottom:1px solid #e2e8f0; font-weight:700; }
+  details.key td:last-child{ text-align:right; font-family:ui-monospace,Menlo,monospace; color:var(--accent); }
+
   /* catch */
-  .knobs{ display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin:10px 0 4px; }
-  .knob{ background:#f8fafc; border-radius:12px; padding:9px 14px; font-size:13.5px; font-weight:800; }
+  .knobs{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:10px 0 4px; }
+  .knob{ background:#f8fafc; border-radius:12px; padding:9px 14px; font-size:13.5px; font-weight:800; text-align:center; }
   .knob small{ display:block; color:var(--muted); font-size:11.5px; text-transform:uppercase; letter-spacing:.5px; }
+  .knob .mx{ display:inline-block; margin-top:4px; background:var(--accent); color:#fff; font-size:12.5px;
+    padding:2px 9px; border-radius:999px; font-family:ui-monospace,Menlo,monospace; }
+  .knob .mx.one{ background:#cbd5e1; color:#475569; }
   .hpbar{ width:230px; height:15px; background:#e2e8f0; border-radius:999px; overflow:hidden; margin:5px auto 0; }
   .hpbar div{ height:100%; border-radius:999px; }
   .tally{ display:flex; gap:2px; flex-wrap:wrap; max-width:430px; margin:10px auto; }
@@ -142,12 +182,12 @@
   <div class="nav">
     <a href="../index.html">🏠 Home</a>
     <button id="chartBtn" title="The full type effectiveness chart">📊 Type Chart</button>
-    <button id="howBtn" title="A one-line summary of all six games">❓ All Six Games</button>
+    <button id="howBtn" title="A one-line summary of all seven games">❓ All Seven Games</button>
     <button id="srcBtn" title="Where this data comes from">📚 Sources</button>
   </div>
 
   <h1>⚡ PokéLearn</h1>
-  <p class="sub">Six games built from the <b>real</b> Pokédex. Every stat, catch rate and type match-up in here is the real thing. You will multiply, work out your chances, read charts, take words apart, and meet the real animals behind the designs.</p>
+  <p class="sub">Seven games built from the <b>real</b> Pokédex. Every stat, catch rate and type match-up in here is the real thing. You will multiply, work out your chances, read charts, take words apart, meet the real animals behind the designs, and throw a Poké Ball to find out how gravity bends its path.</p>
 
   <div class="seg" id="modeSeg">
     <button data-mode="types" class="on">⚔️ Type Lab</button>
@@ -156,6 +196,7 @@
     <button data-mode="names">🔤 Name Forge</button>
     <button data-mode="bio">🦔 Creature Connection</button>
     <button data-mode="team">🛡️ Team Architect</button>
+    <button data-mode="phys">🎯 Physics Throw</button>
   </div>
   <div class="seg cats" id="catSeg"></div>
 
@@ -276,6 +317,66 @@ function makeTypes(cat){
 }
 
 /* ==================================================================
+   A working calculator for the worksheet panel. Deliberately plain:
+   it applies each operation left to right, in the order you press the
+   keys, which is exactly how you work through a chain of multiplying.
+   ================================================================== */
+const CALC_HTML = `
+  <div class="calc">
+    <div class="sum" id="calcTape">&nbsp;</div>
+    <div class="disp" id="calcDisp">0</div>
+    <div class="keys">
+      <button class="clr" data-k="C">C</button><button class="clr" data-k="back">←</button>
+      <button class="op" data-k="/">÷</button><button class="op" data-k="*">×</button>
+      <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+      <button class="op" data-k="-">−</button>
+      <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+      <button class="op" data-k="+">+</button>
+      <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+      <button class="eq" data-k="=" style="grid-row:span 2">=</button>
+      <button data-k="0" style="grid-column:span 2">0</button><button data-k=".">.</button>
+    </div>
+  </div>`;
+
+function mountCalc(){
+  const disp = document.getElementById('calcDisp'), tape = document.getElementById('calcTape');
+  if (!disp) return;
+  let cur = '0', acc = null, op = null, fresh = true;
+
+  const tidy = n => {
+    if (!isFinite(n)) return 'Oops';
+    const r = Math.round(n * 10000) / 10000;
+    return String(r);
+  };
+  const show = () => {
+    disp.textContent = cur;
+    tape.innerHTML = acc === null ? '&nbsp;' : `${tidy(acc)} ${op === '*' ? '×' : op === '/' ? '÷' : op}`;
+  };
+  const apply = () => {
+    const n = parseFloat(cur) || 0;
+    if (acc === null || op === null) return n;
+    return op === '+' ? acc + n : op === '-' ? acc - n : op === '*' ? acc * n : acc / n;
+  };
+
+  const press = k => {
+    if (k === 'C'){ cur = '0'; acc = null; op = null; fresh = true; }
+    else if (k === 'back'){ cur = (fresh || cur.length <= 1) ? '0' : cur.slice(0, -1); fresh = cur === '0'; }
+    else if (k === '.'){ if (fresh){ cur = '0.'; fresh = false; } else if (!cur.includes('.')) cur += '.'; }
+    else if (/^\d$/.test(k)){ cur = fresh ? k : cur + k; fresh = false; }
+    else if (k === '='){ if (op !== null){ cur = tidy(apply()); acc = null; op = null; fresh = true; } }
+    else { acc = tidy(apply()) * 1; op = k; fresh = true; cur = tidy(acc); }
+    show();
+  };
+
+  document.querySelectorAll('.calc .keys button').forEach(b => b.onclick = () => press(b.dataset.k));
+  // "Tap" chips next to each worksheet step press their keys in for you.
+  document.querySelectorAll('.step .use').forEach(b => b.onclick = () => {
+    String(b.dataset.push).split('').forEach(ch => press(ch));
+  });
+  show();
+}
+
+/* ==================================================================
    GAME 2 — CATCH MASTER
    Probability, percent, and why a 1-in-4 chance is not a promise.
    Simplified model (see Sources) so the arithmetic is followable.
@@ -284,19 +385,49 @@ const BALLS  = [ {n:'Poké Ball', e:'⚪', f:1}, {n:'Great Ball', e:'🔵', f:1.
 const STATUS = [ {n:'Healthy', e:'💚', f:1}, {n:'Poisoned', e:'☠️', f:1.5}, {n:'Paralyzed', e:'⚡', f:1.5}, {n:'Asleep', e:'💤', f:2}, {n:'Frozen', e:'🧊', f:2} ];
 const CATCH_CATS = [ {key:'easy', label:'Common Pokémon'}, {key:'hard', label:'Rare & legendary'}, {key:'all', label:'Mixed'} ];
 
+// How hurt it is decides the health bonus. Kept to three plain bands so a kid
+// can look at the health bar and know which one applies.
+const hpBand = f => f > .66 ? { f:1,   why:'still pretty healthy' }
+                  : f > .33 ? { f:1.5, why:'hurt' }
+                            : { f:2.5, why:'nearly fainted' };
+
+const rawChance = (m, hpFrac, st, ball) => (m.catch / 255) * hpBand(hpFrac).f * st.f * ball.f;
+
 function catchChance(m, hpFrac, st, ball){
-  const hpF = hpFrac > .66 ? 1 : hpFrac > .33 ? 1.5 : 2.5;
-  const p = (m.catch / 255) * hpF * st.f * ball.f;
-  // Never 0 or 100: a catch is never guaranteed and never impossible, and the
-  // whole lesson is that even a 99% throw can miss.
-  return { pct: Math.max(2, Math.min(99, Math.round(p * 100))), hpF };
+  const hp = hpBand(hpFrac);
+  // Never 0: a catch is never truly impossible. The upper end is handled by
+  // only ever building scenarios that come out below 100 (see makeCatch).
+  return { pct: Math.max(2, Math.round(rawChance(m, hpFrac, st, ball) * 100)), hpF: hp.f, hpWhy: hp.why };
 }
+
 function makeCatch(cat){
   const pool = DEX.filter(m => cat === 'all' ? true : cat === 'hard' ? m.catch <= 60 : m.catch > 60);
-  const m = pick(pool);
-  const hpFrac = pick([1, .8, .5, .4, .2, .1]);
-  const st = pick(STATUS), ball = pick(BALLS);
-  const { pct, hpF } = catchChance(m, hpFrac, st, ball);
+  const HPS = [1, .8, .5, .4, .2, .1];
+
+  // Only ever pose a question whose honest answer is under 100%. Multiplying an
+  // already-easy catch by every bonus can reach 700%, and then a kid who does the
+  // worksheet correctly gets a number that does not match the answer — which would
+  // teach them their own correct arithmetic was wrong. So keep resampling until
+  // the whole scenario lands below 99%.
+  // Draw the modifiers first, then choose a Pokémon that fits under them. Doing
+  // it the other way round and rerolling the whole tuple quietly biases the game
+  // toward plain Poké Balls and healthy targets, because those are the combos
+  // most likely to survive the check.
+  let m, hpFrac, st, ball;
+  for (let t = 0; t < 80; t++){
+    hpFrac = pick(HPS); st = pick(STATUS); ball = pick(BALLS);
+    const bonus = hpBand(hpFrac).f * st.f * ball.f;
+    const fits = pool.filter(x => (x.catch / 255) * bonus <= 0.99);
+    if (fits.length){ m = pick(fits); break; }
+  }
+  if (!m){
+    hpFrac = 1; st = STATUS[0]; ball = BALLS[0];
+    const fits = pool.filter(x => x.catch / 255 <= 0.99);
+    m = fits.length ? pick(fits) : pick(pool);
+  }
+  const { pct, hpF, hpWhy } = catchChance(m, hpFrac, st, ball);
+  const hpPct = Math.round(hpFrac * 100);
+  const base = m.catch / 255;
 
   const buckets = [5, 15, 25, 40, 60, 80, 95];
   const truth = buckets.reduce((a, b) => Math.abs(b - pct) < Math.abs(a - pct) ? b : a);
@@ -304,28 +435,70 @@ function makeCatch(cat){
     .map(v => ({ html:`<b style="font-size:19px">about ${v}%</b>`, ok: v === truth }));
 
   const hpColor = hpFrac > .5 ? '#22c55e' : hpFrac > .2 ? '#eab308' : '#dc2626';
+  const mx = f => `<span class="mx${f === 1 ? ' one' : ''}">×${f}</span>`;
+
+  // Each worksheet row can type its own number straight into the calculator.
+  // `keys` is literally what the calculator should press: digits, '.', '*', '/'.
+  const step = (label, sub, num, keys) => `
+    <div class="step">
+      <span>${label}<small>${sub}</small></span>
+      <span style="display:flex;align-items:center;gap:7px">
+        <b class="num">${num}</b>
+        <button class="use" data-push="${keys}">tap</button>
+      </span>
+    </div>`;
+
   return {
-    prompt: `You throw a <b>${ball.n}</b> at this ${m.name}. What is your chance of catching it?`,
+    prompt: `You throw ${article(ball.n).toLowerCase()} <b>${ball.n}</b> at this ${m.name}. What is your chance of catching it?`,
     subject: `${monHTML(m)}
       <div class="knobs">
-        <div class="knob"><small>Catch rate</small>${m.catch} / 255</div>
-        <div class="knob"><small>Its health</small>${Math.round(hpFrac*100)}%
-          <div class="hpbar"><div style="width:${hpFrac*100}%;background:${hpColor}"></div></div></div>
-        <div class="knob"><small>Condition</small>${st.e} ${st.n}</div>
-        <div class="knob"><small>Ball</small>${ball.e} ${ball.n}</div>
+        <div class="knob"><small>How catchable</small>${m.catch} / 255<span class="mx">start</span></div>
+        <div class="knob"><small>Its health</small>${hpPct}% — ${hpWhy}
+          <div class="hpbar"><div style="width:${hpFrac*100}%;background:${hpColor}"></div></div>${mx(hpF)}</div>
+        <div class="knob"><small>Condition</small>${st.e} ${st.n}${mx(st.f)}</div>
+        <div class="knob"><small>Ball</small>${ball.e} ${ball.n}${mx(ball.f)}</div>
       </div>`,
     choices,
+
+    side: `
+      <h4>🧮 Work it out</h4>
+      <p class="tip">Tap a row to send its number to the calculator, or just type it yourself.</p>
+      ${step('Start here', `${m.catch} out of 255`, `${m.catch} ÷ 255`, `${m.catch}/255`)}
+      ${step('Its health', `${hpPct}% — ${hpWhy}`, `× ${hpF}`, `*${hpF}`)}
+      ${step('Condition', st.n.toLowerCase(), `× ${st.f}`, `*${st.f}`)}
+      ${step('Ball', ball.n.toLowerCase(), `× ${ball.f}`, `*${ball.f}`)}
+      ${step('Make it a percent', 'out of 100 instead', '× 100', '*100')}
+      <div class="warn"><b>Careful:</b> you <b>multiply</b> these together. You do not add them.
+        Anything with <b>×1</b> next to it changes nothing at all — multiplying by 1 leaves a number alone.</div>
+      ${CALC_HTML}
+      <details class="key">
+        <summary>Where do these numbers come from?</summary>
+        <table>
+          <tr><td>Health over 66%</td><td>×1</td></tr>
+          <tr><td>Health 34–66%</td><td>×1.5</td></tr>
+          <tr><td>Health under 33%</td><td>×2.5</td></tr>
+          <tr><td>Healthy</td><td>×1</td></tr>
+          <tr><td>Poisoned or paralyzed</td><td>×1.5</td></tr>
+          <tr><td>Asleep or frozen</td><td>×2</td></tr>
+          <tr><td>Poké Ball</td><td>×1</td></tr>
+          <tr><td>Great Ball</td><td>×1.5</td></tr>
+          <tr><td>Ultra Ball</td><td>×2</td></tr>
+        </table>
+      </details>`,
+    mount: mountCalc,
+
     reveal: `<h4>About ${pct}% — ${pct >= 85 ? 'nearly a sure thing, but not quite'
         : pct >= 50 ? 'better odds than a coin flip' : pct >= 20 ? 'worse odds than a coin flip'
         : 'a long shot'}</h4>
-      <p>Start from its catch rate as a fraction, then multiply in each thing that helps you:</p>
-      <p class="work">${m.catch} ÷ 255 = ${(m.catch/255).toFixed(2)}<br>
-        × ${hpF} (health ${Math.round(hpFrac*100)}%)<br>
-        × ${st.f} (${st.n.toLowerCase()})<br>
-        × ${ball.f} (${ball.n})<br>
-        = ${(pct/100).toFixed(2)} → <b>${pct}%</b></p>
-      <p>${pct}% means that if you threw this ball 100 times, you would expect about ${pct} catches — but any single throw is still a gamble.</p>
+      <p>Start with how catchable it is. Then multiply by each thing that is helping you:</p>
+      <p class="work">${m.catch} ÷ 255 = ${base.toFixed(2)}<br>
+        ${base.toFixed(2)} × ${hpF} = ${(base*hpF).toFixed(2)}  <span style="opacity:.6">(${hpWhy})</span><br>
+        ${(base*hpF).toFixed(2)} × ${st.f} = ${(base*hpF*st.f).toFixed(2)}  <span style="opacity:.6">(${st.n.toLowerCase()})</span><br>
+        ${(base*hpF*st.f).toFixed(2)} × ${ball.f} = ${(base*hpF*st.f*ball.f).toFixed(2)}  <span style="opacity:.6">(${ball.n})</span><br>
+        × 100 → <b>${pct}%</b></p>
+      <p>${pct}% means that if you threw this ball 100 times, you would expect to catch it about ${pct} times. But any one throw is still a gamble.</p>
       <div id="simWrap"><button class="act btn-ghost" id="simBtn">🎲 Throw 100 balls and see</button></div>`,
+
     after(){
       const btn = document.getElementById('simBtn');
       if (!btn) return;
@@ -336,10 +509,10 @@ function makeCatch(cat){
         cells.forEach(c => { if (c.includes('"f"')) { run++; longest = Math.max(longest, run); } else run = 0; });
         document.getElementById('simWrap').innerHTML =
           `<div class="tally">${cells.join('')}</div>
-           <p><b>${hit} caught out of 100.</b> You predicted ${pct}. ${
-             Math.abs(hit - pct) <= 5 ? 'Very close to the prediction!' :
-             hit > pct ? 'Lucky run — that is higher than expected.' : 'Unlucky run — that is lower than expected.'}</p>
-           <p>Your longest streak of misses in a row was <b>${longest}</b>. Missing several times in a row does not mean the next throw is "due" — every throw is a fresh ${pct}% chance.</p>
+           <p><b>${hit} caught out of 100.</b> You said about ${pct}. ${
+             Math.abs(hit - pct) <= 5 ? 'That is very close!' :
+             hit > pct ? 'A lucky run — higher than expected.' : 'An unlucky run — lower than expected.'}</p>
+           <p>Your longest string of misses in a row was <b>${longest}</b>. Missing lots of times in a row does not mean the next one is "due" — every throw is a fresh ${pct}% chance.</p>
            <button class="act btn-ghost" id="simBtn">🎲 Throw 100 more</button>`;
         this.after();
       };
@@ -694,15 +867,16 @@ const GUIDE = {
   catch: {
     title: '🔴 Catch Master',
     what: `You throw a ball at a wild Pokémon to catch it. Sometimes it works. Sometimes it does not.
-      Four things change your luck. How easy it is to catch (that is a number out of 255 — rare ones have
-      low numbers). How much <b>health</b> it has left. Whether it is <b>asleep or poisoned</b>. And which
-      <b>ball</b> you use. We show you all four. You guess your chance of catching it.`,
-    hint: `Then click <b>Throw 100 balls</b>. You get to see what really happens. That part is the best bit.`,
+      Four things change your luck. How easy it is to catch (a number out of 255 — rare ones have low
+      numbers). How much <b>health</b> it has left. Whether it is <b>asleep or poisoned</b>. And which
+      <b>ball</b> you use. Each one shows you its own <b>×number</b>. You guess your chance of catching it.`,
+    hint: `Use the <b>Work it out</b> panel on the right. Tap any row to send its number to the calculator.
+      Then click <b>Throw 100 balls</b> and see what really happens. That part is the best bit.`,
     examples: [
-      { q: 'A <b>Rattata</b>. Super easy to catch (255 out of 255). It is healthy. You use a plain ball.',
-        a: '255 out of 255 is as easy as it gets. Nothing is making it harder. You will almost always catch it. Pick the biggest number.' },
-      { q: 'An <b>Articuno</b>. Very rare (only 3 out of 255). It is hurt, it is asleep, and you use a strong ball.',
-        a: '3 out of 255 is tiny. Being hurt, being asleep, and the better ball all help a lot. But you still only get to about <b>12%</b>. Rare ones stay hard, even when everything goes your way.' }
+      { q: 'A <b>Pikachu</b>. Fairly easy to catch (190 out of 255). It is healthy, and you use a plain ball.',
+        a: 'Start with 190 ÷ 255 = <b>0.75</b>. Being healthy is ×1 and a plain ball is ×1, so neither one changes anything. Now × 100 to make it a percent. That is about <b>75%</b>.' },
+      { q: 'An <b>Articuno</b>. Very rare (only 3 out of 255). It is nearly fainted, it is asleep, and you use an Ultra Ball.',
+        a: '3 ÷ 255 = 0.012, which is tiny. Now multiply: × 2.5 (nearly fainted), × 2 (asleep), × 2 (Ultra Ball). That is 0.12, so about <b>12%</b>. Rare ones stay hard even when everything goes your way.' }
     ],
     learn: `<b>Percents and chance.</b> Here is the big idea. A 1-in-4 chance does <i>not</i> mean you win
       every 4th try. You can miss five times in a row. The next throw is still 1 in 4. Missing a lot never
@@ -761,6 +935,23 @@ const GUIDE = {
       groups like mammals, insects and fungi. Every fact in the answer box is true about the real creature.`
   },
 
+  phys: {
+    title: '🎯 Physics Throw',
+    what: `When you throw a Poké Ball, two things happen at once. It keeps moving <b>forward</b> at a steady speed.
+      And gravity keeps pulling it <b>down</b>, faster and faster. Put those together and the ball curves through
+      the air in an arch. That curved path has a name — a <b>parabola</b>.`,
+    hint: `Each round asks you to <b>guess first</b>. Then the ball actually flies, so you find out if you were
+      right. The last round, <b>Target practice</b>, hands you the controls to hit a Pokémon yourself.`,
+    examples: [
+      { q: 'You throw one ball almost flat, and one almost straight up. Same power. Which goes farther?',
+        a: 'Neither! The flat one drops too soon. The steep one goes way up but hardly moves forward. <b>45°</b>, right in the middle, wins every time.' },
+      { q: 'You throw at 30°. Then you throw at 60° with the same power. Where does the second one land?',
+        a: 'The exact same spot. 30 + 60 = <b>90</b>, and any two angles that add to 90 land together. One is fast and low, the other is slow and high — it evens out.' }
+    ],
+    learn: `<b>Physics — how things fly.</b> Gravity, angles, and why a thrown ball always makes that same arch
+      shape. It is the same math that aims a basketball, a water hose, or a rocket.`
+  },
+
   team: {
     title: '🛡️ Team Architect',
     what: `There is no one right answer in this game. You get a bunch of Pokémon and you pick <b>six</b>.
@@ -812,6 +1003,339 @@ function drawGuide(){
   };
 }
 
+/* ==================================================================
+   GAME 7 — PHYSICS THROW
+   Projectile motion with a Poké Ball. No air resistance, so every
+   trajectory has an exact closed form and the drawing can be checked
+   against the equations rather than eyeballed:
+       x(t) = v·cosθ·t
+       y(t) = v·sinθ·t − ½·g·t²
+       range      R = v²·sin(2θ) / g
+       hang time  T = 2·v·sinθ / g
+       peak       H = v²·sin²θ / (2g)
+   Each round makes you PREDICT before it runs the throw, then explains
+   the result — a sandbox on its own teaches nothing.
+   ================================================================== */
+const G_EARTH = 9.8, G_MOON = 1.6;
+const PHYS_CATS = [
+  { key:'angle',   label:'Best angle' },
+  { key:'twins',   label:'Twin angles' },
+  { key:'hang',    label:'Hang time' },
+  { key:'gravity', label:'Moon shot' },
+  { key:'aim',     label:'Target practice' }
+];
+
+const rad    = d => d * Math.PI / 180;
+const range  = (v, d, g) => v * v * Math.sin(2 * rad(d)) / g;
+const flight = (v, d, g) => 2 * v * Math.sin(rad(d)) / g;
+const apex   = (v, d, g) => (v * Math.sin(rad(d))) ** 2 / (2 * g);
+const posAt  = (v, d, g, t) => ({ x: v * Math.cos(rad(d)) * t, y: v * Math.sin(rad(d)) * t - 0.5 * g * t * t });
+
+const SHOT_COLORS = ['#dc2626', '#2563eb', '#16a34a'];
+const imgCache = {};
+function monImg(id){
+  if (!imgCache[id]){ const i = new Image(); i.src = `img/${id}.png`; imgCache[id] = i; }
+  return imgCache[id];
+}
+
+function physCanvas(id){
+  return `<canvas id="${id}" width="620" height="300"
+    style="width:100%;max-width:620px;background:linear-gradient(180deg,#e0f2fe,#f0fdf4);border-radius:14px;touch-action:none"></canvas>`;
+}
+
+// One shared renderer. `tNow` is how far into the flight to draw; pass
+// Infinity for the finished arcs. Scale is deliberately the SAME on both
+// axes, so the parabola on screen is the real shape, not a stretched one.
+function drawScene(cv, shots, worldW, target, tNow){
+  const ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+  const gy = H - 34, pad = 16;
+  const maxH = Math.max(...shots.map(s => apex(s.v, s.deg, s.g)), 1);
+  const s = Math.min((W - pad * 2) / worldW, (gy - pad - 26) / maxH);
+  const X = m => pad + m * s, Y = m => gy - m * s;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // ground + distance ruler
+  ctx.fillStyle = '#86efac'; ctx.fillRect(0, gy, W, H - gy);
+  ctx.strokeStyle = '#16a34a'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+  const tick = worldW > 80 ? 20 : worldW > 40 ? 10 : 5;
+  ctx.fillStyle = '#15803d'; ctx.font = '600 11px system-ui'; ctx.textAlign = 'center';
+  for (let m = 0; m <= worldW; m += tick){
+    const x = X(m); if (x > W - 4) break;
+    ctx.fillRect(x, gy, 1, 6);
+    ctx.fillText(m + 'm', x, gy + 19);
+  }
+
+  if (target){
+    const im = monImg(target.monId), tx = X(target.dist);
+    if (im.complete && im.naturalWidth) ctx.drawImage(im, tx - 24, gy - 48, 48, 48);
+    ctx.strokeStyle = '#dc2626'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(tx, gy); ctx.lineTo(tx, gy - 52); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  shots.forEach((sh, i) => {
+    const col = sh.color || SHOT_COLORS[i % 3];
+    const tf = flight(sh.v, sh.deg, sh.g), t = Math.min(tNow, tf);
+    ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.beginPath();
+    for (let k = 0; k <= 100; k++){
+      const p = posAt(sh.v, sh.deg, sh.g, t * k / 100);
+      k ? ctx.lineTo(X(p.x), Y(p.y)) : ctx.moveTo(X(p.x), Y(p.y));
+    }
+    ctx.stroke();
+    const p = posAt(sh.v, sh.deg, sh.g, t);
+    ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), 7, 0, 7);
+    ctx.fillStyle = '#fff'; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = col; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(X(p.x) - 7, Y(p.y)); ctx.lineTo(X(p.x) + 7, Y(p.y));
+    ctx.stroke();
+    if (sh.label){
+      ctx.fillStyle = col; ctx.font = '800 12px system-ui'; ctx.textAlign = 'left';
+      ctx.fillText(sh.label, 8, 18 + i * 16);
+    }
+  });
+}
+
+function runShots(canvasId, shots, worldW, target, done){
+  const cv = document.getElementById(canvasId);
+  if (!cv) return;
+  const T = Math.max(...shots.map(s => flight(s.v, s.deg, s.g)));
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const dur = reduce ? 0 : Math.min(4000, Math.max(1500, T * 600));
+
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    drawScene(cv, shots, worldW, target, T);   // always end on the complete arc
+    if (done) done();
+  };
+  if (!dur) return finish();
+
+  let t0 = null;
+  const frame = ts => {
+    if (finished) return;
+    if (t0 === null) t0 = ts;
+    const p = Math.min(1, (ts - t0) / dur);
+    drawScene(cv, shots, worldW, target, p * T);
+    if (p < 1) requestAnimationFrame(frame); else finish();
+  };
+  requestAnimationFrame(frame);
+  // Safety net. requestAnimationFrame is paused in a background tab and can be
+  // throttled to a crawl; without this, pressing Throw would silently do
+  // nothing at all — no arc drawn and no result shown.
+  setTimeout(finish, dur + 400);
+}
+
+const m1 = n => n.toFixed(1);
+
+/* ---------- the four predict-then-test rounds ---------- */
+function makePhysics(cat){
+  const kind = cat === 'all' ? pick(['angle','twins','hang','gravity']) : cat;
+  const v = pick([16, 18, 20, 22]);
+  const target = { monId: pick(DEX).id };
+
+  if (kind === 'angle'){
+    const low = pick([15, 20, 25, 30]), mid = pick([40, 45, 50]), high = pick([65, 70, 75]);
+    const shots = shuffle([low, mid, high]).map((d, i) => ({ v, deg: d, g: G_EARTH, color: SHOT_COLORS[i], label: `${d}°` }));
+    const worldW = Math.max(...shots.map(s => range(s.v, s.deg, s.g))) * 1.12;
+    const rs = Object.fromEntries(shots.map(s => [s.deg, range(v, s.deg, G_EARTH)]));
+    return {
+      prompt: `Three Poké Balls, thrown with <b>exactly the same power</b> but at different angles. Which one lands <b>farthest away</b>?`,
+      subject: physCanvas('physCv'),
+      choices: shuffle(shots.map(s => ({ html:`The <b>${s.deg}°</b> throw`, ok: s.deg === mid }))
+        .concat([{ html:'They all go the same distance', ok:false }])).slice(0, 4),
+      mount(){ drawScene(document.getElementById('physCv'), shots, worldW, null, 0); },
+      after(){ runShots('physCv', shots, worldW, null); },
+      reveal: `<h4>The ${mid}° throw wins — it went ${m1(rs[mid])} m</h4>
+        <p class="work">${low}° → ${m1(rs[low])} m<br>${mid}° → ${m1(rs[mid])} m<br>${high}° → ${m1(rs[high])} m</p>
+        <p>Throw too <b>flat</b> and the ball is fast but hits the ground almost straight away. Throw too <b>steep</b>
+           and it hangs up in the air for ages but barely travels forward. The sweet spot is right in the middle.</p>
+        <div class="eli5"><b>The rule:</b> <b>45°</b> always throws the farthest. It splits your effort evenly between
+          "forward" and "up" — the best trade you can make. Golfers, basketball players and cannon crews all know this one.</div>`
+    };
+  }
+
+  if (kind === 'twins'){
+    const a = pick([20, 25, 30, 35, 40]), b = 90 - a;
+    const shots = [
+      { v, deg:a, g:G_EARTH, color:SHOT_COLORS[0], label:`${a}° (low)` },
+      { v, deg:b, g:G_EARTH, color:SHOT_COLORS[1], label:`${b}° (high)` }
+    ];
+    const R = range(v, a, G_EARTH), worldW = R * 1.2;
+    return {
+      prompt: `The <b>${a}°</b> throw landed ${m1(R)} m away. Now the same power is thrown at <b>${b}°</b>. Where does that one land?`,
+      subject: physCanvas('physCv'),
+      choices: shuffle([
+        { html:'Much <b>shorter</b> — it goes too high', ok:false },
+        { html:'In <b>exactly the same spot</b>', ok:true },
+        { html:'Much <b>farther</b> — it gets more air', ok:false },
+        { html:'About <b>half</b> as far', ok:false }
+      ]),
+      mount(){ drawScene(document.getElementById('physCv'), [shots[0]], worldW, null, Infinity); },
+      after(){ runShots('physCv', shots, worldW, null); },
+      reveal: `<h4>The same spot — both land at ${m1(R)} m</h4>
+        <p>${a}° + ${b}° = <b>90°</b>. Any two angles that add up to 90 land in exactly the same place.</p>
+        <p class="work">${a}° → ${m1(R)} m, in the air ${m1(flight(v,a,G_EARTH))} s<br>
+           ${b}° → ${m1(range(v,b,G_EARTH))} m, in the air ${m1(flight(v,b,G_EARTH))} s</p>
+        <p>They get there in completely different ways. The low one is <b>fast but low</b>. The high one is
+           <b>slow but hangs in the air</b> ${m1(flight(v,b,G_EARTH)/flight(v,a,G_EARTH))}× longer. The two effects cancel out perfectly.</p>
+        <div class="eli5"><b>Why it matters:</b> there are almost always <b>two</b> ways to hit the same target —
+          a fast flat one and a slow loopy one. Which would you pick to throw over a wall?</div>`
+    };
+  }
+
+  if (kind === 'hang'){
+    const a = pick([20, 25, 30]), b = pick([60, 65, 70]);
+    const shots = [
+      { v, deg:a, g:G_EARTH, color:SHOT_COLORS[0], label:`${a}°` },
+      { v, deg:b, g:G_EARTH, color:SHOT_COLORS[1], label:`${b}°` }
+    ];
+    const worldW = Math.max(range(v,a,G_EARTH), range(v,b,G_EARTH)) * 1.15;
+    const ta = flight(v, a, G_EARTH), tb = flight(v, b, G_EARTH);
+    return {
+      prompt: `Same power again, one throw at <b>${a}°</b> and one at <b>${b}°</b>. Which ball stays <b>in the air longer</b>?`,
+      subject: physCanvas('physCv'),
+      choices: shuffle([
+        { html:`The <b>${a}°</b> throw`, ok:false },
+        { html:`The <b>${b}°</b> throw`, ok:true },
+        { html:'Both land at the same moment', ok:false },
+        { html:'Whichever one goes farther', ok:false }
+      ]),
+      mount(){ drawScene(document.getElementById('physCv'), shots, worldW, null, 0); },
+      after(){ runShots('physCv', shots, worldW, null); },
+      reveal: `<h4>The ${b}° throw — ${m1(tb)} s in the air, against ${m1(ta)} s</h4>
+        <p>Time in the air has <b>nothing to do</b> with how far the ball goes. It depends on one thing only:
+           how fast you sent it <b>upward</b>.</p>
+        <p class="work">${b}° sends it up at ${m1(v*Math.sin(rad(b)))} m/s → ${m1(tb)} s in the air<br>
+           ${a}° sends it up at ${m1(v*Math.sin(rad(a)))} m/s → ${m1(ta)} s in the air</p>
+        <p>Gravity pulls down at the same rate no matter which way the ball is moving sideways. The steeper throw
+           simply has further to fall back from — it peaked at ${m1(apex(v,b,G_EARTH))} m instead of ${m1(apex(v,a,G_EARTH))} m.</p>
+        <div class="eli5"><b>The surprising bit:</b> drop a ball and fire one sideways at the very same moment, and
+          they hit the ground <b>together</b>. Going sideways does not keep you up.</div>`
+    };
+  }
+
+  // gravity — Earth vs Moon
+  const deg = pick([35, 40, 45, 50]);
+  const shots = [
+    { v, deg, g:G_EARTH, color:SHOT_COLORS[0], label:'Earth' },
+    { v, deg, g:G_MOON,  color:SHOT_COLORS[1], label:'Moon' }
+  ];
+  const rE = range(v, deg, G_EARTH), rM = range(v, deg, G_MOON);
+  return {
+    prompt: `You throw a Poké Ball at <b>${deg}°</b> on Earth and it lands ${m1(rE)} m away. You throw it with the
+      <b>same power and angle</b> on the <b>Moon</b>. What happens?`,
+    subject: physCanvas('physCv'),
+    choices: shuffle([
+      { html:'It lands in about the <b>same spot</b>', ok:false },
+      { html:'It goes about <b>twice</b> as far', ok:false },
+      { html:'It goes about <b>6 times</b> as far', ok:true },
+      { html:'It never comes down at all', ok:false }
+    ]),
+    mount(){ drawScene(document.getElementById('physCv'), [shots[0]], rM * 1.1, null, Infinity); },
+    after(){ runShots('physCv', shots, rM * 1.1, null); },
+    reveal: `<h4>About 6 times as far — ${m1(rM)} m instead of ${m1(rE)} m</h4>
+      <p>The Moon is much smaller than Earth, so its gravity pulls about <b>6 times more gently</b>.</p>
+      <p class="work">Earth pulls at ${G_EARTH} m/s² → ${m1(rE)} m, in the air ${m1(flight(v,deg,G_EARTH))} s<br>
+         Moon  pulls at ${G_MOON} m/s² → ${m1(rM)} m, in the air ${m1(flight(v,deg,G_MOON))} s</p>
+      <p>You did not throw any harder. Weaker gravity just means the ball takes
+         <b>${m1(flight(v,deg,G_MOON)/flight(v,deg,G_EARTH))}× longer</b> to be pulled back down, and it keeps drifting
+         forward the whole time it is falling.</p>
+      <div class="eli5"><b>Real thing:</b> Apollo 14 astronaut Alan Shepard hit two golf balls on the Moon in 1971.
+        In a stiff spacesuit he could barely swing one-handed — and they still sailed away.</div>`
+  };
+}
+
+/* ---------- target practice: apply what the other rounds taught ---------- */
+function renderAim(){
+  const stage = $('#stage');
+  const WORLD = 70;                       // fixed world width so the scale never shifts
+  const mon = pick(DEX.filter(m => !m.legendary));
+  const dist = 18 + rand(30);             // 18-47 m, always reachable
+  const HIT = 2.5;                        // metres either side counts as a hit
+  let deg = 45, v = 15, tries = 0, done = false, last = null;
+
+  // Built once and then only updated in place. Rebuilding this markup on every
+  // slider move would destroy the very input being dragged, so a drag would
+  // stop dead after one step.
+  stage.innerHTML = `
+    <p class="qprompt">Hit the ${esc(mon.name)}! It is <b>${dist} m</b> away.</p>
+    ${physCanvas('aimCv')}
+    <div class="knobs" style="margin-top:12px">
+      <div class="knob"><small>Angle</small>
+        <input type="range" id="angIn" min="10" max="80" step="1" value="${deg}" style="width:170px;accent-color:var(--accent)">
+        <div style="font-size:17px" id="angVal">${deg}°</div></div>
+      <div class="knob"><small>Power</small>
+        <input type="range" id="powIn" min="10" max="25" step="1" value="${v}" style="width:170px;accent-color:var(--accent)">
+        <div style="font-size:17px" id="powVal">${v} m/s</div></div>
+    </div>
+    <div class="btn-row">
+      <button class="act btn-primary" id="throwBtn">🔴 Throw!</button>
+      <button class="act btn-ghost" id="newBtn">🔄 New target</button>
+    </div>
+    <div id="aimOut"></div>`;
+
+  const cv = document.getElementById('aimCv'), out = document.getElementById('aimOut');
+  const tgt = { monId: mon.id, dist };
+  const HINT = `<p style="color:var(--muted);font-size:14px;margin-top:12px">
+    Set your angle and power, then throw. Watch where it lands, then adjust and try again.</p>`;
+
+  function refresh(){
+    document.getElementById('angVal').textContent = deg + '°';
+    document.getElementById('powVal').textContent = v + ' m/s';
+    if (last) drawScene(cv, [{ v:last.v, deg:last.deg, g:G_EARTH, color:SHOT_COLORS[0] }], WORLD, tgt, Infinity);
+    else { drawScene(cv, [], WORLD, tgt, 0); out.innerHTML = HINT; }
+  }
+
+  function feedback(landed){
+    const off = landed - dist;
+    if (Math.abs(off) <= HIT){
+      const twin = 90 - deg;
+      out.innerHTML = `<div class="reveal">
+        <h4>🎯 Hit! You landed at ${m1(landed)} m in ${tries} ${tries === 1 ? 'throw' : 'throws'}.</h4>
+        <p class="work">${v} × ${v} × sin(2 × ${deg}°) ÷ 9.8 = ${m1(landed)} m</p>
+        <p>Two things decide how far a throw goes: <b>how hard</b> you throw it and <b>what angle</b> you throw it at.
+           Power counts double — throw twice as hard and it goes <b>four times</b> as far, because the power gets multiplied by itself.</p>
+        ${deg !== 45
+          ? `<div class="eli5"><b>Try this:</b> leave the power exactly where it is and set the angle to <b>${twin}°</b>.
+              ${deg}° + ${twin}° = 90°, so it should land in the very same spot. Go on, test it.</div>`
+          : `<div class="eli5"><b>Notice:</b> 45° reaches farther than any other angle. If the target sat past
+              ${m1(range(v,45,G_EARTH))} m, no angle would get you there — you would need more power.</div>`}
+        <div class="btn-row"><button class="act btn-primary" id="againBtn">🔄 New target</button></div></div>`;
+      document.getElementById('againBtn').onclick = () => renderAim();
+      return;
+    }
+    const maxReach = range(v, 45, G_EARTH);
+    out.innerHTML = `<div class="reveal">
+      <h4>${off > 0 ? 'Overshot' : 'Fell short'} by ${m1(Math.abs(off))} m — you landed at ${m1(landed)} m.</h4>
+      <p>${off > 0
+        ? `Too far. Either throw with <b>less power</b>, or move your angle <b>away from 45°</b> — try ${deg < 45 ? 'lower' : 'higher'}.`
+        : maxReach < dist
+          ? `Even a perfect 45° throw at this power only reaches <b>${m1(maxReach)} m</b>, and the target is ${dist} m away.
+             No angle can do it — you need <b>more power</b>.`
+          : `Too short. Either throw with <b>more power</b>, or move your angle <b>closer to 45°</b>.`}</p>
+      <p style="color:var(--muted);font-size:13.5px">Throw ${tries}. It peaked at ${m1(apex(v,deg,G_EARTH))} m
+        and was in the air ${m1(flight(v,deg,G_EARTH))} s.</p></div>`;
+  }
+
+  document.getElementById('angIn').oninput = e => { deg = +e.target.value; last = null; refresh(); };
+  document.getElementById('powIn').oninput = e => { v   = +e.target.value; last = null; refresh(); };
+  document.getElementById('newBtn').onclick = () => renderAim();
+  document.getElementById('throwBtn').onclick = () => {
+    tries++;
+    last = { v, deg };
+    const landed = range(v, deg, G_EARTH);
+    out.innerHTML = '';
+    runShots('aimCv', [{ v, deg, g:G_EARTH, color:SHOT_COLORS[0] }], WORLD, tgt, () => {
+      feedback(landed);
+      if (Math.abs(landed - dist) <= HIT && !done){ done = true; score(tries <= 4); }
+    });
+  };
+
+  refresh();
+}
+
 /* ============================ engine ============================ */
 const MODES = {
   types: { cats: TYPE_CATS,  make: makeTypes  },
@@ -819,23 +1343,34 @@ const MODES = {
   stats: { cats: STAT_CATS,  make: makeStats  },
   names: { cats: NAME_CATS,  make: makeNames  },
   bio:   { cats: BIO_CATS,   make: makeBio    },
-  team:  { cats: TEAM_CATS,  custom: renderTeam }
+  team:  { cats: TEAM_CATS,  custom: renderTeam },
+  phys:  { cats: PHYS_CATS,  make: makePhysics, customCats: { aim: renderAim } }
 };
 let mode = 'types', cat = TYPE_CATS[0].key;
 
 function nextQ(){
   const M = MODES[mode];
   if (M.custom) return M.custom(cat);
+  if (M.customCats && M.customCats[cat]) return M.customCats[cat](cat);
 
-  const q = M.make(cat);
+  let q;
+  try { q = M.make(cat); }
+  catch (e){
+    // Fail loudly. A silent throw here just leaves the previous question on
+    // screen, which looks like the mode button is broken.
+    $('#stage').innerHTML = `<p class="qprompt">⚠️ Something went wrong building that question.</p>
+      <p style="font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--bad)">${esc(e.message)}</p>
+      <div class="btn-row"><button class="act btn-primary" id="retryBtn">Try again</button></div>`;
+    $('#retryBtn').onclick = nextQ;
+    return;
+  }
   if (!q){
     $('#stage').innerHTML = `<p class="qprompt">This game's word list didn't load.</p>
       <p>Check that <code>data.js</code> is sitting next to <code>index.html</code>, then reload the page.</p>`;
     return;
   }
 
-  $('#stage').innerHTML = `
-    <p class="qprompt">${q.prompt}</p>
+  const play = `
     <div class="subject">${q.subject || ''}</div>
     <div class="choices${q.wide ? ' wide' : ''}" id="choices">
       ${q.choices.map((c, i) => `<button data-i="${i}">${c.html}</button>`).join('')}
@@ -843,6 +1378,11 @@ function nextQ(){
     <div class="feedback" id="feedback"></div>
     <div class="reveal hidden" id="reveal"></div>
     <div class="btn-row hidden" id="nextRow"><button class="act btn-primary" id="nextBtn">Next ➡️</button></div>`;
+
+  $('#stage').innerHTML = `<p class="qprompt">${q.prompt}</p>` + (q.side
+    ? `<div class="split"><div>${play}</div><aside class="sideCol">${q.side}</aside></div>`
+    : play);
+  if (q.mount) q.mount();
 
   const btns = [...document.querySelectorAll('#choices button')];
   btns.forEach(b => b.onclick = () => {
@@ -903,6 +1443,7 @@ $('#howBtn').onclick = () => openModal(`<h2>❓ How to play</h2><ul>
   <li><b>📊 Stat Squad</b> — Mean, median, range and outliers, using real base stats. Also practice reading a bar chart.</li>
   <li><b>🔤 Name Forge</b> — Almost every Pokémon name is two words fused together. Split them apart, learn what each piece means, and collect roots like <i>saur</i> (lizard) that unlock words you have never seen before.</li>
   <li><b>🦔 Creature Connection</b> — Every design starts from a real animal, plant, object or myth. Find the real thing, then learn its habitat and its actual adaptation.</li>
+  <li><b>🎯 Physics Throw</b> — Throw a Poké Ball and watch it arc. Predict which angle flies farthest, discover that two different angles hit the same spot, find out what really decides hang time, and try the same throw on the Moon. Then take the controls and hit a target yourself. Real projectile motion, no air resistance.</li>
   <li><b>🛡️ Team Architect</b> — Pick six Pokémon so that your team resists as many of the 18 attacking types as possible. There is no single right answer; the game shows you exactly where your holes are.</li>
   </ul>`);
 
