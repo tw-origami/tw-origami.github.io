@@ -1129,64 +1129,122 @@ function runShots(canvasId, shots, worldW, target, done){
 
 const m1 = n => n.toFixed(1);
 
-/* ---------- the four predict-then-test rounds ---------- */
+/* ---------- the four predict-then-test rounds ----------
+   Every round varies which answer is correct. A round with only one
+   possible answer teaches a kid to click the same box each time
+   instead of doing the reasoning. */
+const PLANETS = [
+  { n:'the Moon', g:G_MOON,  key:'far6',
+    fact:`Apollo 14 astronaut Alan Shepard hit two golf balls on the Moon in 1971. In a stiff spacesuit he could
+          barely swing one-handed — and they still sailed away.` },
+  { n:'Mars', g:3.7, key:'far25',
+    fact:`Mars is smaller than Earth and pulls about a third as hard. You would weigh roughly a third of what
+          you weigh here, so you could jump about three times higher.` },
+  { n:'Jupiter', g:24.8, key:'short25',
+    fact:`Jupiter is enormous and pulls about 2½ times harder than Earth. There is nowhere to stand and throw
+          from, though — Jupiter is mostly gas, with no solid surface.` }
+];
+
 function makePhysics(cat){
   const kind = cat === 'all' ? pick(['angle','twins','hang','gravity']) : cat;
   const v = pick([16, 18, 20, 22]);
-  const target = { monId: pick(DEX).id };
 
+  /* ---- best angle: sometimes farthest, sometimes shortest ---- */
   if (kind === 'angle'){
     const low = pick([15, 20, 25, 30]), mid = pick([40, 45, 50]), high = pick([65, 70, 75]);
-    const shots = shuffle([low, mid, high]).map((d, i) => ({ v, deg: d, g: G_EARTH, color: SHOT_COLORS[i], label: `${d}°` }));
-    const worldW = Math.max(...shots.map(s => range(s.v, s.deg, s.g))) * 1.12;
-    const rs = Object.fromEntries(shots.map(s => [s.deg, range(v, s.deg, G_EARTH)]));
+    const rOf = d => range(v, d, G_EARTH);
+    // low and high can happen to be complementary, which makes them tie. A tie
+    // has no single shortest throw, so only ask for the farthest in that case.
+    const tie = Math.abs(rOf(low) - rOf(high)) / rOf(mid) < 0.02;
+    const askFar = tie ? true : Math.random() < 0.5;
+    const degs = [low, mid, high];
+    const answer = askFar ? mid : degs.reduce((a, b) => rOf(b) < rOf(a) ? b : a);
+    const shots = shuffle(degs).map((d, i) => ({ v, deg:d, g:G_EARTH, color:SHOT_COLORS[i], label:`${d}°` }));
+    const worldW = Math.max(...degs.map(rOf)) * 1.12;
     return {
-      prompt: `Three Poké Balls, thrown with <b>exactly the same power</b> but at different angles. Which one lands <b>farthest away</b>?`,
+      prompt: `Three Poké Balls, thrown with <b>exactly the same power</b> but at different angles.
+        Which one lands <b>${askFar ? 'farthest away' : 'the shortest distance away'}</b>?`,
       subject: physCanvas('physCv'),
-      choices: shuffle(shots.map(s => ({ html:`The <b>${s.deg}°</b> throw`, ok: s.deg === mid }))
+      choices: shuffle(degs.map(d => ({ html:`The <b>${d}°</b> throw`, ok: d === answer }))
         .concat([{ html:'They all go the same distance', ok:false }])).slice(0, 4),
       mount(){ drawScene(document.getElementById('physCv'), shots, worldW, null, 0); },
       after(){ runShots('physCv', shots, worldW, null); },
-      reveal: `<h4>The ${mid}° throw wins — it went ${m1(rs[mid])} m</h4>
-        <p class="work">${low}° → ${m1(rs[low])} m<br>${mid}° → ${m1(rs[mid])} m<br>${high}° → ${m1(rs[high])} m</p>
+      reveal: `<h4>The ${answer}° throw — it went ${m1(rOf(answer))} m</h4>
+        <p class="work">${degs.map(d => `${d}° → ${m1(rOf(d))} m`).join('<br>')}</p>
         <p>Throw too <b>flat</b> and the ball is fast but hits the ground almost straight away. Throw too <b>steep</b>
-           and it hangs up in the air for ages but barely travels forward. The sweet spot is right in the middle.</p>
-        <div class="eli5"><b>The rule:</b> <b>45°</b> always throws the farthest. It splits your effort evenly between
-          "forward" and "up" — the best trade you can make. Golfers, basketball players and cannon crews all know this one.</div>`
+           and it hangs in the air for ages but barely travels forward.</p>
+        <div class="eli5"><b>The rule:</b> the closer you get to <b>45°</b>, the farther it goes. 45° splits your
+          effort evenly between "forward" and "up". The farther an angle is from 45° — either way — the shorter
+          the throw.</div>`
     };
   }
 
+  /* ---- twin angles: the pair only matches when it adds to 90 ---- */
   if (kind === 'twins'){
-    const a = pick([20, 25, 30, 35, 40]), b = 90 - a;
+    const a = pick([20, 25, 30, 35, 40]);
+    const rA = range(v, a, G_EARTH);
+    let b, verdict;
+    // Complementary only about a third of the time, so "same spot" is not
+    // a coin-flip guess that pays off.
+    if (Math.random() < 1/3){ b = 90 - a; verdict = 'same'; }
+    else {
+      // Deliberately NOT complementary, and far enough off that the difference
+      // is plain to see, but never near half or double (those are distractors).
+      const cands = [];
+      for (let x = 10; x <= 80; x += 5){
+        if (x === a || x === 90 - a) continue;
+        const r = range(v, x, G_EARTH) / rA;
+        if ((r > 1.12 && r < 1.7) || (r > 0.62 && r < 0.88)) cands.push(x);
+      }
+      b = pick(cands);
+      verdict = range(v, b, G_EARTH) > rA ? 'farther' : 'shorter';
+    }
+    const rB = range(v, b, G_EARTH);
     const shots = [
-      { v, deg:a, g:G_EARTH, color:SHOT_COLORS[0], label:`${a}° (low)` },
-      { v, deg:b, g:G_EARTH, color:SHOT_COLORS[1], label:`${b}° (high)` }
+      { v, deg:a, g:G_EARTH, color:SHOT_COLORS[0], label:`${a}°` },
+      { v, deg:b, g:G_EARTH, color:SHOT_COLORS[1], label:`${b}°` }
     ];
-    const R = range(v, a, G_EARTH), worldW = R * 1.2;
+    const worldW = Math.max(rA, rB) * 1.18;
     return {
-      prompt: `The <b>${a}°</b> throw landed ${m1(R)} m away. Now the same power is thrown at <b>${b}°</b>. Where does that one land?`,
+      prompt: `The <b>${a}°</b> throw landed ${m1(rA)} m away. Now the same power is thrown at <b>${b}°</b>.
+        Where does that one land?`,
       subject: physCanvas('physCv'),
       choices: shuffle([
-        { html:'Much <b>shorter</b> — it goes too high', ok:false },
-        { html:'In <b>exactly the same spot</b>', ok:true },
-        { html:'Much <b>farther</b> — it gets more air', ok:false },
-        { html:'About <b>half</b> as far', ok:false }
+        { html:'In <b>exactly the same spot</b>',  ok: verdict === 'same' },
+        { html:'A bit <b>farther</b> away',        ok: verdict === 'farther' },
+        { html:'A bit <b>shorter</b>',             ok: verdict === 'shorter' },
+        { html:'<b>Twice</b> as far',              ok: false }
       ]),
       mount(){ drawScene(document.getElementById('physCv'), [shots[0]], worldW, null, Infinity); },
       after(){ runShots('physCv', shots, worldW, null); },
-      reveal: `<h4>The same spot — both land at ${m1(R)} m</h4>
-        <p>${a}° + ${b}° = <b>90°</b>. Any two angles that add up to 90 land in exactly the same place.</p>
-        <p class="work">${a}° → ${m1(R)} m, in the air ${m1(flight(v,a,G_EARTH))} s<br>
-           ${b}° → ${m1(range(v,b,G_EARTH))} m, in the air ${m1(flight(v,b,G_EARTH))} s</p>
-        <p>They get there in completely different ways. The low one is <b>fast but low</b>. The high one is
-           <b>slow but hangs in the air</b> ${m1(flight(v,b,G_EARTH)/flight(v,a,G_EARTH))}× longer. The two effects cancel out perfectly.</p>
-        <div class="eli5"><b>Why it matters:</b> there are almost always <b>two</b> ways to hit the same target —
-          a fast flat one and a slow loopy one. Which would you pick to throw over a wall?</div>`
+      reveal: verdict === 'same'
+        ? `<h4>The same spot — both land at ${m1(rA)} m</h4>
+           <p>${a}° + ${b}° = <b>90°</b>. That is the whole trick: any two angles that add up to 90 land in exactly
+              the same place.</p>
+           <p class="work">${a}° → ${m1(rA)} m, in the air ${m1(flight(v,a,G_EARTH))} s<br>
+              ${b}° → ${m1(rB)} m, in the air ${m1(flight(v,b,G_EARTH))} s</p>
+           <p>They get there in totally different ways. The low one is <b>fast but flat</b>. The high one is
+              <b>slow and loopy</b>, hanging up ${m1(flight(v,b,G_EARTH)/flight(v,a,G_EARTH))}× longer. The two
+              effects cancel out exactly.</p>
+           <div class="eli5"><b>Why it matters:</b> there are usually <b>two</b> ways to hit the same target — a fast
+             flat one and a slow loopy one. Which would you pick to throw over a wall?</div>`
+        : `<h4>A bit ${verdict} — ${m1(rB)} m instead of ${m1(rA)} m</h4>
+           <p>Check the angles first: ${a}° + ${b}° = <b>${a + b}°</b>, <b>not</b> 90°. So this pair does
+              <i>not</i> match up.</p>
+           <p class="work">${a}° → ${m1(rA)} m<br>${b}° → ${m1(rB)} m</p>
+           <p>${b}° sits ${Math.abs(45 - b) < Math.abs(45 - a) ? '<b>closer to</b>' : '<b>farther from</b>'} 45° than
+              ${a}° does, so it throws ${verdict === 'farther' ? 'farther' : 'less far'}.
+              (For the record, the angle that <i>would</i> have matched ${a}° exactly is <b>${90 - a}°</b>.)</p>
+           <div class="eli5"><b>Careful:</b> two angles only land together when they add up to <b>90</b>.
+             Always add them up and check — do not just assume a bigger angle goes farther.</div>`
     };
   }
 
+  /* ---- hang time: sometimes longest, sometimes shortest ---- */
   if (kind === 'hang'){
     const a = pick([20, 25, 30]), b = pick([60, 65, 70]);
+    const askLonger = Math.random() < 0.5;
+    const answer = askLonger ? b : a;
     const shots = [
       { v, deg:a, g:G_EARTH, color:SHOT_COLORS[0], label:`${a}°` },
       { v, deg:b, g:G_EARTH, color:SHOT_COLORS[1], label:`${b}°` }
@@ -1194,56 +1252,63 @@ function makePhysics(cat){
     const worldW = Math.max(range(v,a,G_EARTH), range(v,b,G_EARTH)) * 1.15;
     const ta = flight(v, a, G_EARTH), tb = flight(v, b, G_EARTH);
     return {
-      prompt: `Same power again, one throw at <b>${a}°</b> and one at <b>${b}°</b>. Which ball stays <b>in the air longer</b>?`,
+      prompt: `Same power again, one throw at <b>${a}°</b> and one at <b>${b}°</b>.
+        Which ball is in the air for the <b>${askLonger ? 'longest' : 'shortest'} time</b>?`,
       subject: physCanvas('physCv'),
       choices: shuffle([
-        { html:`The <b>${a}°</b> throw`, ok:false },
-        { html:`The <b>${b}°</b> throw`, ok:true },
+        { html:`The <b>${a}°</b> throw`, ok: answer === a },
+        { html:`The <b>${b}°</b> throw`, ok: answer === b },
         { html:'Both land at the same moment', ok:false },
         { html:'Whichever one goes farther', ok:false }
       ]),
       mount(){ drawScene(document.getElementById('physCv'), shots, worldW, null, 0); },
       after(){ runShots('physCv', shots, worldW, null); },
-      reveal: `<h4>The ${b}° throw — ${m1(tb)} s in the air, against ${m1(ta)} s</h4>
+      reveal: `<h4>The ${answer}° throw — ${m1(answer === a ? ta : tb)} s, against ${m1(answer === a ? tb : ta)} s</h4>
         <p>Time in the air has <b>nothing to do</b> with how far the ball goes. It depends on one thing only:
            how fast you sent it <b>upward</b>.</p>
         <p class="work">${b}° sends it up at ${m1(v*Math.sin(rad(b)))} m/s → ${m1(tb)} s in the air<br>
            ${a}° sends it up at ${m1(v*Math.sin(rad(a)))} m/s → ${m1(ta)} s in the air</p>
-        <p>Gravity pulls down at the same rate no matter which way the ball is moving sideways. The steeper throw
-           simply has further to fall back from — it peaked at ${m1(apex(v,b,G_EARTH))} m instead of ${m1(apex(v,a,G_EARTH))} m.</p>
-        <div class="eli5"><b>The surprising bit:</b> drop a ball and fire one sideways at the very same moment, and
-          they hit the ground <b>together</b>. Going sideways does not keep you up.</div>`
+        <p>Gravity pulls down just as hard either way. The steeper throw simply has farther to fall back from —
+           it peaked at ${m1(apex(v,b,G_EARTH))} m instead of ${m1(apex(v,a,G_EARTH))} m.</p>
+        <div class="eli5"><b>The surprising bit:</b> drop one ball and fire another sideways at the very same
+          moment, and they hit the ground <b>together</b>. Going sideways does not keep you up.</div>`
     };
   }
 
-  // gravity — Earth vs Moon
+  /* ---- gravity: a different world each time ---- */
   const deg = pick([35, 40, 45, 50]);
+  const p = pick(PLANETS);
+  const rE = range(v, deg, G_EARTH), rP = range(v, deg, p.g);
+  const ratio = rP / rE;
   const shots = [
     { v, deg, g:G_EARTH, color:SHOT_COLORS[0], label:'Earth' },
-    { v, deg, g:G_MOON,  color:SHOT_COLORS[1], label:'Moon' }
+    { v, deg, g:p.g,     color:SHOT_COLORS[1], label:p.n.replace('the ','') }
   ];
-  const rE = range(v, deg, G_EARTH), rM = range(v, deg, G_MOON);
   return {
-    prompt: `You throw a Poké Ball at <b>${deg}°</b> on Earth and it lands ${m1(rE)} m away. You throw it with the
-      <b>same power and angle</b> on the <b>Moon</b>. What happens?`,
+    prompt: `You throw a Poké Ball at <b>${deg}°</b> on Earth and it lands ${m1(rE)} m away. Now you throw it with
+      the <b>same power and angle</b> on <b>${p.n}</b>, where gravity pulls at <b>${p.g} m/s²</b> instead of
+      Earth's ${G_EARTH}. What happens?`,
     subject: physCanvas('physCv'),
     choices: shuffle([
-      { html:'It lands in about the <b>same spot</b>', ok:false },
-      { html:'It goes about <b>twice</b> as far', ok:false },
-      { html:'It goes about <b>6 times</b> as far', ok:true },
-      { html:'It never comes down at all', ok:false }
+      { html:'It goes about <b>6 times</b> as far',    ok: p.key === 'far6' },
+      { html:'It goes about <b>2½ times</b> as far',   ok: p.key === 'far25' },
+      { html:'It goes about <b>2½ times shorter</b>',  ok: p.key === 'short25' },
+      { html:'It lands in about the <b>same spot</b>', ok: false }
     ]),
-    mount(){ drawScene(document.getElementById('physCv'), [shots[0]], rM * 1.1, null, Infinity); },
-    after(){ runShots('physCv', shots, rM * 1.1, null); },
-    reveal: `<h4>About 6 times as far — ${m1(rM)} m instead of ${m1(rE)} m</h4>
-      <p>The Moon is much smaller than Earth, so its gravity pulls about <b>6 times more gently</b>.</p>
-      <p class="work">Earth pulls at ${G_EARTH} m/s² → ${m1(rE)} m, in the air ${m1(flight(v,deg,G_EARTH))} s<br>
-         Moon  pulls at ${G_MOON} m/s² → ${m1(rM)} m, in the air ${m1(flight(v,deg,G_MOON))} s</p>
-      <p>You did not throw any harder. Weaker gravity just means the ball takes
-         <b>${m1(flight(v,deg,G_MOON)/flight(v,deg,G_EARTH))}× longer</b> to be pulled back down, and it keeps drifting
-         forward the whole time it is falling.</p>
-      <div class="eli5"><b>Real thing:</b> Apollo 14 astronaut Alan Shepard hit two golf balls on the Moon in 1971.
-        In a stiff spacesuit he could barely swing one-handed — and they still sailed away.</div>`
+    mount(){ drawScene(document.getElementById('physCv'), [shots[0]], Math.max(rE, rP) * 1.1, null, Infinity); },
+    after(){ runShots('physCv', shots, Math.max(rE, rP) * 1.1, null); },
+    reveal: `<h4>${m1(rP)} m instead of ${m1(rE)} m — ${ratio > 1 ? `about ${m1(ratio)}× as far` : `about ${m1(1/ratio)}× shorter`}</h4>
+      <p>Gravity on ${p.n} is <b>${p.g} m/s²</b>. Earth's is ${G_EARTH}. Divide one by the other and you get the
+         whole answer:</p>
+      <p class="work">${G_EARTH} ÷ ${p.g} = ${m1(G_EARTH/p.g)}<br>
+         Earth → ${m1(rE)} m, in the air ${m1(flight(v,deg,G_EARTH))} s<br>
+         ${p.n.replace('the ','')} → ${m1(rP)} m, in the air ${m1(flight(v,deg,p.g))} s</p>
+      <p>You did not throw any harder. ${ratio > 1
+        ? `Weaker gravity just means the ball takes <b>${m1(flight(v,deg,p.g)/flight(v,deg,G_EARTH))}× longer</b> to be
+           pulled back down, and it keeps drifting forward the whole time it falls.`
+        : `Stronger gravity yanks the ball back down <b>${m1(flight(v,deg,G_EARTH)/flight(v,deg,p.g))}× sooner</b>,
+           so it has far less time to travel forward.`}</p>
+      <div class="eli5"><b>Real thing:</b> ${p.fact}</div>`
   };
 }
 
