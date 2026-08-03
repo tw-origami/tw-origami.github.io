@@ -5,3 +5,7 @@
 
 # large source image pack (only slim foodimg/ is used)
 nutrition/food_emoji_pack_high_res_300/
+
+# weekly plan — stays local. Holds the boys' names, grades and workbook
+# progress, and this repo is published publicly via GitHub Pages.
+plan/
