@@ -330,6 +330,13 @@ html, body {
 .qreveal p { margin: 0 0 8px; }
 .qreveal p:last-child { margin-bottom: 0; }
 .qreveal .closeNote { color: #ffd98a; font-style: italic; }
+/* defines every option that was on screen, so a wrong pick still teaches */
+.qreveal .glossary {
+  display: block; margin-top: 10px; padding-top: 9px;
+  border-top: 1px solid rgba(255,255,255,.22);
+  font-size: .9em; line-height: 1.5; color: #cfe0ff;
+}
+.qreveal .glossary b { color: var(--gold); }
 
 /* ---------------- Wild encounter ---------------- */
 #encounter {

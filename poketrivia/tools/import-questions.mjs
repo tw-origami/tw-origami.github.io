@@ -213,22 +213,57 @@ function seededPick(pool, n, seedStr) {
   return out;
 }
 
-/** "Which X is this?" — text plus a label, distractors from the other labels. */
-function classify(items, { text, label, why }, labels, ask, revealPrefix = '') {
+/**
+ * "Which X is this?" — text plus a label, distractors from the other labels.
+ *
+ * `glossary` maps a label to a short definition. When supplied, the reveal
+ * defines EVERY option that was on screen, not just the right one. Without it a
+ * question like "which kind of persuasion is this?" teaches you that Pathos was
+ * correct while leaving Ethos and Logos as meaningless words — which is exactly
+ * the failure this game is supposed to avoid.
+ */
+function classify(items, { text, label, why }, labels, ask, glossary = null, labelChoices = false) {
   const out = [];
+  // A technical label a reader has never met is unanswerable on its own, so it
+  // can carry its plain-English meaning: "Pathos — feelings". The skill being
+  // tested is spotting the appeal, not recalling a Greek word.
+  const show = (k) => (labelChoices && glossary?.[k])
+    ? `${clean(k)} — ${clean(glossary[k])}` : clean(k);
+
   for (const it of items) {
     const t = it[text], l = it[label];
     if (!isStr(t) || !isStr(l)) continue;
     const others = labels.filter(x => x !== l);
     if (others.length < 2) continue;
     const wrong = seededPick(others, 3, t + l);
+    const shown = [l, ...wrong];
+
+    let reveal = isStr(it[why]) ? clean(it[why]) : `The answer is ${clean(l)}.`;
+    if (glossary && !labelChoices) {
+      const defs = shown.map(k => glossary[k] ? `<b>${clean(k)}</b> — ${clean(glossary[k])}` : null)
+        .filter(Boolean);
+      if (defs.length >= 2) reveal += ` <span class="glossary">${defs.join(' · ')}</span>`;
+    }
     out.push({
       q: ask(clean(t)),
-      choices: [{ html: clean(l), ok: true }, ...wrong.map(w => ({ html: clean(w) }))],
-      reveal: revealPrefix + (isStr(it[why]) ? clean(it[why]) : `The answer is ${clean(l)}.`),
+      choices: [{ html: show(l), ok: true }, ...wrong.map(w => ({ html: show(w) }))],
+      reveal,
     });
   }
   return out;
+}
+
+/** Build a label → short-definition map from a bank's own term list. */
+function glossaryFrom(list, keyField, defFields) {
+  const g = {};
+  for (const it of list ?? []) {
+    const k = it[keyField];
+    if (!isStr(k)) continue;
+    for (const f of defFields) {
+      if (isStr(it[f])) { g[k] = clean(it[f]).slice(0, 120); break; }
+    }
+  }
+  return g;
 }
 
 /** "What does X mean?" — a term plus its definition, distractors from other defs. */
@@ -366,13 +401,19 @@ const BUILDERS = {
     const D = w.DEBATE ?? {};
     const fallacies = [...new Set((D.SPOT ?? []).map(s => s.fallacy).filter(isStr))];
     const appeals = [...new Set((D.APPEAL_ITEMS ?? []).map(s => s.appeal).filter(isStr))];
+    // Ethos / Logos / Pathos mean nothing to a new reader, so every option gets
+    // defined in the reveal whichever one they picked.
+    const appealGloss = glossaryFrom(D.APPEALS, 'key', ['blurb']);
+    const fallacyGloss = glossaryFrom(D.TERMS, 'term', ['simple', 'def']);
     return [
       ...defineTerms(D.TERMS ?? [], { term: 'term', def: 'def', simple: 'simple' },
         'In an argument'),
       ...classify(D.SPOT ?? [], { text: 'text', label: 'fallacy', why: 'why' }, fallacies,
-        (s) => `Which thinking mistake is this? ${s}`),
+        (s) => `Which thinking mistake is this? ${s}`, fallacyGloss),
+      // "Kinds of persuasion" was wrong — Ethos/Logos/Pathos are rhetorical
+      // appeals. Plain English asks the same thing without the mislabel.
       ...classify(D.APPEAL_ITEMS ?? [], { text: 'text', label: 'appeal', why: 'why' }, appeals,
-        (s) => `Which kind of persuasion is this? ${s}`),
+        (s) => `How is this trying to persuade you? ${s}`, appealGloss, true),
     ];
   },
 
@@ -383,7 +424,8 @@ const BUILDERS = {
       ...defineTerms(F.TERMS ?? [], { term: 'term', def: 'def', simple: 'simple' },
         'When you are checking facts'),
       ...classify(F.HEADLINES ?? [], { text: 'headline', label: 'verdict', why: 'why' }, verdicts,
-        (s) => `What's going on with this headline? "${s}"`),
+        (s) => `What's going on with this headline? "${s}"`,
+        glossaryFrom(F.TERMS, 'term', ['simple', 'def'])),
     ];
   },
 
