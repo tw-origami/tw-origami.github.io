@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b1a3a">
+<title>PokéTrivia Island</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="stage">
+  <canvas id="view"></canvas>
+</div>
+
+<!-- ============ HUD ============ -->
+<div id="hud" class="hidden">
+  <div id="zoneChip"><span id="zoneName">Trivia Town</span></div>
+  <div id="badges"></div>
+
+  <!-- party tray, bottom-left (like the reference sheet's poké ball row) -->
+  <div id="balls"></div>
+
+  <!-- compass / radar, bottom-right -->
+  <div id="compass">
+    <svg viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="46" class="cRing"/>
+      <circle cx="50" cy="50" r="38" class="cFace"/>
+      <g class="cTicks">
+        <line x1="50" y1="8"  x2="50" y2="18"/>
+        <line x1="50" y1="82" x2="50" y2="92"/>
+        <line x1="8"  y1="50" x2="18" y2="50"/>
+        <line x1="82" y1="50" x2="92" y2="50"/>
+      </g>
+      <g id="cRose">
+        <polygon points="50,20 56,50 50,46 44,50" class="cN"/>
+        <polygon points="50,80 56,50 50,54 44,50" class="cS"/>
+      </g>
+      <g id="cBlips"></g>
+      <circle cx="50" cy="50" r="4" class="cHub"/>
+    </svg>
+  </div>
+
+  <!-- context action prompt (like the reference's (A) button) -->
+  <div id="prompt" class="hidden"><span class="aKey">A</span><span id="promptText">Read</span></div>
+</div>
+
+<!-- Big zone-entry banner -->
+<div id="banner" class="hidden"><span id="bannerText"></span></div>
+
+<!-- ============ Dialog box (signs, NPCs, messages) ============ -->
+<div id="dialog" class="hidden">
+  <div class="box">
+    <div id="dialogWho" class="who hidden"></div>
+    <p id="dialogText"></p>
+    <div class="more">▼</div>
+  </div>
+</div>
+
+<!-- ============ Touch controls ============ -->
+<div id="touch" class="hidden">
+  <div id="stickZone"><div id="stickBase"><div id="stickKnob"></div></div></div>
+  <button id="btnA" type="button">A</button>
+</div>
+
+<!-- ============ Title screen ============ -->
+<div id="title">
+  <div class="titleInner">
+    <div class="logo">
+      <h1>PokéTrivia</h1>
+      <h2>ISLAND<span class="n64">64</span></h2>
+    </div>
+    <p class="tag">Answer questions. Catch Pokémon. Become the Champion.</p>
+    <button id="startBtn" type="button">PRESS START</button>
+    <p class="hint">Move with <b>arrow keys</b> or <b>WASD</b> · <b>Space</b> to talk · drag to look</p>
+  </div>
+</div>
+
+<!-- ============ Profile picker ============ -->
+<div id="profiles" class="hidden">
+  <div class="profWrap">
+    <h2>Who's playing?</h2>
+    <p class="sub">Your team and badges are saved on this device only.</p>
+    <div class="profList" id="profList"></div>
+    <div class="profNew">
+      <input id="profName" type="text" maxlength="12" placeholder="New trainer name" autocomplete="off">
+      <div class="bandPick" id="bandPick">
+        <button type="button" data-band="A">Explorer<small>grades 3–4</small></button>
+        <button type="button" data-band="B" class="on">Champion<small>grades 5–6+</small></button>
+      </div>
+      <button type="button" class="profGo" id="profGo">START ADVENTURE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Context-lost / error overlay ============ -->
+<div id="oops" class="hidden">
+  <div class="box">
+    <p id="oopsText">The island needs a moment.</p>
+    <button id="oopsBtn" type="button">Reload</button>
+  </div>
+</div>
+
+<div id="debug" class="hidden"></div>
+
+<!-- Content data. Classic scripts on purpose: dex.js is copied unchanged from the
+     Learn Zone app, and the question importer emits the same window.* style. -->
+<script src="data/dex.js"></script>
+<script src="data/moves.js"></script>
+<script src="data/battle-data.js"></script>
+<script src="data/questions.js"></script>
+<script src="data/signs.js"></script>
+<script src="data/trainers.js"></script>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js" } }
+</script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
