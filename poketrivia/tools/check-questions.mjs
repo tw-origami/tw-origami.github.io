@@ -122,6 +122,98 @@ check('an old save with bare-string misses still works', () => {
 });
 
 /* ==================================================================== */
+section('a sign you read comes back in the next couple of battles');
+
+check('reading a sign schedules its question', () => {
+  const p = newProfile();
+  quiz.registerSigns();
+  save.primeQuestion(p, 'sign:' + window.SIGNS[0].id);
+  assert.equal(p.primed.length, 1);
+  assert.equal(p.primed[0].dueBy, save.SIGN_WITHIN);
+});
+
+check('it is the very next question asked', () => {
+  const p = newProfile();
+  quiz.registerSigns();
+  const id = 'sign:' + window.SIGNS[0].id;
+  save.primeQuestion(p, id);
+  const q = quiz.pickQuestion({ subject: 'science', difficulty: 'medium', profile: p, zoneId: null });
+  assert.equal(q.id, id, 'a primed sign question jumps the queue');
+  assert.equal(q._primed, true, 'and is labelled "From a sign you read!"');
+});
+
+check('it is not asked twice', () => {
+  const p = newProfile();
+  quiz.registerSigns();
+  const id = 'sign:' + window.SIGNS[0].id;
+  save.primeQuestion(p, id);
+  quiz.pickQuestion({ subject: 'science', difficulty: 'medium', profile: p, zoneId: null });
+  const second = quiz.pickQuestion({ subject: 'science', difficulty: 'medium', profile: p, zoneId: null });
+  assert.notEqual(second.id, id);
+  assert.equal(p.primed.length, 0, 'the queue is cleared once it has been asked');
+});
+
+check('several signs all come back, soonest first', () => {
+  const p = newProfile();
+  quiz.registerSigns();
+  const ids = window.SIGNS.slice(0, 3).map(s => 'sign:' + s.id);
+  for (const id of ids) save.primeQuestion(p, id);
+  const got = ids.map(() =>
+    quiz.pickQuestion({ subject: 'science', difficulty: 'medium', profile: p, zoneId: null }).id);
+  assert.deepEqual(got, ids, 'in the order they were read');
+});
+
+check('priming survives a save and reload', () => {
+  const p = newProfile();
+  quiz.registerSigns();
+  save.primeQuestion(p, 'sign:' + window.SIGNS[0].id);
+  const reloaded = JSON.parse(JSON.stringify(p));      // as localStorage would
+  assert.equal(save.duePrimed(reloaded).length, 1, 'the promise outlives the session');
+});
+
+/* ==================================================================== */
+section('questions that carry a passage or label');
+
+check('they are answerable — the context is inside the prompt', () => {
+  const long = window.QBANK.questions.filter(q => q.long);
+  assert.ok(long.length > 100, `expected the recovered questions, got ${long.length}`);
+  for (const q of long) {
+    assert.ok(/class="(passageBox|factsLabel)"/.test(q.q),
+      `${q.id} is tagged long but carries no context block`);
+    assert.ok(/class="ctxAsk"/.test(q.q), `${q.id} has context but no question`);
+  }
+});
+
+check('the "servings in the box" question now shows the box', () => {
+  const q = window.QBANK.questions.find(x => /servings are in the whole box/i.test(x.q));
+  assert.ok(q, 'question should still exist');
+  assert.match(q.q, /Servings per container/, 'the label it asks about must be on screen');
+  assert.equal(q.choices.find(c => c.ok).html, '9');
+});
+
+check('a question naming a person teaches who they were', () => {
+  const withBio = window.QBANK.questions.filter(q => /class="whoBox"/.test(q.reveal));
+  assert.ok(withBio.length > 10, `expected person bios, got ${withBio.length}`);
+  for (const q of withBio.slice(0, 40)) {
+    assert.match(q.reveal, /Who was .+\?/, `${q.id} bio card needs a heading`);
+    assert.ok(q.reveal.length > 120, `${q.id} bio should be a real explanation`);
+  }
+});
+
+check('no question depends on context it does not show', () => {
+  for (const q of window.QBANK.questions) {
+    const plain = q.q.replace(/<[^>]+>/g, ' ');
+    // Ignore quoted text: a test-taking question legitimately quotes another
+    // question ("Which quote from the passage…?") and asks what it's really for.
+    const unquoted = plain.replace(/["“'‘][^"”'’]*["”'’]/g, ' ');
+    if (/\b(this|the) (passage|label)\b/i.test(unquoted)) {
+      assert.ok(/class="(passageBox|factsLabel)"/.test(q.q),
+        `${q.id} refers to a passage or label that is not on screen: ${plain.slice(0, 90)}`);
+    }
+  }
+});
+
+/* ==================================================================== */
 section('subjects rotate');
 
 check('no topic ever appears twice in a row', () => {

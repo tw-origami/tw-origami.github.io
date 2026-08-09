@@ -9,7 +9,8 @@
 
 import { pick, shuffle, clamp, clamp01 } from './rng.js';
 import { makeMathQuestion } from './mathgen.js';
-import { rollingAccuracy, recordAnswer, dueMissed, missedIds, forgetMissed } from './save.js';
+import { rollingAccuracy, recordAnswer, dueMissed, missedIds, forgetMissed,
+  duePrimed, forgetPrimed } from './save.js';
 import { gradeNumeric, parseNumber } from './grading.js';
 
 const $ = (id) => document.getElementById(id);
@@ -44,6 +45,12 @@ export function registerSigns() {
 }
 
 const DIFF_ORDER = ['easy', 'medium', 'hard'];
+
+// How long the Next button stays shut after answering, so the explanation gets
+// read rather than skipped. A miss is the whole reason the explanation exists,
+// so it holds longer than a correct answer.
+const READ_HOLD_RIGHT = 3000;
+const READ_HOLD_WRONG = 4000;
 
 /* ---------------- subject rotation ----------------
  * Subjects are dealt from their own shuffled bag, and the bag is nudged so the
@@ -81,21 +88,10 @@ function driftDifficulty(want, profile) {
 }
 
 // Signs "prime" their question so it shows up soon after you read them.
-const primed = new Map();   // zoneId -> [questionId]
-export function primeQuestion(zoneId, questionId) {
-  const list = primed.get(zoneId) ?? [];
-  if (!list.includes(questionId)) list.push(questionId);
-  while (list.length > 3) list.shift();
-  primed.set(zoneId, list);
-}
-export const primedCount = (zoneId) => (primed.get(zoneId) ?? []).length;
-
-function takePrimed(zoneId) {
-  const list = primed.get(zoneId);
-  if (!list || !list.length) return null;
-  const id = list.shift();
-  return bank().find(q => q.id === id) ?? null;
-}
+// Priming lives on the profile (js/save.js) so the promise a sign makes -
+// "you'll see this again" - survives a reload and is a guarantee rather than a
+// probability. Re-exported here so callers keep one import.
+export { primeQuestion, primedCount } from './save.js';
 
 /* ---------------- the question bag ----------------
  * Questions are dealt from a shuffled bag, not drawn at random: every question
@@ -117,6 +113,12 @@ function poolFor(subject, band) {
 }
 
 /** Deal the next question from the bag, reshuffling when it runs dry. */
+/** Put a drawn question back near the end of its bag, so it isn't lost. */
+function returnToBag(profile, subject, band, q) {
+  const bag = profile.bags?.[bagKey(subject, band)];
+  if (Array.isArray(bag) && !bag.includes(q.id)) bag.push(q.id);
+}
+
 function dealFrom(profile, subject, band, preferDiff) {
   const pool = poolFor(subject, band);
   if (!pool.length) return null;
@@ -163,8 +165,24 @@ export function pickMissedQuestion(profile) {
   return null;
 }
 
-export function pickQuestion({ subject, difficulty, profile, zoneId }) {
+/**
+ * Pick a question.
+ *
+ * `allowLong` controls reading-comprehension questions, which carry a whole
+ * passage. They are excellent practice but a 200-word read in the middle of a
+ * battle kills the pace, so battles mostly skip them and the Study Tent
+ * welcomes them.
+ */
+export function pickQuestion({ subject, difficulty, profile, zoneId, allowLong = 'rare' }) {
   const diff = driftDifficulty(difficulty, profile);
+
+  // A sign you just read promised "you'll see this again soon", so it jumps the
+  // queue: guaranteed inside SIGN_WITHIN encounters.
+  for (const s of duePrimed(profile)) {
+    const q = bank().find(x => x.id === s.id);
+    forgetPrimed(profile, s.id);
+    if (q) return { ...q, _primed: true };
+  }
 
   // A question you got wrong is GUARANTEED to come back within a few
   // encounters, not left to a dice roll that might hide it for an hour.
@@ -176,10 +194,6 @@ export function pickQuestion({ subject, difficulty, profile, zoneId }) {
     forgetMissed(profile, m.id);
   }
 
-  if (zoneId && Math.random() < 0.6) {
-    const p = takePrimed(zoneId);
-    if (p) return { ...p, _primed: true };
-  }
 
   // and it may also resurface early, which is only ever a bonus
   const missed = missedIds(profile);
@@ -191,6 +205,18 @@ export function pickQuestion({ subject, difficulty, profile, zoneId }) {
   // Maths is generated fresh every time, so it can never repeat anyway.
   if (subject === 'math') return makeMathQuestion(profile.band, diff);
 
+  const wantLong = allowLong === 'always' ? true
+    : allowLong === 'never' ? false
+    : Math.random() < 0.15;                    // 'rare': the odd one mid-battle
+
+  for (let tries = 0; tries < 6; tries++) {
+    const q = dealFrom(profile, subject, profile.band, diff);
+    if (!q) break;
+    if (!!q.long === wantLong || allowLong === 'always') return q;
+    if (!q.long && !wantLong) return q;
+    // drew the wrong length — keep it for later rather than burning it
+    returnToBag(profile, subject, profile.band, q);
+  }
   return dealFrom(profile, subject, profile.band, diff)
     ?? makeMathQuestion(profile.band, diff);   // never leave the player stuck
 }
@@ -263,8 +289,29 @@ export function ask(question, profile, { difficulty } = {}) {
       qRev.innerHTML = revealHtml(question, quality);
       qRev.className = 'qreveal';
       qNext.classList.remove('hidden');
-      qNext.focus();
+
+      // Hold Next shut briefly so the explanation actually gets read. Mashing
+      // through the answer is exactly how a kid learns nothing from a miss, and
+      // the pause matters most when they got it wrong.
+      const holdMs = quality >= 1 ? READ_HOLD_RIGHT : READ_HOLD_WRONG;
+      let left = Math.ceil(holdMs / 1000);
+      qNext.disabled = true;
+      qNext.classList.add('waiting');
+      const label = () => { qNext.textContent = left > 0 ? `Read it… ${left}` : 'Next ▶'; };
+      label();
+      const tick = setInterval(() => { left--; label(); if (left <= 0) clearInterval(tick); }, 1000);
+      const release = setTimeout(() => {
+        clearInterval(tick);
+        qNext.disabled = false;
+        qNext.classList.remove('waiting');
+        qNext.textContent = 'Next ▶';
+        qNext.focus();
+      }, holdMs);
+
       qNext.onclick = () => {
+        if (qNext.disabled) return;
+        clearTimeout(release);
+        clearInterval(tick);
         modal.classList.add('hidden');
         resolve({ quality, question });
       };

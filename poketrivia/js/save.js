@@ -124,6 +124,45 @@ export function recordAnswer(p, questionId, quality) {
   }
 }
 
+/* ---------------- signs you've read ----------------
+ * Reading a sign tells the player "you'll see this again soon", so it has to be
+ * a promise, not a dice roll. Same mechanism as a missed question but a tighter
+ * window, and stored on the profile so it survives a reload. */
+
+export const SIGN_WITHIN = 2;
+
+function normalisePrimed(p) {
+  if (!Array.isArray(p.primed)) p.primed = [];
+  const now = p.stats?.encounters ?? 0;
+  p.primed = p.primed
+    .map(x => (typeof x === 'string' ? { id: x, dueBy: now + SIGN_WITHIN } : x))
+    .filter(x => x && x.id);
+  return p.primed;
+}
+
+/** Queue a sign's question to appear within the next couple of encounters. */
+export function primeQuestion(p, id) {
+  const list = normalisePrimed(p);
+  const now = p.stats?.encounters ?? 0;
+  const at = list.findIndex(x => x.id === id);
+  if (at >= 0) list[at].dueBy = Math.min(list[at].dueBy, now + SIGN_WITHIN);
+  else list.push({ id, dueBy: now + SIGN_WITHIN });
+  if (list.length > 12) list.shift();
+}
+
+/** Primed sign questions, soonest deadline first. */
+export function duePrimed(p) {
+  return normalisePrimed(p).slice().sort((a, b) => a.dueBy - b.dueBy);
+}
+
+export function forgetPrimed(p, id) {
+  const list = normalisePrimed(p);
+  const at = list.findIndex(x => x.id === id);
+  if (at >= 0) list.splice(at, 1);
+}
+
+export const primedCount = (p) => normalisePrimed(p).length;
+
 /** Missed questions whose deadline has arrived, longest-waiting first. */
 export function dueMissed(p) {
   const now = p.stats?.encounters ?? 0;

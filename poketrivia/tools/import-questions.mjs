@@ -88,24 +88,20 @@ function firstOf(obj, keys) {
 }
 
 /**
- * Prompts that only make sense next to something the source app displayed and we
- * do not: a reading passage, a nutrition label, a diagram. Harvesting these
- * generically produces questions like "If you eat 2 bars, how much sugar is
- * that?" with no bar in sight. Banks whose context we CAN reproduce get a
- * dedicated builder below; everything else is dropped rather than shipped broken.
+ * A "context container" is an object that owns a `questions` array AND carries
+ * content of its own — a reading passage, a nutrition label. Its questions are
+ * meaningless without the parent ("How many servings are in the whole box?"),
+ * so the generic harvester must not touch them; the builders below re-emit them
+ * WITH their context attached.
+ *
+ * This is a structural test rather than a text-pattern one on purpose. Guessing
+ * from wording both missed real cases and flagged innocent ones — "Why does
+ * serving on a jury matter?" is a perfectly good question.
  */
-const NEEDS_CONTEXT = [
-  /\b(this|the) (passage|label|article|story|text|recipe|graph|chart|diagram|picture|image|table|menu|receipt)\b/i,
-  /\b(this|that) (food|snack|drink|cereal|bar|product|item|cereal box)\b/i,
-  /\bshown (above|below|here)\b/i,
-  /\b(above|below)\b.*\?$/i,
-  /^if you (eat|drink|have) \d/i,
-  /\baccording to the\b/i,
-  /\bin (the|this) (first|second|third|last) (paragraph|sentence|line)\b/i,
-  /\bthe (author|writer|narrator|speaker)\b/i,
-  /\bwhich ingredient\b/i,
-];
-const needsMissingContext = (prompt) => NEEDS_CONTEXT.some(re => re.test(prompt));
+function isContextContainer(node) {
+  if (!Array.isArray(node.questions) || node.questions.length === 0) return false;
+  return Object.keys(node).filter(k => k !== 'questions').length >= 2;
+}
 
 /** Pull an MCQ out of one object, or return null if it isn't one. */
 function asQuestion(o) {
@@ -115,7 +111,6 @@ function asQuestion(o) {
   // testtactics splits scenario + question; a scenario alone isn't a prompt
   if (o.scenario && o.question) prompt = clean(o.scenario) + ' ' + clean(o.question);
   if (!prompt || prompt.length < 12) return null;
-  if (needsMissingContext(prompt)) return null;
 
   let choices = null;
 
@@ -187,7 +182,12 @@ function harvest(node, seen, out, depth = 0) {
   }
   const q = asQuestion(node);
   if (q) out.push(q);
+
+  // Skip the questions of a context container — a builder re-emits them with
+  // the passage or label they depend on.
+  const container = isContextContainer(node);
   for (const k of Object.keys(node)) {
+    if (container && k === 'questions') continue;
     try { harvest(node[k], seen, out, depth + 1); } catch { /* getters that throw */ }
   }
 }
@@ -197,6 +197,141 @@ function harvest(node, seen, out, depth = 0) {
  * facts to classify ("this sentence, that part of speech"). Those make excellent
  * questions once you draw distractors from the same label set, which is also
  * what keeps the wrong answers plausible instead of obviously silly.            */
+
+/* ---------------- questions that carry their own context ----------------
+ * These re-emit a context container's questions with the passage or label
+ * rendered inside the prompt, so they can actually be answered. They're tagged
+ * `long` so the game can keep them out of the middle of a battle.            */
+
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** One question from a container, handling both {prompt,choices,answer} shapes. */
+function fromContainer(qq, contextHtml, extra = {}) {
+  const prompt = firstOf(qq, ['prompt', 'q', 'question']);
+  const raw = qq.choices ?? qq.options;
+  if (!prompt || !Array.isArray(raw) || raw.length < 2) return null;
+  const ans = typeof qq.answer === 'number' ? qq.answer
+    : typeof qq.correctIndex === 'number' ? qq.correctIndex : 0;
+  const choices = raw.map((c, i) => ({ html: clean(isStr(c) ? c : c?.label ?? c?.text ?? ''), ok: i === ans }))
+    .filter(c => c.html);
+  if (choices.length < 2 || !choices.some(c => c.ok)) return null;
+  const why = firstOf(qq, ['explain', 'why', 'reveal', 'note']) || '';
+  return { q: contextHtml + `<p class="ctxAsk">${clean(prompt)}</p>`, choices, reveal: why, long: true, ...extra };
+}
+
+/** Reading passages — readingrescue stores paragraphs, history a single text. */
+function passageQuestions(win) {
+  const out = [];
+
+  for (const p of win.READING_RESCUE?.passages ?? []) {
+    const paras = (p.paragraphs ?? [])
+      .map(par => (Array.isArray(par) ? par.map(s => s.text ?? '').join(' ') : String(par)))
+      .filter(Boolean);
+    if (!paras.length) continue;
+    const html = `<div class="passageBox"><h5>${esc(p.title ?? 'Read this')}</h5>`
+      + paras.map(t => `<p>${esc(t)}</p>`).join('') + '</div>';
+    for (const qq of p.questions ?? []) {
+      const built = fromContainer(qq, html);
+      if (built) out.push(built);
+    }
+  }
+
+  for (const p of win.HIST?.PASSAGES ?? []) {
+    if (!isStr(p.text)) continue;
+    const html = `<div class="passageBox"><h5>${esc(p.emoji ?? '')} ${esc(p.title ?? 'Read this')}</h5>`
+      + String(p.text).split(/\n\n+/).map(t => `<p>${esc(t.trim())}</p>`).join('') + '</div>';
+    for (const qq of p.questions ?? []) {
+      const built = fromContainer(qq, html);
+      if (built) out.push(built);
+    }
+  }
+  return out;
+}
+
+/** Nutrition labels — render the facts panel the question is asking about. */
+function labelQuestions(win) {
+  const out = [];
+  for (const L of win.LIB?.LABELS ?? []) {
+    if (!isStr(L.name)) continue;
+    const rows = [
+      ['Serving size', L.servingSize],
+      ['Servings per container', L.servingsPerContainer],
+      ['Calories', L.calories],
+      ['Sugars', L.sugarG != null ? L.sugarG + 'g' : null],
+      ['Fibre', L.fiberG != null ? L.fiberG + 'g' : null],
+    ].filter(([, v]) => v != null && v !== '');
+    const html = `<div class="factsLabel"><h5>${esc(L.emoji ?? '')} ${esc(L.name)}</h5>`
+      + rows.map(([k, v]) => `<div class="fRow"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('')
+      + (Array.isArray(L.ingredients) && L.ingredients.length
+        ? `<div class="fIng"><b>Ingredients:</b> ${esc(L.ingredients.join(', '))}</div>` : '')
+      + '</div>';
+    for (const qq of L.questions ?? []) {
+      const built = fromContainer(qq, html);
+      if (built) out.push(built);
+    }
+  }
+  return out;
+}
+
+/* ---------------- who was that person? ----------------
+ * A question can name someone the reader has never heard of. Getting it wrong
+ * then teaches nothing at all. The history bank already carries real, kid-level
+ * biographies for 77 figures, so any question that names one gets a short
+ * "who they were" card appended to its EXPLANATION — the moment it's useful. */
+
+const PEOPLE = new Map();
+
+/** Surnames that are ordinary English words; matching those alone misfires. */
+const RISKY_SURNAME = new Set(['king', 'bell', 'ford', 'young', 'green', 'brown', 'black',
+  'white', 'small', 'short', 'long', 'best', 'rose', 'stone', 'field', 'moore', 'price']);
+
+function indexPeople(win) {
+  const add = (p) => {
+    if (!isStr(p?.name) || !isStr(p?.bio) || p.bio.length < 40) return;
+    const rec = {
+      name: clean(p.name),
+      bio: clean(p.bio),
+      role: isStr(p.role) ? clean(p.role) : null,
+      era: isStr(p.eraLabel) ? clean(p.eraLabel) : null,
+      country: isStr(p.country) ? clean(p.country) : null,
+      flag: isStr(p.flag) ? p.flag : '',
+    };
+    if (!PEOPLE.has(rec.name)) PEOPLE.set(rec.name, rec);
+  };
+  for (const p of win.HIST?.FIGURES ?? []) add(p);
+  for (const p of win.HIST?.QUOTES ?? []) add(p);
+}
+
+/** The bio card appended to a reveal. */
+function bioCard(rec) {
+  const line = [rec.role, rec.era, rec.country].filter(Boolean).join(' · ');
+  return `<div class="whoBox"><h5>${rec.flag} Who was ${esc(rec.name)}?</h5>`
+    + (line ? `<div class="whoMeta">${esc(line)}</div>` : '')
+    + `<p>${esc(rec.bio)}</p></div>`;
+}
+
+/** Find any indexed person named in a question, and teach them in the reveal. */
+function attachPersonBios(q) {
+  if (!PEOPLE.size) return q;
+  const haystack = q.q + ' ' + q.choices.map(c => c.html).join(' ') + ' ' + (q.reveal ?? '');
+  const plain = haystack.replace(/<[^>]+>/g, ' ');
+  const found = [];
+  for (const [name, rec] of PEOPLE) {
+    if (found.length >= 2) break;
+    const full = new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    let hit = full.test(plain);
+    if (!hit) {
+      const surname = name.split(/\s+/).pop();
+      if (surname.length >= 5 && !RISKY_SURNAME.has(surname.toLowerCase())) {
+        hit = new RegExp(`\\b${surname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(plain);
+      }
+    }
+    // don't repeat a bio the reveal already tells
+    if (hit && !(q.reveal ?? '').includes('Who was')) found.push(rec);
+  }
+  if (!found.length) return q;
+  return { ...q, reveal: (q.reveal ?? '') + found.map(bioCard).join('') };
+}
 
 /** Deterministic shuffle so a re-import produces identical output. */
 function seededPick(pool, n, seedStr) {
@@ -968,6 +1103,10 @@ function graphicNovelQuestions() {
 const all = [];
 const perSource = [];
 
+// The people index has to exist before any question is finalised, so build it
+// from the history bank first.
+if (existsSync(join(LEARN_ZONE, 'history'))) indexPeople(sandbox(join(LEARN_ZONE, 'history')));
+
 for (const src of SOURCES) {
   const dir = join(LEARN_ZONE, src.dir);
   if (!existsSync(dir)) { perSource.push({ ...src, found: 0, note: 'missing' }); continue; }
@@ -979,7 +1118,12 @@ for (const src of SOURCES) {
     try { found.push(...BUILDERS[src.dir](win).filter(q => q && q.q && q.choices?.length >= 2)); }
     catch (e) { console.warn(`  builder failed for ${src.dir}: ${e.message}`); }
   }
-  for (const q of found) {
+  // questions whose meaning lives in a passage or a label, re-emitted with it
+  try { found.push(...passageQuestions(win), ...labelQuestions(win)); }
+  catch (e) { console.warn(`  context builder failed for ${src.dir}: ${e.message}`); }
+
+  for (const raw of found) {
+    const q = attachPersonBios(raw);
     all.push({
       id: `${src.dir}:${fnv1a(normalise(q.q))}`,
       subject: src.subject,
@@ -988,6 +1132,7 @@ for (const src of SOURCES) {
       q: q.q,
       choices: q.choices,
       reveal: q.reveal || '',
+      ...(q.long ? { long: true } : {}),
       _src: src.dir,
     });
   }
@@ -1027,7 +1172,10 @@ questions = questions.filter((q) => {
   if (!q.reveal || q.reveal.length < 15) { rejected.push([q.id, 'no explanation']); return false; }
   // measure the words, not the markup — shape questions carry inline SVG
   const words = q.q.replace(/<[^>]*>/g, '').trim();
-  if (words.length > 340) { rejected.push([q.id, 'prompt too long']); return false; }
+  // A reading-comprehension question carries its passage, so it is SUPPOSED to
+  // be long; the tight cap only applies to questions that should be one line.
+  const cap = q.long ? 2600 : 340;
+  if (words.length > cap) { rejected.push([q.id, 'prompt too long']); return false; }
   if (words.length < 8) { rejected.push([q.id, 'prompt too short']); return false; }
   if (/<(script|img|iframe)/i.test(q.q)) { rejected.push([q.id, 'unsafe markup']); return false; }
   return true;

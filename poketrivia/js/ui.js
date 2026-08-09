@@ -92,6 +92,34 @@ export function advanceDialog() {
   return true;
 }
 
+/* ---------------- yes / no ---------------- */
+
+/** A two-button question. Resolves true for the first button. */
+export function confirm(text, yes = 'Yes', no = 'No') {
+  let box = document.getElementById('confirmBox');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'confirmBox';
+    box.className = 'hidden';
+    box.innerHTML = `<div class="confirmCard">
+      <p id="confirmText"></p>
+      <div class="confirmRow">
+        <button id="confirmYes" class="btn-primary"></button>
+        <button id="confirmNo" class="ghost"></button>
+      </div></div>`;
+    document.body.appendChild(box);
+  }
+  document.getElementById('confirmText').textContent = text;
+  document.getElementById('confirmYes').textContent = yes;
+  document.getElementById('confirmNo').textContent = no;
+  box.classList.remove('hidden');
+  return new Promise((resolve) => {
+    const done = (v) => { box.classList.add('hidden'); resolve(v); };
+    document.getElementById('confirmYes').onclick = () => done(true);
+    document.getElementById('confirmNo').onclick = () => done(false);
+  });
+}
+
 /* ---------------- action prompt ---------------- */
 
 // Say SPACE on a keyboard and A on a touch device. The prompt used to always

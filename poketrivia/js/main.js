@@ -18,7 +18,8 @@ import * as party from './party.js';
 import * as audio from './audio.js';
 import { runCatch } from './encounter-catch.js';
 import { runBattle } from './encounter-battle.js';
-import { quizOpen, primeQuestion, registerSigns } from './quiz.js';
+import { quizOpen, primeQuestion, registerSigns, pickQuestion, pickMissedQuestion,
+  nextSubject, ask } from './quiz.js';
 
 // Internal scanlines. N64 output was ~240p, but the concept art we're chasing is
 // clean, so we render finer and let the flat shading carry the retro read.
@@ -137,7 +138,7 @@ function readSign(sign) {
   player.frozen = true;
   const rec = SIGN_BY_ID[sign.id];
   if (rec) {
-    primeQuestion(sign.zone, 'sign:' + rec.id);
+    primeQuestion(profile, 'sign:' + rec.id);
     if (!profile.journal.includes(sign.id)) {
       profile.journal.push(sign.id);
       save.saveProfile(profile);
@@ -154,15 +155,45 @@ async function useBuilding(b) {
   player.frozen = true;
   if (b.label === 'Study Tent') {
     party.healParty(profile);
-    save.saveProfile(profile);
     ui.setParty(profile.party);
     audio.fanfare();
-    ui.showDialog('Nurse Joy looks over your team. Everyone is back to full health! Come back any time you get worn out.',
-      'Study Tent', () => { busy = false; player.frozen = false; });
+    const owed = save.missedIds(profile).length;
+    const offer = owed
+      ? `Everyone is back to full health! You have ${owed} question${owed === 1 ? '' : 's'} still to crack. Want to study a few?`
+      : 'Everyone is back to full health! Want to sit and read for a bit?';
+    save.saveProfile(profile);
+    ui.showDialog(offer, 'Study Tent', async () => {
+      const yes = await ui.confirm('Study now?', 'Yes, study', 'Not now');
+      if (yes) await studySession();
+      busy = false; player.frozen = false;
+    });
   } else {
     ui.showDialog('The shopkeeper waves. "Balls are free on this island — the questions are the price."',
       b.label, () => { busy = false; player.frozen = false; });
   }
+}
+
+/**
+ * A quiet study session. This is where the long reading-comprehension questions
+ * belong — there is no battle waiting, so a passage can take as long as it takes.
+ * Missed questions come first, because clearing those is the whole point.
+ */
+async function studySession() {
+  const ROUNDS = 4;
+  let right = 0;
+  for (let i = 0; i < ROUNDS; i++) {
+    const q = pickMissedQuestion(profile)
+      ?? pickQuestion({
+        subject: nextSubject(), difficulty: 'medium', profile,
+        zoneId: null, allowLong: 'always',      // passages are welcome here
+      });
+    const { quality } = await ask(q, profile, { difficulty: 'medium' });
+    if (quality >= 1) right++;
+  }
+  save.saveProfile(profile);
+  ui.showBanner(right === ROUNDS
+    ? `Perfect session — ${right}/${ROUNDS}!`
+    : `Studied ${ROUNDS} questions · ${right} right`);
 }
 
 /* ---------------- encounters ---------------- */
