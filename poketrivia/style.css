@@ -46,7 +46,9 @@ html, body {
 }
 
 /* ---------------- HUD ---------------- */
-#hud { position: fixed; inset: 0; pointer-events: none; }
+/* Above the touch layer (z-index 30) so the action prompt can be tapped. The HUD
+   itself stays click-through; only #prompt re-enables pointer events. */
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 31; }
 
 #zoneChip {
   position: absolute; top: max(10px, env(safe-area-inset-top)); left: 12px;
@@ -106,23 +108,27 @@ html, body {
 .cHub { fill: var(--gold); stroke: var(--ink); stroke-width: 1.5; }
 #cBlips circle { stroke: rgba(0,0,0,.5); stroke-width: 1.5; }
 
-/* (A) action prompt */
+/* Action prompt. It is a real button — it looks like one, and when it was only a
+   label a tap fell straight through to the virtual joystick underneath. */
 #prompt {
   position: absolute; left: 50%; bottom: 15%; transform: translateX(-50%);
   display: flex; align-items: center; gap: 9px;
-  padding: 7px 16px 8px 8px;
+  padding: 7px 18px 8px 8px;
   background: linear-gradient(180deg, var(--navy3), var(--navy));
   border: 3px solid var(--paper); border-radius: 999px;
   box-shadow: var(--shadow);
-  font-weight: bold; font-size: 17px;
+  color: var(--paper); font: bold 17px var(--ui-font);
+  text-shadow: 2px 2px 0 rgba(0,0,0,.5);
   animation: bob 1s ease-in-out infinite;
+  pointer-events: auto; cursor: pointer;
 }
+#prompt:active { filter: brightness(1.25); }
 .aKey {
-  width: 30px; height: 30px; border-radius: 50%;
+  min-width: 30px; height: 30px; padding: 0 9px; border-radius: 999px;
   background: radial-gradient(circle at 34% 30%, #6fa8ff, #1552c8);
   border: 2.5px solid var(--paper);
   display: grid; place-items: center;
-  font-size: 15px; font-weight: bold;
+  font-size: 13px; font-weight: bold; letter-spacing: .5px;
   text-shadow: 1px 1px 0 rgba(0,0,0,.6);
 }
 @keyframes bob { 0%,100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -6px); } }

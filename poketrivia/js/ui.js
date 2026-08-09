@@ -9,7 +9,8 @@ const el = {
   hud: $('hud'), zoneChip: $('zoneChip'), zoneName: $('zoneName'),
   banner: $('banner'), bannerText: $('bannerText'),
   dialog: $('dialog'), dialogText: $('dialogText'), dialogWho: $('dialogWho'),
-  balls: $('balls'), badges: $('badges'), prompt: $('prompt'), promptText: $('promptText'),
+  balls: $('balls'), badges: $('badges'),
+  prompt: $('prompt'), promptText: $('promptText'), promptKey: $('promptKey'),
   rose: $('cRose'), blips: $('cBlips'), debug: $('debug'),
 };
 
@@ -92,6 +93,12 @@ export function advanceDialog() {
 }
 
 /* ---------------- action prompt ---------------- */
+
+// Say SPACE on a keyboard and A on a touch device. The prompt used to always
+// read "A", which on a keyboard is the strafe-left key — so the obvious way to
+// read a sign was to walk sideways instead.
+const TOUCH = matchMedia('(hover: none) and (pointer: coarse)').matches;
+if (el.promptKey) el.promptKey.textContent = TOUCH ? 'A' : 'SPACE';
 
 export function setPrompt(text) {
   if (!text) { el.prompt.classList.add('hidden'); return; }

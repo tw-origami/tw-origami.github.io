@@ -100,9 +100,11 @@ export function initInput(canvas) {
   zone.addEventListener('pointerup', endStick);
   zone.addEventListener('pointercancel', endStick);
 
-  document.getElementById('btnA').addEventListener('pointerdown', (e) => {
-    input.action = true; e.preventDefault();
-  });
+  const press = (e) => { input.action = true; e.preventDefault(); e.stopPropagation(); };
+  document.getElementById('btnA').addEventListener('pointerdown', press);
+  // The on-screen prompt is a button too. Without this a tap on it fell through
+  // to the joystick zone underneath and walked the player instead.
+  document.getElementById('prompt').addEventListener('pointerdown', press);
 
   // Show touch controls only on a touch device.
   if (matchMedia('(hover: none) and (pointer: coarse)').matches) {

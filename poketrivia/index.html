@@ -43,7 +43,11 @@
   </div>
 
   <!-- context action prompt (like the reference's (A) button) -->
-  <div id="prompt" class="hidden"><span class="aKey">A</span><span id="promptText">Read</span></div>
+  <!-- The key label is set by ui.js: SPACE on a keyboard, A on a touch device.
+       It used to always read "A", which on desktop is the strafe-left key. -->
+  <button id="prompt" class="hidden" type="button">
+    <span class="aKey" id="promptKey">SPACE</span><span id="promptText">Read</span>
+  </button>
 </div>
 
 <!-- Big zone-entry banner -->
@@ -73,7 +77,7 @@
     </div>
     <p class="tag">Answer questions. Catch Pokémon. Become the Champion.</p>
     <button id="startBtn" type="button">PRESS START</button>
-    <p class="hint">Move with <b>arrow keys</b> or <b>WASD</b> · <b>Space</b> to talk · drag to look</p>
+    <p class="hint">Move with <b>arrow keys</b> or <b>WASD</b> · <b>Space</b> to read, talk and battle · drag to look</p>
   </div>
 </div>
 
