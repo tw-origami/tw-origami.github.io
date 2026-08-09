@@ -217,6 +217,7 @@ function narrate(ev) {
     case 'asleep': return `${who(ev.who)} is fast asleep.`;
     case 'wake': return `${who(ev.who)} woke up!`;
     case 'flinch': return `${who(ev.who)} flinched!`;
+    case 'noOutcome': return `…but nothing happened.`;
     case 'ability':
     case 'abilityImmune':
     case 'abilityAbsorb': return ev.text ? ev.text.replace('{P}', who(ev.who)) : null;
@@ -230,6 +231,7 @@ function narrate(ev) {
 export async function runCatch(roamer, profile, zone) {
   ensurePanel();
   party.ensureStarter(profile);
+  save.noteEncounter(profile);        // drives the "missed questions come back" clock
 
   const sp = party.species(roamer.dex);
   const battle = E.createBattle();

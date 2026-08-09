@@ -77,19 +77,68 @@ export function deleteProfile(id) {
   flush();
 }
 
-/** Rolling accuracy over the last N answers — drives difficulty drift. */
+/** How many encounters a missed question may hide for before it MUST come back. */
+export const RETRY_WITHIN = 3;
+
+/** Bump the encounter counter. Called once at the start of every battle/catch. */
+export function noteEncounter(p) {
+  p.stats.encounters = (p.stats.encounters ?? 0) + 1;
+  return p.stats.encounters;
+}
+
+/** Older saves stored missed questions as bare id strings. */
+function normaliseMissed(p) {
+  if (!Array.isArray(p.missed)) { p.missed = []; return p.missed; }
+  const now = p.stats?.encounters ?? 0;
+  p.missed = p.missed.map(m =>
+    typeof m === 'string' ? { id: m, dueBy: now, times: 1 } : m).filter(m => m && m.id);
+  return p.missed;
+}
+
+/**
+ * Record an answer. A miss is scheduled to come back within RETRY_WITHIN
+ * encounters — not left to a random draw, which could hide it for an hour.
+ * Getting it right retires it.
+ */
 export function recordAnswer(p, questionId, quality) {
   p.stats.asked++;
   if (quality >= 1) p.stats.right++;
   p.stats.recent.push(quality >= 1 ? 1 : quality > 0 ? 0.5 : 0);
   if (p.stats.recent.length > 12) p.stats.recent.shift();
-  if (quality <= 0 && questionId && !p.missed.includes(questionId)) {
-    p.missed.push(questionId);
-    if (p.missed.length > 60) p.missed.shift();
-  } else if (quality >= 1 && questionId) {
-    const i = p.missed.indexOf(questionId);
-    if (i >= 0) p.missed.splice(i, 1);   // beaten it — stop recycling
+
+  if (!questionId) return;                     // generated maths has no stable id
+  const missed = normaliseMissed(p);
+  const now = p.stats.encounters ?? 0;
+  const at = missed.findIndex(m => m.id === questionId);
+
+  if (quality <= 0) {
+    if (at >= 0) {
+      missed[at].times++;
+      missed[at].dueBy = Math.min(missed[at].dueBy, now + RETRY_WITHIN);
+    } else {
+      missed.push({ id: questionId, dueBy: now + RETRY_WITHIN, times: 1 });
+    }
+    if (missed.length > 60) missed.shift();
+  } else if (quality >= 1 && at >= 0) {
+    missed.splice(at, 1);                      // beaten it — stop recycling
   }
+}
+
+/** Missed questions whose deadline has arrived, longest-waiting first. */
+export function dueMissed(p) {
+  const now = p.stats?.encounters ?? 0;
+  return normaliseMissed(p)
+    .filter(m => m.dueBy <= now)
+    .sort((a, b) => (a.dueBy - b.dueBy) || (b.times - a.times));
+}
+
+export const missedIds = (p) => normaliseMissed(p).map(m => m.id);
+
+/** Drop a missed entry — used when its question no longer exists in the bank. */
+export function forgetMissed(p, id) {
+  const missed = normaliseMissed(p);
+  const at = missed.findIndex(m => m.id === id);
+  if (at >= 0) missed.splice(at, 1);
 }
 
 export function rollingAccuracy(p) {

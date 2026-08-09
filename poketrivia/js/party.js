@@ -65,6 +65,26 @@ export const abilitiesFor = (dexId) => ABILITIES()[dexId] ?? [];
  * it has actually learned, exactly as the games do it. Damaging moves are kept
  * preferentially so a battle always has something to swing with.
  */
+/**
+ * Does this move actually DO something in our engine?
+ *
+ * PokéAPI gives us every move a Pokémon learns, but a chunk of the status moves
+ * (Whirlwind, Mirror Move, Splash, Conversion…) have effects we don't simulate.
+ * Offering one is worse than not having it: you answer correctly, the message
+ * says the move was used, and nothing happens — which reads as the game being
+ * broken. So they're kept out of the move list rather than shipped as duds.
+ */
+export function moveHasEffect(mv) {
+  if (!mv) return false;
+  if (mv.power > 0) return true;                       // it hits things
+  if (mv.stats?.length) return true;                   // raises or lowers a stat
+  if (mv.ailment) return true;                         // burn, sleep, paralysis…
+  if (mv.heal > 0) return true;                        // healing
+  if (/protect|detect/.test(mv.name)) return true;     // blocks a turn
+  if (/rain-dance|sunny-day|sandstorm|hail/.test(mv.name)) return true;   // weather
+  return false;
+}
+
 export const STRUGGLE = {
   name: 'struggle', label: 'Struggle', type: 'normal', power: 50, acc: 100,
   class: 'physical', pp: 1, short: 'Used when nothing else can be. It hurts a little to use.',
@@ -72,7 +92,8 @@ export const STRUGGLE = {
 
 export function movesFor(dexId, level) {
   const learn = LEARNSET()[dexId] ?? [];
-  const known = learn.filter(e => e.lv <= level).map(e => MOVES()[e.m]).filter(Boolean);
+  const known = learn.filter(e => e.lv <= level).map(e => MOVES()[e.m])
+    .filter(m => m && moveHasEffect(m));          // never offer a move that does nothing
 
   const damaging = known.filter(m => m.power > 0);
   const status = known.filter(m => m.power === 0);

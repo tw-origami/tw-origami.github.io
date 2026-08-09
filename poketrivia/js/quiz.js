@@ -9,7 +9,7 @@
 
 import { pick, shuffle, clamp, clamp01 } from './rng.js';
 import { makeMathQuestion } from './mathgen.js';
-import { rollingAccuracy, recordAnswer } from './save.js';
+import { rollingAccuracy, recordAnswer, dueMissed, missedIds, forgetMissed } from './save.js';
 import { gradeNumeric, parseNumber } from './grading.js';
 
 const $ = (id) => document.getElementById(id);
@@ -153,17 +153,38 @@ function dealFrom(profile, subject, band, preferDiff) {
  * Pick a question. Priority: a sign you just read > one you got wrong before >
  * the next card off the shuffled bag for this subject and band.
  */
+/** A question this player has previously got wrong, for the STUDY move. */
+export function pickMissedQuestion(profile) {
+  const ids = missedIds(profile);
+  for (const id of shuffle(ids)) {
+    const q = bank().find(x => x.id === id);
+    if (q) return { ...q, _retry: true };
+  }
+  return null;
+}
+
 export function pickQuestion({ subject, difficulty, profile, zoneId }) {
   const diff = driftDifficulty(difficulty, profile);
+
+  // A question you got wrong is GUARANTEED to come back within a few
+  // encounters, not left to a dice roll that might hide it for an hour.
+  for (const m of dueMissed(profile)) {
+    const q = bank().find(x => x.id === m.id);
+    if (q) return { ...q, _retry: true };
+    // The bank was regenerated and this question no longer exists. Drop it,
+    // otherwise it sits in the list forever and can never be cleared.
+    forgetMissed(profile, m.id);
+  }
 
   if (zoneId && Math.random() < 0.6) {
     const p = takePrimed(zoneId);
     if (p) return { ...p, _primed: true };
   }
 
-  if (profile.missed.length && Math.random() < 0.25) {
-    const id = pick(profile.missed);
-    const q = bank().find(x => x.id === id);
+  // and it may also resurface early, which is only ever a bonus
+  const missed = missedIds(profile);
+  if (missed.length && Math.random() < 0.2) {
+    const q = bank().find(x => x.id === pick(missed));
     if (q) return { ...q, _retry: true };
   }
 

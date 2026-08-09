@@ -20,7 +20,7 @@
 // Everything returns EVENTS rather than strings, so the UI can animate them and
 // tests can assert on them.
 
-import { species, statAt, maxHp, typeMultiplier } from './party.js';
+import { species, statAt, maxHp, typeMultiplier, movesFor, STRUGGLE } from './party.js';
 
 const MOVES = () => window.PL_MOVES ?? {};
 const NATURES = () => window.PL_NATURES ?? {};
@@ -72,7 +72,7 @@ export function defaultAbility(dexId) {
 export function makeBattler(mon, opts = {}) {
   const sp = species(mon.dex);
   const moves = (opts.moves ?? autoMoves(mon.dex, mon.level)).map(name => {
-    const m = MOVES()[name];
+    const m = MOVES()[name] ?? (name === STRUGGLE.name ? STRUGGLE : null);
     return m ? { name, pp: m.pp, maxPp: m.pp } : null;
   }).filter(Boolean);
 
@@ -96,16 +96,10 @@ export function makeBattler(mon, opts = {}) {
   };
 }
 
-/** The four moves it would know at this level (see party.movesFor). */
+/** One source of truth for "what does this Pokémon know at this level". */
 function autoMoves(dexId, level) {
-  const learn = window.PL_LEARNSET?.[dexId] ?? [];
-  const known = learn.filter(e => e.lv <= level).map(e => e.m).filter(n => MOVES()[n]);
-  const dmg = known.filter(n => MOVES()[n].power > 0);
-  const sta = known.filter(n => MOVES()[n].power === 0);
-  const out = dmg.slice(-3);
-  for (const s of sta.slice(-1)) if (out.length < 4) out.push(s);
-  for (const d of dmg.slice(-4).reverse()) if (out.length < 4 && !out.includes(d)) out.push(d);
-  return out.length ? out : ['tackle'];
+  const list = movesFor(dexId, level).map(m => m.name);
+  return list.length ? list : ['tackle'];
 }
 
 /* ============================ derived stats ============================ */
@@ -337,7 +331,7 @@ function applyStatChange(target, changes, log, { fromFoe }) {
  *   0     — the move fails outright
  */
 export function useMove(battle, user, target, moveName, quality, log = []) {
-  const move = MOVES()[moveName];
+  const move = MOVES()[moveName] ?? (moveName === STRUGGLE.name ? STRUGGLE : null);
   if (!move) return log;
 
   const slot = user.moves.find(m => m.name === moveName);
@@ -554,6 +548,13 @@ export function useMove(battle, user, target, moveName, quality, log = []) {
   /* --- flinch --- */
   if (move.flinch > 0 && chance(move.flinch) && !hasFx(target, 'blockSecondary')) {
     target.volatile.flinch = true;
+  }
+
+  // Belt and braces: if a status move somehow produced no visible outcome, say
+  // so rather than leaving the player wondering why a right answer did nothing.
+  if (move.power === 0 && !log.some(e =>
+    ['stat', 'statFail', 'status', 'statusFail', 'heal', 'healFail', 'weather', 'protect'].includes(e.t))) {
+    log.push({ t: 'noOutcome', who: user.name, move: move.label });
   }
 
   checkFaint(target, log);

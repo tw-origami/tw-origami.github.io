@@ -87,6 +87,26 @@ function firstOf(obj, keys) {
   return null;
 }
 
+/**
+ * Prompts that only make sense next to something the source app displayed and we
+ * do not: a reading passage, a nutrition label, a diagram. Harvesting these
+ * generically produces questions like "If you eat 2 bars, how much sugar is
+ * that?" with no bar in sight. Banks whose context we CAN reproduce get a
+ * dedicated builder below; everything else is dropped rather than shipped broken.
+ */
+const NEEDS_CONTEXT = [
+  /\b(this|the) (passage|label|article|story|text|recipe|graph|chart|diagram|picture|image|table|menu|receipt)\b/i,
+  /\b(this|that) (food|snack|drink|cereal|bar|product|item|cereal box)\b/i,
+  /\bshown (above|below|here)\b/i,
+  /\b(above|below)\b.*\?$/i,
+  /^if you (eat|drink|have) \d/i,
+  /\baccording to the\b/i,
+  /\bin (the|this) (first|second|third|last) (paragraph|sentence|line)\b/i,
+  /\bthe (author|writer|narrator|speaker)\b/i,
+  /\bwhich ingredient\b/i,
+];
+const needsMissingContext = (prompt) => NEEDS_CONTEXT.some(re => re.test(prompt));
+
 /** Pull an MCQ out of one object, or return null if it isn't one. */
 function asQuestion(o) {
   if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
@@ -95,6 +115,7 @@ function asQuestion(o) {
   // testtactics splits scenario + question; a scenario alone isn't a prompt
   if (o.scenario && o.question) prompt = clean(o.scenario) + ' ' + clean(o.question);
   if (!prompt || prompt.length < 12) return null;
+  if (needsMissingContext(prompt)) return null;
 
   let choices = null;
 

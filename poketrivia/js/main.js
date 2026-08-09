@@ -27,7 +27,12 @@ const MIN_W = 480, MAX_W = 1100;
 const DEBUG = new URLSearchParams(location.search).has('debug');
 
 const canvas = document.getElementById('view');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+// Antialiasing ON, despite the retro look. The chunky read comes from the low
+// internal resolution and the flat shading, not from jagged edges — whereas
+// without MSAA, thin geometry (timber beams, branches) lands on sub-pixel
+// slivers that different GPUs rasterise differently, drawing stray dark lines
+// across the scene on some machines and not others.
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(1);
 renderer.setClearColor(0xd3e8f7);
 

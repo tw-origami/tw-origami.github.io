@@ -306,8 +306,13 @@ function buildTerrain() {
       const base = terrainColor(cx, cz, hAvg, sl);
       const jit = 0.95 + 0.10 * (0.5 + 0.5 * noise(cx * 0.55, cz * 0.55));
       const col = shade(base, jit);
+      // BOTH triangles of a cell get the IDENTICAL colour. Shading the second
+      // one even slightly darker draws a diagonal seam across every one of the
+      // ~11,600 cells, which reads as scratchy lines all over the ground rather
+      // than as texture. Variation already comes from `jit` (per cell) and from
+      // the flat-shaded normals, which is plenty.
       m.tri(a, c, b, col);                      // counter-clockwise from above
-      m.tri(a, d, c, shade(col, 0.975));
+      m.tri(a, d, c, col);
     }
   }
   return m.build();
@@ -332,7 +337,7 @@ function broadleaf(m, x, y, z, s, rng, kind = 'oak') {
   // a couple of limbs so the canopy doesn't float
   for (let i = 0; i < 2; i++) {
     const a = spin + i * 2.4 + rng.range(-0.4, 0.4);
-    m.cyl(x + leanX * 0.7, y + trunkH * 0.72, z + leanZ * 0.7, 0.2 * s, 0.12 * s, 1.5 * s, 4,
+    m.cyl(x + leanX * 0.7, y + trunkH * 0.72, z + leanZ * 0.7, 0.26 * s, 0.2 * s, 1.5 * s, 5,
       shade(PAL.bark, 0.9), a, Math.cos(a) * 1.4 * s, Math.sin(a) * 1.4 * s);
   }
   // 4 overlapping clusters give the rounded, painterly canopy
@@ -407,7 +412,7 @@ function deadTree(m, x, y, z, s, rng) {
     rng.range(-0.4, 0.4), rng.range(-0.4, 0.4));
   for (let i = 0; i < 3; i++) {
     const a = spin + i * 2.1;
-    m.cyl(x, y + (2.4 + i * 0.8) * s, z, 0.16 * s, 0.06 * s, 1.6 * s, 4, shade(PAL.dead, 0.9),
+    m.cyl(x, y + (2.4 + i * 0.8) * s, z, 0.22 * s, 0.16 * s, 1.6 * s, 5, shade(PAL.dead, 0.9),
       a, Math.cos(a) * 1.5 * s, Math.sin(a) * 1.5 * s);
   }
   addCollider(x, z, 0.5 * s);
@@ -452,7 +457,9 @@ function cottage(m, b) {
   // plaster walls
   m.box(b.x, y + 1.1 + h / 2, b.z, w, h, d, wall, rot);
   // half-timbering: corner posts, a mid rail, and two braces per long wall
-  const t = 0.24;
+  // Beam thickness. Anything under ~0.3 lands on sub-pixel slivers at the
+  // internal render resolution and draws stray dark lines.
+  const t = 0.36;
   const co = Math.cos(rot), si = Math.sin(rot);
   const at = (lx, lz) => [b.x + lx * co - lz * si, b.z + lx * si + lz * co];
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
@@ -490,7 +497,7 @@ function cottage(m, b) {
 
 function signpost(m, spot) {
   const y = heightAt(spot.x, spot.z);
-  m.cyl(spot.x, y - 0.2, spot.z, 0.24, 0.22, 2.4, 5, PAL.timber);
+  m.cyl(spot.x, y - 0.2, spot.z, 0.3, 0.28, 2.4, 5, PAL.timber);
   const by = y + 2.9;
   m.box(spot.x, by, spot.z, 3.2, 1.7, 0.3, PAL.timber, spot.face);
   m.box(spot.x, by, spot.z, 2.7, 1.2, 0.38, rgb(0xdcc38d), spot.face);

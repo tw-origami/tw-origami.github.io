@@ -9,7 +9,7 @@
 import * as party from './party.js';
 import * as E from './battle-engine.js';
 import { chooseMove, chooseSwitch, explainChoice } from './battle-ai.js';
-import { ask, pickQuestion, nextSubject } from './quiz.js';
+import { ask, pickQuestion, pickMissedQuestion, nextSubject } from './quiz.js';
 import * as save from './save.js';
 import { rand, pick, clamp } from './rng.js';
 import * as audio from './audio.js';
@@ -228,6 +228,7 @@ function narrate(ev, mineName) {
     case 'weather': return `The weather changed: ${ev.weather}.`;
     case 'weatherEnd': return `The ${ev.weather} stopped.`;
     case 'noPp': return `…but there's no power left in that move!`;
+    case 'noOutcome': return `…but nothing happened.`;
     case 'multiHit': return `Hit ${ev.hits} times!`;
     default: return null;
   }
@@ -242,6 +243,7 @@ function narrate(ev, mineName) {
 export async function runBattle(trainer, profile, zone) {
   ensurePanel();
   party.ensureStarter(profile);
+  save.noteEncounter(profile);        // drives the "missed questions come back" clock
 
   const battle = E.createBattle();
   const skill = trainer.skill ?? (trainer.badge ? 0.85 : 0.6);
@@ -323,11 +325,12 @@ export async function runBattle(trainer, profile, zone) {
       // switching costs you the turn — the foe still gets to move
       myEntry = { user: mine, target: foe, action: { type: 'switch' }, quality: 1 };
     } else {
-      const difficulty = party.difficultyForMove(choice.move);
-      // Subjects rotate across the whole curriculum rather than sticking to the
-      // zone, so no two questions in a row come from the same topic.
-      const subject = nextSubject();
-      const q = pickQuestion({ subject, difficulty, profile, zoneId: zone.id });
+      const difficulty = choice.id === 'study' ? 'medium' : party.difficultyForMove(choice.move);
+      // STUDY does what it says: it re-asks something you got wrong before.
+      // Subjects otherwise rotate across the whole curriculum rather than
+      // sticking to the zone, so no two questions in a row share a topic.
+      const q = (choice.id === 'study' && pickMissedQuestion(profile))
+        || pickQuestion({ subject: nextSubject(), difficulty, profile, zoneId: zone.id });
       const { quality } = await ask(q, profile, { difficulty });
       myEntry = { user: mine, target: foe, action: { type: 'move', move: choice.slot.name }, quality };
     }
