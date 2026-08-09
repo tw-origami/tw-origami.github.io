@@ -18,6 +18,7 @@ import * as party from './party.js';
 import * as audio from './audio.js';
 import { runCatch } from './encounter-catch.js';
 import { runBattle } from './encounter-battle.js';
+import { openTeam, teamOpen } from './team.js';
 import { quizOpen, primeQuestion, registerSigns, pickQuestion, pickMissedQuestion,
   nextSubject, ask } from './quiz.js';
 
@@ -71,6 +72,21 @@ addEventListener('orientationchange', () => setTimeout(resize, 120));
 if (window.ResizeObserver) new ResizeObserver(resize).observe(document.getElementById('stage'));
 resize();
 
+// Tab (or tapping your ball tray) opens the team screen from the overworld.
+addEventListener('keydown', (e) => {
+  if (e.code !== 'Tab' || !profile) return;
+  e.preventDefault();
+  if (teamOpen() || busy || ui.dialogOpen() || quizOpen()) return;
+  player.frozen = true;
+  openTeam(profile, () => { player.frozen = false; ui.setParty(profile.party); });
+});
+document.getElementById('balls').addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  if (!profile || teamOpen() || busy || ui.dialogOpen() || quizOpen()) return;
+  player.frozen = true;
+  openTeam(profile, () => { player.frozen = false; ui.setParty(profile.party); });
+});
+
 canvas.addEventListener('webglcontextlost', (e) => {
   e.preventDefault();
   running = false;
@@ -118,7 +134,7 @@ function checkInteractables() {
   }
 
   focus = best;
-  const locked = busy || ui.dialogOpen() || quizOpen() || encounterCooldown > 0;
+  const locked = busy || ui.dialogOpen() || quizOpen() || teamOpen() || encounterCooldown > 0;
   ui.setPrompt(locked ? null : best?.label ?? null);
 }
 
@@ -133,16 +149,34 @@ function interact() {
   }
 }
 
-function readSign(sign) {
+/**
+ * Signs change. The first visit to a post shows its tutorial fact (how the game
+ * works); every visit after that draws a fresh fact from that zone's pool, so
+ * walking past a sign you've already read teaches something new instead of
+ * repeating itself. Dealt bag-style: you see all of a zone's facts before any
+ * of them comes round again.
+ */
+function nextSignFact(post) {
+  const tutorial = SIGN_BY_ID[post.id];
+  if (tutorial && !profile.journal.includes(tutorial.id)) return tutorial;
+
+  const zone = tutorial?.zone ?? post.zone ?? 'hub';
+  const pool = (window.SIGN_FACTS ?? []).filter(f => f.zone === zone);
+  if (!pool.length) return tutorial ?? null;
+
+  const unread = pool.filter(f => !profile.journal.includes(f.id));
+  // all read? start the cycle again, oldest first
+  return unread.length ? unread[0] : pool[profile.journal.length % pool.length];
+}
+
+function readSign(post) {
   busy = true;
   player.frozen = true;
-  const rec = SIGN_BY_ID[sign.id];
+  const rec = nextSignFact(post);
   if (rec) {
     primeQuestion(profile, 'sign:' + rec.id);
-    if (!profile.journal.includes(sign.id)) {
-      profile.journal.push(sign.id);
-      save.saveProfile(profile);
-    }
+    if (!profile.journal.includes(rec.id)) profile.journal.push(rec.id);
+    save.saveProfile(profile);
   }
   const text = rec
     ? rec.fact + '  …You have a feeling this will come up again soon.'
@@ -180,6 +214,7 @@ async function useBuilding(b) {
  */
 async function studySession() {
   const ROUNDS = 4;
+  const clearedBefore = profile.stats.cleared ?? 0;
   let right = 0;
   for (let i = 0; i < ROUNDS; i++) {
     const q = pickMissedQuestion(profile)
@@ -190,6 +225,19 @@ async function studySession() {
     const { quality } = await ask(q, profile, { difficulty: 'medium' });
     if (quality >= 1) right++;
   }
+
+  // Every 5 missed questions finally beaten earns an evolution item of the
+  // player's choice — studying is literally how Pokémon grow here.
+  const earned = Math.floor((profile.stats.cleared ?? 0) / 5) - Math.floor(clearedBefore / 5);
+  for (let i = 0; i < earned; i++) {
+    const item = await ui.choose(
+      'You cleared 5 tricky questions! Nurse Joy opens a drawer of evolution stones. Pick one:',
+      Object.entries(party.EVO_ITEMS).map(([value, it]) => ({ value, label: `${it.emoji} ${it.label}` })));
+    party.grantItem(profile, item);
+    audio.badge();
+    ui.showBanner(`Got the ${party.EVO_ITEMS[item].label}! Check your team screen.`);
+  }
+
   save.saveProfile(profile);
   ui.showBanner(right === ROUNDS
     ? `Perfect session — ${right}/${ROUNDS}!`

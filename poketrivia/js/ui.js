@@ -94,6 +94,30 @@ export function advanceDialog() {
 
 /* ---------------- yes / no ---------------- */
 
+/** An N-way pick. Resolves the chosen option's value. */
+export function choose(text, options) {
+  let box = document.getElementById('chooseBox');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'chooseBox';
+    box.className = 'hidden';
+    box.innerHTML = `<div class="confirmCard"><p id="chooseText"></p><div class="chooseGrid" id="chooseGrid"></div></div>`;
+    document.body.appendChild(box);
+  }
+  document.getElementById('chooseText').textContent = text;
+  const grid = document.getElementById('chooseGrid');
+  grid.innerHTML = '';
+  box.classList.remove('hidden');
+  return new Promise((resolve) => {
+    for (const opt of options) {
+      const b = document.createElement('button');
+      b.textContent = opt.label;
+      b.onclick = () => { box.classList.add('hidden'); resolve(opt.value); };
+      grid.appendChild(b);
+    }
+  });
+}
+
 /** A two-button question. Resolves true for the first button. */
 export function confirm(text, yes = 'Yes', no = 'No') {
   let box = document.getElementById('confirmBox');

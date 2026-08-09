@@ -43,7 +43,8 @@ export function newProfile(name, band) {
     missed: [],               // question ids answered wrong
     bags: {},                 // 'subject:band' -> shuffled ids not yet dealt
     seen: [],                 // dex ids encountered
-    stats: { asked: 0, right: 0, caught: 0, recent: [] },
+    items: {},                // evolution stones and cords, by item name
+    stats: { asked: 0, right: 0, caught: 0, recent: [], cleared: 0 },
     at: { x: 0, z: 24 },
   };
   all.profiles.push(p);
@@ -52,9 +53,20 @@ export function newProfile(name, band) {
   return p;
 }
 
+/** Older saves predate some fields; grow them in place. */
+export function migrateProfile(p) {
+  if (p && typeof p === 'object') {
+    p.items = p.items ?? {};
+    p.stats = p.stats ?? { asked: 0, right: 0, caught: 0, recent: [] };
+    p.stats.cleared = p.stats.cleared ?? 0;
+    p.primed = Array.isArray(p.primed) ? p.primed : [];
+  }
+  return p;
+}
+
 export function loadProfile(id) {
   const all = readAll();
-  return all.profiles.find(p => p.id === id) ?? null;
+  return migrateProfile(all.profiles.find(p => p.id === id) ?? null);
 }
 
 export function lastProfile() {
@@ -121,6 +133,7 @@ export function recordAnswer(p, questionId, quality) {
     if (missed.length > 60) missed.shift();
   } else if (quality >= 1 && at >= 0) {
     missed.splice(at, 1);                      // beaten it — stop recycling
+    p.stats.cleared = (p.stats.cleared ?? 0) + 1;   // counts toward a stone
   }
 }
 

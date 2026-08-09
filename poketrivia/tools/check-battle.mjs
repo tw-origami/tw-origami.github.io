@@ -11,7 +11,7 @@ import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 globalThis.window = globalThis;
-for (const f of ['data/dex.js', 'data/moves.js', 'data/battle-data.js']) {
+for (const f of ['data/dex.js', 'data/moves.js', 'data/growth.js', 'data/battle-data.js']) {
   new Function(readFileSync(join(root, f), 'utf8'))();
 }
 
@@ -514,6 +514,199 @@ check('the shake count tells you how close you were', () => {
   assert.equal(party.shakeCount(0.35, false), 2);
   assert.equal(party.shakeCount(0.2, false), 1);
   assert.equal(party.shakeCount(0.05, false), 0);
+});
+
+/* ==================================================================== */
+section('levelling up the way the real games do');
+
+check('experience for a knockout uses the real formula', () => {
+  // base experience x level / 7 — so who you beat matters, not just its level
+  const karp = party.xpForDefeating(129, 20);      // Magikarp, base 40
+  const mewtwo = party.xpForDefeating(150, 20);    // Mewtwo, base 306
+  assert.equal(karp, Math.floor(40 * 20 / 7));
+  assert.ok(mewtwo > karp * 6, `beating Mewtwo should be worth far more (${karp} vs ${mewtwo})`);
+});
+
+check('growth curves differ by species, using the real tables', () => {
+  const fast = party.xpToNext(30, 39);        // Jigglypuff — genuinely 'fast'
+  const medium = party.xpToNext(30, 19);      // Rattata — 'medium'
+  const slow = party.xpToNext(30, 150);       // Mewtwo — 'slow'
+  assert.ok(fast < medium && medium < slow, `curves should order fast < medium < slow (${fast}, ${medium}, ${slow})`);
+  // the standard tables put slow at 5/4 of medium and fast at 4/5 (±1 to floor)
+  assert.ok(Math.abs(slow - medium * 1.25) <= 1, `slow should be 5/4 of medium: ${slow} vs ${medium * 1.25}`);
+  assert.ok(Math.abs(fast - medium * 0.8) <= 1, `fast should be 4/5 of medium: ${fast} vs ${medium * 0.8}`);
+});
+
+check('a fresh Pokémon knows the moves it should at its level', () => {
+  const mon = party.makeMon(4, 20);           // Charmander at 20
+  assert.ok(mon.moves.includes('metal-claw'), 'learned at 13');
+  assert.ok(mon.moves.includes('ember'), 'learned at 7');
+  assert.ok(!mon.moves.includes('flamethrower'), 'not until level 31');
+  assert.ok(mon.moves.length <= party.MOVE_SLOTS);
+});
+
+check('levelling past a learn level offers the move', () => {
+  const mon = party.makeMon(4, 30);
+  mon.moves = ['scratch', 'ember'];                       // room to spare
+  const events = party.grantXp(mon, party.xpToNext(30, 4) + 1);
+  const learn = events.find(e => e.type === 'learn' && e.move === 'flamethrower');
+  assert.ok(learn, 'Charmander learns Flamethrower at 31');
+  assert.equal(learn.full, false, 'with only two moves there is room');
+});
+
+check('a full move set makes it a choice, not automatic', () => {
+  const mon = party.makeMon(4, 30);
+  mon.moves = ['scratch', 'ember', 'metal-claw', 'growl'];
+  const events = party.grantXp(mon, party.xpToNext(30, 4) + 1);
+  const learn = events.find(e => e.type === 'learn');
+  assert.ok(learn?.full, 'four moves means the player must pick one to forget');
+  assert.equal(mon.moves.length, 4, 'and nothing is learned until they do');
+  assert.ok(!mon.moves.includes('flamethrower'));
+});
+
+check('choosing a slot swaps that move; declining keeps the set', () => {
+  const mon = party.makeMon(4, 31);
+  mon.moves = ['scratch', 'ember', 'metal-claw', 'growl'];
+  assert.equal(party.learnMove(mon, 'flamethrower', -1), false, 'declining changes nothing');
+  assert.deepEqual(mon.moves, ['scratch', 'ember', 'metal-claw', 'growl']);
+  assert.equal(party.learnMove(mon, 'flamethrower', 3), true);
+  assert.deepEqual(mon.moves, ['scratch', 'ember', 'metal-claw', 'flamethrower']);
+});
+
+check('a move set never exceeds four, and never duplicates', () => {
+  const mon = party.makeMon(4, 40);
+  party.learnMove(mon, 'ember');
+  party.learnMove(mon, 'ember');
+  assert.equal(new Set(mon.moves).size, mon.moves.length, 'no duplicates');
+  assert.ok(mon.moves.length <= 4);
+});
+
+check('the move set persists — it is not recomputed from the level', () => {
+  const mon = party.makeMon(4, 30);
+  mon.moves = ['scratch'];                                 // a deliberate choice
+  party.grantXp(mon, party.xpToNext(30, 4) * 3);
+  assert.ok(mon.moves.includes('scratch'), 'the player\'s own set survives levelling');
+});
+
+check('the battler in a fight uses the saved move set', () => {
+  const saved = party.makeMon(4, 40);
+  saved.moves = ['ember', 'growl'];
+  const b = E.makeBattler(saved);
+  assert.deepEqual(b.moves.map(m => m.name), ['ember', 'growl']);
+});
+
+check('a wild Pokémon with no saved set still gets sensible moves', () => {
+  const b = E.makeBattler({ dex: 25, level: 25, hp: 60 });
+  assert.ok(b.moves.length >= 1 && b.moves.length <= 4);
+  for (const m of b.moves) assert.ok(window.PL_MOVES[m.name], `${m.name} should be a real move`);
+});
+
+check('levelling raises max HP without secretly full-healing', () => {
+  const mon = party.makeMon(128, 20);          // Tauros — never evolves
+  mon.hp = 5;
+  const before = party.maxHp(128, 20);
+  party.grantXp(mon, party.xpToNext(20, 128) + 1);
+  const after = party.maxHp(128, mon.level);
+  assert.ok(after > before, 'max HP goes up');
+  assert.equal(mon.hp, 5 + (after - before), 'current HP gains the same amount, not a free heal');
+});
+
+check('evolving is not a free heal either', () => {
+  const mon = party.makeMon(4, 15);            // Charmander, evolves at 16
+  mon.hp = 6;
+  const beforeMax = party.maxHp(4, 15);
+  const events = party.grantXp(mon, party.xpToNext(15, 4) + 1);
+  assert.ok(events.some(e => e.type === 'evolve'), 'should evolve at 16');
+  const afterMax = party.maxHp(mon.dex, mon.level);
+  assert.equal(mon.hp, 6 + (afterMax - beforeMax), 'damage carries through the evolution');
+  assert.ok(mon.hp < afterMax, 'it is still hurt');
+});
+
+/* ==================================================================== */
+section('evolution — every form in the dex is reachable');
+
+check('all 72 evolved forms have a working route', () => {
+  // 69 links survive in PL_CHAINS plus the three whole chains its generator
+  // dropped (Raichu, Clefable, Wigglytuff — their chain roots are Gen-2 babies).
+  const all = new Map();
+  for (const c of window.PL_CHAINS) {
+    for (const n of c.nodes) if (n.from != null) all.set(n.id, n.from);
+  }
+  all.set(26, 25); all.set(36, 35); all.set(40, 39);
+  const missing = [];
+  for (const [to, from] of all) {
+    const routes = party.evolutionOptions({ dex: from, level: 99 });
+    if (!routes.some(r => r.to === to && (r.level != null || r.item))) {
+      missing.push(window.PL_DEX.find(d => d.id === to)?.name);
+    }
+  }
+  assert.equal(missing.length, 0, `unreachable: ${missing.join(', ')}`);
+  assert.equal(all.size, 72, `expected 72 evolved forms, found ${all.size}`);
+});
+
+check('the dropped chains are back: Pikachu can finally become Raichu', () => {
+  for (const [from, stone, want] of [[25, 'thunder stone', 'Raichu'],
+    [35, 'moon stone', 'Clefable'], [39, 'moon stone', 'Wigglytuff']]) {
+    const prof = { party: [{ dex: from, level: 20, xp: 0, hp: 50 }], items: { [stone]: 1 } };
+    const ev = party.useEvoItem(prof, prof.party[0], stone);
+    assert.equal(ev?.to, want, `${stone} should give ${want}`);
+  }
+});
+
+check('levelling up still evolves automatically at the threshold', () => {
+  const mon = { dex: 4, level: 15, xp: 0, hp: 39 };            // Charmander
+  party.grantXp(mon, party.xpToNext(15) + 1);
+  assert.equal(mon.dex, 5, 'should be Charmeleon at 16');
+});
+
+check('a stone never fires on its own — levelling a Pikachu keeps it a Pikachu', () => {
+  const mon = { dex: 25, level: 50, xp: 0, hp: 90 };
+  party.grantXp(mon, party.xpToNext(50) + 1);
+  assert.equal(mon.dex, 25, 'Raichu requires choosing to use the Thunder Stone');
+});
+
+check('using a Thunder Stone evolves Pikachu and consumes the stone', () => {
+  const prof = { party: [{ dex: 25, level: 20, xp: 0, hp: 50 }], items: { 'thunder stone': 1 } };
+  const targets = party.itemTargets(prof, 'thunder stone');
+  assert.equal(targets.length, 1, 'the stone should light up Pikachu');
+  const ev = party.useEvoItem(prof, prof.party[0], 'thunder stone');
+  assert.equal(ev.to, 'Raichu');
+  assert.equal(prof.party[0].dex, 26);
+  assert.equal(prof.items['thunder stone'], 0, 'the stone is spent');
+});
+
+check('without the stone in the bag, nothing happens', () => {
+  const prof = { party: [{ dex: 25, level: 20, xp: 0, hp: 50 }], items: {} };
+  assert.equal(party.useEvoItem(prof, prof.party[0], 'thunder stone'), null);
+  assert.equal(prof.party[0].dex, 25);
+});
+
+check('the stone picks the branch: all three Eevee lines', () => {
+  for (const [stone, want] of [['water stone', 'Vaporeon'], ['thunder stone', 'Jolteon'], ['fire stone', 'Flareon']]) {
+    const prof = { party: [{ dex: 133, level: 20, xp: 0, hp: 50 }], items: { [stone]: 1 } };
+    const ev = party.useEvoItem(prof, prof.party[0], stone);
+    assert.equal(ev.to, want, `${stone} should give ${want}`);
+  }
+});
+
+check('the Linking Cord opens all four trade evolutions', () => {
+  for (const [from, want] of [[64, 'Alakazam'], [67, 'Machamp'], [75, 'Golem'], [93, 'Gengar']]) {
+    const prof = { party: [{ dex: from, level: 30, xp: 0, hp: 70 }], items: { 'linking cord': 1 } };
+    const ev = party.useEvoItem(prof, prof.party[0], 'linking cord');
+    assert.equal(ev?.to, want);
+  }
+});
+
+check('a wrong stone on the wrong Pokémon is refused and kept', () => {
+  const prof = { party: [{ dex: 4, level: 20, xp: 0, hp: 40 }], items: { 'water stone': 1 } };
+  assert.equal(party.useEvoItem(prof, prof.party[0], 'water stone'), null, 'Charmander + Water Stone = no');
+  assert.equal(prof.items['water stone'], 1, 'and the stone is NOT wasted');
+});
+
+check('evolution keeps damage rather than free-healing', () => {
+  const prof = { party: [{ dex: 25, level: 20, xp: 0, hp: 5 }], items: { 'thunder stone': 1 } };
+  party.useEvoItem(prof, prof.party[0], 'thunder stone');
+  assert.equal(prof.party[0].hp, 5, 'evolving is not a free heal');
 });
 
 /* ==================================================================== */

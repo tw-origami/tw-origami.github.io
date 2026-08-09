@@ -33,13 +33,15 @@ const bank = () => (window.QBANK?.questions ?? []);
 /** Fold the signpost questions into the bank so priming can find them by id. */
 let signsRegistered = false;
 export function registerSigns() {
-  if (signsRegistered || !window.SIGNS || !window.QBANK) return;
+  if (signsRegistered || !window.QBANK) return;
   signsRegistered = true;
-  for (const s of window.SIGNS) {
+  // Both the fixed tutorial signs and the rotating fact pool.
+  for (const s of [...(window.SIGNS ?? []), ...(window.SIGN_FACTS ?? [])]) {
     if (bank().some(q => q.id === 'sign:' + s.id)) continue;
     window.QBANK.questions.push({
       id: 'sign:' + s.id, subject: s.subject, band: s.band, diff: s.diff,
       q: s.q, choices: s.choices, reveal: s.reveal,
+      sign: true,        // only ever reached by reading the sign, not dealt at random
     });
   }
 }
@@ -104,7 +106,8 @@ function bagKey(subject, band) { return subject + ':' + band; }
 
 /** Every question that could ever be dealt for this pool, widest match first. */
 function poolFor(subject, band) {
-  const all = bank();
+  // Sign questions are earned by reading the sign — they never come up cold.
+  const all = bank().filter(q => !q.sign);
   const exact = all.filter(q => q.subject === subject && q.band === band);
   if (exact.length >= 8) return exact;
   const anyBand = all.filter(q => q.subject === subject);

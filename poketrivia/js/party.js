@@ -26,10 +26,88 @@ export function statAt(dexId, key, level) {
   const s = species(dexId);
   return Math.floor((s.stats[key] * 2 * level) / 100) + 5;
 }
-export const xpToNext = (level) => 5 * level * level;
+/* ---------------- experience ----------------
+ * The real games give every species a growth curve and a base experience yield,
+ * and both are now real data (data/growth.js, from PokéAPI). That's what makes
+ * levelling feel right: a Magikarp is worth 40 experience and a Mewtwo 306, and
+ * a Charizard on the medium-slow curve takes noticeably longer to level than a
+ * Rattata on the fast one. */
 
+const GROWTH = () => window.PL_GROWTH ?? {};
+
+/** Total experience needed to REACH this level, by curve (the standard tables). */
+function totalXpFor(level, curve) {
+  const n = level;
+  switch (curve) {
+    case 'fast':        return Math.floor(4 * n ** 3 / 5);
+    case 'slow':        return Math.floor(5 * n ** 3 / 4);
+    case 'medium-slow': return Math.max(0, Math.floor(6 * n ** 3 / 5 - 15 * n ** 2 + 100 * n - 140));
+    default:            return n ** 3;                       // 'medium'
+  }
+}
+
+/** Experience from this level to the next, for this species. */
+export function xpToNext(level, dexId = null) {
+  const curve = dexId != null ? (GROWTH()[dexId]?.growth ?? 'medium') : 'medium';
+  return Math.max(1, totalXpFor(level + 1, curve) - totalXpFor(level, curve));
+}
+
+/**
+ * Experience earned for defeating a Pokémon — the real formula.
+ * A tough, high-level opponent is worth far more than a weak one.
+ */
+export function xpForDefeating(dexId, level) {
+  const base = GROWTH()[dexId]?.exp ?? 64;
+  return Math.max(1, Math.floor(base * level / 7));
+}
+
+/**
+ * A caught Pokémon. `moves` is stored ON the record and persists — it is not
+ * recomputed from the level. That's the whole point of the real games' move
+ * system: what your Pokémon knows is a decision you made, not a formula.
+ */
 export function makeMon(dexId, level) {
-  return { dex: dexId, level, xp: 0, hp: maxHp(dexId, level) };
+  return { dex: dexId, level, xp: 0, hp: maxHp(dexId, level), moves: startingMoves(dexId, level) };
+}
+
+export const MOVE_SLOTS = 4;
+
+/** The four moves a freshly caught Pokémon of this level knows: the most recent. */
+export function startingMoves(dexId, level) {
+  const learned = (LEARNSET()[dexId] ?? [])
+    .filter(e => e.lv <= level && MOVES()[e.m] && moveHasEffect(MOVES()[e.m]))
+    .map(e => e.m);
+  const seen = new Set(), out = [];
+  for (const m of learned.reverse()) {          // newest first
+    if (seen.has(m)) continue;
+    seen.add(m);
+    out.push(m);
+    if (out.length === MOVE_SLOTS) break;
+  }
+  return out.length ? out.reverse() : ['tackle'];
+}
+
+/** Moves this species learns at exactly this level — what a level-up offers. */
+export function movesLearnedAt(dexId, level) {
+  return (LEARNSET()[dexId] ?? [])
+    .filter(e => e.lv === level && MOVES()[e.m] && moveHasEffect(MOVES()[e.m]))
+    .map(e => e.m);
+}
+
+/** Every move known, as full records, for the team screen and the engine. */
+export function knownMoves(mon) {
+  if (!Array.isArray(mon.moves) || !mon.moves.length) mon.moves = startingMoves(mon.dex, mon.level);
+  return mon.moves.map(n => MOVES()[n]).filter(Boolean);
+}
+
+/** Teach a move, replacing the one in `slot` (or appending if there's room). */
+export function learnMove(mon, moveName, slot = -1) {
+  if (!Array.isArray(mon.moves)) mon.moves = startingMoves(mon.dex, mon.level);
+  if (mon.moves.includes(moveName)) return false;
+  if (mon.moves.length < MOVE_SLOTS) { mon.moves.push(moveName); return true; }
+  if (slot < 0 || slot >= MOVE_SLOTS) return false;      // declined
+  mon.moves[slot] = moveName;
+  return true;
 }
 
 export const monName = (mon) => species(mon.dex).name;
@@ -224,48 +302,142 @@ export function shakeCount(chanceValue, caught) {
 
 /* ---------------- progression ---------------- */
 
-/** Adds XP and levels up; returns a list of things worth announcing. */
+/**
+ * Add XP and level up, returning everything worth announcing — levels, new
+ * moves to learn, and evolutions, in the order the real games do them.
+ *
+ * A 'learn' event means the caller must ASK: with a free slot the move is taken
+ * automatically, but on a full set the player chooses which move to give up, or
+ * to skip the new one. That choice is the whole point of the 4-move limit.
+ */
 export function grantXp(mon, amount) {
   const events = [];
   mon.xp += amount;
-  while (mon.xp >= xpToNext(mon.level) && mon.level < 60) {
-    mon.xp -= xpToNext(mon.level);
+  while (mon.xp >= xpToNext(mon.level, mon.dex) && mon.level < 100) {
+    mon.xp -= xpToNext(mon.level, mon.dex);
     mon.level++;
-    mon.hp = maxHp(mon.dex, mon.level);
+    const wasMax = maxHp(mon.dex, mon.level - 1);
+    // levelling raises max HP; the gain is added rather than a free full heal
+    mon.hp = Math.max(1, mon.hp + (maxHp(mon.dex, mon.level) - wasMax));
     events.push({ type: 'level', level: mon.level });
+
+    for (const move of movesLearnedAt(mon.dex, mon.level)) {
+      if (!Array.isArray(mon.moves)) mon.moves = startingMoves(mon.dex, mon.level - 1);
+      if (mon.moves.includes(move)) continue;
+      // record WHICH form is learning it: the real games teach the move before
+      // the evolution animation, so the prompt should still say Charmander.
+      events.push({ type: 'learn', move, full: mon.moves.length >= MOVE_SLOTS, atDex: mon.dex });
+    }
+
     const evo = evolutionFor(mon);
     if (evo) {
       const from = species(mon.dex).name;
+      const fromDex = mon.dex;
+      const wasMaxHp = maxHp(fromDex, mon.level);
       mon.dex = evo;
-      mon.hp = maxHp(mon.dex, mon.level);
-      events.push({ type: 'evolve', from, to: species(evo).name });
+      // Evolving raises max HP but is NOT a free heal — carry the damage over,
+      // exactly as useEvoItem does for stones.
+      mon.hp = Math.max(1, mon.hp + (maxHp(mon.dex, mon.level) - wasMaxHp));
+      events.push({ type: 'evolve', from, to: species(evo).name, fromDex, dex: evo });
     }
   }
   return events;
 }
 
-// PL_CHAINS is [{id, nodes:[{id, from, level, trigger, item, trade}]}].
-// Flatten it once into "what does species X become, and at what level".
-let evoIndex = null;
+/* ---------------- evolution ----------------
+ * PL_CHAINS is [{id, nodes:[{id, from, level, trigger, item, trade}]}].
+ * Three real routes exist in the Gen-1 data and all three work here:
+ *   • level-up at a threshold (52 forms)      — automatic on levelling
+ *   • use a stone (13 forms)                  — profile.items, earned by learning
+ *   • trade (4 forms: Alakazam, Machamp,      — no second player, so the
+ *     Golem, Gengar)                            fan-game "linking cord" item
+ */
+
+export const EVO_ITEMS = {
+  'moon stone':    { label: 'Moon Stone',    emoji: '🌙' },
+  'fire stone':    { label: 'Fire Stone',    emoji: '🔥' },
+  'water stone':   { label: 'Water Stone',   emoji: '💧' },
+  'thunder stone': { label: 'Thunder Stone', emoji: '⚡' },
+  'leaf stone':    { label: 'Leaf Stone',    emoji: '🍃' },
+  'linking cord':  { label: 'Linking Cord',  emoji: '🔗' },
+};
+
+// PL_CHAINS was generated from PokéAPI filtered to Gen 1 — and any chain whose
+// ROOT is a Gen-2 baby (Pichu, Cleffa, Igglybuff) was dropped entirely, taking
+// three perfectly good Gen-1 evolutions with it. Without this supplement a
+// caught Pikachu can never become Raichu.
+const MISSING_LINKS = [
+  { from: 25, to: 26, item: 'thunder stone' },   // Pikachu  → Raichu
+  { from: 35, to: 36, item: 'moon stone' },      // Clefairy → Clefable
+  { from: 39, to: 40, item: 'moon stone' },      // Jigglypuff → Wigglytuff
+];
+
+let evoIndex = null;   // from-dex -> [{to, level?, item?}]
 function buildEvoIndex() {
   evoIndex = new Map();
+  const add = (from, entry) => {
+    const list = evoIndex.get(from) ?? [];
+    list.push(entry);
+    evoIndex.set(from, list);
+  };
   for (const chain of CHAINS()) {
     for (const n of chain.nodes ?? []) {
-      if (n.from == null || n.level == null || n.trigger !== 'level-up' || n.trade) continue;
-      const list = evoIndex.get(n.from) ?? [];
-      list.push({ to: n.id, level: n.level });
-      evoIndex.set(n.from, list);
+      if (n.from == null) continue;
+      if (n.trade) add(n.from, { to: n.id, item: 'linking cord' });
+      else if (n.item) add(n.from, { to: n.id, item: n.item });
+      else if (n.trigger === 'level-up' && n.level != null) add(n.from, { to: n.id, level: n.level });
     }
   }
+  for (const m of MISSING_LINKS) add(m.from, { to: m.to, item: m.item });
 }
 
-function evolutionFor(mon) {
+/** The automatic route only: level-up evolutions. Stones never fire on their own. */
+export function evolutionFor(mon) {
   if (!evoIndex) buildEvoIndex();
-  const opts = evoIndex.get(mon.dex);
-  if (!opts) return null;
-  // branching lines (Eevee) evolve by level here; take the first that qualifies
-  for (const o of opts) if (mon.level >= o.level) return o.to;
+  for (const o of evoIndex.get(mon.dex) ?? []) {
+    if (o.level != null && mon.level >= o.level) return o.to;
+  }
   return null;
+}
+
+/** Everything this Pokémon could evolve into, for the team screen's hint. */
+export function evolutionOptions(mon) {
+  if (!evoIndex) buildEvoIndex();
+  return (evoIndex.get(mon.dex) ?? []).map(o => ({
+    to: o.to, toName: species(o.to).name,
+    level: o.level ?? null, item: o.item ?? null,
+    itemLabel: o.item ? (EVO_ITEMS[o.item]?.label ?? o.item) : null,
+  }));
+}
+
+/** Which party members an item would evolve, without evolving them. */
+export function itemTargets(profile, item) {
+  if (!evoIndex) buildEvoIndex();
+  return profile.party.filter(mon =>
+    (evoIndex.get(mon.dex) ?? []).some(o => o.item === item));
+}
+
+/**
+ * Use a stone or cord on one Pokémon. Consumes the item and returns the same
+ * event shape grantXp emits, so the ceremony code is shared.
+ */
+export function useEvoItem(profile, mon, item) {
+  if (!evoIndex) buildEvoIndex();
+  if ((profile.items?.[item] ?? 0) <= 0) return null;
+  const opt = (evoIndex.get(mon.dex) ?? []).find(o => o.item === item);
+  if (!opt) return null;
+  profile.items[item]--;
+  const from = species(mon.dex).name;
+  const fromDex = mon.dex;
+  mon.dex = opt.to;
+  mon.hp = Math.min(mon.hp, maxHp(mon.dex, mon.level));   // keep damage, new cap
+  return { type: 'evolve', from, to: species(opt.to).name, fromDex, dex: opt.to };
+}
+
+/** Grant an evolution item, creating the bag on old saves. */
+export function grantItem(profile, item, n = 1) {
+  profile.items = profile.items ?? {};
+  profile.items[item] = (profile.items[item] ?? 0) + n;
 }
 
 /* ---------------- party helpers ---------------- */

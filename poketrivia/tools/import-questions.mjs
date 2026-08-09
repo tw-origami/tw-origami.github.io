@@ -219,34 +219,12 @@ function fromContainer(qq, contextHtml, extra = {}) {
   return { q: contextHtml + `<p class="ctxAsk">${clean(prompt)}</p>`, choices, reveal: why, long: true, ...extra };
 }
 
-/** Reading passages — readingrescue stores paragraphs, history a single text. */
-function passageQuestions(win) {
-  const out = [];
-
-  for (const p of win.READING_RESCUE?.passages ?? []) {
-    const paras = (p.paragraphs ?? [])
-      .map(par => (Array.isArray(par) ? par.map(s => s.text ?? '').join(' ') : String(par)))
-      .filter(Boolean);
-    if (!paras.length) continue;
-    const html = `<div class="passageBox"><h5>${esc(p.title ?? 'Read this')}</h5>`
-      + paras.map(t => `<p>${esc(t)}</p>`).join('') + '</div>';
-    for (const qq of p.questions ?? []) {
-      const built = fromContainer(qq, html);
-      if (built) out.push(built);
-    }
-  }
-
-  for (const p of win.HIST?.PASSAGES ?? []) {
-    if (!isStr(p.text)) continue;
-    const html = `<div class="passageBox"><h5>${esc(p.emoji ?? '')} ${esc(p.title ?? 'Read this')}</h5>`
-      + String(p.text).split(/\n\n+/).map(t => `<p>${esc(t.trim())}</p>`).join('') + '</div>';
-    for (const qq of p.questions ?? []) {
-      const built = fromContainer(qq, html);
-      if (built) out.push(built);
-    }
-  }
-  return out;
-}
+// Reading-passage questions are deliberately NOT imported. They were tried with
+// the passage rendered above the question, and the verdict was that a story to
+// read doesn't belong in this game's flow at all ("remove any question that
+// needs a story to know the answer"). The structural skip in harvest() still
+// keeps their context-free versions out, which is what matters — a question
+// like "Why does Hana decide to finish the kite?" must never appear bare.
 
 /** Nutrition labels — render the facts panel the question is asking about. */
 function labelQuestions(win) {
@@ -894,40 +872,64 @@ function measurementQuestions() {
   }));
 }
 
+// [number, kid-level summary, excerpt of the real constitutional text].
+// The real words go in the reveal — the Constitution is public domain, and
+// seeing "Congress shall make no law…" next to the plain-English version is
+// the actual lesson.
 const AMENDMENTS = [
-  [1, 'Freedom of speech, religion, press, assembly and petition'],
-  [2, 'The right to keep and bear arms'],
-  [4, 'Protection from unreasonable searches and seizures'],
-  [5, 'The right to remain silent and to due process of law'],
-  [6, 'The right to a speedy public trial and a lawyer'],
-  [8, 'No cruel and unusual punishment'],
-  [13, 'Slavery is abolished'],
-  [14, 'Equal protection of the laws for all citizens'],
-  [15, 'The right to vote cannot be denied because of race'],
-  [19, 'Women get the right to vote'],
-  [22, 'A president can only be elected twice'],
-  [26, 'The voting age is lowered to 18'],
+  [1, 'Freedom of speech, religion, press, assembly and petition',
+    'Congress shall make no law respecting an establishment of religion, or prohibiting the free exercise thereof; or abridging the freedom of speech, or of the press; or the right of the people peaceably to assemble…'],
+  [2, 'The right to keep and bear arms',
+    'A well regulated Militia, being necessary to the security of a free State, the right of the people to keep and bear Arms, shall not be infringed.'],
+  [4, 'Protection from unreasonable searches and seizures',
+    'The right of the people to be secure in their persons, houses, papers, and effects, against unreasonable searches and seizures, shall not be violated…'],
+  [5, 'The right to remain silent and to due process of law',
+    'No person shall… be compelled in any criminal case to be a witness against himself, nor be deprived of life, liberty, or property, without due process of law…'],
+  [6, 'The right to a speedy public trial and a lawyer',
+    'In all criminal prosecutions, the accused shall enjoy the right to a speedy and public trial… and to have the Assistance of Counsel for his defence.'],
+  [8, 'No cruel and unusual punishment',
+    'Excessive bail shall not be required, nor excessive fines imposed, nor cruel and unusual punishments inflicted.'],
+  [13, 'Slavery is abolished',
+    'Neither slavery nor involuntary servitude… shall exist within the United States, or any place subject to their jurisdiction.'],
+  [14, 'Equal protection of the laws for all citizens',
+    'No State shall… deprive any person of life, liberty, or property, without due process of law; nor deny to any person within its jurisdiction the equal protection of the laws.'],
+  [15, 'The right to vote cannot be denied because of race',
+    'The right of citizens of the United States to vote shall not be denied or abridged… on account of race, color, or previous condition of servitude.'],
+  [19, 'Women get the right to vote',
+    'The right of citizens of the United States to vote shall not be denied or abridged by the United States or by any State on account of sex.'],
+  [22, 'A president can only be elected twice',
+    'No person shall be elected to the office of the President more than twice…'],
+  [26, 'The voting age is lowered to 18',
+    'The right of citizens of the United States, who are eighteen years of age or older, to vote shall not be denied or abridged… on account of age.'],
 ];
+
+const ordinal = (n) => `${n}${n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'}`;
 
 function amendmentQuestions() {
   const texts = AMENDMENTS.map(([, t]) => t);
   const out = [];
-  for (const [n, text] of AMENDMENTS) {
+  // Every reveal quotes the amendment's real words next to the plain-English
+  // version — reading the actual Constitution is the point.
+  const quoteBlock = (n, summary, actual) =>
+    `The ${ordinal(n)} Amendment covers: ${summary}.` +
+    (n <= 10 ? ' It is part of the Bill of Rights — the first ten amendments, added in 1791.' : '') +
+    `<div class="lawText"><b>The real text says:</b> “${actual}”</div>`;
+
+  for (const [n, text, actual] of AMENDMENTS) {
     out.push({
       subject: 'history', band: 'B', diff: 'medium',
-      q: `What does the <b>${n}${n === 1 ? 'st' : n === 2 ? 'nd' : 'th'} Amendment</b> protect?`,
+      q: `What does the <b>${ordinal(n)} Amendment</b> protect?`,
       choices: [{ html: text, ok: true },
         ...seededPick(texts.filter(t => t !== text), 3, String(n)).map(t => ({ html: t }))],
-      reveal: `The ${n}${n === 1 ? 'st' : n === 2 ? 'nd' : 'th'} Amendment covers: ${text}.` +
-        (n <= 10 ? ' It is part of the Bill of Rights — the first ten amendments, added in 1791.' : ''),
+      reveal: quoteBlock(n, text, actual),
     });
     out.push({
       subject: 'history', band: 'B', diff: 'hard',
-      q: `Which amendment says: "${text}"?`,
-      choices: [{ html: `The ${n}${n === 1 ? 'st' : n === 2 ? 'nd' : 'th'} Amendment`, ok: true },
+      q: `Which amendment says: <span class="lawQuote">“${actual}”</span>`,
+      choices: [{ html: `The ${ordinal(n)} Amendment`, ok: true },
         ...seededPick(AMENDMENTS.filter(([m]) => m !== n), 3, text)
-          .map(([m]) => ({ html: `The ${m}${m === 1 ? 'st' : m === 2 ? 'nd' : 'th'} Amendment` }))],
-      reveal: `That is the ${n}${n === 1 ? 'st' : n === 2 ? 'nd' : 'th'} Amendment.`,
+          .map(([m]) => ({ html: `The ${ordinal(m)} Amendment` }))],
+      reveal: quoteBlock(n, text, actual),
     });
   }
   // "which of these is really an amendment" — the invented ones are the lesson
@@ -1118,8 +1120,8 @@ for (const src of SOURCES) {
     try { found.push(...BUILDERS[src.dir](win).filter(q => q && q.q && q.choices?.length >= 2)); }
     catch (e) { console.warn(`  builder failed for ${src.dir}: ${e.message}`); }
   }
-  // questions whose meaning lives in a passage or a label, re-emitted with it
-  try { found.push(...passageQuestions(win), ...labelQuestions(win)); }
+  // questions whose meaning lives on a nutrition label, re-emitted with it
+  try { found.push(...labelQuestions(win)); }
   catch (e) { console.warn(`  context builder failed for ${src.dir}: ${e.message}`); }
 
   for (const raw of found) {
@@ -1139,8 +1141,296 @@ for (const src of SOURCES) {
   perSource.push({ ...src, found: found.length });
 }
 
+/* ---------------- kitchen-table trivia ----------------
+ * Authored from a family trivia list Travis supplied: language, human body,
+ * animals, geography, ocean, science, space, history, books, music. Converted
+ * to MCQ with same-category distractors; the delightful extra facts from the
+ * list live in the reveals. A few facts were updated (world population ~8
+ * billion; India recently passed China in population; Pluto's demotion). */
+function kidTriviaQuestions() {
+  const A = 'A', B = 'B';
+  const T = (band, subject, diff, q, right, wrongs, reveal) => ({
+    subject, band, diff, q,
+    choices: [{ html: right, ok: true }, ...wrongs.map(w => ({ html: w }))],
+    reveal,
+  });
+  return [
+    /* --- language --- */
+    T(A, 'grammar', 'easy', 'What do we call the special letters A, E, I, O and U?',
+      'Vowels', ['Consonants', 'Capitals', 'Syllables'],
+      'A, E, I, O and U are the vowels. Every other letter is a consonant, and almost every word needs at least one vowel.'),
+    T(A, 'grammar', 'easy', 'How many letters are in the English alphabet?',
+      '26', ['24', '30', '21'],
+      'There are 26 letters — 5 vowels and 21 consonants.'),
+    T(A, 'grammar', 'medium', 'A word or sentence that reads the same backward and forward — like "Madam, I\'m Adam" — is called what?',
+      'A palindrome', ['A pangram', 'An anagram', 'A homophone'],
+      'Palindromes read the same both ways: racecar, level, noon. An anagram is different — that\'s reshuffling letters into a new word.'),
+    T(A, 'general', 'easy', 'What is the name of the building where people can borrow books for free?',
+      'The library', ['The bookstore', 'The museum', 'The post office'],
+      'A library lends books for free — you just have to bring them back so someone else can enjoy them too.'),
+    /* --- human body --- */
+    T(A, 'science', 'easy', 'How long should you wash your hands with soap to get rid of germs?',
+      '20 seconds', ['5 seconds', '2 minutes', '1 hour'],
+      'About 20 seconds — roughly the time it takes to sing "Happy Birthday" twice. No watch needed!'),
+    T(A, 'science', 'easy', 'Can you see germs with just your eyes?',
+      'No — you need a microscope', ['Yes, if you look closely', 'Only in the dark', 'Only red ones'],
+      'Germs are far too tiny to see. Scientists use microscopes, which can make things look thousands of times bigger.'),
+    T(B, 'science', 'medium', 'Which organ of your body is the heaviest?',
+      'Your skin', ['Your heart', 'Your brain', 'Your lungs'],
+      'Skin counts as an organ — and it\'s the heaviest one you\'ve got! The heaviest organ INSIDE you is the liver.'),
+    T(B, 'science', 'medium', 'Which of these is something your skin does NOT do?',
+      'Help you hear', ['Protect you from germs', 'Keep you warm or cool', 'Help you feel things'],
+      'Skin protects you, controls your temperature, and gives you the sense of touch — but hearing is the ears\' job.'),
+    T(B, 'science', 'medium', 'How many bones does a grown-up human have?',
+      '206', ['300', '150', '412'],
+      'Adults have 206 bones. Here\'s the twist: babies start with about 300, and some bones join together as they grow!'),
+    T(B, 'science', 'medium', 'Where is the smallest bone in your whole body?',
+      'In your ear', ['In your little toe', 'In your nose', 'In your wrist'],
+      'The stapes, deep in your ear, is smaller than a grain of rice. The smallest muscles are in the ear too!'),
+    T(B, 'science', 'medium', 'What is the hardest substance in the human body?',
+      'Tooth enamel', ['Skull bone', 'Fingernails', 'Kneecaps'],
+      'Tooth enamel is harder than bone — so brush well to keep it that way, because your body can\'t grow it back.'),
+    T(A, 'science', 'easy', 'About how much of your body is made of water?',
+      'More than two-thirds', ['About one tenth', 'Almost none', 'Exactly half'],
+      'You\'re mostly water! That\'s why drinking water matters so much.'),
+    /* --- animals --- */
+    T(A, 'science', 'easy', 'What sound does an angry cat make?',
+      'A hiss', ['A moo', 'A chirp', 'A howl'],
+      'Cats meow, purr and yowl — but an angry or scared cat hisses. Some cats even chatter when they spot a bird.'),
+    T(A, 'science', 'medium', 'What is the only land mammal that cannot jump?',
+      'The elephant', ['The rhinoceros', 'The hippo', 'The giraffe'],
+      'Elephants are simply too big — all four feet never leave the ground at once, even when they run.'),
+    T(A, 'science', 'medium', 'What is the only mammal that can truly fly?',
+      'The bat', ['The flying squirrel', 'The ostrich', 'The sugar glider'],
+      'Flying squirrels and sugar gliders only glide. Bats are the one mammal that really flies with its own wings.'),
+    T(A, 'science', 'medium', 'What is the biggest fish in the world?',
+      'The whale shark', ['The great white shark', 'The blue whale', 'The giant squid'],
+      'Despite its name, the whale shark is a fish, not a whale. (The blue whale is bigger — but it\'s a mammal, not a fish!)'),
+    T(A, 'science', 'medium', 'An owl is nocturnal. When is it most active?',
+      'At night', ['At sunrise', 'In the afternoon', 'All day long'],
+      'Nocturnal animals are active at night. Animals that are up in the day, like most birds, are called diurnal.'),
+    T(B, 'science', 'medium', 'The platypus is a mammal, but it does something almost no other mammal does. What?',
+      'It lays eggs', ['It breathes underwater', 'It has feathers', 'It never sleeps'],
+      'The platypus is one of only two egg-laying mammals on Earth — the other is the echidna. Both live in Australia.'),
+    T(B, 'science', 'medium', 'What do you call a mammal whose babies grow up in their mother\'s pouch?',
+      'A marsupial', ['A reptile', 'A rodent', 'An amphibian'],
+      'Kangaroos, koalas and possums are marsupials — their tiny babies finish growing inside the pouch.'),
+    T(B, 'science', 'hard', 'What are a rhinoceros\'s horns actually made of?',
+      'Keratin — the same stuff as hair', ['Solid bone', 'Ivory', 'Rock-hard skin'],
+      'Rhino horn is keratin, the same material as your hair and fingernails.'),
+    T(B, 'science', 'medium', 'Which fish is born in a river, lives in the ocean, then swims back to the SAME river to lay its eggs?',
+      'The salmon', ['The tuna', 'The goldfish', 'The eel'],
+      'Salmon remember the smell of their home river and fight their way back upstream to it — sometimes leaping up waterfalls.'),
+    T(B, 'science', 'medium', 'What is the largest animal that has EVER lived — bigger than any dinosaur?',
+      'The blue whale', ['Tyrannosaurus rex', 'The woolly mammoth', 'The megalodon'],
+      'Blue whales can pass 100 feet long — longer and heavier than any dinosaur we\'ve ever found.'),
+    T(B, 'science', 'hard', 'Which came first: sharks or dinosaurs?',
+      'Sharks', ['Dinosaurs', 'They appeared together', 'Neither — birds came first'],
+      'Sharks have been around for over 400 million years — long before the first dinosaur.'),
+    T(A, 'science', 'medium', 'Which bird is the only one that can fly backward?',
+      'The hummingbird', ['The eagle', 'The penguin', 'The woodpecker'],
+      'Hummingbirds beat their wings in a figure-eight, which lets them hover and even fly backward.'),
+    T(A, 'science', 'medium', 'What do gorillas mostly eat?',
+      'Plants', ['Meat', 'Fish', 'Insects only'],
+      'For all their size and strength, gorillas are gentle and mostly vegetarian — though they do snack on bugs sometimes.'),
+    T(B, 'science', 'hard', 'Which animal has fingerprints so similar to ours they have confused the police?',
+      'The koala', ['The chimpanzee', 'The raccoon', 'The house cat'],
+      'Koala fingerprints are nearly identical to human ones under a microscope — they\'ve genuinely muddled crime scenes.'),
+    T(B, 'science', 'hard', 'Which mammal can live to be 200 years old?',
+      'The bowhead whale', ['The elephant', 'The blue whale', 'The tortoise'],
+      'Bowhead whales in the Arctic can pass 200 years. (Tortoises live long too — but they\'re reptiles, not mammals!)'),
+    /* --- geography --- */
+    T(A, 'general', 'easy', 'What is the capital of the United States?',
+      'Washington, D.C.', ['New York City', 'Los Angeles', 'Chicago'],
+      'Washington, D.C. is the capital. The biggest city is New York — a capital is not always the biggest city!'),
+    T(A, 'general', 'easy', 'On which continent is the South Pole?',
+      'Antarctica', ['Africa', 'Australia', 'South America'],
+      'The South Pole sits in the middle of Antarctica, the coldest continent on Earth.'),
+    T(A, 'general', 'medium', 'What is the tallest mountain on Earth?',
+      'Mount Everest', ['Mount Kilimanjaro', 'Mount Fuji', 'Denali'],
+      'Everest, on the border of Nepal and Tibet, is about 29,000 feet — roughly as high as jet planes fly. People in Tibet call it Chomolungma.'),
+    T(B, 'general', 'medium', 'Which country has the most people?',
+      'India', ['China', 'The United States', 'Russia'],
+      'India recently passed China — both have over 1.4 billion people. The United States is third, far behind.'),
+    T(B, 'general', 'medium', 'The Andes Mountains run down which continent?',
+      'South America', ['Africa', 'Asia', 'Europe'],
+      'The Andes run all the way down South America\'s west side — the longest mountain range on land in the world.'),
+    T(A, 'general', 'easy', 'Which country is also an entire continent?',
+      'Australia', ['Greenland', 'India', 'Iceland'],
+      'Australia is the only country that covers a whole continent.'),
+    T(A, 'general', 'easy', 'How much of the Earth is covered by ocean?',
+      'About 70%', ['About 20%', 'About half', 'Almost all of it'],
+      'Oceans cover about 70% of Earth — from space, our planet looks mostly blue.'),
+    T(B, 'general', 'medium', 'About how many people live on Earth today?',
+      'About 8 billion', ['About 1 million', 'About 500 million', 'About 100 billion'],
+      'Around 8 billion people — and the number is still growing.'),
+    T(B, 'general', 'hard', 'What is the lowest place on the Earth\'s land?',
+      'The shore of the Dead Sea', ['Death Valley', 'The Grand Canyon', 'The Sahara Desert'],
+      'The Dead Sea shore, between Jordan and Israel, is more than 1,300 feet below sea level — and the water is so salty you float.'),
+    T(A, 'general', 'medium', 'What is the largest U.S. state?',
+      'Alaska', ['Texas', 'California', 'Montana'],
+      'Alaska is more than twice the size of Texas — but far fewer people live there.'),
+    T(A, 'general', 'medium', 'What is the smallest U.S. state?',
+      'Rhode Island', ['Delaware', 'Hawaii', 'Connecticut'],
+      'Little Rhody! You could fit Rhode Island into Alaska about 425 times.'),
+    T(B, 'general', 'medium', 'Which state was the 50th — the last — to join the United States?',
+      'Hawaii', ['Alaska', 'Arizona', 'Puerto Rico'],
+      'Hawaii joined in August 1959, a few months after Alaska became the 49th.'),
+    /* --- ocean --- */
+    T(A, 'science', 'easy', 'What is a group of fish called?',
+      'A school', ['A herd', 'A flock', 'A pack'],
+      'Fish swim in schools. Dolphins travel in pods, birds in flocks, wolves in packs.'),
+    T(A, 'science', 'easy', 'What is a group of dolphins called?',
+      'A pod', ['A school', 'A pride', 'A swarm'],
+      'Dolphins live in pods and work together to hunt and protect each other.'),
+    T(A, 'science', 'medium', 'Why can\'t you drink ocean water?',
+      'It is too salty', ['It is too cold', 'It has too many fish', 'It is actually fine to drink'],
+      'Drinking saltwater makes your body LOSE water — it would make you sicker and thirstier.'),
+    T(B, 'science', 'medium', 'What is the largest turtle in the world?',
+      'The leatherback sea turtle', ['The snapping turtle', 'The box turtle', 'The Galápagos tortoise'],
+      'Leatherbacks can weigh up to 2,000 pounds and swim across entire oceans.'),
+    T(B, 'general', 'medium', 'The Great Barrier Reef — the world\'s biggest coral reef — is off the coast of which country?',
+      'Australia', ['Brazil', 'Japan', 'Mexico'],
+      'It stretches over 1,400 miles along Australia\'s coast and is visible from space.'),
+    T(B, 'science', 'hard', 'What is the deepest known spot in the ocean?',
+      'The Challenger Deep', ['The Bermuda Triangle', 'The Great Blue Hole', 'The Titanic wreck'],
+      'The Challenger Deep, in the Mariana Trench, is nearly 7 miles down — Everest would sink without a trace.'),
+    /* --- science & nature --- */
+    T(A, 'science', 'easy', 'What made-up name helps you remember the colors of the rainbow?',
+      'Roy G. Biv', ['Bob R. Ainbow', 'Mr. Colors', 'Ray N. Bow'],
+      'Roy G. Biv: Red, Orange, Yellow, Green, Blue, Indigo, Violet — in order.'),
+    T(A, 'science', 'easy', 'Trees need light, soil and what else to grow?',
+      'Water', ['Sugar', 'Milk', 'Wind'],
+      'Light, soil and water — with those three, a tree makes its own food.'),
+    T(A, 'science', 'easy', 'What do we use to measure temperature?',
+      'A thermometer', ['A scale', 'A ruler', 'A stopwatch'],
+      'A thermometer measures temperature; a scale measures weight; a ruler measures length.'),
+    T(B, 'science', 'medium', 'What gas do plants take IN from the air?',
+      'Carbon dioxide', ['Oxygen', 'Helium', 'Steam'],
+      'Plants breathe in carbon dioxide and release oxygen — the opposite of us. That\'s why forests are called the lungs of the Earth.'),
+    T(B, 'science', 'medium', 'The natural home where a plant or animal lives is called its what?',
+      'Habitat', ['Ecosystem', 'Territory', 'Nest'],
+      'A habitat is a living thing\'s natural home — a frog\'s habitat is a pond, a camel\'s is the desert.'),
+    T(B, 'science', 'hard', 'Earth\'s surface is made of giant moving slabs of rock called what?',
+      'Tectonic plates', ['Crust sheets', 'Lava shelves', 'Ground rafts'],
+      'Tectonic plates drift about as fast as your fingernails grow. Where they meet, you get earthquakes, volcanoes and mountains.'),
+    T(B, 'science', 'medium', 'Which scientist is famous for the equation E=mc²?',
+      'Albert Einstein', ['Isaac Newton', 'Marie Curie', 'Thomas Edison'],
+      'Einstein\'s equation says energy and mass are two forms of the same thing — a tiny bit of matter holds a huge amount of energy.'),
+    T(B, 'science', 'medium', 'Electricity needs a complete loop to flow through. What is that loop called?',
+      'A circuit', ['A channel', 'A pipeline', 'A current'],
+      'A circuit is the complete path. Break the loop — like flipping a switch — and the flow stops.'),
+    T(A, 'science', 'medium', 'Which is faster: light or sound?',
+      'Light', ['Sound', 'They are the same', 'It depends on the weather'],
+      'Light is about a million times faster — that\'s why you see lightning before you hear the thunder.'),
+    /* --- space --- */
+    T(A, 'science', 'easy', 'Which is bigger: the Sun or the Moon?',
+      'The Sun — much bigger', ['The Moon', 'They are the same size', 'It changes'],
+      'The Sun is about 400 times wider than the Moon. They look the same size only because the Sun is 400 times farther away.'),
+    T(A, 'science', 'easy', 'What color is the planet Mars?',
+      'Red', ['Blue', 'Green', 'Yellow'],
+      'Mars is covered in rusty red dust — literally rust! It\'s iron in the soil that has oxidised.'),
+    T(A, 'science', 'medium', 'What is the biggest planet in our solar system?',
+      'Jupiter', ['Saturn', 'Earth', 'Neptune'],
+      'Jupiter is enormous — about 1,300 Earths could fit inside it.'),
+    T(A, 'science', 'medium', 'Which planet is closest to the Sun?',
+      'Mercury', ['Venus', 'Mars', 'Earth'],
+      'Mercury is first from the Sun. Venus is second — and actually hotter, because of its thick atmosphere!'),
+    T(B, 'science', 'medium', 'Does the Moon make its own light?',
+      'No — it reflects sunlight', ['Yes, it glows on its own', 'Only during a full moon', 'Only in winter'],
+      'Moonlight is sunlight bouncing off the Moon\'s surface, like a giant mirror in the sky.'),
+    T(B, 'science', 'medium', 'Which planet is farthest from the Sun?',
+      'Neptune', ['Pluto', 'Uranus', 'Saturn'],
+      'Neptune — and if you said Pluto, you\'d have been right until 2006, when scientists reclassified Pluto as a dwarf planet.'),
+    T(B, 'history', 'hard', 'What was the first human-made object to orbit the Earth?',
+      'Sputnik', ['Apollo 11', 'The Hubble Telescope', 'The International Space Station'],
+      'The Soviet Union launched the beach-ball-sized Sputnik in 1957. Its radio beeps started the Space Race.'),
+    T(B, 'science', 'medium', 'Since the year 2000, people have ALWAYS been living somewhere off the Earth. Where?',
+      'The International Space Station', ['The Moon', 'Mars', 'A submarine'],
+      'Astronauts have lived on the ISS continuously since November 2000 — it circles the Earth every 90 minutes.'),
+    T(A, 'history', 'medium', 'Who was the first person to walk on the Moon?',
+      'Neil Armstrong', ['Buzz Aldrin', 'Yuri Gagarin', 'John Glenn'],
+      'Neil Armstrong stepped out first on July 20, 1969; Buzz Aldrin joined him minutes later. Gagarin was the first person in space — from the Soviet Union.'),
+    T(B, 'science', 'medium', 'What is the Milky Way?',
+      'Our home galaxy', ['A single giant star', 'A comet', 'A nebula near Mars'],
+      'The Milky Way is the galaxy we live in — billions of stars. Far from city lights you can see its edge as a cloudy band across the night sky.'),
+    /* --- history --- */
+    T(A, 'history', 'easy', 'Who was the first president of the United States?',
+      'George Washington', ['Abraham Lincoln', 'Thomas Jefferson', 'Benjamin Franklin'],
+      'Washington was elected in 1789. Franklin, despite the $100 bill, was never president!'),
+    T(A, 'history', 'medium', 'In 1903, the Wright Brothers were the first people to do what?',
+      'Fly an airplane', ['Drive a car', 'Climb Mount Everest', 'Reach the North Pole'],
+      'Their first flight at Kitty Hawk lasted 12 seconds — shorter than the wingspan of a modern jumbo jet.'),
+    T(A, 'history', 'medium', 'How many stripes are on the American flag?',
+      '13', ['50', 'original', '26'].map(x => x === 'original' ? '76' : x),
+      'The 13 stripes stand for the original 13 colonies; the 50 stars are the 50 states.'),
+    T(A, 'history', 'easy', 'What did the Titanic hit that made it sink?',
+      'An iceberg', ['A whale', 'Another ship', 'A reef'],
+      'The Titanic struck an iceberg in 1912 on its very first voyage across the Atlantic.'),
+    T(A, 'history', 'medium', 'Who built the Great Pyramids?',
+      'The Egyptians', ['The Romans', 'The Greeks', 'The Aztecs'],
+      'Egyptian workers built them about 4,500 years ago as tombs for pharaohs. The Great Pyramid was the tallest building on Earth for nearly 4,000 years.'),
+    T(B, 'history', 'medium', 'Alexander Graham Bell invented what?',
+      'The telephone', ['The light bulb', 'The radio', 'The camera'],
+      'Bell patented the telephone in 1876. The first words down the line were to his assistant: he asked Mr. Watson to come over.'),
+    T(B, 'general', 'hard', 'Which country\'s flag shows an eagle holding a snake?',
+      'Mexico', ['Spain', 'Egypt', 'Brazil'],
+      'An Aztec legend said to build where an eagle sits on a cactus eating a snake — that spot became Mexico City.'),
+    T(B, 'history', 'medium', 'Who refused to give up her bus seat in 1955, helping spark the Civil Rights Movement?',
+      'Rosa Parks', ['Harriet Tubman', 'Ruby Bridges', 'Sojourner Truth'],
+      'Rosa Parks\' arrest in Montgomery, Alabama led to a year-long bus boycott — a turning point for civil rights in America.'),
+    T(B, 'history', 'medium', 'Where were the first modern Olympic Games held?',
+      'Greece', ['France', 'The United States', 'Italy'],
+      'Athens, 1896 — honouring the ancient games held in Greece over 2,500 years earlier.'),
+    T(B, 'history', 'hard', 'Alfred Nobel founded the Nobel Prizes. What had he invented?',
+      'Dynamite', ['The machine gun', 'Gunpowder', 'The steam engine'],
+      'Nobel invented dynamite, and left his fortune to prizes for peace and science — some say after reading his own mistaken obituary calling him a merchant of death.'),
+    T(B, 'history', 'hard', 'Abraham Lincoln is in the Hall of Fame of which sport?',
+      'Wrestling', ['Boxing', 'Baseball', 'Horse racing'],
+      'Lincoln was a champion wrestler as a young man — roughly 300 matches with only one recorded loss.'),
+    T(B, 'history', 'medium', 'Who was the first Black player in Major League Baseball?',
+      'Jackie Robinson', ['Willie Mays', 'Hank Aaron', 'Babe Ruth'],
+      'Jackie Robinson broke the colour barrier with the Brooklyn Dodgers in 1947. His number 42 is retired by every team.'),
+    T(B, 'history', 'medium', 'Johannes Gutenberg made it possible for ordinary people to own books by inventing what?',
+      'The printing press', ['Paper', 'The pencil', 'The library'],
+      'Before Gutenberg\'s press (around 1440), every book was copied by hand. After it, ideas could spread faster than ever before.'),
+    T(B, 'history', 'medium', 'Which came first: the Declaration of Independence or the U.S. Constitution?',
+      'The Declaration of Independence', ['The Constitution', 'They were signed together', 'Neither is older'],
+      'The Declaration (1776) announced America\'s independence; the Constitution (1787) set up its government eleven years later.'),
+    /* --- books & music --- */
+    T(A, 'general', 'easy', 'Who is Curious George\'s human friend?',
+      'The Man in the Yellow Hat', ['The Zookeeper', 'Professor Brown', 'The Bus Driver'],
+      'The Man in the Yellow Hat brought George from the jungle and bails him out of trouble in every book.'),
+    T(A, 'general', 'medium', 'Which fictional wizard is called "The Boy Who Lived"?',
+      'Harry Potter', ['Gandalf', 'Merlin', 'Ron Weasley'],
+      'Harry Potter earned the name as a baby, and the lightning scar to go with it.'),
+    T(B, 'general', 'medium', 'Who wrote "Charlie and the Chocolate Factory"?',
+      'Roald Dahl', ['Dr. Seuss', 'J.K. Rowling', 'Beverly Cleary'],
+      'Roald Dahl also wrote Matilda, The BFG and James and the Giant Peach.'),
+    T(B, 'general', 'hard', 'Which author created Ramona Quimby and lived to be 104?',
+      'Beverly Cleary', ['Judy Blume', 'Roald Dahl', 'E.B. White'],
+      'Beverly Cleary wrote about Ramona, Beezus and Henry Huggins — kids on an ordinary street, which was revolutionary at the time.'),
+    T(B, 'general', 'hard', 'Leroy Brown is a boy detective. What is his nickname?',
+      'Encyclopedia Brown', ['Sherlock Junior', 'Dictionary Dan', 'Professor Brown'],
+      'They call him Encyclopedia because his head is packed with facts — he solves a mystery in every chapter.'),
+    T(B, 'general', 'medium', 'Paddington Bear originally came from which country?',
+      'Peru', ['England', 'Spain', 'Canada'],
+      'Paddington travelled from "darkest Peru" to London, where he was found at Paddington Station with a note: "Please look after this bear."'),
+    T(A, 'general', 'easy', 'The person who stands at the front and directs an orchestra is called what?',
+      'A conductor', ['A director', 'A captain', 'A drummer'],
+      'The conductor keeps every musician together, setting the speed and the feeling with a baton.'),
+    T(A, 'general', 'easy', 'Which instrument has black keys, white keys and pedals?',
+      'The piano', ['The guitar', 'The trumpet', 'The violin'],
+      'A piano has 88 keys — 52 white and 36 black, so there are more white ones.'),
+    T(A, 'general', 'medium', 'The alphabet song has the same tune as which famous lullaby?',
+      '"Twinkle, Twinkle, Little Star"', ['"Rock-a-bye Baby"', '"Happy Birthday"', '"Old MacDonald"'],
+      'Sing them side by side — the ABC song and Twinkle Twinkle are note-for-note the same melody, which came from an old French folk tune.'),
+  ];
+}
+
 const AUTHORED = [
   ['mathmcq', mathQuestions()],
+  ['kidtrivia', kidTriviaQuestions()],
   ['shape', shapeQuestions()],
   ['capital', capitalQuestions()],
   ['measure', measurementQuestions()],

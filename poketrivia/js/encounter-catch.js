@@ -15,6 +15,7 @@ import { ask, pickQuestion, nextSubject } from './quiz.js';
 import * as save from './save.js';
 import { rand, pick, clamp } from './rng.js';
 import * as audio from './audio.js';
+import { showEvolution, playXpEvents } from './evolution.js';
 
 const $ = (id) => document.getElementById(id);
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
@@ -377,8 +378,14 @@ export async function runCatch(roamer, profile, zone) {
           mon.status = wild.status ?? null;
           party.addCatch(profile, mon);
           say(`Gotcha! ${sp.name.toUpperCase()} was caught!  +${xp} XP`);
-          for (const m of profile.party) party.grantXp(m, Math.round(xp / profile.party.length));
           await wait(1900);
+          // XP from the catch can level someone up, teach a move, or evolve
+          // them — none of which may happen silently (they used to: the events
+          // were thrown away entirely).
+          for (const m of profile.party) {
+            const events = party.grantXp(m, Math.max(1, Math.round(xp / profile.party.length)));
+            await playXpEvents(events, m, say);
+          }
           result = 'caught';
           break;
         }

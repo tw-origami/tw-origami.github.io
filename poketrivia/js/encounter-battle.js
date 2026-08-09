@@ -13,6 +13,7 @@ import { ask, pickQuestion, pickMissedQuestion, nextSubject } from './quiz.js';
 import * as save from './save.js';
 import { rand, pick, clamp } from './rng.js';
 import * as audio from './audio.js';
+import { showEvolution, playXpEvents } from './evolution.js';
 
 const $ = (id) => document.getElementById(id);
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
@@ -20,6 +21,13 @@ const wait = (ms) => new Promise(r => setTimeout(r, ms));
 // How well the opponent "answers" its own questions. This is the single
 // difficulty dial for the whole game.
 const ENEMY_QUALITY = 0.62;
+
+// The stone each zone champ hands over with their badge, themed to the zone.
+// The Champion's Linking Cord is what opens Alakazam, Machamp, Golem and Gengar.
+const BADGE_STONES = {
+  math: 'thunder stone', science: 'fire stone', history: 'moon stone',
+  grammar: 'leaf stone', shores: 'water stone', champion: 'linking cord',
+};
 
 const TYPE_COLORS = {
   normal: '#a8a878', fire: '#f08030', water: '#6890f0', electric: '#f8d030',
@@ -345,22 +353,21 @@ export async function runBattle(trainer, profile, zone) {
 
     /* ---------------- handle knockouts ---------------- */
     if (foe.fainted) {
-      const xp = Math.round(25 * foe.level);
-      for (const b of myTeam.filter(x => !x.fainted)) {
+      // Real formula: base experience of the defeated species x its level / 7,
+      // so a Magikarp is worth a fraction of a Dragonite.
+      const xp = party.xpForDefeating(foe.dex, foe.level);
+      const standing = myTeam.filter(x => !x.fainted);
+      for (const b of standing) {
         b.ref.hp = b.hp;
-        for (const ev of party.grantXp(b.ref, Math.round(xp / Math.max(1, myTeam.filter(x => !x.fainted).length)))) {
-          if (ev.type === 'level') {
-            audio.levelUp();
-            say(`<b>${b.name.toUpperCase()}</b> grew to level ${ev.level}!`);
-            b.level = ev.level;
-            b.maxHp = party.maxHp(b.ref.dex, ev.level);
-            await wait(1200);
-          } else {
-            audio.fanfare();
-            say(`What? <b>${ev.from.toUpperCase()}</b> is changing… it evolved into <b>${ev.to.toUpperCase()}</b>!`);
-            await wait(1900);
-          }
-        }
+        const events = party.grantXp(b.ref, Math.max(1, Math.round(xp / Math.max(1, standing.length))));
+        await playXpEvents(events, b.ref, say);
+        // the battler mirrors whatever the saved record became
+        b.level = b.ref.level;
+        b.dex = b.ref.dex;
+        b.name = party.species(b.ref.dex).name;
+        b.types = party.species(b.ref.dex).types;
+        b.maxHp = party.maxHp(b.ref.dex, b.ref.level);
+        if (b === mine) b.moves = party.knownMoves(b.ref).map(m => ({ name: m.name, pp: m.pp, maxPp: m.pp }));
       }
       syncTeam(myTeam);
       showSide(mine, 'mine');
@@ -403,6 +410,15 @@ export async function runBattle(trainer, profile, zone) {
       audio.badge();
       say(`🏅 You earned the <b>${trainer.badgeName ?? trainer.badge}</b> badge!`);
       await wait(2400);
+      // each badge comes with its zone's evolution stone; the Champion hands
+      // over the Linking Cord that opens the four trade evolutions
+      const stone = BADGE_STONES[trainer.badge];
+      if (stone) {
+        party.grantItem(profile, stone);
+        const it = party.EVO_ITEMS[stone];
+        say(`${trainer.name} hands you a <b>${it.label}</b> ${it.emoji} — some Pokémon evolve with these! Check your team screen.`);
+        await wait(2600);
+      }
     }
   } else if (result === 'lose') {
     say('Your whole team is worn out. Everyone heads back to the Study Tent.');

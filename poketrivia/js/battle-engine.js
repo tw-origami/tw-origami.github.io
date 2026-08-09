@@ -71,7 +71,7 @@ export function defaultAbility(dexId) {
  */
 export function makeBattler(mon, opts = {}) {
   const sp = species(mon.dex);
-  const moves = (opts.moves ?? autoMoves(mon.dex, mon.level)).map(name => {
+  const moves = (opts.moves ?? autoMoves(mon)).map(name => {
     const m = MOVES()[name] ?? (name === STRUGGLE.name ? STRUGGLE : null);
     return m ? { name, pp: m.pp, maxPp: m.pp } : null;
   }).filter(Boolean);
@@ -96,9 +96,14 @@ export function makeBattler(mon, opts = {}) {
   };
 }
 
-/** One source of truth for "what does this Pokémon know at this level". */
-function autoMoves(dexId, level) {
-  const list = movesFor(dexId, level).map(m => m.name);
+/**
+ * What this Pokémon knows. A caught Pokémon carries its OWN move list, which it
+ * has grown and edited over time — that's the record, not a recomputation. Only
+ * a wild or trainer Pokémon (no stored list) falls back to a level-appropriate set.
+ */
+function autoMoves(mon) {
+  if (Array.isArray(mon.moves) && mon.moves.length) return mon.moves.slice(0, 4);
+  const list = movesFor(mon.dex, mon.level).map(m => m.name);
   return list.length ? list : ['tackle'];
 }
 

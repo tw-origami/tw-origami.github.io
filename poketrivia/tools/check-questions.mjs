@@ -172,15 +172,75 @@ check('priming survives a save and reload', () => {
 });
 
 /* ==================================================================== */
+section('signs change when you come back to them');
+
+check('every zone has a pool of rotating facts', () => {
+  const byZone = {};
+  for (const f of window.SIGN_FACTS) byZone[f.zone] = (byZone[f.zone] ?? 0) + 1;
+  for (const z of ['hub', 'math', 'science', 'history', 'grammar', 'shores']) {
+    assert.ok((byZone[z] ?? 0) >= 3, `zone ${z} needs facts to rotate through, has ${byZone[z] ?? 0}`);
+  }
+});
+
+check('a second visit to the same post teaches something new', () => {
+  // mirrors nextSignFact() in main.js
+  const nextFact = (prof, postId, zone) => {
+    const tut = window.SIGNS.find(s => s.id === postId);
+    if (tut && !prof.journal.includes(tut.id)) return tut;
+    const pool = window.SIGN_FACTS.filter(f => f.zone === zone);
+    const unread = pool.filter(f => !prof.journal.includes(f.id));
+    return unread.length ? unread[0] : pool[prof.journal.length % pool.length];
+  };
+  const p = newProfile();
+  const seen = [];
+  for (let visit = 0; visit < 5; visit++) {
+    const f = nextFact(p, 'math-1', 'math');
+    seen.push(f.id);
+    if (!p.journal.includes(f.id)) p.journal.push(f.id);
+  }
+  assert.equal(new Set(seen).size, seen.length, `repeated a fact too early: ${seen.join(', ')}`);
+  assert.equal(seen[0], 'math-1', 'the first visit still teaches how the game works');
+});
+
+check('every rotating fact is a real, answerable question', () => {
+  for (const f of window.SIGN_FACTS) {
+    assert.ok(f.fact && f.fact.length > 20, `${f.id} needs a fact worth reading`);
+    assert.equal(f.choices.filter(c => c.ok).length, 1, `${f.id} needs exactly one right answer`);
+    assert.ok(f.choices.length >= 3, `${f.id} needs real distractors`);
+    assert.ok(f.reveal && f.reveal.length > 20, `${f.id} must explain itself`);
+  }
+});
+
+check('sign questions are never dealt cold from the bag', () => {
+  const p = newProfile();
+  for (let i = 0; i < 120; i++) {
+    const q = quiz.pickQuestion({ subject: 'general', difficulty: 'medium', profile: p, zoneId: null });
+    assert.ok(!q.sign, `${q.id} came up without reading its sign`);
+  }
+});
+
+/* ==================================================================== */
 section('questions that carry a passage or label');
 
-check('they are answerable — the context is inside the prompt', () => {
+check('nutrition-label questions show the label they ask about', () => {
   const long = window.QBANK.questions.filter(q => q.long);
-  assert.ok(long.length > 100, `expected the recovered questions, got ${long.length}`);
+  assert.ok(long.length >= 20, `expected the label questions, got ${long.length}`);
   for (const q of long) {
-    assert.ok(/class="(passageBox|factsLabel)"/.test(q.q),
-      `${q.id} is tagged long but carries no context block`);
-    assert.ok(/class="ctxAsk"/.test(q.q), `${q.id} has context but no question`);
+    assert.ok(/class="factsLabel"/.test(q.q), `${q.id} is tagged long but carries no label`);
+    assert.ok(/class="ctxAsk"/.test(q.q), `${q.id} has a label but no question`);
+  }
+});
+
+check('no question needs a story you have to read first', () => {
+  // Reading passages were removed outright: a story to read does not fit this
+  // game's pace, and the question is nonsense without it.
+  const withPassage = window.QBANK.questions.filter(q => /class="passageBox"/.test(q.q));
+  assert.equal(withPassage.length, 0, `${withPassage.length} passage questions are still in the bank`);
+  for (const q of window.QBANK.questions) {
+    const plain = q.q.replace(/<[^>]+>/g, ' ');
+    const unquoted = plain.replace(/["“'‘][^"”'’]*["”'’]/g, ' ');
+    assert.ok(!/\bthis (passage|story)\b/i.test(unquoted),
+      `${q.id} still asks about a story: ${plain.slice(0, 80)}`);
   }
 });
 
@@ -237,7 +297,8 @@ section('the question bag');
 
 check('a pool is exhausted before anything repeats', () => {
   const p = newProfile();
-  const pool = window.QBANK.questions.filter(q => q.subject === 'history' && q.band === 'B');
+  // Sign questions are excluded — they're earned by reading the sign, not dealt.
+  const pool = window.QBANK.questions.filter(q => q.subject === 'history' && q.band === 'B' && !q.sign);
   assert.ok(pool.length > 20, 'need a real pool to test against');
   const seen = pickN(p, pool.length, 'history').map(q => q.id);
   assert.equal(new Set(seen).size, seen.length,
