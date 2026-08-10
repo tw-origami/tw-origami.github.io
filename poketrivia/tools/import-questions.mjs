@@ -111,6 +111,12 @@ function asQuestion(o) {
   // testtactics splits scenario + question; a scenario alone isn't a prompt
   if (o.scenario && o.question) prompt = clean(o.scenario) + ' ' + clean(o.question);
   if (!prompt || prompt.length < 12) return null;
+  // Some banks store bare SCENARIOS ("You're thirsty after playing outside.")
+  // and let their app supply the framing. Standing alone that's a statement,
+  // not a question — so ask one.
+  if (!prompt.includes('?') && !/_{2,}/.test(prompt) && /[.!]$/.test(prompt.trim())) {
+    prompt = prompt.trim() + ' Which is the best choice?';
+  }
 
   let choices = null;
 
@@ -236,6 +242,7 @@ function labelQuestions(win) {
       ['Servings per container', L.servingsPerContainer],
       ['Calories', L.calories],
       ['Sugars', L.sugarG != null ? L.sugarG + 'g' : null],
+      ['Sodium', L.sodiumMg != null ? L.sodiumMg + 'mg' : null],
       ['Fibre', L.fiberG != null ? L.fiberG + 'g' : null],
     ].filter(([, v]) => v != null && v !== '');
     const html = `<div class="factsLabel"><h5>${esc(L.emoji ?? '')} ${esc(L.name)}</h5>`
@@ -312,7 +319,17 @@ function attachPersonBios(q) {
 }
 
 /** Deterministic shuffle so a re-import produces identical output. */
-function seededPick(pool, n, seedStr) {
+function seededPick(rawPool, n, seedStr) {
+  // Dedupe the pool by normalised text first — some source label pools repeat
+  // an entry, which used to produce two identical distractors on one question.
+  const seenTxt = new Set(), pool = [];
+  for (const item of rawPool) {
+    const k = normalise(String(item?.label ?? item));
+    if (seenTxt.has(k)) continue;
+    seenTxt.add(k);
+    pool.push(item);
+  }
+  if (!pool.length) return [];
   let h = 0;
   for (let i = 0; i < seedStr.length; i++) h = (Math.imul(h, 31) + seedStr.charCodeAt(i)) >>> 0;
   const out = [], used = new Set();
@@ -344,14 +361,22 @@ function classify(items, { text, label, why }, labels, ask, glossary = null, lab
     ? `${clean(k)} — ${clean(glossary[k])}` : clean(k);
 
   for (const it of items) {
-    const t = it[text], l = it[label];
-    if (!isStr(t) || !isStr(l)) continue;
-    const others = labels.filter(x => x !== l);
+    const t = it[text], raw = it[label];
+    if (!isStr(t) || !isStr(raw)) continue;
+    // Source items sometimes store a raw KEY ('runon') while the label pool has
+    // the display form ('run-on'). Canonicalise, or the raw key is shown as the
+    // answer AND its display twin turns up as a distractor on the same card.
+    const l = labels.find(x => normalise(x) === normalise(raw)) ?? raw;
+    const others = labels.filter(x => normalise(x) !== normalise(l));
     if (others.length < 2) continue;
     const wrong = seededPick(others, 3, t + l);
     const shown = [l, ...wrong];
 
+    // The reveal NAMES the right answer first. Without this, a card whose
+    // glossary defines the wrong options but whose `why` never says "Post Hoc"
+    // reads like an explanation of everything except the answer.
     let reveal = isStr(it[why]) ? clean(it[why]) : `The answer is ${clean(l)}.`;
+    if (!normalise(reveal).includes(normalise(l))) reveal = `<b>${clean(l)}.</b> ${reveal}`;
     if (glossary && !labelChoices) {
       const defs = shown.map(k => glossary[k] ? `<b>${clean(k)}</b> — ${clean(glossary[k])}` : null)
         .filter(Boolean);
@@ -386,7 +411,10 @@ function defineTerms(items, { term, def, simple }, subjectPhrase) {
   for (const it of items) {
     const t = it[term], d = it[def];
     if (!isStr(t) || !isStr(d) || d.length > 130) continue;
-    const others = defs.filter(x => x !== d && x.length <= 130);
+    // Exclude by TEXT, not identity — two terms can share a definition
+    // ("-ful" and "-ous" both mean "full of"), and drawing the twin as a
+    // distractor would put the right answer on the card twice.
+    const others = defs.filter(x => normalise(x) !== normalise(d) && x.length <= 130);
     if (others.length < 3) continue;
     // "What does X mean?" rather than "what is a X?" — the terms are a mix of
     // singular, plural and phrases, and no single article fits them all.
@@ -408,8 +436,7 @@ const BUILDERS = {
     const out = [];
     out.push(...classify(G.POS_ITEMS ?? [], { text: 's', label: 'pos', why: 'why' },
       (G.POS_ITEMS ?? []).map(i => i.pos).filter((v, i, a) => a.indexOf(v) === i),
-      (s) => `What part of speech is the starred word? "${s.replace(/\*/g, '')}" ` +
-             `(the word is <b>${(s.match(/\*(.+?)\*/) ?? [, '?'])[1]}</b>)`,
+      (s) => `What part of speech is the word <b>${(s.match(/\*(.+?)\*/) ?? [, '?'])[1]}</b> here? "${s.replace(/\*/g, '')}"`,
       ''));
     out.push(...classify(G.FIX_ITEMS ?? [], { text: 'wrong', label: 'type', why: 'why' },
       (G.FIX_ITEMS ?? []).map(i => i.type).filter((v, i, a) => a.indexOf(v) === i),
@@ -420,7 +447,7 @@ const BUILDERS = {
     for (const it of G.PICK_ITEMS ?? []) {
       if (!isStr(it.s) || !Array.isArray(it.opts) || !isStr(it.a)) continue;
       out.push({
-        q: `Which word finishes this sentence correctly? "${clean(it.s)}"`,
+        q: `Which word belongs in the blank? "${clean(it.s)}"`,
         choices: it.opts.map(o => (clean(o) === clean(it.a) ? { html: clean(o), ok: true } : { html: clean(o) })),
         reveal: isStr(it.why) ? clean(it.why) : `"${clean(it.a)}" is the right form here.`,
       });
@@ -454,13 +481,29 @@ const BUILDERS = {
       }
     }
     const countries = [...new Set((G.ITEMS ?? []).map(i => i.c).filter(isStr))];
+    // The verb has to fit the category. "In which country would you find the
+    // Eiffel Tower?" is fine; "In which country would you find gravity?" is
+    // nonsense — gravity is everywhere. Inventions and ideas ask where they
+    // CAME FROM, places ask where they ARE.
+    const GEO_ASK = {
+      landmark:  (n) => `In which country would you find ${n}?`,
+      nature:    (n) => `In which country would you find ${n}?`,
+      invention: (n) => `Which country invented ${n}?`,
+      discovery: (n) => `Which country's scientists gave us ${n}?`,
+      food:      (n) => `Which country is the original home of ${n}?`,
+      art:       (n) => `Which country did ${n} come from?`,
+      history:   (n) => `Which country was home to ${n}?`,
+      culture:   (n) => `Which country gave the world ${n}?`,
+      animal:    (n) => `Which country are ${n} from?`,
+    };
     for (const it of G.ITEMS ?? []) {
       if (!isStr(it.name) || !isStr(it.c) || countries.length < 5) continue;
+      const ask = GEO_ASK[it.cat] ?? GEO_ASK.landmark;
       out.push({
-        q: `In which country would you find ${clean(it.name)}?`,
+        q: ask(clean(it.name)),
         choices: [{ html: clean(it.c), ok: true },
           ...seededPick(countries.filter(x => x !== it.c), 3, it.name).map(x => ({ html: clean(x) }))],
-        reveal: isStr(it.fact) ? clean(it.fact) : `${clean(it.name)} is in ${clean(it.c)}.`,
+        reveal: isStr(it.fact) ? clean(it.fact) : `${clean(it.name)}: ${clean(it.c)}.`,
       });
     }
     return out;
@@ -760,7 +803,7 @@ function shapeQuestions() {
   for (const [name, n] of SIDES) {
     out.push({
       subject: 'math', band: 'A', diff: 'easy',
-      q: `How many sides does a ${name.toLowerCase()} have?`,
+      q: `How many sides does ${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name.toLowerCase()} have?`,
       choices: [{ html: String(n), ok: true },
         ...[n + 1, n - 1, n + 2].filter((v, i, a) => v !== n && v > 2 && a.indexOf(v) === i)
           .slice(0, 3).map(v => ({ html: String(v) }))],
@@ -816,7 +859,7 @@ function capitalQuestions() {
   const states = STATE_CAPITALS.map(([s]) => s);
   const out = [];
   for (const [state, cap] of STATE_CAPITALS) {
-    const trap = BIGGEST_CITY[state];
+    const trap = BIGGEST_CITY[state] !== cap ? BIGGEST_CITY[state] : null;
     const wrong = trap
       ? [trap, ...seededPick(caps.filter(c => c !== cap && c !== trap), 2, state)]
       : seededPick(caps.filter(c => c !== cap), 3, state);
@@ -903,7 +946,11 @@ const AMENDMENTS = [
     'The right of citizens of the United States, who are eighteen years of age or older, to vote shall not be denied or abridged… on account of age.'],
 ];
 
-const ordinal = (n) => `${n}${n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'}`;
+const ordinal = (n) => {
+  // 22nd, not 22th — but 11th/12th/13th, hence the teens check
+  if (n % 100 >= 11 && n % 100 <= 13) return n + 'th';
+  return n + ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] ?? 'th');
+};
 
 function amendmentQuestions() {
   const texts = AMENDMENTS.map(([, t]) => t);
@@ -1086,7 +1133,7 @@ function graphicNovelQuestions() {
   ];
   const defs = VOCAB.map(([, d]) => d);
   for (const [term, def, why] of VOCAB) {
-    add('A', 'medium', `In a comic or graphic novel, what is a <b>${term}</b>?`, def,
+    add('A', 'medium', `In a comic or graphic novel, what is ${/^[aeiou]/i.test(term) ? 'an' : 'a'} <b>${term}</b>?`, def,
       seededPick(defs.filter(d => d !== def), 3, term), why);
   }
   add('B', 'hard', 'In comics, what does the reader do in the gutter between panels?',
@@ -1102,7 +1149,7 @@ function graphicNovelQuestions() {
 
 /* ============================ run ============================ */
 
-const all = [];
+let all = [];
 const perSource = [];
 
 // The people index has to exist before any question is finalised, so build it
@@ -1453,6 +1500,32 @@ for (const q of all) {
   byId.set(key, q);
 }
 let questions = [...byId.values()];
+
+/* ---- corrections to the source banks ----
+ * Applied by content-hash id, so they vanish harmlessly once the source is
+ * fixed (the hash changes and the entry stops matching). */
+
+// Two Test Tactics items mark the wrong choice: their own coach text names a
+// different answer ("how many fewer" / "how many more"). Trust the coach.
+const ANSWER_FIXES = {
+  'testtactics:2a79aa32': 'how many fewer',
+  'testtactics:db1aaed2': 'how many more',
+};
+// Items that are unsalvageable as quiz questions (e.g. the prompt itself says
+// the answer: "A foggy, creaking house → eerie mood" asking for "Mood").
+const EXCLUDE_IDS = new Set([
+  'english:d3579fa4',
+]);
+
+for (const q of questions) {
+  const want = ANSWER_FIXES[q.id];
+  if (!want) continue;
+  const target = q.choices.find(c => normalise(c.html) === normalise(want));
+  if (!target) { console.warn(`  answer fix missed on ${q.id}`); continue; }
+  for (const c of q.choices) delete c.ok;
+  target.ok = true;
+}
+questions = questions.filter(q => !EXCLUDE_IDS.has(q.id));
 
 /* ---- quality gate ---- */
 const rejected = [];

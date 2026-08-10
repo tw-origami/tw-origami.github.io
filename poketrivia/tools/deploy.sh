@@ -19,6 +19,15 @@ DEST="$DEST_REPO/poketrivia"
 echo "source : $SRC"
 echo "target : $DEST"
 
+# Nothing ships unless every suite and the question audit pass.
+echo "running checks…"
+node "$SRC/tools/check-battle.mjs"   > /dev/null
+node "$SRC/tools/check-grading.mjs"  > /dev/null
+node "$SRC/tools/check-questions.mjs" > /dev/null
+node "$SRC/tools/audit-questions.mjs" > /dev/null || {
+  echo "✗ question audit found hard flags — run: node tools/audit-questions.mjs"; exit 1; }
+echo "✓ all checks pass"
+
 rm -rf "$DEST"
 mkdir -p "$DEST"
 for item in index.html style.css README.md js data img vendor tools; do
