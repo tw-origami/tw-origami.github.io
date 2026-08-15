@@ -185,6 +185,7 @@ export const crunch   = () => {         // pancaking a parked car
   note(1180, 0.02, 0.07, 'square', 0.05);
 };
 export const pop      = () => sweep(280, 720, 0, 0.13, 'sine', 0.11);   // beach ball boop
+export const skid     = () => { noise(0, 0.26, 0.05); sweep(430, 300, 0, 0.26, 'sawtooth', 0.03); }; // tyres letting go
 export const bigFanfare = () => {
   const seq = [[N.c5, 0], [N.c5, 0.12], [N.c5, 0.24], [N.e5, 0.36], [N.g5, 0.52], [N.c6, 0.68]];
   for (const [f, t] of seq) note(f, t, 0.3);

@@ -95,22 +95,53 @@ for (let i = 0; i < 34; i++) {
   CIRCLES.push({ x, z, r: 0.9 });
 }
 
-// Track obstacles: giant glyphs positioned around the oval for visual interest.
-// { x, z, item (shape/letter/color), size (canvas units) }
-const OBSTACLES = [
-  // north straight
-  { x: -55, z: 95, item: { id: 'circle', glyph: '●', category: 'shape' }, size: 96 },
-  { x: 55, z: 95, item: { id: 'triangle', glyph: '▲', category: 'shape' }, size: 96 },
-  // east corner
-  { x: 135, z: 35, item: { id: 'a', glyph: 'A', category: 'letter' }, size: 128 },
-  { x: 135, z: -35, item: { id: 'b', glyph: 'B', category: 'letter' }, size: 128 },
-  // south straight
-  { x: -55, z: -95, item: { id: 'red', hex: '#e8442e', category: 'color' }, size: 96 },
-  { x: 55, z: -95, item: { id: 'blue', hex: '#2f6fe0', category: 'color' }, size: 96 },
-  // west corner
-  { x: -135, z: 35, item: { id: 'square', glyph: '■', category: 'shape' }, size: 96 },
-  { x: -135, z: -35, item: { id: 'c', glyph: 'C', category: 'letter' }, size: 128 },
-];
+/**
+ * Learning stops around the track's centre line, evenly spaced by distance
+ * driven: { x, z, yaw } with yaw pointing along the racing line. A round on the
+ * track raises its three gates ACROSS one of these — same game as the stadium,
+ * played at speed. Lanes are wider apart out here because the track is.
+ */
+export const TRACK_LANES = [-14, 0, 14];
+
+export function trackCheckpoints(n = 8) {
+  const { hw, hd, r } = TRACK_MID;
+  const ax = hw - r, az = hd - r;                 // corner centres
+  // one lap, counter-clockwise from the south straight: straight, corner, …
+  const legs = [
+    { seg: [-ax, -hd, ax, -hd] },
+    { arc: [ax, -az, -Math.PI / 2, 0] },
+    { seg: [hw, -az, hw, az] },
+    { arc: [ax, az, 0, Math.PI / 2] },
+    { seg: [ax, hd, -ax, hd] },
+    { arc: [-ax, az, Math.PI / 2, Math.PI] },
+    { seg: [-hw, az, -hw, -az] },
+    { arc: [-ax, -az, Math.PI, Math.PI * 1.5] },
+  ];
+  const lens = legs.map((l) => (l.seg
+    ? Math.hypot(l.seg[2] - l.seg[0], l.seg[3] - l.seg[1])
+    : Math.abs(l.arc[3] - l.arc[2]) * r));
+  const total = lens.reduce((a, b) => a + b, 0);
+
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    let s = (i / n) * total, k = 0;
+    while (s > lens[k] && k < legs.length - 1) { s -= lens[k]; k++; }
+    const leg = legs[k], u = s / lens[k];
+    let x, z, tx, tz;
+    if (leg.seg) {
+      const [x0, z0, x1, z1] = leg.seg;
+      x = x0 + (x1 - x0) * u; z = z0 + (z1 - z0) * u;
+      tx = x1 - x0; tz = z1 - z0;
+    } else {
+      const [cx, cz, a0, a1] = leg.arc;
+      const a = a0 + (a1 - a0) * u;
+      x = cx + Math.cos(a) * r; z = cz + Math.sin(a) * r;
+      tx = -Math.sin(a); tz = Math.cos(a);
+    }
+    out.push({ x, z, yaw: Math.atan2(tx, tz) });
+  }
+  return out;
+}
 
 /* ================= physics queries ================= */
 
@@ -710,27 +741,33 @@ export function buildWorld(scene) {
     scene.add(g);
   }
 
-  /* ---- track obstacles: giant glyphs around the oval ---- */
-  const obstacles = [];
-  for (const obs of OBSTACLES) {
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = obs.size;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#101a38';
-    ctx.fillRect(0, 0, obs.size, obs.size);
-    ctx.strokeStyle = '#4fd8e8';
-    ctx.lineWidth = Math.max(3, obs.size / 32);
-    ctx.strokeRect(4, 4, obs.size - 8, obs.size - 8);
-    drawGlyph(ctx, obs.item, obs.size - 16, 8, obs.size / 2);
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.magFilter = THREE.NearestFilter;
-    tex.minFilter = THREE.NearestFilter;
-    tex.generateMipmaps = false;
-    tex.colorSpace = THREE.SRGBColorSpace;
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(6, 6), new THREE.MeshBasicMaterial({ map: tex }));
-    mesh.position.set(obs.x, 3, obs.z);
-    scene.add(mesh);
-    obstacles.push({ ...obs, mesh, hit: false });
+  /* ---- checkpoint markers: a striped post pair flanking each learning stop ---- */
+  // Permanent scenery so the spots read as part of the track; the answer gates
+  // themselves rise between them only while a round is running.
+  {
+    const cps = trackCheckpoints();
+    const posts = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.45, 0.55, 6.5, 6),
+      mat({ color: 0xfff7e8 }),
+      cps.length * 2
+    );
+    const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(1, 1, 1);
+    const C = new THREE.Color();
+    let i = 0;
+    for (const cp of cps) {
+      // step sideways off the racing line: local x is across the track
+      const c = Math.cos(cp.yaw), s = Math.sin(cp.yaw);
+      for (const side of [-1, 1]) {
+        const off = side * 25;
+        const x = cp.x + off * c, z = cp.z - off * s;
+        posts.setMatrixAt(i, M.compose(new THREE.Vector3(x, 3.25, z), Q, S));
+        posts.setColorAt(i, C.setHex(side < 0 ? 0xd43c2a : 0x2f6fe0));
+        CIRCLES.push({ x, z, r: 0.5 });
+        i++;
+      }
+    }
+    posts.instanceColor.needsUpdate = true;
+    scene.add(posts);
   }
 
   /* ---- sky ---- */
@@ -777,10 +814,10 @@ export function buildWorld(scene) {
     /**
      * Per-frame world life. Needs the truck for crushing and ball pushing.
      * Returns events for main to turn into sound and particles:
-     * { crushes: [{x,z}], ballHits: [{x,z}], obstacleHits: [{x,z}], restores: [{x,z}] }
+     * { crushes: [{x,z}], ballHits: [{x,z}], restores: [{x,z}] }
      */
     update(dt, t, camera, truck) {
-      const ev = { crushes: [], ballHits: [], obstacleHits: [], restores: [] };
+      const ev = { crushes: [], ballHits: [], restores: [] };
 
       for (const c of clouds.children) {
         c.position.x += dt * 1.4;
@@ -840,17 +877,6 @@ export function buildWorld(scene) {
           b.mesh.rotation.z -= b.vel.x * dt / b.r;
         }
 
-        /* track obstacles: burst when truck passes through */
-        for (const obs of obstacles) {
-          const dx = truck.pos.x - obs.x, dz = truck.pos.z - obs.z;
-          const d = Math.hypot(dx, dz);
-          if (d < 4.5 && !obs.hit) {
-            obs.hit = true;
-            ev.obstacleHits.push({ x: obs.x, z: obs.z });
-            // reset after truck leaves
-            setTimeout(() => { obs.hit = false; }, 800);
-          }
-        }
       }
 
       return ev;

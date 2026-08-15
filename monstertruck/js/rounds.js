@@ -10,7 +10,7 @@
 //     mastery grows, so round one is A-F, not a random dip into 26 letters.
 
 import * as THREE from 'three';
-import { GATE, zoneAt } from './world.js';
+import { GATE, TRACK_LANES, zoneAt, trackCheckpoints } from './world.js';
 import * as vo from './vo.js';
 import * as audio from './audio.js';
 import * as save from './save.js';
@@ -19,6 +19,12 @@ import { pick, shuffle } from './util.js';
 
 const CATS = ['shapes', 'colors', 'letters', 'numbers'];
 const CHEERS = ['GREAT JOB!', 'YOU FOUND IT!', 'WOW!', 'MONSTER!'];
+
+// Two places to play the same game: the stadium's fixed line, or any of the
+// stops around the oval. On the track the gates come to the kid — they rise
+// across the racing surface a good way ahead, wherever the truck is heading.
+const CHECKPOINTS = trackCheckpoints();
+const venueOf = (zone) => (zone === 'stadium' ? 'stadium' : zone === 'track' ? 'track' : null);
 
 let world = null, gatesApi = null, truck = null, particles = null;
 let mode = null;
@@ -34,8 +40,11 @@ let roundToken = 0;        // async VO sequences check this so a stale round can
 let sessionStars = 0;
 let bags = {};             // category -> ids not yet dealt this cycle
 let mixNext = [];
+let venue = 'stadium';     // stadium | track — where this round is being played
+let mark = { x: 0, z: GATE.z };   // where the gate line currently stands
 
 const _v = new THREE.Vector3();
+const _d = new THREE.Vector3();
 const wait = (s) => new Promise((r) => setTimeout(r, s * 1000));
 
 export function init(deps) {
@@ -49,6 +58,7 @@ export function init(deps) {
 export function start(m) {
   mode = m;
   phase = 'free';
+  venue = venueOf(zoneAt(truck.pos)) ?? 'stadium';
   timer = 2.4;             // the mode-intro VO is playing; first callout right after
   sessionStars = 0;
   roundToken++;
@@ -119,6 +129,47 @@ function drawDistractors(cat, tgt) {
   return shuffle(pool).slice(0, 2);
 }
 
+/* ---------------- where the gates stand ---------------- */
+
+/**
+ * The nearest learning stop the truck is actually driving toward. Nothing in
+ * range (mid-corner, or just turned around) simply means "not yet" — the round
+ * waits a beat and asks again rather than dropping gates behind the kid.
+ */
+function checkpointAhead() {
+  const d = truck.dir(_d);
+  let best = null, bestDist = Infinity;
+  for (const cp of CHECKPOINTS) {
+    const dx = cp.x - truck.pos.x, dz = cp.z - truck.pos.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist < 34 || dist > 150) continue;              // room to read it, not a speck
+    if ((dx * d.x + dz * d.z) / dist < 0.3) continue;   // must be out in front
+    if (dist < bestDist) { bestDist = dist; best = cp; }
+  }
+  return best;
+}
+
+/** Stand the gates up wherever this round is being played. */
+function placeGates(cp) {
+  if (venue === 'stadium') {
+    gatesApi.place(0, GATE.z, 0, GATE.xs);
+    mark = { x: 0, z: GATE.z };
+    return;
+  }
+  // face the line at the truck, so the signs read right whichever way it laps
+  const d = truck.dir(_d);
+  const along = Math.sin(cp.yaw) * d.x + Math.cos(cp.yaw) * d.z;
+  gatesApi.place(cp.x, cp.z, along >= 0 ? cp.yaw : cp.yaw + Math.PI, TRACK_LANES);
+  mark = cp;
+}
+
+/** True once the truck has driven past the line without picking a gate. */
+function drovePast() {
+  const dx = mark.x - truck.pos.x, dz = mark.z - truck.pos.z;
+  const d = truck.dir(_d);
+  return Math.hypot(dx, dz) > 44 && dx * d.x + dz * d.z < 0;
+}
+
 function beginRound() {
   const cat = mode === 'mix' ? nextMixCat() : mode;
   target = drawTarget(cat);
@@ -174,8 +225,13 @@ function onCorrect(index) {
     audio.cheer(2);
     world.cheer(3);
     vo.speak(window.VO_EXTRA.fivestars, 2);
+    // burst overhead wherever the kid is — the stands, or halfway round the oval
     for (let i = 0; i < 6; i++) {
-      const p = _v.set((Math.random() - 0.5) * 60, 15 + Math.random() * 6, (Math.random() - 0.5) * 44);
+      const p = _v.set(
+        truck.pos.x + (Math.random() - 0.5) * 46,
+        truck.pos.y + 15 + Math.random() * 6,
+        truck.pos.z + (Math.random() - 0.5) * 46
+      );
       particles.later(i * 0.4, 'spark', p, 55, 1.6);
       audio.firePop(i * 0.4);
     }
@@ -206,9 +262,11 @@ function onWrong(index) {
 export function update(dt) {
   if (phase === 'idle') return;
 
-  // The learning game lives in the stadium. Drive out an archway and the round
-  // packs up without penalty; drive back in and a fresh callout follows soon.
-  if (zoneAt(truck.pos) !== 'stadium') {
+  // The learning game runs in the stadium and out on the race track. Anywhere
+  // else — playground, parking lot, open grounds — it packs up with no penalty
+  // and picks back up the moment the kid drives somewhere it can be played.
+  const here = venueOf(zoneAt(truck.pos));
+  if (here === null) {
     if (phase === 'announce' || phase === 'seeking') {
       roundToken++;
       gatesApi.sinkAll();
@@ -220,9 +278,21 @@ export function update(dt) {
     }
     if (phase !== 'celebrate') return;   // celebrations get to finish
   } else if (phase === 'away') {
+    venue = here;
     phase = 'free';
     timer = 2.2;
     world.jumbotron.idle(save.load().stars[mode] ?? 0);
+  } else if (here !== venue && phase !== 'celebrate') {
+    // rolled between the stadium and the track: pack up, set up again where the
+    // kid now is, keeping the same target so the lesson isn't dropped mid-word
+    venue = here;
+    if (phase === 'announce' || phase === 'seeking') {
+      roundToken++;
+      gatesApi.sinkAll();
+      vo.stopAll();
+      phase = 'announce';
+      timer = 0;
+    }
   }
 
   if (phase === 'free') {
@@ -232,15 +302,21 @@ export function update(dt) {
   }
 
   if (phase === 'announce') {
-    // never raise gates under the truck — wait for it to clear the line
-    if (Math.abs(truck.pos.z - GATE.z) > 7) {
-      gatesApi.show(entries);
-      audio.whoosh();
-      for (let i = 0; i < 3; i++) particles.burst('dust', gatesApi.positionOf(i, _v), 10);
-      vo.speak(target, 3);
-      replayT = 12;
-      phase = 'seeking';
+    if (venue === 'stadium') {
+      // never raise gates under the truck — wait for it to clear the line
+      if (Math.abs(truck.pos.z - GATE.z) <= 7) return;
+      placeGates();
+    } else {
+      const cp = checkpointAhead();
+      if (!cp) return;                   // no stop in front of us yet; ask again next frame
+      placeGates(cp);
     }
+    gatesApi.show(entries);
+    audio.whoosh();
+    for (let i = 0; i < 3; i++) particles.burst('dust', gatesApi.positionOf(i, _v), 10);
+    vo.speak(target, 3);
+    replayT = 12;
+    phase = 'seeking';
     return;
   }
 
@@ -248,7 +324,13 @@ export function update(dt) {
     replayT -= dt;
     if (replayT <= 0) replayCallout();
     const hit = gatesApi.crossing(truck.prevPos, truck.pos, truck.pos.y);
-    if (hit) (hit.correct ? onCorrect : onWrong)(hit.index);
+    if (hit) { (hit.correct ? onCorrect : onWrong)(hit.index); return; }
+    // Threaded between the gates at speed, or sailed clean over them: no bonk,
+    // no scolding — the same three gates rise again at the next stop up the road.
+    if (venue === 'track' && drovePast()) {
+      gatesApi.sinkAll();
+      phase = 'announce';
+    }
     return;
   }
 

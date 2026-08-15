@@ -10,6 +10,7 @@ import { clamp, damp } from './util.js';
 import { heightAt, collide } from './world.js';
 
 export const TOP = 16;          // u/s flat out
+export const BOOST = 26;        // u/s — FAST MODE, while Shift / ⚡ is held
 const CRUISE = 8;               // auto-cruise rolling speed: steering IS the game
 const REVERSE = -4.5;
 const ACCEL = 14, BRAKE = 24, DRAG = 6;
@@ -18,6 +19,12 @@ const STEER_RATE = 2.2;
 const WHEEL_R = 0.95;
 const MAX_CLIMB = 14;           // u/s — fastest the wheels can ride terrain upward
 const MAX_LAUNCH = 9;           // u/s — the biggest legit ramp launch is ~7
+
+// Drift: above DRIFT_MIN the travel direction lags the nose, so hard cornering
+// at speed slides the tail out. Capped hard at MAX_SLIP — the truck can lean
+// into a slide but can never spin, swap ends, or end up pointing backwards.
+const DRIFT_MIN = 12;
+const MAX_SLIP = 0.44;          // rad ≈ 25° of slide
 
 export function createTruck(scene, colorHex) {
   const mat = (opts) => new THREE.MeshLambertMaterial({ flatShading: true, ...opts });
@@ -87,6 +94,7 @@ export function createTruck(scene, colorHex) {
     vy: 0,
     grounded: true,
     airTime: 0,
+    slip: 0,                            // rad between the nose and the travel line
     prevPos: new THREE.Vector3(0, 0, 24),
 
     dir(out = new THREE.Vector3()) {
@@ -99,7 +107,7 @@ export function createTruck(scene, colorHex) {
       this.pos.set(x, heightAt(x, z), z);
       this.prevPos.copy(this.pos);
       this.yaw = yaw;
-      this.speed = 0; this.vy = 0; this.grounded = true; this.airTime = 0;
+      this.speed = 0; this.vy = 0; this.grounded = true; this.airTime = 0; this.slip = 0;
       springY = 0; springV = 0; groundVy = 0;
     },
   };
@@ -115,29 +123,42 @@ export function createTruck(scene, colorHex) {
    * dust/sound/popups: { landed, airTime, hitWall, jumped }.
    */
   t.update = function (dt, inp, { autoCruise = true, frozen = false } = {}) {
-    const ev = { landed: false, airTime: 0, hitWall: false, jumped: false };
+    const ev = { landed: false, airTime: 0, hitWall: false, jumped: false, drifting: false };
     this.prevPos.copy(this.pos);
 
     /* ---- longitudinal ---- */
     let target;
     if (frozen) target = 0;
     else if (inp.brake) target = this.speed > 0.6 ? 0 : REVERSE;
+    else if (inp.boost) target = BOOST;
     else if (inp.gas) target = TOP;
     else target = autoCruise ? CRUISE : 0;
-    if (target > 0) target *= 1 - 0.3 * Math.abs(inp.steer);   // auto-slow in turns
+    // auto-slow in turns; fast mode keeps more of its speed so a drift can build
+    if (target > 0) target *= 1 - (inp.boost ? 0.18 : 0.3) * Math.abs(inp.steer);
 
     const rate = inp.brake ? BRAKE : (Math.abs(target) > Math.abs(this.speed) ? ACCEL : DRAG);
     const prevSpeed = this.speed;
     this.speed += clamp(target - this.speed, -rate * dt, rate * dt);
 
     /* ---- steering (near-full lock at low speed, damped flat out) ---- */
-    const speedFactor = clamp(Math.abs(this.speed) / 4, 0, 1) * (1 - 0.35 * Math.abs(this.speed) / TOP);
+    const speedFactor = clamp(Math.abs(this.speed) / 4, 0, 1)
+      * Math.max(0.3, 1 - 0.35 * Math.abs(this.speed) / TOP);
     const airFactor = this.grounded ? 1 : 0.4;
     if (!frozen) this.yaw -= inp.steer * STEER_RATE * speedFactor * airFactor * dt;
 
-    /* ---- move ---- */
-    this.pos.x += Math.sin(this.yaw) * this.speed * dt;
-    this.pos.z += Math.cos(this.yaw) * this.speed * dt;
+    /* ---- drift: the travel line lags the nose once we're really moving ---- */
+    // Slip is a smoothed lag, not a force, so it self-centres the moment the
+    // wheel comes back — there is no spin to recover from and no way to stall.
+    const fast = clamp((Math.abs(this.speed) - DRIFT_MIN) / (BOOST - DRIFT_MIN), 0, 1);
+    const slipWant = this.grounded && !frozen && this.speed > 0 ? inp.steer * MAX_SLIP * fast : 0;
+    // slides in quicker than it lets go — that lag is what reads as a drift
+    this.slip += (slipWant - this.slip) * damp(Math.abs(slipWant) > Math.abs(this.slip) ? 5 : 2.6, dt);
+    ev.drifting = this.grounded && Math.abs(this.slip) > 0.15;
+
+    /* ---- move along the travel line ---- */
+    const travel = this.yaw + this.slip;
+    this.pos.x += Math.sin(travel) * this.speed * dt;
+    this.pos.z += Math.cos(travel) * this.speed * dt;
 
     const wp = collide(this.pos.x, this.pos.z, 2.0);
     if (wp) {
@@ -211,13 +232,15 @@ export function createTruck(scene, colorHex) {
     group.rotation.x = pitch;
     body.position.y = 1.35 + springY;
     body.rotation.x = lean;
-    body.rotation.z = -inp.steer * 0.13 * speedFactor;
+    // lean harder the further the tail is hung out
+    body.rotation.z = -(inp.steer * 0.13 * speedFactor + this.slip * 0.24);
 
     wheelSpin += (this.speed / WHEEL_R) * dt;
     for (const w of wheels) {
       w.tire.rotation.x = wheelSpin;
       w.hub.rotation.x = wheelSpin;
-      w.pivot.rotation.y = w.front ? inp.steer * -0.42 : 0;
+      // front wheels catch opposite lock in a slide, like a real drift
+      w.pivot.rotation.y = w.front ? inp.steer * -0.42 + this.slip * 0.55 : 0;
     }
 
     shadow.position.y = gY - this.pos.y + 0.03;

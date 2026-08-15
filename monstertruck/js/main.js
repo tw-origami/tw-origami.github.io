@@ -49,8 +49,10 @@ let running = false;
 let lastAirVo = -99;
 let curZone = 'stadium';
 let lastCrunchPop = -99;
+let lastSkid = -99;
 const ZONE_LABELS = { stadium: 'THE STADIUM!', track: 'RACE TRACK!', playground: 'PLAYGROUND!', parking: 'PARKING LOT!' };
 const _p = new THREE.Vector3();
+const _d = new THREE.Vector3();
 
 /* ---------------- sizing ---------------- */
 
@@ -166,6 +168,13 @@ function tick(dt, t) {
 
     if (takeAction()) { rounds.replayCallout(); audio.honk(); }
 
+    // hanging the tail out: rooster tails off the back tyres + a tyre chirp
+    if (ev.drifting) {
+      const d = truck.dir(_d);
+      particles.burst('dust', _p.set(truck.pos.x - d.x * 1.9, 0.4, truck.pos.z - d.z * 1.9), 2);
+      if (t - lastSkid > 0.3) { lastSkid = t; audio.skid(); }
+    }
+
     // announce the neighborhood as the kid explores
     const z = world.zoneAt(truck.pos);
     if (z !== curZone) {
@@ -178,7 +187,8 @@ function tick(dt, t) {
 
     rounds.update(dt);
     truck.updateCam(camera, dt);
-    audio.setEngine(Math.abs(truck.speed) / TOP, input.gas || !truck.grounded ? 0.6 : 0);
+    // fast mode pushes past 1 on purpose — the engine note keeps climbing
+    audio.setEngine(Math.min(1.7, Math.abs(truck.speed) / TOP), input.gas || input.boost || !truck.grounded ? 0.6 : 0);
   } else {
     // menus: a slow parade lap around the stadium
     menuAngle += dt * 0.07;
@@ -198,11 +208,6 @@ function tick(dt, t) {
     audio.pop();
     particles.burst('dust', _p.set(b.x, 1, b.z), 5);
   }
-  for (const o of wev.obstacleHits) {
-    audio.pop();
-    particles.burst('confetti', _p.set(o.x, 3, o.z), 12);
-    particles.burst('dust', _p, 8);
-  }
   gates.update(dt, t);
   particles.update(dt);
 
@@ -215,7 +220,9 @@ function tick(dt, t) {
       document.getElementById('debug').textContent =
         `fps ${fps}\n` +
         `xz  ${truck.pos.x.toFixed(1)}, ${truck.pos.z.toFixed(1)}  y ${truck.pos.y.toFixed(2)}\n` +
-        `spd ${truck.speed.toFixed(1)}  ${truck.grounded ? 'ground' : 'AIR ' + truck.airTime.toFixed(2)}\n` +
+        `spd ${truck.speed.toFixed(1)}  ${truck.grounded ? 'ground' : 'AIR ' + truck.airTime.toFixed(2)}` +
+        `  slip ${truck.slip.toFixed(2)}${input.boost ? '  BOOST' : ''}\n` +
+        `zone ${curZone}\n` +
         `res ${renderer.domElement.width}x${renderer.domElement.height}\n` +
         `tri ${renderer.info.render.triangles}  draws ${renderer.info.render.calls}\n` +
         `state ${appState}`;
@@ -236,5 +243,7 @@ if (DEBUG) {
     step(dt = 0.033, n = 1) { for (let i = 0; i < n; i++) tick(dt, clock.elapsedTime + i * dt); },
     // line the truck up 8u north of gate lane `i` (0..2), pointed straight at it
     aimAtGate(i) { truck.teleport([-9, 0, 9][i], -14 + 8, Math.PI); },
+    // drop onto the race track's south straight, pointed the racing way round
+    toTrack() { truck.teleport(-20, -98, Math.PI / 2); truck.snapCam(camera); },
   };
 }

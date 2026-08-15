@@ -17,8 +17,19 @@ const easeOutBack = (t) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * ((
 const easeIn = (t) => t * t;
 
 let scene = null;
-let gates = [];          // [{ root, content, arrow, item, correct, state, animT, wobbleT, pulse, x }]
+let gates = [];          // [{ root, content, arrow, item, correct, state, animT, wobbleT, pulse, lx }]
 let beacon = null;       // bouncing marker over the middle of the gate line while seeking
+
+// Where the three gates currently stand: an origin, a heading (gate-local +z is
+// the way you drive THROUGH), and the lane offsets across it. The stadium keeps
+// this at its fixed line; a track round moves it to a checkpoint out on the oval.
+let line = { x: 0, z: GATE.z, yaw: 0, xs: GATE.xs };
+
+/** Gate-local (across, through) → world. */
+function toWorld(lx, lz, out) {
+  const c = Math.cos(line.yaw), s = Math.sin(line.yaw);
+  return out.set(line.x + lx * c + lz * s, out.y, line.z - lx * s + lz * c);
+}
 
 const lambert = (opts) => new THREE.MeshLambertMaterial({ flatShading: true, ...opts });
 
@@ -61,6 +72,7 @@ export function initGates(sceneRef) {
     const root = new THREE.Group();
     root.position.set(x, BURIED, GATE.z);
     root.visible = false;
+    root.rotation.order = 'YXZ';        // yaw the whole gate, wobble inside it
     const content = new THREE.Group();
     root.add(content);
 
@@ -75,7 +87,7 @@ export function initGates(sceneRef) {
     root.add(arrow);
 
     scene.add(root);
-    return { root, content, arrow, item: null, correct: false, state: 'down', animT: 0, wobbleT: 0, pulse: false, x };
+    return { root, content, arrow, item: null, correct: false, state: 'down', animT: 0, wobbleT: 0, pulse: false, lx: x };
   });
 
   beacon = new THREE.Mesh(
@@ -123,7 +135,25 @@ function buildContent(g) {
   g.content.add(front, back);
 }
 
+const _w = new THREE.Vector3();
+
 const api = {
+  /**
+   * Move the gate line: `yaw` is the direction you drive through it, `xs` the
+   * lane offsets across it. Call before show() — the stadium uses its fixed
+   * line, a track round drops the same three gates across the racing surface.
+   */
+  place(x, z, yaw = 0, xs = GATE.xs) {
+    line = { x, z, yaw, xs };
+    gates.forEach((g, i) => {
+      g.lx = xs[i];
+      toWorld(g.lx, 0, _w);
+      g.root.position.x = _w.x;
+      g.root.position.z = _w.z;
+      g.root.rotation.y = yaw;
+    });
+  },
+
   /** Raise the three gates with `entries` = [{ item, correct }]. */
   show(entries) {
     entries.forEach((e, i) => {
@@ -168,7 +198,8 @@ const api = {
   anyUp: () => gates.some((g) => g.state === 'up' || g.state === 'rising'),
 
   positionOf(i, out = new THREE.Vector3()) {
-    return out.set(gates[i].x, 1.5, GATE.z);
+    out.y = 1.5;
+    return toWorld(gates[i].lx, 0, out);
   },
 
   correctIndex: () => gates.findIndex((g) => g.correct),
@@ -186,15 +217,21 @@ const api = {
    */
   crossing(prev, cur, y) {
     if (!this.anyUp()) return null;
-    const a = prev.z - GATE.z, b = cur.z - GATE.z;
+    // work in gate-local space, so a line angled across the track tests exactly
+    // like the stadium's axis-aligned one
+    const c = Math.cos(line.yaw), s = Math.sin(line.yaw);
+    const px = prev.x - line.x, pz = prev.z - line.z;
+    const cx = cur.x - line.x, cz = cur.z - line.z;
+    const a = s * px + c * pz, b = s * cx + c * cz;          // through-axis
     if ((a > 0) === (b > 0) || a === b) return null;
     if (y >= 8.5) return null;
-    const tx = prev.x + (cur.x - prev.x) * (a / (a - b));
+    const ax = c * px - s * pz, bx = c * cx - s * cz;        // across-axis
+    const tx = ax + (bx - ax) * (a / (a - b));
     for (let i = 0; i < gates.length; i++) {
       const g = gates[i];
       if (g.state === 'down' || g.state === 'sinking') continue;
       const halfW = GATE.halfW * (g.correct ? 1.15 : 0.8);
-      if (Math.abs(tx - g.x) < halfW) return { index: i, correct: g.correct };
+      if (Math.abs(tx - g.lx) < halfW) return { index: i, correct: g.correct };
     }
     return null;
   },
@@ -223,7 +260,8 @@ const api = {
       if (g.arrow.visible) g.arrow.position.y = 9.2 + Math.sin(t * 5) * 0.5;
     }
     if (beacon.visible) {
-      beacon.position.set(0, 10.5 + Math.sin(t * 4) * 0.6, GATE.z);
+      beacon.position.y = 10.5 + Math.sin(t * 4) * 0.6;
+      toWorld(0, 0, beacon.position);
       beacon.rotation.y = t * 1.5;
     }
   },

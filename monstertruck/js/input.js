@@ -9,6 +9,7 @@ export const input = {
   steer: 0,        // -1 (left) .. 1 (right)
   gas: false,
   brake: false,
+  boost: false,    // FAST MODE — hold Shift (or the ⚡ button)
   action: false,   // edge-triggered: Space / Enter — "say it again" + honk
 };
 
@@ -18,10 +19,11 @@ const KEYMAP = {
   ArrowDown: 'brake', KeyS: 'brake',
   ArrowLeft: 'left', KeyA: 'left',
   ArrowRight: 'right', KeyD: 'right',
+  ShiftLeft: 'boost', ShiftRight: 'boost',
 };
 
 let stickX = 0;           // touch steering, kept separate so keys can override
-let touchGas = false, touchBrake = false;
+let touchGas = false, touchBrake = false, touchBoost = false;
 
 export function takeAction() {
   const a = input.action;
@@ -88,6 +90,7 @@ export function initInput() {
   };
   pedal('btnGas', (v) => { touchGas = v; });
   pedal('btnBrake', (v) => { touchBrake = v; });
+  pedal('btnBoost', (v) => { touchBoost = v; });
 
   // Show touch controls only on a touch device.
   if (matchMedia('(hover: none) and (pointer: coarse)').matches) {
@@ -101,4 +104,5 @@ export function poll() {
   input.steer = kx !== 0 ? kx : stickX;
   input.gas = keys.has('gas') || touchGas;
   input.brake = keys.has('brake') || touchBrake;
+  input.boost = keys.has('boost') || touchBoost;
 }

@@ -13,6 +13,12 @@ them) and a **parking lot** full of cars that pancake — CRUNCH! — when you
 drive over them (they pop back after a while). The announcer names each place
 as you roll in.
 
+**The lesson follows you onto the track.** Eight stops ring the oval, marked by
+striped posts. Drive toward one and the same three answer gates rise across the
+racing surface — same callout, same stars — so a lap is the game, not a break
+from it. Miss the line and nothing bad happens: the gates simply rise again at
+the next stop, still asking for the same thing.
+
 Live at: https://tw-origami.github.io/monstertruck/
 
 ## Design rules (the pedagogy, all deliberate)
@@ -34,9 +40,14 @@ Live at: https://tw-origami.github.io/monstertruck/
 - **Auto-cruise** is on by default — the truck rolls on its own and steering
   is the whole game, playable with one thumb. Parents can toggle it on the
   mode screen.
-- **Learning lives in the stadium; everywhere else is pure play.** Drive out
-  an archway mid-round and the gates pack up with no penalty; drive back in
-  and a fresh callout follows. The kid chooses when it's school time.
+- **Learning lives in the stadium and on the track; the rest is pure play.**
+  Roll into the playground or the parking lot mid-round and the gates pack up
+  with no penalty; come back and the callout picks up again. The kid chooses
+  when it's school time.
+- **Fast mode is a reward, not a requirement.** Auto-cruise alone can win every
+  round. Holding Shift (or ⚡) unlocks a 26 u/s boost, and cornering that fast
+  hangs the tail out — but the slide is a capped, self-centring lag, so the
+  truck can never spin, swap ends, or need a recovery a preschooler can't do.
 
 ## Layout
 
@@ -46,10 +57,10 @@ style.css         chunky N64 chrome; the canvas is upscaled with pixelated rende
 data/callouts.js  single source of truth: every target and every announcer line
 js/
   main.js         boot, 432p render pipeline, screen flow, game loop, debug harness
-  world.js        arena, ramps + heightAt(), stands, instanced crowd, jumbotron, sky
-  truck.js        kinematic driving (yaw-only, no flipping), suspension, chase cam
-  gates.js        gate meshes + rise/sink + segment-test crossing detection
-  rounds.js       round state machine, target/distractor selection, help ladder
+  world.js        arena, ramps + heightAt(), track + checkpoints, stands, crowd, sky
+  truck.js        kinematic driving (yaw-only, no flipping), drift, suspension, cam
+  gates.js        gate meshes + rise/sink + crossing detection on a movable line
+  rounds.js       round state machine, stadium/track venues, selection, help ladder
   glyphs.js       what every target looks like, in 2D (canvas) and 3D (extrude)
   vo.js           announcer: mp3 first, speechSynthesis fallback, priority queue
   audio.js        synthesized SFX + engine loop + crowd murmur (no audio files)
@@ -84,6 +95,7 @@ was TTS-generated (Higgsfield seed_audio, "Grady" preset, ~14 credits for all
 |---|---|
 | ←/→ or A/D, or the touch stick | steer |
 | ↑/W or the GO! pedal | full speed |
+| **Shift**, or the ⚡ FAST button | fast mode — boost, and drift through corners |
 | ↓/S or the STOP pedal | brake, then slow reverse |
 | Space, or the 🔊 button | hear the callout again (+ honk) |
 
