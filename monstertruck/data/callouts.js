@@ -80,6 +80,12 @@
     title:     { vo: 'title',      text: 'Monster Truck!' },
     airtime:   { vo: 'airtime',    text: 'Big air!' },
     fivestars: { vo: 'five_stars', text: 'Five stars! Fireworks!' },
+    // Announced once when the truck rolls into a part of the grounds.
+    zones: {
+      stadium:    { vo: 'zone_stadium',    text: 'The stadium! Find the gates!' },
+      playground: { vo: 'zone_playground', text: 'The playground! Try the big slide!' },
+      parking:    { vo: 'zone_parking',    text: 'The parking lot! Crush those cars!' },
+    },
     // Garage screen: tapping a truck says its color out loud.
     words: [
       { id: 'red',    vo: 'word_red',    text: 'Red!' },

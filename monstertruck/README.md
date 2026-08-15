@@ -6,6 +6,13 @@ game. Drive around a stadium, hit the ramps, and listen for the announcer:
 the right one earns a star, confetti, and a crowd roar. Fireworks every five
 stars. Teaches **shapes, colors, letters (A–Z), and numbers 1–10**.
 
+The stadium sits in a much bigger open world: archways on both ends lead out
+to a dirt race track looping around the stands, a **playground** (whoop bumps,
+a giant slide, a seesaw, tire stacks, beach balls that roll when you shove
+them) and a **parking lot** full of cars that pancake — CRUNCH! — when you
+drive over them (they pop back after a while). The announcer names each place
+as you roll in.
+
 Live at: https://tw-origami.github.io/monstertruck/
 
 ## Design rules (the pedagogy, all deliberate)
@@ -27,6 +34,9 @@ Live at: https://tw-origami.github.io/monstertruck/
 - **Auto-cruise** is on by default — the truck rolls on its own and steering
   is the whole game, playable with one thumb. Parents can toggle it on the
   mode screen.
+- **Learning lives in the stadium; everywhere else is pure play.** Drive out
+  an archway mid-round and the gates pack up with no penalty; drive back in
+  and a fresh callout follows. The kid chooses when it's school time.
 
 ## Layout
 

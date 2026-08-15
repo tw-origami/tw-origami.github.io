@@ -58,6 +58,7 @@ if (values !== '1,2,3,4,5,6,7,8,9,10') errors.push(`numbers.value should be 1..1
 for (const p of VO_EXTRA?.praise ?? []) claimVo(p.vo, 'praise');
 for (const r of VO_EXTRA?.retry ?? []) claimVo(r.vo, 'retry');
 for (const [k, v] of Object.entries(VO_EXTRA?.intros ?? {})) claimVo(v.vo, `intro ${k}`);
+for (const [k, v] of Object.entries(VO_EXTRA?.zones ?? {})) claimVo(v.vo, `zone ${k}`);
 for (const key of ['title', 'airtime', 'fivestars']) claimVo(VO_EXTRA?.[key]?.vo, key);
 for (const w of VO_EXTRA?.words ?? []) claimVo(w.vo, `word ${w.id}`);
 if (!(VO_EXTRA?.praise?.length >= 3)) errors.push('need at least 3 praise lines');

@@ -47,6 +47,10 @@ initInput();
 let appState = 'title';       // title | garage | modes | arena
 let running = false;
 let lastAirVo = -99;
+let curZone = 'stadium';
+let lastCrunchPop = -99;
+const ZONE_LABELS = { stadium: 'THE STADIUM!', playground: 'PLAYGROUND!', parking: 'PARKING LOT!' };
+const _p = new THREE.Vector3();
 
 /* ---------------- sizing ---------------- */
 
@@ -103,6 +107,7 @@ screens.init({
     appState = 'arena';
     truck.teleport(0, 24, Math.PI);
     truck.snapCam(camera);
+    curZone = 'stadium';               // no zone popup for the spawn point
     vo.speak(window.VO_EXTRA.intros[m], 3);
     rounds.start(m);
   },
@@ -161,6 +166,16 @@ function tick(dt, t) {
 
     if (takeAction()) { rounds.replayCallout(); audio.honk(); }
 
+    // announce the neighborhood as the kid explores
+    const z = world.zoneAt(truck.pos);
+    if (z !== curZone) {
+      curZone = z;
+      if (ZONE_LABELS[z]) {
+        hud.popup(ZONE_LABELS[z]);
+        vo.speak(window.VO_EXTRA.zones[z], 2);
+      }
+    }
+
     rounds.update(dt);
     truck.updateCam(camera, dt);
     audio.setEngine(Math.abs(truck.speed) / TOP, input.gas || !truck.grounded ? 0.6 : 0);
@@ -172,7 +187,17 @@ function tick(dt, t) {
     audio.setEngine(0, 0);
   }
 
-  world.update(dt, t, camera);
+  const wev = world.update(dt, t, camera, appState === 'arena' ? truck : null);
+  for (const c of wev.crushes) {
+    audio.crunch();
+    particles.burst('dust', _p.set(c.x, 1, c.z), 14);
+    particles.burst('spark', _p, 8);
+    if (t - lastCrunchPop > 1.2) { lastCrunchPop = t; hud.popup('CRUNCH!'); }
+  }
+  for (const b of wev.ballHits) {
+    audio.pop();
+    particles.burst('dust', _p.set(b.x, 1, b.z), 5);
+  }
   gates.update(dt, t);
   particles.update(dt);
 

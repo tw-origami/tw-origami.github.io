@@ -10,7 +10,7 @@
 //     mastery grows, so round one is A-F, not a random dip into 26 letters.
 
 import * as THREE from 'three';
-import { GATE } from './world.js';
+import { GATE, zoneAt } from './world.js';
 import * as vo from './vo.js';
 import * as audio from './audio.js';
 import * as save from './save.js';
@@ -205,6 +205,25 @@ function onWrong(index) {
 
 export function update(dt) {
   if (phase === 'idle') return;
+
+  // The learning game lives in the stadium. Drive out an archway and the round
+  // packs up without penalty; drive back in and a fresh callout follows soon.
+  if (zoneAt(truck.pos) !== 'stadium') {
+    if (phase === 'announce' || phase === 'seeking') {
+      roundToken++;
+      gatesApi.sinkAll();
+      hud.setTarget(null);
+      vo.stopAll();
+      phase = 'away';
+    } else if (phase === 'free') {
+      phase = 'away';
+    }
+    if (phase !== 'celebrate') return;   // celebrations get to finish
+  } else if (phase === 'away') {
+    phase = 'free';
+    timer = 2.2;
+    world.jumbotron.idle(save.load().stars[mode] ?? 0);
+  }
 
   if (phase === 'free') {
     timer -= dt;

@@ -7,7 +7,7 @@
 
 import * as THREE from 'three';
 import { clamp, damp } from './util.js';
-import { heightAt, wallPush } from './world.js';
+import { heightAt, collide } from './world.js';
 
 export const TOP = 16;          // u/s flat out
 const CRUISE = 8;               // auto-cruise rolling speed: steering IS the game
@@ -16,6 +16,8 @@ const ACCEL = 14, BRAKE = 24, DRAG = 6;
 const GRAV = 28;                // a touch floaty — real gravity reads as a stumble
 const STEER_RATE = 2.2;
 const WHEEL_R = 0.95;
+const MAX_CLIMB = 14;           // u/s — fastest the wheels can ride terrain upward
+const MAX_LAUNCH = 9;           // u/s — the biggest legit ramp launch is ~7
 
 export function createTruck(scene, colorHex) {
   const mat = (opts) => new THREE.MeshLambertMaterial({ flatShading: true, ...opts });
@@ -137,7 +139,7 @@ export function createTruck(scene, colorHex) {
     this.pos.x += Math.sin(this.yaw) * this.speed * dt;
     this.pos.z += Math.cos(this.yaw) * this.speed * dt;
 
-    const wp = wallPush(this.pos.x, this.pos.z, 2.0);
+    const wp = collide(this.pos.x, this.pos.z, 2.0);
     if (wp) {
       this.pos.x = wp.x; this.pos.z = wp.z;
       if (Math.abs(this.speed) > 3.5) { ev.hitWall = true; springV -= 0.5; }
@@ -156,9 +158,17 @@ export function createTruck(scene, colorHex) {
       const cantFollow = newGroundVy < groundVy - GRAV * dt * 1.5;
       if (cliff || cantFollow) {
         this.grounded = false;
-        this.vy = Math.max(0, groundVy);
+        // clamped: clipping a ramp's SIDE snaps y up a step in one frame, and
+        // an unclamped climb rate there once turned into a moon launch
+        this.vy = clamp(groundVy, 0, MAX_LAUNCH);
         this.airTime = 0;
         if (this.vy > 2.5) ev.jumped = true;
+      } else if (gY > this.pos.y) {
+        // ride up at a capped rate instead of teleporting — a ramp's side edge
+        // is a height cliff, and the old instant snap was the launch-spike bug
+        const step = Math.min(gY - this.pos.y, MAX_CLIMB * dt);
+        this.pos.y += step;
+        groundVy = step / Math.max(dt, 1e-4);
       } else {
         groundVy = newGroundVy;
         this.pos.y = gY;
@@ -230,8 +240,8 @@ export function createTruck(scene, colorHex) {
       5.1 + this.pos.y * 0.35 + heightAt(this.pos.x - d.x * 8, this.pos.z - d.z * 8) * 0.5,
       this.pos.z - d.z * 10.5
     );
-    // the camera may trail a little past the wall, but never into the stands
-    const wp = wallPush(_v.x, _v.z, -4);
+    // the camera may swing wide, but never inside stands, fences, or trees
+    const wp = collide(_v.x, _v.z, 0.4);
     if (wp) { _v.x = wp.x; _v.z = wp.z; }
     camPos.lerp(_v, damp(4, dt));
     _v.set(this.pos.x + d.x * 4.5, this.pos.y + 1.5, this.pos.z + d.z * 4.5);

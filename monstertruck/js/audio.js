@@ -179,6 +179,12 @@ export const fanfare  = () => {
   note(N.c4, 0, 0.5, 'triangle', 0.08);
 };
 export const firePop  = (delay = 0) => { noise(delay, 0.2, 0.12); sweep(700 + Math.random() * 400, 120, delay, 0.35, 'square', 0.05); };
+export const crunch   = () => {         // pancaking a parked car
+  noise(0, 0.3, 0.16);
+  sweep(260, 45, 0, 0.32, 'sawtooth', 0.12);
+  note(1180, 0.02, 0.07, 'square', 0.05);
+};
+export const pop      = () => sweep(280, 720, 0, 0.13, 'sine', 0.11);   // beach ball boop
 export const bigFanfare = () => {
   const seq = [[N.c5, 0], [N.c5, 0.12], [N.c5, 0.24], [N.e5, 0.36], [N.g5, 0.52], [N.c6, 0.68]];
   for (const [f, t] of seq) note(f, t, 0.3);
