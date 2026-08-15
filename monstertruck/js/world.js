@@ -95,6 +95,23 @@ for (let i = 0; i < 34; i++) {
   CIRCLES.push({ x, z, r: 0.9 });
 }
 
+// Track obstacles: giant glyphs positioned around the oval for visual interest.
+// { x, z, item (shape/letter/color), size (canvas units) }
+const OBSTACLES = [
+  // north straight
+  { x: -55, z: 95, item: { id: 'circle', glyph: '●', category: 'shape' }, size: 96 },
+  { x: 55, z: 95, item: { id: 'triangle', glyph: '▲', category: 'shape' }, size: 96 },
+  // east corner
+  { x: 135, z: 35, item: { id: 'a', glyph: 'A', category: 'letter' }, size: 128 },
+  { x: 135, z: -35, item: { id: 'b', glyph: 'B', category: 'letter' }, size: 128 },
+  // south straight
+  { x: -55, z: -95, item: { id: 'red', hex: '#e8442e', category: 'color' }, size: 96 },
+  { x: 55, z: -95, item: { id: 'blue', hex: '#2f6fe0', category: 'color' }, size: 96 },
+  // west corner
+  { x: -135, z: 35, item: { id: 'square', glyph: '■', category: 'shape' }, size: 96 },
+  { x: -135, z: -35, item: { id: 'c', glyph: 'C', category: 'letter' }, size: 128 },
+];
+
 /* ================= physics queries ================= */
 
 /** Ground height at a point: dirt, the side of a wedge, or a car (pancaked or not). */
@@ -693,6 +710,29 @@ export function buildWorld(scene) {
     scene.add(g);
   }
 
+  /* ---- track obstacles: giant glyphs around the oval ---- */
+  const obstacles = [];
+  for (const obs of OBSTACLES) {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = obs.size;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#101a38';
+    ctx.fillRect(0, 0, obs.size, obs.size);
+    ctx.strokeStyle = '#4fd8e8';
+    ctx.lineWidth = Math.max(3, obs.size / 32);
+    ctx.strokeRect(4, 4, obs.size - 8, obs.size - 8);
+    drawGlyph(ctx, obs.item, obs.size - 16, 8, obs.size / 2);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
+    tex.generateMipmaps = false;
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(6, 6), new THREE.MeshBasicMaterial({ map: tex }));
+    mesh.position.set(obs.x, 3, obs.z);
+    scene.add(mesh);
+    obstacles.push({ ...obs, mesh, hit: false });
+  }
+
   /* ---- sky ---- */
   const skyUniforms = {
     topColor: { value: new THREE.Color(0x2a2f7e) },
@@ -737,10 +777,10 @@ export function buildWorld(scene) {
     /**
      * Per-frame world life. Needs the truck for crushing and ball pushing.
      * Returns events for main to turn into sound and particles:
-     * { crushes: [{x,z}], ballHits: [{x,z}], restores: [{x,z}] }
+     * { crushes: [{x,z}], ballHits: [{x,z}], obstacleHits: [{x,z}], restores: [{x,z}] }
      */
     update(dt, t, camera, truck) {
-      const ev = { crushes: [], ballHits: [], restores: [] };
+      const ev = { crushes: [], ballHits: [], obstacleHits: [], restores: [] };
 
       for (const c of clouds.children) {
         c.position.x += dt * 1.4;
@@ -798,6 +838,18 @@ export function buildWorld(scene) {
           b.mesh.position.set(b.pos.x, b.r * (1 + Math.abs(Math.sin(t * 3)) * 0.04), b.pos.z);
           b.mesh.rotation.x += b.vel.z * dt / b.r;
           b.mesh.rotation.z -= b.vel.x * dt / b.r;
+        }
+
+        /* track obstacles: burst when truck passes through */
+        for (const obs of obstacles) {
+          const dx = truck.pos.x - obs.x, dz = truck.pos.z - obs.z;
+          const d = Math.hypot(dx, dz);
+          if (d < 4.5 && !obs.hit) {
+            obs.hit = true;
+            ev.obstacleHits.push({ x: obs.x, z: obs.z });
+            // reset after truck leaves
+            setTimeout(() => { obs.hit = false; }, 800);
+          }
         }
       }
 

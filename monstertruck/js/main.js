@@ -198,6 +198,11 @@ function tick(dt, t) {
     audio.pop();
     particles.burst('dust', _p.set(b.x, 1, b.z), 5);
   }
+  for (const o of wev.obstacleHits) {
+    audio.pop();
+    particles.burst('confetti', _p.set(o.x, 3, o.z), 12);
+    particles.burst('dust', _p, 8);
+  }
   gates.update(dt, t);
   particles.update(dt);
 
