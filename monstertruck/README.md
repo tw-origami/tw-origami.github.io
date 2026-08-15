@@ -69,9 +69,10 @@ js/
   hud.js          target chip, stars, popups, mute
   screens.js      title / truck select / mode select
   save.js         one localStorage blob (ids + numbers only — repo is public)
-audio/vo/*.mp3    the announcer's 69 voice clips (see below)
+audio/vo/*.mp3    the announcer's 73 voice clips (see below)
 vendor/           three.js r180, pinned, offline
-tools/            serve.py (dev), deploy.sh (publish), check-callouts.mjs (audit)
+tools/            serve.py (dev), deploy.sh (publish), check-callouts.mjs (audit),
+                  regen-vo.mjs (re-record the announcer)
 ```
 
 No build step, no CDN, no analytics. The whole game works offline from a
@@ -79,10 +80,24 @@ static folder. Requires import-map support (Safari 16.4+, any recent Chrome).
 
 ## The voice
 
-`audio/vo/<id>.mp3`, one clip per line in `data/callouts.js`. The shipped set
-was TTS-generated (Higgsfield seed_audio, "Grady" preset, ~14 credits for all
-69 lines). The game prefers the mp3 and falls back to the browser's
-`speechSynthesis` for any missing clip, so:
+`audio/vo/<id>.mp3`, one clip per line in `data/callouts.js`. The shipped set is
+TTS-generated — ElevenLabs `eleven_multilingual_v2`, voice "Jessica", all 73
+lines — by `tools/regen-vo.mjs`, which reads the manifest so a clip can never
+drift from its script:
+
+```
+node tools/regen-vo.mjs                    # fill in whatever's missing
+node tools/regen-vo.mjs --force            # re-record all 73
+node tools/regen-vo.mjs --only=title,praise_1
+node tools/regen-vo.mjs --list-voices      # pick a different voice
+```
+
+The key comes from `ELEVENLABS_API_KEY` or `~/.config/tw-origami/secrets.env` —
+**outside** this folder on purpose, because everything here is copied into the
+public Pages repo on every deploy. Never keep a key in this directory.
+
+The game prefers the mp3 and falls back to the browser's `speechSynthesis` for
+any missing clip, so:
 
 - **Re-recording is drop-in**: record a replacement with the same filename
   (e.g. `shape_triangle.mp3` for "Find the triangle!"), drop it in, done.
