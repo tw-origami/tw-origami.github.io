@@ -1,0 +1,302 @@
+/* Monster Truck — chunky N64-era chrome.
+   The 3D canvas renders low-res and CSS blows it up (see js/main.js); everything
+   readable lives out here in the DOM where it stays crisp. */
+
+:root {
+  --sky: #2a1a4a;            /* dusk purple behind everything */
+  --panel: #1c1233;
+  --ink: #fff7e8;
+  --sun: #ffcf3f;            /* headline yellow */
+  --hot: #ff5330;            /* monster red */
+  --go: #3fae4c;
+  --stop: #d43c2a;
+  --chip: #ffffff;
+  --shadow: #12081f;
+  --line: 4px;               /* the era's everything-has-an-outline look */
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: var(--sky);
+  color: var(--ink);
+}
+
+button { font-family: inherit; cursor: pointer; }
+
+.hidden { display: none !important; }
+
+/* ---------------- 3D stage ---------------- */
+
+#stage { position: fixed; inset: 0; background: var(--sky); }
+#view {
+  width: 100%; height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  touch-action: none;
+}
+
+/* ---------------- HUD ---------------- */
+
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 20; }
+#hud button { pointer-events: auto; }
+
+#homeBtn {
+  position: absolute; top: max(10px, env(safe-area-inset-top)); left: max(10px, env(safe-area-inset-left));
+  width: 52px; height: 52px; font-size: 26px;
+  background: var(--panel); color: var(--ink);
+  border: var(--line) solid var(--shadow); border-radius: 14px;
+  box-shadow: 0 4px 0 var(--shadow);
+}
+
+/* target chip: top-center, glyph + a huge "say it again" speaker */
+#targetChip {
+  position: absolute; top: max(8px, env(safe-area-inset-top));
+  left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px;
+  background: var(--chip); border: var(--line) solid var(--shadow);
+  border-radius: 18px; padding: 6px;
+  box-shadow: 0 5px 0 var(--shadow);
+  pointer-events: auto;
+}
+#targetChip.pop { animation: chipPop .45s cubic-bezier(.2, 2.4, .4, 1); }
+@keyframes chipPop { 0% { transform: translateX(-50%) scale(.4); } 100% { transform: translateX(-50%) scale(1); } }
+#chipCanvas { width: 64px; height: 64px; display: block; border-radius: 10px; }
+#sayAgain {
+  width: 58px; height: 58px; font-size: 28px;
+  background: var(--sun); border: var(--line) solid var(--shadow);
+  border-radius: 14px; box-shadow: 0 4px 0 var(--shadow);
+}
+#sayAgain:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--shadow); }
+
+#hudRight {
+  position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right));
+  display: flex; align-items: center; gap: 10px;
+}
+#starCount {
+  background: var(--panel); border: var(--line) solid var(--shadow);
+  border-radius: 14px; padding: 8px 14px;
+  font-size: 22px; font-weight: 900; color: var(--sun);
+  box-shadow: 0 4px 0 var(--shadow);
+}
+#starCount.pop { animation: starPop .5s cubic-bezier(.2, 2.6, .4, 1); }
+@keyframes starPop { 40% { transform: scale(1.35) rotate(-4deg); } }
+#muteBtn {
+  width: 52px; height: 52px; font-size: 24px;
+  background: var(--panel); color: var(--ink);
+  border: var(--line) solid var(--shadow); border-radius: 14px;
+  box-shadow: 0 4px 0 var(--shadow);
+}
+
+/* big center popup: AIR TIME! / GREAT JOB! */
+#popup {
+  position: absolute; left: 50%; top: 30%;
+  transform: translate(-50%, -50%) rotate(-4deg);
+  font-size: clamp(40px, 9vw, 84px); font-weight: 900; font-style: italic;
+  letter-spacing: 2px; white-space: nowrap;
+  color: var(--sun);
+  -webkit-text-stroke: 2px var(--shadow);
+  text-shadow: 4px 4px 0 var(--hot), 8px 8px 0 var(--shadow);
+  animation: popIn .5s cubic-bezier(.2, 2.4, .4, 1);
+  pointer-events: none;
+}
+#popup.fade { animation: popOut .4s ease forwards; }
+#popup small { display: block; text-align: center; font-size: .45em; color: var(--ink); -webkit-text-stroke: 1px var(--shadow); }
+@keyframes popIn { 0% { transform: translate(-50%, -50%) rotate(-4deg) scale(.2); } }
+@keyframes popOut { to { opacity: 0; transform: translate(-50%, -70%) rotate(-4deg) scale(.8); } }
+
+/* ---------------- touch controls ---------------- */
+
+#touch { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
+#stickZone { position: absolute; left: 0; bottom: 0; width: 44%; height: 52%; pointer-events: auto; }
+#stickBase {
+  position: absolute; width: 124px; height: 124px; margin: -62px 0 0 -62px;
+  border-radius: 50%;
+  background: rgba(28, 18, 51, .55);
+  border: 3px solid rgba(255, 247, 232, .5);
+  opacity: 0; transition: opacity .12s;
+}
+#stickBase.on { opacity: 1; }
+#stickKnob {
+  position: absolute; left: 50%; top: 50%; width: 62px; height: 62px; margin: -31px 0 0 -31px;
+  border-radius: 50%;
+  background: var(--sun); border: 4px solid var(--shadow);
+}
+
+#pedals {
+  position: absolute; right: max(14px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  display: flex; gap: 14px; align-items: flex-end;
+  pointer-events: auto;
+}
+#pedals button {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border: var(--line) solid var(--shadow); border-radius: 22px;
+  font-size: 20px; font-weight: 900; color: #fff;
+  box-shadow: 0 6px 0 var(--shadow);
+  -webkit-text-stroke: 0;
+}
+#pedals button span { font-size: 30px; }
+#pedals button:active, #pedals button.down { transform: translateY(4px); box-shadow: 0 2px 0 var(--shadow); }
+#btnGas  { width: 116px; height: 116px; background: var(--go); }
+#btnBrake { width: 92px; height: 92px; background: var(--stop); }
+
+/* ---------------- full-screen menu screens ---------------- */
+
+.screen {
+  position: fixed; inset: 0; z-index: 40;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: clamp(12px, 3vh, 28px);
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  background:
+    radial-gradient(ellipse at 50% 110%, rgba(255, 83, 48, .28), transparent 55%),
+    radial-gradient(ellipse at 50% -20%, rgba(63, 111, 224, .25), transparent 60%),
+    var(--sky);
+  overflow-y: auto;
+}
+/* the arena stays visible behind menus once the game has booted */
+.screen.overArena { background: rgba(26, 14, 46, .72); }
+
+.screenTitle {
+  font-size: clamp(26px, 6vw, 44px); font-weight: 900; font-style: italic;
+  color: var(--sun); letter-spacing: 1px; text-align: center;
+  -webkit-text-stroke: 1.5px var(--shadow);
+  text-shadow: 3px 3px 0 var(--hot), 6px 6px 0 var(--shadow);
+}
+
+/* ------- title ------- */
+
+.titleInner { display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 2.5vh, 22px); text-align: center; }
+.logo h1, .logo h2 {
+  font-weight: 900; font-style: italic; letter-spacing: 3px; line-height: .95;
+  -webkit-text-stroke: 2.5px var(--shadow);
+}
+.logo h1 { font-size: clamp(52px, 13vw, 118px); color: var(--sun); text-shadow: 5px 5px 0 var(--hot), 10px 10px 0 var(--shadow); }
+.logo h2 { font-size: clamp(64px, 16vw, 148px); color: var(--hot); text-shadow: 5px 5px 0 var(--sun), 10px 10px 0 var(--shadow); }
+.logo { animation: logoBounce 2.6s ease-in-out infinite; }
+@keyframes logoBounce { 0%, 100% { transform: rotate(-2deg) scale(1); } 50% { transform: rotate(1deg) scale(1.03); } }
+
+.tag { font-size: clamp(15px, 2.6vw, 21px); font-weight: 700; opacity: .95; }
+
+#startBtn, .bigGo {
+  font-size: clamp(22px, 4.5vw, 34px); font-weight: 900; letter-spacing: 2px;
+  color: var(--shadow); background: var(--sun);
+  border: var(--line) solid var(--shadow); border-radius: 20px;
+  padding: 18px 44px;
+  box-shadow: 0 7px 0 var(--shadow);
+  animation: startPulse 1.1s ease-in-out infinite;
+}
+#startBtn:active, .bigGo:active { transform: translateY(5px); box-shadow: 0 2px 0 var(--shadow); animation: none; }
+@keyframes startPulse { 50% { transform: scale(1.05); } }
+.bigGo { background: var(--go); color: #fff; animation: none; }
+
+.hint { font-size: 13px; opacity: .65; max-width: 480px; text-align: center; }
+
+/* ------- garage ------- */
+
+#truckCards {
+  display: grid; grid-template-columns: repeat(4, minmax(120px, 190px));
+  gap: clamp(10px, 2vw, 22px);
+  width: 100%; max-width: 900px; justify-content: center;
+}
+.truckCard {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: var(--panel);
+  border: var(--line) solid var(--shadow); border-radius: 22px;
+  padding: clamp(10px, 2vw, 18px);
+  box-shadow: 0 6px 0 var(--shadow);
+  transition: transform .1s;
+}
+.truckCard svg { width: 100%; height: auto; }
+.truckCard .tName {
+  font-size: clamp(16px, 2.6vw, 24px); font-weight: 900; letter-spacing: 1px; color: #fff;
+}
+.truckCard.on {
+  transform: scale(1.07) rotate(-2deg);
+  border-color: var(--sun);
+  box-shadow: 0 0 0 5px var(--sun), 0 8px 0 var(--shadow);
+}
+.truckCard:active { transform: scale(.97); }
+
+/* ------- mode select ------- */
+
+#modeTiles {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 210px));
+  gap: clamp(10px, 2vw, 20px);
+  width: 100%; max-width: 980px; justify-content: center;
+}
+.modeTile {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  border: var(--line) solid var(--shadow); border-radius: 24px;
+  padding: clamp(14px, 2.5vw, 24px) 10px;
+  box-shadow: 0 7px 0 var(--shadow);
+  color: #fff;
+  transition: transform .1s;
+}
+.modeTile:active { transform: translateY(4px); box-shadow: 0 3px 0 var(--shadow); }
+.modeTile .mIcon { font-size: clamp(34px, 6vw, 52px); line-height: 1.1; letter-spacing: 2px; font-weight: 900; }
+.modeTile .mIcon svg { width: clamp(60px, 9vw, 92px); height: auto; display: block; }
+.modeTile .mName { font-size: clamp(17px, 2.8vw, 24px); font-weight: 900; letter-spacing: 1px; }
+.modeTile .mStars { font-size: 14px; font-weight: 800; color: var(--sun); min-height: 1.2em; }
+
+.parentRow { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center; margin-top: 6px; }
+.parentLink {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 14px; font-weight: 700; color: var(--ink); text-decoration: none;
+  background: rgba(255, 247, 232, .12);
+  border: 2px solid rgba(255, 247, 232, .35); border-radius: 12px;
+  padding: 8px 14px;
+}
+.toggle input { width: 18px; height: 18px; accent-color: var(--go); }
+
+/* ---------------- error overlay + debug ---------------- */
+
+#oops {
+  position: fixed; inset: 0; z-index: 90;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(18, 8, 31, .85);
+}
+#oops .box {
+  background: var(--panel); border: var(--line) solid var(--shadow); border-radius: 20px;
+  box-shadow: 0 7px 0 var(--shadow);
+  padding: 26px; max-width: 340px; text-align: center;
+  display: flex; flex-direction: column; gap: 16px;
+}
+#oopsBtn {
+  font-size: 20px; font-weight: 900; padding: 12px 26px;
+  background: var(--sun); border: var(--line) solid var(--shadow); border-radius: 14px;
+  box-shadow: 0 5px 0 var(--shadow);
+}
+
+#debug {
+  position: fixed; left: 8px; bottom: 8px; z-index: 99;
+  font: 11px/1.5 ui-monospace, Menlo, monospace; white-space: pre;
+  color: #9f9; background: rgba(0, 0, 0, .55);
+  padding: 6px 8px; border-radius: 8px; pointer-events: none;
+}
+
+/* ---------------- small screens ---------------- */
+
+@media (max-width: 640px) {
+  #truckCards { grid-template-columns: repeat(2, minmax(130px, 1fr)); }
+  #modeTiles { grid-template-columns: repeat(2, minmax(130px, 1fr)); }
+  /* the chip drops below the corner buttons instead of colliding with them */
+  #targetChip { top: calc(max(10px, env(safe-area-inset-top)) + 62px); }
+  #chipCanvas { width: 54px; height: 54px; }
+  #sayAgain { width: 50px; height: 50px; font-size: 24px; }
+  #btnGas { width: 96px; height: 96px; }
+  #btnBrake { width: 76px; height: 76px; }
+}
+@media (max-height: 460px) {          /* phones held sideways */
+  .logo h1 { font-size: 44px; } .logo h2 { font-size: 54px; }
+  .screen { gap: 8px; }
+}

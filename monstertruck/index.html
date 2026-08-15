@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2a1a4a">
+<title>Monster Truck</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="stage">
+  <canvas id="view"></canvas>
+</div>
+
+<!-- ============ HUD (arena only) ============ -->
+<div id="hud" class="hidden">
+  <button id="homeBtn" type="button" aria-label="Back">🏠</button>
+
+  <!-- What we're looking for right now. The speaker is the kid's "say it again"
+       button — deliberately huge, it is the most important control in the game. -->
+  <div id="targetChip" class="hidden">
+    <canvas id="chipCanvas" width="112" height="112"></canvas>
+    <button id="sayAgain" type="button" aria-label="Say it again">🔊</button>
+  </div>
+
+  <div id="hudRight">
+    <div id="starCount"><span id="starNum">0</span> ⭐</div>
+    <button id="muteBtn" type="button" aria-label="Sound on or off">🔊</button>
+  </div>
+
+  <!-- Big center popups: AIR TIME!, GREAT JOB!, etc. -->
+  <div id="popup" class="hidden"></div>
+</div>
+
+<!-- ============ Touch controls ============ -->
+<div id="touch" class="hidden">
+  <div id="stickZone"><div id="stickBase"><div id="stickKnob"></div></div></div>
+  <div id="pedals">
+    <button id="btnBrake" type="button"><span>✋</span>STOP</button>
+    <button id="btnGas" type="button"><span>🔥</span>GO!</button>
+  </div>
+</div>
+
+<!-- ============ Title screen ============ -->
+<div id="title" class="screen">
+  <div class="titleInner">
+    <div class="logo">
+      <h1><span>MONSTER</span></h1>
+      <h2><span>TRUCK</span></h2>
+    </div>
+    <p class="tag">🏟️ Drive! Jump! Find shapes, colors, letters and numbers!</p>
+    <button id="startBtn" type="button">PRESS START</button>
+    <p class="hint">Drive with <b>arrow keys</b> or <b>WASD</b> · <b>Space</b> hears it again · big buttons on a tablet</p>
+  </div>
+</div>
+
+<!-- ============ Garage: pick your truck ============ -->
+<div id="garage" class="screen hidden">
+  <h2 class="screenTitle">PICK YOUR TRUCK!</h2>
+  <div id="truckCards"></div>
+  <div class="screenRow">
+    <button id="garageGo" type="button" class="bigGo">LET'S GO! ➜</button>
+  </div>
+</div>
+
+<!-- ============ Mode select ============ -->
+<div id="modes" class="screen hidden">
+  <h2 class="screenTitle">WHAT DO YOU WANT TO FIND?</h2>
+  <div id="modeTiles"></div>
+  <div class="parentRow">
+    <a class="parentLink" href="../index.html">🏠 Learn Zone</a>
+    <button id="garageBtn" type="button" class="parentLink">🚚 Change truck</button>
+    <label class="parentLink toggle"><input type="checkbox" id="cruiseToggle" checked> Auto-drive</label>
+  </div>
+</div>
+
+<!-- ============ Context-lost / error overlay ============ -->
+<div id="oops" class="hidden">
+  <div class="box">
+    <p id="oopsText">The stadium needs a moment.</p>
+    <button id="oopsBtn" type="button">Reload</button>
+  </div>
+</div>
+
+<div id="debug" class="hidden"></div>
+
+<!-- Content data. Classic script on purpose, same style as the other apps:
+     the TTS generator and the check script read this exact file. -->
+<script src="data/callouts.js"></script>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js" } }
+</script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
