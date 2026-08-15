@@ -49,7 +49,7 @@ let running = false;
 let lastAirVo = -99;
 let curZone = 'stadium';
 let lastCrunchPop = -99;
-const ZONE_LABELS = { stadium: 'THE STADIUM!', playground: 'PLAYGROUND!', parking: 'PARKING LOT!' };
+const ZONE_LABELS = { stadium: 'THE STADIUM!', track: 'RACE TRACK!', playground: 'PLAYGROUND!', parking: 'PARKING LOT!' };
 const _p = new THREE.Vector3();
 
 /* ---------------- sizing ---------------- */

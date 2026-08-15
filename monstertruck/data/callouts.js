@@ -83,6 +83,7 @@
     // Announced once when the truck rolls into a part of the grounds.
     zones: {
       stadium:    { vo: 'zone_stadium',    text: 'The stadium! Find the gates!' },
+      track:      { vo: 'zone_track',      text: 'The big race track! Go for a lap!' },
       playground: { vo: 'zone_playground', text: 'The playground! Try the big slide!' },
       parking:    { vo: 'zone_parking',    text: 'The parking lot! Crush those cars!' },
     },

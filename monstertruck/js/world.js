@@ -15,11 +15,19 @@ import { drawGlyph } from './glyphs.js';
 
 export const ARENA = { hw: 45, hd: 30, r: 14 };     // stadium infield
 const GAP_HALF = 8;                                  // archway openings on the ±x ends
-const FENCE = { hw: 160, hd: 112, r: 34 };           // edge of the world
-const TRACK = { ihw: 64, ihd: 48, ir: 22, ohw: 82, ohd: 64, or: 30 };
+const FENCE = { hw: 250, hd: 170, r: 120 };          // edge of the world
 
-export const PLAYGROUND = { x: -118, z: 0, hw: 34, hd: 25 };
-export const PARKING = { x: 118, z: 0, hw: 34, hd: 25 };
+// One big oval circuit with the stadium parked in the middle of it. The inner
+// and outer outlines share their corner centres (hw-r and hd-r match), so the
+// racing surface stays a uniform 48 wide the whole way round, and the huge
+// corner radius makes the ends read as sweeping curves instead of hairpins.
+const TRACK = { ihw: 100, ihd: 74, ir: 66, ohw: 148, ohd: 122, or: 114 };
+const TRACK_MID = { hw: 124, hd: 98, r: 90 };
+
+// The play zones sit just outside the oval's ends, so leaving the stadium by an
+// archway means crossing the infield, cutting over the track, and arriving.
+export const PLAYGROUND = { x: -195, z: 0, hw: 34, hd: 25 };
+export const PARKING = { x: 195, z: 0, hw: 34, hd: 25 };
 
 // Where the answer gates live (gates.js builds the meshes; rounds.js runs the game).
 export const GATE = { z: -14, xs: [-9, 0, 9], halfW: 3.6, clearR: 10 };
@@ -33,15 +41,15 @@ export const WEDGES = [
   { x: 27,   z: 0,   w: 8,  l: 12, h: 2.6, yaw: Math.PI / 2, color: 0x2f6fe0 },
   { x: -18,  z: -24, w: 7,  l: 10, h: 2.2, yaw: Math.PI / 2, color: 0xf4c531 },
   // playground: a rhythm of whoops…
-  { x: -134, z: -14, w: 10, l: 3.2, h: 0.55, yaw: Math.PI / 2, color: 0xd98a3a },
-  { x: -127, z: -14, w: 10, l: 3.2, h: 0.55, yaw: Math.PI / 2, color: 0xc97a2f },
-  { x: -120, z: -14, w: 10, l: 3.2, h: 0.55, yaw: Math.PI / 2, color: 0xd98a3a },
-  { x: -113, z: -14, w: 10, l: 3.2, h: 0.55, yaw: Math.PI / 2, color: 0xc97a2f },
-  { x: -106, z: -14, w: 10, l: 3.2, h: 0.55, yaw: Math.PI / 2, color: 0xd98a3a },
+  { x: -211, z: -14, w: 10, l: 3.2, h: 0.55, yaw: Math.PI / 2, color: 0xd98a3a },
+  { x: -204, z: -14, w: 10, l: 3.2, h: 0.55, yaw: Math.PI / 2, color: 0xc97a2f },
+  { x: -197, z: -14, w: 10, l: 3.2, h: 0.55, yaw: Math.PI / 2, color: 0xd98a3a },
+  { x: -190, z: -14, w: 10, l: 3.2, h: 0.55, yaw: Math.PI / 2, color: 0xc97a2f },
+  { x: -183, z: -14, w: 10, l: 3.2, h: 0.55, yaw: Math.PI / 2, color: 0xd98a3a },
   // …the giant slide…
-  { x: -120, z: 8,  w: 7, l: 22, h: 4.4, yaw: Math.PI / 2, color: 0x4fd8e8 },
+  { x: -197, z: 8,  w: 7, l: 22, h: 4.4, yaw: Math.PI / 2, color: 0x4fd8e8 },
   // …and a little seesaw plank
-  { x: -98,  z: 14, w: 3, l: 12, h: 1.5, yaw: 0, color: 0xc9a24a },
+  { x: -175, z: 14, w: 3, l: 12, h: 1.5, yaw: 0, color: 0xc9a24a },
 ];
 
 // Parked cars, all axis-aligned (length along z), pancaked on contact.
@@ -50,7 +58,7 @@ const CARS = [];
 for (let row = 0; row < 2; row++) {
   for (let i = 0; i < 6; i++) {
     CARS.push({
-      x: 94 + i * 9.5, z: row ? 9 : -9, w: 2.5, l: 4.8, h: 1.05,
+      x: 171 + i * 9.5, z: row ? 9 : -9, w: 2.5, l: 4.8, h: 1.05,
       color: CAR_COLORS[(i + row * 3) % CAR_COLORS.length],
       crushed: false, timer: 0,
     });
@@ -71,17 +79,18 @@ const CIRCLES = [
   { x: -38, z: 36, r: 1.2 }, { x: 38, z: 36, r: 1.2 },
   { x: 45, z: -GAP_HALF - 1.4, r: 1.1 }, { x: 45, z: GAP_HALF + 1.4, r: 1.1 },   // archway posts
   { x: -45, z: -GAP_HALF - 1.4, r: 1.1 }, { x: -45, z: GAP_HALF + 1.4, r: 1.1 },
-  { x: -140, z: 12, r: 1.8 }, { x: -136, z: -20, r: 1.8 }, { x: -96, z: -6, r: 1.8 },  // tire stacks
+  { x: -217, z: 12, r: 1.8 }, { x: -213, z: -20, r: 1.8 }, { x: -173, z: -6, r: 1.8 },  // tire stacks
 ];
 
 const TREES = [];
-for (let i = 0; i < 18; i++) {
-  const a = (i / 18) * Math.PI * 2 + 0.17;
-  const x = Math.cos(a) * 132 + Math.sin(i * 7) * 10;
-  const z = Math.sin(a) * 93 + Math.cos(i * 5) * 8;
-  // keep the playground and parking pads clear
-  if (Math.abs(x - PLAYGROUND.x) < 44 && Math.abs(z) < 32) continue;
-  if (Math.abs(x - PARKING.x) < 44 && Math.abs(z) < 32) continue;
+for (let i = 0; i < 34; i++) {
+  const a = (i / 34) * Math.PI * 2 + 0.17;
+  const x = Math.cos(a) * 218 + Math.sin(i * 7) * 12;
+  const z = Math.sin(a) * 150 + Math.cos(i * 5) * 10;
+  // keep the play pads clear, and never drop a trunk on the racing surface
+  if (Math.abs(x - PLAYGROUND.x) < 46 && Math.abs(z) < 34) continue;
+  if (Math.abs(x - PARKING.x) < 46 && Math.abs(z) < 34) continue;
+  if (roundSDF(x, z, TRACK.ohw, TRACK.ohd, TRACK.or).d < 10) continue;
   TREES.push({ x, z, s: 0.8 + ((i * 37) % 10) / 14 });
   CIRCLES.push({ x, z, r: 0.9 });
 }
@@ -183,7 +192,9 @@ export function zoneAt(p) {
   if (Math.abs(p.x) < ARENA.hw + 2 && Math.abs(p.z) < ARENA.hd + 2) return 'stadium';
   if (Math.abs(p.x - PLAYGROUND.x) < PLAYGROUND.hw && Math.abs(p.z - PLAYGROUND.z) < PLAYGROUND.hd) return 'playground';
   if (Math.abs(p.x - PARKING.x) < PARKING.hw && Math.abs(p.z - PARKING.z) < PARKING.hd) return 'parking';
-  return 'grounds';
+  const onTrack = roundSDF(p.x, p.z, TRACK.ohw, TRACK.ohd, TRACK.or).d < 0
+    && roundSDF(p.x, p.z, TRACK.ihw, TRACK.ihd, TRACK.ir).d > 0;
+  return onTrack ? 'track' : 'grounds';
 }
 
 /* ================= canvas textures ================= */
@@ -259,7 +270,7 @@ const SKY_FRAG = `
 /* ================= build ================= */
 
 export function buildWorld(scene) {
-  scene.fog = new THREE.Fog(0xb06a3e, 130, 470);
+  scene.fog = new THREE.Fog(0xb06a3e, 190, 660);
 
   const sun = new THREE.DirectionalLight(0xffd9a0, 0.95);
   sun.position.set(30, 42, 18);
@@ -272,7 +283,7 @@ export function buildWorld(scene) {
   const mat = (opts) => new THREE.MeshLambertMaterial({ flatShading: true, ...opts });
 
   /* ---- ground layers ---- */
-  const beyond = new THREE.Mesh(new THREE.PlaneGeometry(760, 620), mat({ color: 0x3a3226 }));
+  const beyond = new THREE.Mesh(new THREE.PlaneGeometry(1500, 1200), mat({ color: 0x3a3226 }));
   beyond.rotation.x = -Math.PI / 2;
   beyond.position.y = -0.09;
   scene.add(beyond);
@@ -307,7 +318,7 @@ export function buildWorld(scene) {
   trackShape.holes.push(trackHole);
   const trackDirt = dirtTex();
   trackDirt.repeat.set(0.08, 0.08);
-  const track = new THREE.Mesh(new THREE.ShapeGeometry(trackShape, 24), mat({ map: trackDirt, color: 0xc2a06a }));
+  const track = new THREE.Mesh(new THREE.ShapeGeometry(trackShape, 44), mat({ map: trackDirt, color: 0xc2a06a }));
   track.rotation.x = -Math.PI / 2;
   track.position.y = 0.015;
   scene.add(track);
@@ -572,7 +583,7 @@ export function buildWorld(scene) {
   {
     const M = new THREE.Matrix4();
     let i = 0;
-    for (const c of [{ x: -140, z: 12 }, { x: -136, z: -20 }, { x: -96, z: -6 }]) {
+    for (const c of [{ x: -217, z: 12 }, { x: -213, z: -20 }, { x: -173, z: -6 }]) {
       for (let s = 0; s < 2; s++) {
         tireMesh.setMatrixAt(i++, M.makeTranslation(c.x, 0.33 + s * 0.64, c.z));
       }
@@ -581,7 +592,7 @@ export function buildWorld(scene) {
   scene.add(tireMesh);
 
   const BALL_COLORS = [0xe8442e, 0xf4c531, 0x2f6fe0];
-  const balls = [[-112, -2], [-122, 18], [-104, 10]].map(([bx, bz], i) => {
+  const balls = [[-189, -2], [-199, 18], [-181, 10]].map(([bx, bz], i) => {
     const mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5, 1), mat({ color: BALL_COLORS[i] }));
     mesh.position.set(bx, 1.5, bz);
     scene.add(mesh);
@@ -624,21 +635,61 @@ export function buildWorld(scene) {
   }
   scene.add(treeTops, treeTrunks);
 
-  /* ---- track banner arches ---- */
-  for (const [bx, bz, ry] of [[0, -(TRACK.ihd + 8), 0], [0, TRACK.ohd - 8, 0]]) {
+  /* ---- track dressing: centre line, start/finish, banner arches ---- */
+
+  // dashed centre line, walked around the mid-line oval
+  {
+    const dashes = barrierPts(TRACK_MID.hw, TRACK_MID.hd, TRACK_MID.r, 22, false);
+    const mesh = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(8, 0.08, 0.7),
+      new THREE.MeshBasicMaterial({ color: 0xf4ead2 }),
+      dashes.length
+    );
+    const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), S = new THREE.Vector3(1, 1, 1);
+    dashes.forEach((p, i) => {
+      Q.setFromEuler(E.set(0, p.a, 0));
+      mesh.setMatrixAt(i, M.compose(new THREE.Vector3(p.x, 0.03, p.z), Q, S));
+    });
+    scene.add(mesh);
+  }
+
+  // start/finish: a checkered band across the south straight
+  {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const g = c.getContext('2d');
+    g.fillStyle = '#f4ead2'; g.fillRect(0, 0, 64, 64);
+    g.fillStyle = '#1c1233';
+    for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) if ((x + y) % 2) g.fillRect(x * 16, y * 16, 16, 16);
+    const tex = new THREE.CanvasTexture(c);
+    tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter;
+    tex.generateMipmaps = false; tex.colorSpace = THREE.SRGBColorSpace;
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(1, 8);
+    const line = new THREE.Mesh(
+      new THREE.PlaneGeometry(7, TRACK.ohd - TRACK.ihd),
+      new THREE.MeshBasicMaterial({ map: tex })
+    );
+    line.rotation.x = -Math.PI / 2;
+    line.position.set(0, 0.04, -TRACK_MID.hd);
+    scene.add(line);
+  }
+
+  // arches straddle the straights — wide enough to pass under anywhere on the track
+  const HALF_SPAN = (TRACK.ohd - TRACK.ihd) / 2 + 2;
+  for (const bz of [-TRACK_MID.hd, TRACK_MID.hd]) {
     const g = new THREE.Group();
     const pmat = mat({ color: 0x2f6fe0 });
     for (const s of [-1, 1]) {
-      const post = new THREE.Mesh(new THREE.BoxGeometry(1, 7, 1), pmat);
-      post.position.set(s * 9, 3.5, 0);
+      const post = new THREE.Mesh(new THREE.BoxGeometry(1.2, 9, 1.2), pmat);
+      post.position.set(0, 4.5, s * HALF_SPAN);
       g.add(post);
-      CIRCLES.push({ x: bx + s * 9, z: bz, r: 0.8 });
+      CIRCLES.push({ x: 0, z: bz + s * HALF_SPAN, r: 0.9 });
     }
-    const banner = new THREE.Mesh(new THREE.BoxGeometry(19.5, 2.2, 0.5), mat({ color: 0xffcf3f }));
-    banner.position.y = 7.4;
+    const banner = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2.4, HALF_SPAN * 2 + 1.2), mat({ color: 0xffcf3f }));
+    banner.position.y = 9.6;
     g.add(banner);
-    g.position.set(bx, 0, bz);
-    g.rotation.y = ry;
+    g.position.set(0, 0, bz);
     scene.add(g);
   }
 
@@ -649,7 +700,7 @@ export function buildWorld(scene) {
     bottomColor: { value: new THREE.Color(0x6a3a22) },
   };
   const dome = new THREE.Mesh(
-    new THREE.SphereGeometry(430, 20, 14),
+    new THREE.SphereGeometry(700, 20, 14),
     new THREE.ShaderMaterial({ uniforms: skyUniforms, vertexShader: SKY_VERT, fragmentShader: SKY_FRAG, side: THREE.BackSide, depthWrite: false, fog: false })
   );
   dome.renderOrder = -3;
@@ -657,7 +708,7 @@ export function buildWorld(scene) {
 
   const cloudMat = new THREE.MeshBasicMaterial({ color: 0xf0c9a0, fog: false });
   const clouds = new THREE.Group();
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 13; i++) {
     const cloud = new THREE.Group();
     const puffs = 3 + Math.floor(Math.random() * 4);
     for (let p = 0; p < puffs; p++) {
@@ -667,7 +718,7 @@ export function buildWorld(scene) {
       puff.scale.set(1, 0.5, 0.8);
       cloud.add(puff);
     }
-    cloud.position.set((Math.random() - 0.5) * 520, 85 + Math.random() * 55, (Math.random() - 0.5) * 520);
+    cloud.position.set((Math.random() - 0.5) * 800, 95 + Math.random() * 60, (Math.random() - 0.5) * 800);
     clouds.add(cloud);
   }
   scene.add(clouds);
@@ -693,7 +744,7 @@ export function buildWorld(scene) {
 
       for (const c of clouds.children) {
         c.position.x += dt * 1.4;
-        if (c.position.x > 290) c.position.x = -290;
+        if (c.position.x > 420) c.position.x = -420;
       }
       dome.position.copy(camera.position);
       cheerTimer = Math.max(0, cheerTimer - dt);
