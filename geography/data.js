@@ -4,11 +4,11 @@
 window.GEO = {
   CAT_LABEL: {
     art: 'Art', invention: 'Invention', discovery: 'Discovery',
-    food: 'Food & Farming', landmark: 'Landmark', history: 'History', culture: 'Culture'
+    food: 'Food & Farming', landmark: 'Landmark', history: 'History', culture: 'Culture', geo: 'Geography'
   },
   // Category filters shown in Match It.
   CATS: [
-    ['all', 'All'], ['landmark', '🏛️ Landmarks'], ['invention', '💡 Inventions'],
+    ['all', 'All'], ['geo', '🗺️ Geography'], ['landmark', '🏛️ Landmarks'], ['invention', '💡 Inventions'],
     ['discovery', '🔬 Discoveries'], ['food', '🌾 Food & Farming'],
     ['art', '🎨 Art'], ['history', '📜 History'], ['culture', '🎭 Culture']
   ],
@@ -26,7 +26,15 @@ window.GEO = {
     'United Kingdom':{ flag: '🇬🇧', continent: 'Europe',        capital: 'London',       lang: 'English',           blurb: 'An island nation off the coast of Europe that once ruled a global empire and gave the world Shakespeare.' },
     'Peru':          { flag: '🇵🇪', continent: 'South America', capital: 'Lima',         lang: 'Spanish & Quechua', blurb: 'A country in the Andes Mountains of South America, once the heart of the mighty Inca Empire.' },
     'Australia':     { flag: '🇦🇺', continent: 'Oceania',       capital: 'Canberra',     lang: 'English',           blurb: 'A country that is also a whole continent, famous for unique animals like kangaroos and koalas.' },
-    'Germany':       { flag: '🇩🇪', continent: 'Europe',        capital: 'Berlin',       lang: 'German',            blurb: 'A country in central Europe known for its engineering, its castles, and its classical composers.' }
+    'Germany':       { flag: '🇩🇪', continent: 'Europe',        capital: 'Berlin',       lang: 'German',            blurb: 'A country in central Europe known for its engineering, its castles, and its classical composers.' },
+    'Spain':         { flag: '🇪🇸', continent: 'Europe',        capital: 'Madrid',       lang: 'Spanish',           blurb: 'A country on the Iberian Peninsula in southwestern Europe, known for flamenco, football, and a golden age of exploration.' },
+    'Canada':        { flag: '🇨🇦', continent: 'North America', capital: 'Ottawa',       lang: 'English & French',  blurb: 'The second-largest country in the world, reaching from the Atlantic to the Pacific to the Arctic, famous for maple syrup and vast wilderness.' },
+    'Russia':        { flag: '🇷🇺', continent: 'Europe & Asia', capital: 'Moscow',       lang: 'Russian',           blurb: 'The largest country in the world by area, spanning eastern Europe and northern Asia across eleven time zones.' },
+    'South Korea':   { flag: '🇰🇷', continent: 'Asia',          capital: 'Seoul',        lang: 'Korean',            blurb: 'A high-tech country on the southern half of the Korean Peninsula in East Asia, known for K-pop, gaming, and electronics.' },
+    'Argentina':     { flag: '🇦🇷', continent: 'South America', capital: 'Buenos Aires', lang: 'Spanish',           blurb: 'A large South American country famous for tango, beef, football, and the wild peaks of Patagonia.' },
+    'Netherlands':   { flag: '🇳🇱', continent: 'Europe',        capital: 'Amsterdam',    lang: 'Dutch',             blurb: 'A low, flat country in western Europe famous for canals, windmills, tulips, and bicycles.' },
+    'Turkey':        { flag: '🇹🇷', continent: 'Asia & Europe', capital: 'Ankara',       lang: 'Turkish',           blurb: 'A country that sits on two continents at once, linking Europe and Asia, with the ancient city of Istanbul.' },
+    'Kenya':         { flag: '🇰🇪', continent: 'Africa',        capital: 'Nairobi',      lang: 'Swahili & English', blurb: 'An East African country on the Equator, famous for wildlife safaris and record-breaking distance runners.' }
   },
   // "Find on the Globe" — matched to Natural Earth shapes by ISO numeric id.
   GLOBE: [
@@ -166,6 +174,119 @@ window.GEO = {
     'New Zealand': ['Two main islands in the South Pacific, southeast of Australia.', 'Sits on the “Ring of Fire” with volcanoes and earthquakes.', 'The indigenous Māori arrived by canoe about 700 years ago.']
   },
 
+  // ---- Landmark Hunt: physical geography, plotted on the globe by [lon, lat] ----
+  FEATURE_TYPES: {
+    mountain: { label: 'Mountain',       icon: '⛰️', color: '#a16207' },
+    river:    { label: 'River',          icon: '🏞️', color: '#2563eb' },
+    ocean:    { label: 'Ocean',          icon: '🌊', color: '#0891b2' },
+    desert:   { label: 'Desert',         icon: '🏜️', color: '#d97706' },
+    natural:  { label: 'Natural Wonder', icon: '🌍', color: '#16a34a' }
+  },
+  FEATURES: [
+    // Mountains
+    { name: 'Mount Everest',        type: 'mountain', lon: 86.9,  lat: 28.0,  where: 'On the border of Nepal and China, in the Himalayas of Asia.',        fact: 'At 8,849 m (29,032 ft) it is the highest mountain on Earth above sea level.' },
+    { name: 'Mount Kilimanjaro',    type: 'mountain', lon: 37.35, lat: -3.07, where: 'In Tanzania, in East Africa.',                                        fact: 'The tallest mountain in Africa and the highest free-standing mountain in the world.' },
+    { name: 'the Andes',            type: 'mountain', lon: -70.0, lat: -32.65,where: 'Running down the western edge of South America.',                     fact: 'The longest mountain range on land — about 7,000 km through seven countries.' },
+    { name: 'the Alps',             type: 'mountain', lon: 9.0,   lat: 46.5,  where: 'Across south-central Europe.',                                        fact: 'Europe’s highest range; Mont Blanc is its tallest peak at 4,808 m.' },
+    { name: 'the Rocky Mountains',  type: 'mountain', lon: -106.4,lat: 39.1,  where: 'Down western North America, from Canada to New Mexico.',              fact: 'They form the Continental Divide — rivers on each side flow to different oceans.' },
+    { name: 'the Ural Mountains',   type: 'mountain', lon: 59.0,  lat: 60.0,  where: 'Running north–south through western Russia.',                         fact: 'They mark the traditional border between the continents of Europe and Asia.' },
+    // Rivers
+    { name: 'the Nile River',       type: 'river', lon: 31.2, lat: 27.0,  where: 'In northeastern Africa, flowing north through Egypt to the Mediterranean Sea.', fact: 'About 6,650 km long — usually called the longest river in the world.' },
+    { name: 'the Amazon River',     type: 'river', lon: -55.0,lat: -2.5,  where: 'Across northern South America, through Brazil.',                    fact: 'It carries more water than any other river — about a fifth of all river water on Earth.' },
+    { name: 'the Mississippi River',type: 'river', lon: -91.0,lat: 32.0,  where: 'Down the middle of the United States to the Gulf of Mexico.',       fact: 'With the Missouri it is the longest river system in North America.' },
+    { name: 'the Yangtze River',    type: 'river', lon: 112.0,lat: 30.7,  where: 'Across central China.',                                            fact: 'The longest river in Asia and the third-longest in the world.' },
+    { name: 'the Ganges River',     type: 'river', lon: 83.0, lat: 25.3,  where: 'Across northern India and Bangladesh.',                            fact: 'Sacred to Hindus, it flows from the Himalayas to the Bay of Bengal.' },
+    { name: 'the Danube River',     type: 'river', lon: 19.0, lat: 45.0,  where: 'Across central and eastern Europe.',                               fact: 'It flows through 10 countries — more than any other river in the world.' },
+    // Oceans
+    { name: 'the Pacific Ocean',  type: 'ocean', lon: -150.0, lat: 0.0,  where: 'Between Asia and Australia on one side and the Americas on the other.', fact: 'The largest and deepest ocean — bigger than all of Earth’s land combined.' },
+    { name: 'the Atlantic Ocean', type: 'ocean', lon: -30.0,  lat: 12.0, where: 'Between the Americas and Europe/Africa.',                              fact: 'The second-largest ocean, and it is still slowly getting wider.' },
+    { name: 'the Indian Ocean',   type: 'ocean', lon: 78.0,   lat: -25.0,where: 'South of Asia, between Africa and Australia.',                         fact: 'The third-largest and the warmest of the world’s oceans.' },
+    { name: 'the Arctic Ocean',   type: 'ocean', lon: 0.0,    lat: 85.0, where: 'Around the North Pole.',                                              fact: 'The smallest and shallowest ocean — much of it is covered in floating sea ice.' },
+    { name: 'the Southern Ocean', type: 'ocean', lon: 0.0,    lat: -65.0,where: 'Circling the continent of Antarctica.',                               fact: 'Recognized as the fifth ocean in 2000; it rings Antarctica.' },
+    // Deserts & natural wonders
+    { name: 'the Sahara Desert',       type: 'desert',  lon: 13.0,  lat: 23.0, where: 'Across northern Africa.',                        fact: 'The largest hot desert on Earth — almost the size of the whole United States.' },
+    { name: 'the Gobi Desert',         type: 'desert',  lon: 105.0, lat: 42.5, where: 'Across northern China and southern Mongolia.',    fact: 'A cold desert famous for the dinosaur fossils found there.' },
+    { name: 'the Great Barrier Reef',  type: 'natural', lon: 147.0, lat: -18.0,where: 'Off the northeast coast of Australia.',          fact: 'The largest living structure on Earth — it can be seen from space.' },
+    { name: 'the Amazon Rainforest',   type: 'natural', lon: -60.0, lat: -3.0, where: 'Across northern South America.',                  fact: 'The largest rainforest — home to about one in ten known species on Earth.' },
+    { name: 'the Grand Canyon',        type: 'natural', lon: -112.1,lat: 36.1, where: 'In Arizona, in the United States.',               fact: 'Carved by the Colorado River over millions of years — up to 1.8 km deep.' }
+  ],
+
+  // ---- Earth's 4 Spheres: sorting game (Big History Standard 7) ----
+  SPHERE_BINS: [
+    { key: 'atmosphere', label: 'Atmosphere', icon: '🌬️', desc: 'the air & weather' },
+    { key: 'hydrosphere', label: 'Hydrosphere', icon: '💧', desc: 'all the water' },
+    { key: 'lithosphere', label: 'Lithosphere', icon: '🪨', desc: 'rock & land' },
+    { key: 'biosphere', label: 'Biosphere', icon: '🌿', desc: 'living things' }
+  ],
+  SPHERE_ITEMS: [
+    { icon: '☁️', name: 'a cloud',    sphere: 'atmosphere', why: 'Clouds float in the air, so they belong to the atmosphere — the blanket of gases around Earth.' },
+    { icon: '💨', name: 'the wind',   sphere: 'atmosphere', why: 'Wind is moving air, so it is part of the atmosphere.' },
+    { icon: '🌫️', name: 'fog',        sphere: 'atmosphere', why: 'Fog is a cloud of tiny water drops in the air near the ground — part of the atmosphere.' },
+    { icon: '🌪️', name: 'a tornado',  sphere: 'atmosphere', why: 'A tornado is a violently spinning column of air, so it belongs to the atmosphere.' },
+    { icon: '🌊', name: 'the ocean',  sphere: 'hydrosphere', why: 'Oceans are water, so they belong to the hydrosphere — all of Earth’s water.' },
+    { icon: '🏞️', name: 'a lake',     sphere: 'hydrosphere', why: 'A lake is water, so it is part of the hydrosphere.' },
+    { icon: '🧊', name: 'a glacier',  sphere: 'hydrosphere', why: 'A glacier is frozen water (ice), so it still counts as part of the hydrosphere.' },
+    { icon: '🌧️', name: 'rain',       sphere: 'hydrosphere', why: 'Rain is liquid water falling from clouds — part of the hydrosphere.' },
+    { icon: '⛰️', name: 'a mountain', sphere: 'lithosphere', why: 'Mountains are rock, so they belong to the lithosphere — Earth’s solid rock and land.' },
+    { icon: '🌋', name: 'a volcano',  sphere: 'lithosphere', why: 'A volcano is built of rock and hardened lava, so it is part of the lithosphere.' },
+    { icon: '🏜️', name: 'desert sand',sphere: 'lithosphere', why: 'Sand is tiny bits of rock, so it belongs to the lithosphere.' },
+    { icon: '💎', name: 'a crystal',  sphere: 'lithosphere', why: 'Crystals and minerals are rock, so they are part of the lithosphere.' },
+    { icon: '🦅', name: 'an eagle',   sphere: 'biosphere', why: 'An eagle is alive, so it belongs to the biosphere — all living things.' },
+    { icon: '🌳', name: 'a tree',     sphere: 'biosphere', why: 'Trees are living plants, so they are part of the biosphere.' },
+    { icon: '🐟', name: 'a fish',     sphere: 'biosphere', why: 'A fish is a living animal, so it belongs to the biosphere (even though it lives in water!).' },
+    { icon: '🍄', name: 'a mushroom', sphere: 'biosphere', why: 'A mushroom is a living thing, so it is part of the biosphere.' }
+  ],
+
+  // ---- Map Skills: rough continent boxes for the world-grid game (Standards 1–3) ----
+  MAP_CONTINENTS: [
+    { name: 'North America', lon: [-165, -55], lat: [12, 70] },
+    { name: 'South America', lon: [-80, -37],  lat: [-52, 10] },
+    { name: 'Europe',        lon: [-9, 38],    lat: [37, 68] },
+    { name: 'Africa',        lon: [-15, 50],   lat: [-33, 35] },
+    { name: 'Asia',          lon: [45, 145],   lat: [12, 66] },
+    { name: 'Australia',     lon: [114, 152],  lat: [-38, -12] }
+  ],
+
+  // ---- Teacher Guide + "How to play" text for every mode ----
+  TEACHER: {
+    match: {
+      how: 'A famous thing pops up — an invention, food, landmark, or artwork. Tap the country it came from.',
+      point: 'Connect the everyday things kids know (pizza, the number zero, the light bulb) to the places that gave them to the world.',
+      learn: 'That every country has contributed ideas, foods, and inventions — and where on the map those places are.',
+      explore: 'Ask: what did YOUR family’s countries give the world? Look up one invention and trace where it spread.'
+    },
+    country: {
+      how: 'You get three clues — three famous things from one country. Tap the country that matches all three.',
+      point: 'Build reasoning by combining several facts to reach one answer, instead of memorizing single facts.',
+      learn: 'How to use several pieces of evidence together, and which famous things belong to which country.',
+      explore: 'Pick a country and try to name three things it’s famous for before checking the Countries list.'
+    },
+    globe: {
+      how: 'A country is highlighted on the spinning globe. Drag to spin, pinch or use +/− to zoom, then tap its name. Wrong guesses give a hint.',
+      point: 'Turn flat map facts into a real sense of where countries sit on a round Earth.',
+      learn: 'Where countries actually are, plus their capital, continent, and language.',
+      explore: 'Spin to a country you’ve never heard of and read its facts. Which continent has the most countries?'
+    },
+    features: {
+      how: 'A red pin marks a natural landmark on the globe. Spin and zoom to look around, then tap what the pin is marking — a mountain, river, ocean, or desert.',
+      point: 'Teach where Earth’s big physical features are: the mountains, rivers, oceans, and deserts that shape the world.',
+      learn: 'To locate famous mountains, rivers, oceans, and deserts, and to tell those types of features apart.',
+      explore: 'Find the river nearest to where you live. Which ocean would a message in a bottle reach from your coast?'
+    },
+    spheres: {
+      how: 'An object appears. Decide which of Earth’s four “spheres” it belongs to and tap that button: Atmosphere (air), Hydrosphere (water), Lithosphere (rock & land), or Biosphere (living things).',
+      point: 'Introduce the four connected Earth systems that geographers use to describe how the planet works.',
+      learn: 'The four spheres — atmosphere, hydrosphere, lithosphere, biosphere — and how to sort things into them.',
+      explore: 'Look out a window and name something from each sphere. Can one thing belong to two spheres at once?'
+    },
+    mapskills: {
+      how: 'Read the world grid: the Equator runs left-to-right and the Prime Meridian runs top-to-bottom. Use them, plus N/S/E/W, to answer the question and tap the right choice.',
+      point: 'Build the core map skills — hemispheres, the Equator and Prime Meridian, directions, and continents.',
+      learn: 'How latitude and longitude split Earth into hemispheres, how to give directions, and where the continents are.',
+      explore: 'Which hemisphere do you live in — north or south of the Equator? East or west of the Prime Meridian?'
+    }
+  },
+
   ITEMS: [
     // ---- France ----
     { c: 'France', cat: 'landmark',   icon: '🗼', name: 'the Eiffel Tower', fact: 'Built for the 1889 World’s Fair in Paris, it was the tallest structure on Earth for 41 years.' },
@@ -275,6 +396,124 @@ window.GEO = {
     { c: 'Germany', cat: 'invention', icon: '🚗', name: 'the automobile', fact: 'Karl Benz built the first practical gasoline-powered car in 1886.' },
     { c: 'Germany', cat: 'invention', icon: '💊', name: 'aspirin', fact: 'The pain reliever aspirin was developed by the German company Bayer in 1897.' },
     { c: 'Germany', cat: 'culture',   icon: '🎼', name: 'classical music', fact: 'Germany gave the world great composers like Beethoven and Bach.' },
-    { c: 'Germany', cat: 'food',      icon: '🥨', name: 'the pretzel', fact: 'The twisted, knotted pretzel is a beloved German snack with medieval roots.' }
+    { c: 'Germany', cat: 'food',      icon: '🥨', name: 'the pretzel', fact: 'The twisted, knotted pretzel is a beloved German snack with medieval roots.' },
+
+    // ================= Geography clues for the original countries (capitals, rivers, mountains, deserts) =================
+    { c: 'France', cat: 'geo', icon: '🏙️', name: 'the city of Paris', fact: 'Paris, on the Seine River, is the capital of France.' },
+    { c: 'France', cat: 'geo', icon: '🌊', name: 'the Seine River', fact: 'The Seine winds through the heart of Paris, past the Louvre and Notre-Dame.' },
+    { c: 'France', cat: 'food', icon: '🥐', name: 'the croissant', fact: 'A buttery, flaky crescent-shaped pastry eaten across France at breakfast.' },
+
+    { c: 'Italy', cat: 'geo', icon: '🏙️', name: 'the city of Rome', fact: 'Rome, once the center of the Roman Empire, is the capital of Italy.' },
+    { c: 'Italy', cat: 'geo', icon: '🌋', name: 'Mount Vesuvius', fact: 'The volcano near Naples that buried the Roman city of Pompeii in 79 CE.' },
+    { c: 'Italy', cat: 'food', icon: '🍝', name: 'pasta', fact: 'Italians make hundreds of pasta shapes, from spaghetti to ravioli.' },
+
+    { c: 'Japan', cat: 'geo', icon: '🏙️', name: 'the city of Tokyo', fact: 'Tokyo, one of the largest cities on Earth, is the capital of Japan.' },
+    { c: 'Japan', cat: 'culture', icon: '🎌', name: 'origami', fact: 'The Japanese art of folding a single sheet of paper into cranes, animals, and shapes.' },
+    { c: 'Japan', cat: 'history', icon: '🥷', name: 'the samurai', fact: 'Skilled warriors who followed a strict code of honor in old Japan.' },
+
+    { c: 'Egypt', cat: 'geo', icon: '🏙️', name: 'the city of Cairo', fact: 'Cairo, near the pyramids on the Nile, is the capital of Egypt.' },
+    { c: 'Egypt', cat: 'geo', icon: '🌊', name: 'the Nile River', fact: 'The world’s longest river, flowing north through Egypt to the Mediterranean Sea.' },
+    { c: 'Egypt', cat: 'geo', icon: '🏜️', name: 'the Sahara Desert', fact: 'The vast desert that covers most of Egypt and stretches across northern Africa.' },
+
+    { c: 'China', cat: 'geo', icon: '🏙️', name: 'the city of Beijing', fact: 'Beijing, home of the Forbidden City, is the capital of China.' },
+    { c: 'China', cat: 'geo', icon: '🌊', name: 'the Yangtze River', fact: 'The longest river in Asia, flowing across central China.' },
+    { c: 'China', cat: 'landmark', icon: '🏯', name: 'the Forbidden City', fact: 'A vast walled palace in Beijing where Chinese emperors once lived.' },
+
+    { c: 'India', cat: 'geo', icon: '🏙️', name: 'the city of New Delhi', fact: 'New Delhi is the capital of India, the world’s most populous country.' },
+    { c: 'India', cat: 'geo', icon: '🌊', name: 'the Ganges River', fact: 'A river sacred to Hindus, flowing from the Himalayas across northern India.' },
+    { c: 'India', cat: 'culture', icon: '🧘', name: 'yoga', fact: 'A practice of stretching, breathing, and meditation that began in ancient India.' },
+
+    { c: 'Greece', cat: 'geo', icon: '🏙️', name: 'the city of Athens', fact: 'Athens, birthplace of democracy, is the capital of Greece.' },
+    { c: 'Greece', cat: 'geo', icon: '🏔️', name: 'Mount Olympus', fact: 'The highest mountain in Greece, believed by the ancient Greeks to be the home of the gods.' },
+    { c: 'Greece', cat: 'food', icon: '🫒', name: 'olives and olive oil', fact: 'Greece has grown olives for thousands of years.' },
+
+    { c: 'Mexico', cat: 'geo', icon: '🏙️', name: 'the city of Mexico City', fact: 'Mexico City, built where the Aztec capital once stood, is the capital of Mexico.' },
+    { c: 'Mexico', cat: 'food', icon: '🌮', name: 'tacos', fact: 'Warm tortillas folded around meat, beans, and salsa — a favorite Mexican food.' },
+    { c: 'Mexico', cat: 'geo', icon: '🏖️', name: 'the Yucatán Peninsula', fact: 'A tropical region of Mexico with beaches, jungles, and ancient Maya ruins.' },
+
+    { c: 'Brazil', cat: 'geo', icon: '🏙️', name: 'the city of Brasília', fact: 'Brasília, a planned city built in the 1950s, is the capital of Brazil.' },
+    { c: 'Brazil', cat: 'geo', icon: '🌊', name: 'the Amazon River', fact: 'The river carrying more water than any other, flowing across northern Brazil.' },
+
+    { c: 'United States', cat: 'geo', icon: '🏙️', name: 'the city of Washington, D.C.', fact: 'Washington, D.C. is the capital of the United States.' },
+    { c: 'United States', cat: 'geo', icon: '🌊', name: 'the Mississippi River', fact: 'A great river that drains the middle of the United States to the Gulf of Mexico.' },
+    { c: 'United States', cat: 'food', icon: '🍔', name: 'the hamburger', fact: 'A grilled beef patty in a bun — an American fast-food classic.' },
+
+    { c: 'United Kingdom', cat: 'geo', icon: '🏙️', name: 'the city of London', fact: 'London, on the River Thames, is the capital of the United Kingdom.' },
+    { c: 'United Kingdom', cat: 'geo', icon: '🌊', name: 'the River Thames', fact: 'The river that flows through London, past Big Ben and the Houses of Parliament.' },
+    { c: 'United Kingdom', cat: 'culture', icon: '🫖', name: 'afternoon tea', fact: 'A British tradition of tea served with small sandwiches and cakes.' },
+
+    { c: 'Peru', cat: 'geo', icon: '🏙️', name: 'the city of Lima', fact: 'Lima, on the Pacific coast, is the capital of Peru.' },
+    { c: 'Peru', cat: 'culture', icon: '🎶', name: 'panpipe music', fact: 'Andean musicians play flutes and panpipes made from reeds.' },
+
+    { c: 'Australia', cat: 'geo', icon: '🏙️', name: 'the city of Canberra', fact: 'Canberra, a purpose-built city, is the capital of Australia.' },
+    { c: 'Australia', cat: 'geo', icon: '🏜️', name: 'the Outback', fact: 'The vast, dry, remote interior of Australia.' },
+
+    { c: 'Germany', cat: 'geo', icon: '🏙️', name: 'the city of Berlin', fact: 'Berlin, once split by a wall, is the capital of Germany.' },
+    { c: 'Germany', cat: 'geo', icon: '🌊', name: 'the Rhine River', fact: 'A major river winding past castles and vineyards through western Germany.' },
+    { c: 'Germany', cat: 'geo', icon: '🌲', name: 'the Black Forest', fact: 'A large, dark evergreen forest in southwestern Germany, full of fairy-tale legends.' },
+
+    // ================= Spain =================
+    { c: 'Spain', cat: 'geo', icon: '🏙️', name: 'the city of Madrid', fact: 'Madrid, in the center of the country, is the capital of Spain.' },
+    { c: 'Spain', cat: 'landmark', icon: '🏛️', name: 'the Alhambra', fact: 'A stunning palace in Granada, built when Muslim rulers governed much of Spain.' },
+    { c: 'Spain', cat: 'food', icon: '🥘', name: 'paella', fact: 'A famous rice dish from Valencia, cooked with saffron, vegetables, and seafood or meat.' },
+    { c: 'Spain', cat: 'culture', icon: '💃', name: 'flamenco', fact: 'A passionate style of music and dance with guitar, singing, and stamping feet, from southern Spain.' },
+    { c: 'Spain', cat: 'art', icon: '🎨', name: 'the paintings of Picasso', fact: 'Pablo Picasso, born in Spain, helped invent Cubism and became one of history’s most famous artists.' },
+    { c: 'Spain', cat: 'history', icon: '⛵', name: 'the Age of Exploration', fact: 'Spanish ships funded Columbus’s 1492 voyage, opening sea routes across the Atlantic.' },
+
+    // ================= Canada =================
+    { c: 'Canada', cat: 'geo', icon: '🏙️', name: 'the city of Ottawa', fact: 'Ottawa is the capital of Canada, the second-largest country in the world.' },
+    { c: 'Canada', cat: 'food', icon: '🍁', name: 'maple syrup', fact: 'Canadians tap sugar maple trees each spring to make sweet maple syrup — the leaf is on their flag.' },
+    { c: 'Canada', cat: 'landmark', icon: '🏔️', name: 'Banff National Park', fact: 'A famous park in the Canadian Rockies with turquoise lakes and glaciers.' },
+    { c: 'Canada', cat: 'culture', icon: '🏒', name: 'ice hockey', fact: 'Canada’s beloved winter sport, played on frozen ponds and in famous arenas.' },
+    { c: 'Canada', cat: 'culture', icon: '🦫', name: 'the beaver', fact: 'The hardworking beaver is a national symbol of Canada.' },
+    { c: 'Canada', cat: 'history', icon: '🚂', name: 'the transcontinental railway', fact: 'A railway finished in 1885 linked Canada from the Atlantic all the way to the Pacific.' },
+
+    // ================= Russia =================
+    { c: 'Russia', cat: 'geo', icon: '🏙️', name: 'the city of Moscow', fact: 'Moscow, home of Red Square and the Kremlin, is the capital of Russia.' },
+    { c: 'Russia', cat: 'landmark', icon: '🏰', name: 'Saint Basil’s Cathedral', fact: 'The colorful, swirling onion-domed cathedral on Moscow’s Red Square.' },
+    { c: 'Russia', cat: 'history', icon: '🛰️', name: 'the first satellite, Sputnik', fact: 'The Soviet Union launched Sputnik, the first artificial satellite, in 1957, starting the Space Age.' },
+    { c: 'Russia', cat: 'culture', icon: '🩰', name: 'ballet', fact: 'Russian companies like the Bolshoi made ballet world-famous.' },
+    { c: 'Russia', cat: 'geo', icon: '🏔️', name: 'the Ural Mountains', fact: 'These mountains run through Russia and mark the border between Europe and Asia.' },
+    { c: 'Russia', cat: 'culture', icon: '🪆', name: 'nesting dolls', fact: 'Wooden matryoshka dolls nest one inside another — a classic Russian craft.' },
+
+    // ================= South Korea =================
+    { c: 'South Korea', cat: 'geo', icon: '🏙️', name: 'the city of Seoul', fact: 'Seoul, a huge high-tech city, is the capital of South Korea.' },
+    { c: 'South Korea', cat: 'culture', icon: '🎵', name: 'K-pop', fact: 'South Korea’s pop music, with groups like BTS, is popular all around the world.' },
+    { c: 'South Korea', cat: 'food', icon: '🥬', name: 'kimchi', fact: 'A spicy fermented cabbage side dish eaten at almost every Korean meal.' },
+    { c: 'South Korea', cat: 'invention', icon: '📱', name: 'smartphones & electronics', fact: 'Korean companies like Samsung make many of the world’s phones and TVs.' },
+    { c: 'South Korea', cat: 'invention', icon: '🔤', name: 'the Hangul alphabet', fact: 'King Sejong created the easy-to-learn Hangul alphabet in the 1440s.' },
+    { c: 'South Korea', cat: 'culture', icon: '🕹️', name: 'esports', fact: 'South Korea helped turn competitive video gaming into a huge spectator sport.' },
+
+    // ================= Argentina =================
+    { c: 'Argentina', cat: 'geo', icon: '🏙️', name: 'the city of Buenos Aires', fact: 'Buenos Aires, on the Río de la Plata, is the capital of Argentina.' },
+    { c: 'Argentina', cat: 'culture', icon: '💃', name: 'the tango', fact: 'This dramatic partner dance was born in the neighborhoods of Buenos Aires.' },
+    { c: 'Argentina', cat: 'food', icon: '🥩', name: 'asado (barbecue)', fact: 'Argentines are famous for grilling beef over open fire at cookouts called asado.' },
+    { c: 'Argentina', cat: 'culture', icon: '⚽', name: 'football legends', fact: 'Argentina produced stars like Messi and Maradona and has won the football World Cup.' },
+    { c: 'Argentina', cat: 'geo', icon: '🏔️', name: 'Patagonia', fact: 'A wild region of mountains, glaciers, and grasslands at the southern tip of South America.' },
+    { c: 'Argentina', cat: 'geo', icon: '🌾', name: 'the Pampas', fact: 'Wide, grassy plains where gauchos (cowboys) herd cattle.' },
+
+    // ================= Netherlands =================
+    { c: 'Netherlands', cat: 'geo', icon: '🏙️', name: 'the city of Amsterdam', fact: 'Amsterdam, laced with canals, is the capital of the Netherlands.' },
+    { c: 'Netherlands', cat: 'landmark', icon: '🌬️', name: 'windmills', fact: 'The Dutch built windmills to grind grain and pump water off their low land.' },
+    { c: 'Netherlands', cat: 'food', icon: '🧀', name: 'Gouda cheese', fact: 'Round wheels of Gouda and Edam cheese are famous Dutch exports.' },
+    { c: 'Netherlands', cat: 'culture', icon: '🌷', name: 'tulips', fact: 'The Netherlands grows and sells more tulips than anywhere else on Earth.' },
+    { c: 'Netherlands', cat: 'art', icon: '🎨', name: 'the paintings of Van Gogh', fact: 'Vincent van Gogh, a Dutch painter, created The Starry Night and Sunflowers.' },
+    { c: 'Netherlands', cat: 'geo', icon: '🌊', name: 'land below the sea', fact: 'The Dutch built dikes to hold back the sea and farm land that is actually below sea level.' },
+
+    // ================= Turkey =================
+    { c: 'Turkey', cat: 'geo', icon: '🏙️', name: 'the city of Ankara', fact: 'Ankara is the capital of Turkey (though Istanbul is its largest city).' },
+    { c: 'Turkey', cat: 'landmark', icon: '🕌', name: 'the Hagia Sophia', fact: 'A giant domed building in Istanbul that has been a church, a mosque, and a museum over 1,500 years.' },
+    { c: 'Turkey', cat: 'geo', icon: '🌉', name: 'the city of Istanbul', fact: 'Istanbul sits on two continents — part in Europe, part in Asia — split by a narrow strait.' },
+    { c: 'Turkey', cat: 'food', icon: '🍢', name: 'kebabs', fact: 'Grilled meat kebabs are a famous food from Turkey and the wider Middle East.' },
+    { c: 'Turkey', cat: 'history', icon: '👑', name: 'the Ottoman Empire', fact: 'For over 600 years the Ottoman Empire ruled from Istanbul across three continents.' },
+    { c: 'Turkey', cat: 'food', icon: '🍬', name: 'Turkish delight', fact: 'A chewy, sweet candy dusted with powdered sugar.' },
+
+    // ================= Kenya =================
+    { c: 'Kenya', cat: 'geo', icon: '🏙️', name: 'the city of Nairobi', fact: 'Nairobi is the capital of Kenya, in East Africa.' },
+    { c: 'Kenya', cat: 'culture', icon: '🦁', name: 'safari wildlife', fact: 'Kenya’s parks are famous for lions, elephants, giraffes, and the great wildebeest migration.' },
+    { c: 'Kenya', cat: 'culture', icon: '🏃', name: 'long-distance runners', fact: 'Kenyan runners win many of the world’s biggest marathons and Olympic races.' },
+    { c: 'Kenya', cat: 'geo', icon: '🏔️', name: 'the Great Rift Valley', fact: 'A huge valley formed as Earth’s tectonic plates slowly pull apart, running through Kenya.' },
+    { c: 'Kenya', cat: 'food', icon: '🌽', name: 'ugali', fact: 'A thick maize porridge that is a staple food across East Africa.' },
+    { c: 'Kenya', cat: 'culture', icon: '🔴', name: 'the Maasai people', fact: 'The Maasai are known for their red cloaks, beadwork, and cattle-herding traditions.' }
   ]
 };
