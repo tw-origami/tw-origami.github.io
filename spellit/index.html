@@ -65,6 +65,16 @@
   .clue .lab{ font-weight:900; text-transform:uppercase; letter-spacing:.08em; font-size:11px; color:var(--accent); margin-right:6px; }
   .clue .pos{ font-style:italic; color:#b45309; }
   .clue .blank{ letter-spacing:2px; color:#c2410c; font-weight:900; }
+  .hint-top{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .htiles{ display:inline-flex; flex-wrap:wrap; gap:6px; }
+  .htile{ min-width:24px; text-align:center; font-weight:900; font-size:22px; line-height:1.1; color:#c2410c; border-bottom:3px solid #e7c9a3; padding:0 2px; font-family:"SFMono-Regular",ui-monospace,Menlo,monospace; }
+  .htile.on{ color:var(--accent); border-bottom-color:var(--accent); }
+  .htile.sep{ border-bottom:none; color:#b45309; }
+  .hint-bar{ display:flex; align-items:center; gap:12px; margin-top:11px; flex-wrap:wrap; }
+  .hint-more{ font-family:inherit; font-weight:800; font-size:13.5px; border:2px solid var(--accent2); background:#fff; color:#92400e; border-radius:11px; padding:8px 14px; cursor:pointer; }
+  .hint-more:hover{ background:var(--accent-soft-2); }
+  .hint-count{ color:#b45309; font-size:12.5px; font-weight:700; }
+  .hint-done{ color:#166534; font-weight:800; font-size:13.5px; }
 
   form{ margin-top:18px; display:flex; gap:10px; }
   #answer{
@@ -167,7 +177,7 @@
           <button class="help" id="slowBtn">🐢 Slower</button>
           <button class="help" id="defBtn">📖 Definition</button>
           <button class="help" id="sentBtn">💬 In a sentence</button>
-          <button class="help" id="firstBtn">🔤 First letter</button>
+          <button class="help" id="firstBtn">💡 Hint</button>
         </div>
       </div>
 
@@ -253,6 +263,7 @@
   let queue = [], qi = 0, cur = null;
   let correct = 0, tried = 0, streak = 0;
   let answered = false, misses = 0, lastAttempt = '';
+  let hintSet = null;   // revealed letter indices for the wheel-of-fortune hint
 
   function buildLevelSeg(){
     const box = $('levels'); box.innerHTML = '';
@@ -283,7 +294,7 @@
   function newWord(speak){
     if(qi >= queue.length){ newQueue(); }
     cur = level.words[queue[qi++]];
-    answered = false; misses = 0; lastAttempt = '';
+    answered = false; misses = 0; lastAttempt = ''; hintSet = null;
     $('feedback').textContent=''; $('feedback').className='feedback';
     $('clue').className='clue'; $('clue').innerHTML='';
     $('reveal').className='reveal hidden'; $('reveal').innerHTML='';
@@ -317,9 +328,49 @@
     }
     box.innerHTML = html;
   }
-  function firstLetter(){
+  /* Wheel-of-Fortune style hint: shows blanks for every letter with the first
+     letter filled in; "More" reveals another random letter each press. */
+  const isLetter = ch => ch.toLowerCase() !== ch.toUpperCase();
+  function showHint(){
+    if(!cur) return;
+    if(hintSet === null){
+      hintSet = new Set();
+      // non-letters (spaces, hyphens, apostrophes) are always shown
+      for(let i=0;i<cur.w.length;i++){ if(!isLetter(cur.w[i])) hintSet.add(i); }
+      // reveal the first actual letter
+      for(let i=0;i<cur.w.length;i++){ if(isLetter(cur.w[i])){ hintSet.add(i); break; } }
+    }
+    renderHint();
+  }
+  function hiddenLetterIndices(){
+    const out=[];
+    for(let i=0;i<cur.w.length;i++){ if(isLetter(cur.w[i]) && !hintSet.has(i)) out.push(i); }
+    return out;
+  }
+  function moreHint(){
+    const hidden = hiddenLetterIndices();
+    if(!hidden.length) return;
+    hintSet.add(hidden[Math.floor(Math.random()*hidden.length)]);
+    renderHint();
+  }
+  function renderHint(){
+    const w = cur.w;
+    const tiles = [...w].map((ch,i) => {
+      if(!isLetter(ch)) return `<span class="htile sep">${ch===' '?'&nbsp;':esc(ch)}</span>`;
+      return hintSet.has(i)
+        ? `<span class="htile on">${esc(ch.toUpperCase())}</span>`
+        : `<span class="htile">_</span>`;
+    }).join('');
+    const remaining = hiddenLetterIndices().length;
+    const total = [...w].filter(isLetter).length;
+    const bar = remaining>0
+      ? `<button class="hint-more" id="moreHint">More letter →</button>`
+      : `<span class="hint-done">✓ that’s the whole word!</span>`;
     $('clue').className='clue show';
-    $('clue').innerHTML = `<div class="row"><span class="lab">Starts with</span><b style="font-size:18px">${esc(cur.w[0].toUpperCase())}</b> &nbsp;·&nbsp; ${cur.w.length} letters</div>`;
+    $('clue').innerHTML =
+      `<div class="hint-top"><span class="lab">Hint</span><span class="htiles">${tiles}</span></div>`+
+      `<div class="hint-bar">${bar}<span class="hint-count">${total} letters</span></div>`;
+    const mb = $('moreHint'); if(mb) mb.onclick = moreHint;
   }
 
   /* ---------- checking ---------- */
@@ -449,7 +500,7 @@
   $('slowBtn').onclick = () => { if(cur) slowWord(); };
   $('defBtn').onclick = () => { if(cur) showClue('def'); };
   $('sentBtn').onclick = () => { if(cur) showClue('sent'); };
-  $('firstBtn').onclick = () => { if(cur) firstLetter(); };
+  $('firstBtn').onclick = () => { if(cur) showHint(); };
   $('spellForm').addEventListener('submit', onSubmit);
   $('nextBtn').onclick = () => newWord(true);
   $('listBtn').onclick = openList;
@@ -471,5 +522,6 @@
   newWord(false);
 })();
 </script>
+<script src="/stopwatch.js?v=1"></script>
 </body>
 </html>
