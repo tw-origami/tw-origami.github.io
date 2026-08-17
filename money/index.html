@@ -47,11 +47,12 @@
 
   .tokens{ display:flex; flex-wrap:wrap; gap:10px; justify-content:center; background:#f7fbf8; border:2px solid #e3efe8; border-radius:16px; padding:18px; margin:8px 0 16px; min-height:70px; }
   .coin{ border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; color:#3a2c10; box-shadow:0 3px 6px rgba(0,0,0,.18); border:2px solid rgba(0,0,0,.12); }
-  /* real-life diameters @ CSS 96px/inch: dime 17.9mm, penny 19.1mm, nickel 21.2mm, quarter 24.3mm */
-  .coin.penny{ width:72px; height:72px; background:linear-gradient(150deg,#e8a05a,#b87333); font-size:15px; }
-  .coin.nickel{ width:80px; height:80px; background:linear-gradient(150deg,#e2e8ec,#aab4bd); font-size:16px; color:#334155; }
-  .coin.dime{ width:68px; height:68px; background:linear-gradient(150deg,#e8edf1,#b6c0c9); font-size:14px; color:#334155; }
-  .coin.quarter{ width:92px; height:92px; background:linear-gradient(150deg,#e2e8ec,#9aa6b0); font-size:19px; color:#334155; }
+  /* Real-life diameters, scaled ~1.3x from the 96px/inch reference to match a Retina MacBook
+     (~127 logical ppi). dime 17.9mm, penny 19.1mm, nickel 21.2mm, quarter 24.3mm. */
+  .coin.penny{ width:94px; height:94px; background:linear-gradient(150deg,#e8a05a,#b87333); font-size:20px; }
+  .coin.nickel{ width:104px; height:104px; background:linear-gradient(150deg,#e2e8ec,#aab4bd); font-size:21px; color:#334155; }
+  .coin.dime{ width:88px; height:88px; background:linear-gradient(150deg,#e8edf1,#b6c0c9); font-size:18px; color:#334155; }
+  .coin.quarter{ width:120px; height:120px; background:linear-gradient(150deg,#e2e8ec,#9aa6b0); font-size:25px; color:#334155; }
   .bill{ width:124px; height:56px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:20px; color:#14532d; background:linear-gradient(150deg,#c7f0d2,#86d6a0); border:2px solid #4ca86c; box-shadow:0 3px 6px rgba(0,0,0,.16); }
   /* real coin/bill photo (front or back) with the value overlaid on top */
   .tok{ position:relative; overflow:hidden; }
@@ -73,7 +74,7 @@
   .denom{ font-family:inherit; cursor:pointer; border:none; background:transparent; padding:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:5px; }
   .denom-name{ font-size:12.5px; font-weight:800; color:var(--muted); text-transform:capitalize; letter-spacing:.2px; line-height:1; }
   .denom:hover .denom-name{ color:var(--accent); }
-  .tray{ display:flex; flex-wrap:wrap; gap:10px; justify-content:center; min-height:104px; background:#f7fbf8; border:2px solid #e3efe8; border-radius:14px; padding:14px; }
+  .tray{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; min-height:140px; background:#f7fbf8; border:2px solid #e3efe8; border-radius:14px; padding:14px; }
   .changeread{ text-align:center; font-weight:900; font-size:18px; margin:8px 0; }
   .changeread .due{ color:var(--muted); font-weight:700; font-size:14px; }
 
@@ -136,5 +137,6 @@
   <div class="credit">Money Smarts</div>
 
 <script src="app.js?v=2"></script>
+<script src="/stopwatch.js?v=1"></script>
 </body>
 </html>
