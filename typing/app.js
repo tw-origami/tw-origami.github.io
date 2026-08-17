@@ -75,8 +75,8 @@
 
   function buildKeyboard(){
     const kb=el('div','kb');
-    ROWS.forEach(row=>{
-      const r=el('div','kbrow');
+    ROWS.forEach((row,ri)=>{
+      const r=el('div','kbrow r'+(ri+1));
       row.forEach(k=>{
         const key=el('div','key '+(FINGER[k]||'f-index'));
         key.dataset.k=k; key.textContent = k;
@@ -85,7 +85,7 @@
       });
       kb.appendChild(r);
     });
-    const sr=el('div','kbrow');
+    const sr=el('div','kbrow space-row');
     const space=el('div','key space f-thumb'); space.dataset.k=' '; space.textContent='space';
     sr.appendChild(space); kb.appendChild(sr);
     return kb;
