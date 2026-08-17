@@ -290,6 +290,16 @@
     showTimer(mode === "sprint");
   }
 
+  function shuffleChoices(item){
+    // Return a clone with choices in random order so answer position is never a tell.
+    const order = item.choices.map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    return { ...item, choices: order.map(i => item.choices[i]), answer: order.indexOf(item.answer) };
+  }
+
   function nextItem(selectedMode){
     const pool = DATA.MODES[selectedMode].items;
     if (used[selectedMode].length >= pool.length) used[selectedMode] = [];
@@ -297,7 +307,7 @@
     const item = pick(fresh.length ? fresh : pool);
     const idx = pool.indexOf(item);
     if (idx >= 0) used[selectedMode].push(idx);
-    return item;
+    return item.choices ? shuffleChoices(item) : item;
   }
 
   function chooseMode(nextMode){
@@ -525,5 +535,6 @@
   render();
 })();
 </script>
+<script src="/stopwatch.js?v=1"></script>
 </body>
 </html>

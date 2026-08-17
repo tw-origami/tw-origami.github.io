@@ -30,19 +30,19 @@ window.READING_RESCUE = {
         Q("Main Idea", "What is this passage mostly about?", [
           "How difficult it is to repair a school roof",
           "How a rooftop garden changed learning and school life",
-          "Why insects are a problem in cities",
+          "Why certain insects have quietly become a serious problem across many crowded cities",
           "Why lunches should be longer"
         ], 1, "The passage focuses on how the rooftop garden helped students learn and also changed the feel of the school.", ["rg2","rg3","rg5","rg7"], "These sentences show both the garden itself and the effect it had."),
         Q("Author's Purpose", "Why does the author include Ms. Diaz's reasons for starting the garden?", [
           "To show that the garden was created mainly for decoration",
-          "To explain how the project connects to real learning",
+          "To explain how the project connects to real, hands-on learning students can do",
           "To prove that textbooks are useless",
           "To compare Jefferson Middle School to other schools"
         ], 1, "The author includes Ms. Diaz's reasoning to show that the garden gave students hands-on science experience.", ["rg3","rg4"], "These lines explain the learning goal behind the project."),
         Q("Inference", "What can you infer about the students from the passage?", [
           "They were forced to work in the garden every day",
           "They became more interested in helping once the garden opened",
-          "They disliked science class before the project",
+          "They were secretly hoping the whole rooftop project would be shut down for good",
           "They wanted the roof closed during lunch"
         ], 1, "The passage says students began volunteering, which suggests the project made them want to take part.", ["rg6"], "Volunteering is a clue that students were engaged, not just assigned work."),
         Q("Vocabulary in Context", "In the passage, the word \"observe\" most nearly means —", [
@@ -78,25 +78,25 @@ window.READING_RESCUE = {
           "She wants to buy candles for herself",
           "She now understands the lost list mattered to someone",
           "She dislikes the color blue",
-          "She plans to stop waiting at the library"
+          "She has decided she will stop waiting for her brother at the library from now on"
         ], 1, "Nora notices the guard's relief, which suggests she understands the list was important for a real reason.", ["bb4","bb6","bb7"], "The birthday candles clue and the guard's reaction help explain Nora's thoughts."),
         Q("Text Evidence", "Which detail best shows that Nora is observant?", [
-          "She waited for her brother every afternoon",
+          "She waited quietly for her older brother outside the library every single afternoon",
           "She read while the buses lined up",
           "She noticed a paper tucked under the bench leg",
           "She walked home after school"
         ], 2, "Seeing the paper under the bench is the clearest evidence that Nora notices small details.", ["bb3"], "This is the exact moment her careful attention matters."),
         Q("Main Idea", "What is a central idea of this passage?", [
-          "Libraries should stay open later",
+          "Public libraries in busy neighborhoods really ought to stay open much later",
           "Small acts of attention can help other people",
-          "Crossing guards carry too many things",
-          "Waiting is always boring"
+          "Crossing guards are usually asked to carry far too many things at one time",
+          "Waiting around for someone is almost always a slow and boring thing to do"
         ], 1, "The passage shows that Nora notices something small and helps someone else because of it.", ["bb3","bb6"], "These sentences show the discovery and the helpful result."),
         Q("Vocabulary in Context", "In the phrase \"let out a breathy laugh,\" the word \"breathy\" helps show that the guard felt —", [
-          "furious",
-          "relieved and a little emotional",
-          "sleepy",
-          "confused"
+          "angry and ready to shout at someone",
+          "relieved and a little emotional afterward",
+          "tired and struggling to stay awake",
+          "puzzled and unsure what just happened"
         ], 1, "The guard had been searching and then found the list, so the laugh sounds relieved.", ["bb5","bb6"], "The searching and then the laugh together show the feeling.")
       ]
     },
@@ -125,10 +125,10 @@ window.READING_RESCUE = {
           "Why cardboard is a poor material for science projects",
           "How a team changed its conclusion after looking at better evidence",
           "How to build the fastest water wheel possible",
-          "Why school fairs should include fewer experiments"
+          "Why school science fairs really ought to include far fewer experiments each year"
         ], 1, "The passage shows the team moving from first excitement to a stronger conclusion based on repeated evidence.", ["fw3","fw4","fw5","fw7"], "These parts show how the team's thinking changed."),
         Q("Inference", "What lesson did Omar's team learn?", [
-          "The noisiest result is always the best one",
+          "The loudest and most dramatic result is always the very best one to trust",
           "One trial is enough for a strong conclusion",
           "Reliable results matter more than flashy results",
           "Science projects should avoid water"
@@ -136,14 +136,14 @@ window.READING_RESCUE = {
         Q("Author's Purpose", "Why does the author include Omar crossing out his first sentence?", [
           "To show exactly how the team's thinking improved",
           "To prove that Omar dislikes writing",
-          "To show that Design A completely broke apart",
+          "To show readers that Design A completely broke apart during the very last trial",
           "To explain how long the fair lasted"
         ], 0, "That moment lets the reader see the team's old idea and the stronger conclusion that replaced it.", ["fw6","fw7"], "These lines make the change in reasoning visible."),
         Q("Vocabulary in Context", "In this passage, the word \"reliable\" most nearly means —", [
-          "easy to decorate",
-          "likely to work the same way again",
-          "made of expensive parts",
-          "lighter than expected"
+          "simple enough that anyone could decorate it",
+          "likely to keep working the same way again each time it is tested",
+          "built out of rare and expensive parts",
+          "surprisingly lighter than anyone had expected"
         ], 1, "The slower wheel was reliable because it kept working in repeated trials.", ["fw5","fw7"], "The passage connects reliability with steady repeated performance.")
       ]
     },
@@ -171,27 +171,27 @@ window.READING_RESCUE = {
       questions: [
         Q("Author's Purpose", "Why does the author mention that the reporting was still accurate?", [
           "To show that headlines matter even when the facts are good",
-          "To prove the printer caused every problem",
+          "To prove that the printing company was the true cause of every single problem",
           "To suggest the article should be deleted",
           "To compare newspapers to books"
         ], 0, "The author is showing that accuracy matters, but presentation also helps readers understand the story quickly.", ["mh4","mh5"], "These lines connect the missing headline to the reader's confusion."),
         Q("Main Idea", "What is a central idea of the passage?", [
           "Printing school newspapers is too expensive",
-          "Good writing must also be organized for readers",
+          "Good writing must also be organized and clearly labeled for readers",
           "Photographs are the most important part of a paper",
           "Advisers should fix every mistake themselves"
         ], 1, "The passage shows that even accurate reporting needs helpful structure so readers can follow it.", ["mh2","mh5","mh7","mh8"], "The problem was not the facts alone; it was how readers met the story."),
         Q("Inference", "What can you infer about the adviser?", [
           "She prefers students to solve problems by thinking through them",
           "She was angry but tried to hide it",
-          "She does not care about the newspaper",
+          "She does not really care about the newspaper or how the students feel about it",
           "She forgot to read the first issue"
         ], 0, "Instead of blaming someone, she asks a question that helps the staff learn from the mistake.", ["mh6","mh7"], "Her response shows a teaching style, not just a correction."),
         Q("Vocabulary in Context", "In the sentence about pages feeling \"official,\" the word \"official\" most nearly means —", [
-          "secret",
-          "careless",
+          "hidden away and kept from most people",
+          "done in a sloppy and careless manner",
           "real and professionally made",
-          "boring"
+          "dull and not very interesting to read"
         ], 2, "The newspaper felt official because it looked polished and real, like a published paper.", ["mh1","mh2"], "The careful photos and columns are the context clue.")
       ]
     },
@@ -220,17 +220,17 @@ window.READING_RESCUE = {
           "He feels nervous in the new cafeteria",
           "He wants to become a teacher",
           "He is angry about lunch",
-          "He has already made several friends"
+          "He has already made several close friends at his brand-new school"
         ], 0, "The careful way he carries the tray and the noisy cafeteria suggest he feels unsure at first.", ["lt1","lt2"], "These details show his discomfort without stating it directly."),
         Q("Text Evidence", "Which detail best shows the moment things begin to change for Ben?", [
-          "The cafeteria sounded loud",
-          "He saw an empty seat",
+          "The noisy cafeteria sounded as loud as a hundred radios",
+          "He noticed a single empty seat at the crowded table",
           "Three heads popped up at once",
-          "The bell rang"
+          "The lunch bell finally rang to end the period"
         ], 2, "That moment shows the table suddenly notices him and opens a path into the conversation.", ["lt4","lt5"], "His comment leads directly to the group's reaction."),
         Q("Main Idea", "What is a central idea of this passage?", [
           "Maps are better than conversations",
-          "Shared interests can help people connect quickly",
+          "Shared interests can help people connect with each other quickly",
           "School cafeterias should be quieter",
           "Students should always sit alone on the first day"
         ], 1, "Ben connects with the table because he notices and joins something they already care about.", ["lt3","lt4","lt6"], "The drawings on the table become the bridge into friendship."),
@@ -238,7 +238,7 @@ window.READING_RESCUE = {
           "To show he is now late for class",
           "To show that he feels more comfortable than before",
           "To suggest he dislikes the food",
-          "To prove he forgot where to go next"
+          "To prove that Ben completely forgot where he was supposed to go next"
         ], 1, "The ending contrasts with his nervous start and shows that lunch became easier for him.", ["lt1","lt7"], "Comparing the first and last moments shows how Ben changed.")
       ]
     },
@@ -266,19 +266,19 @@ window.READING_RESCUE = {
       questions: [
         Q("Main Idea", "What is the main idea of this passage?", [
           "Wildfires always improve forests",
-          "Burned forests may begin changing and recovering sooner than people expect",
+          "Burned forests may begin changing and recovering sooner than most people would expect",
           "Scientists cause most forest fires",
-          "Ash is the only reason plants grow"
+          "Ash left behind by a fire is the single and only reason that new plants can grow"
         ], 1, "The passage explains that while fires are dangerous, recovery can begin quickly in some important ways.", ["wf2","wf3","wf4","wf5","wf8"], "These sentences move from first impression to a more complex explanation."),
         Q("Author's Purpose", "Why does the author include the sentence \"This does not mean fire is harmless\"?", [
           "To remind readers that the passage is not praising destruction",
           "To change the topic away from forests",
           "To prove scientists were wrong earlier",
-          "To explain that wildfires never happen naturally"
+          "To explain to readers that wildfires simply never happen as a part of nature"
         ], 0, "That sentence keeps the explanation balanced and prevents a mistaken oversimplification.", ["wf6","wf7"], "These lines add an important caution to the passage."),
         Q("Inference", "What can you infer about the people driving past the hillsides?", [
           "They probably notice only the immediate damage at first",
-          "They understand forest science deeply",
+          "They already understand the science of how burned forests recover in great detail",
           "They are starting new fires on purpose",
           "They are counting pine cones"
         ], 0, "The passage says the ground can seem empty, which suggests many people see only the first visible damage.", ["wf1","wf2","wf3"], "The author contrasts that first impression with what scientists know."),
@@ -313,27 +313,27 @@ window.READING_RESCUE = {
       ],
       questions: [
         Q("Inference", "What does Leah learn by the end of the passage?", [
-          "Only expensive instruments are worth playing",
+          "Only costly, expensive instruments are truly worth the time it takes to play them",
           "Finishing bravely can matter more than sounding perfect",
           "Practice is not useful before a performance",
           "Teachers should never lend instruments"
         ], 1, "Leah's pride comes from staying steady and finishing, not from producing a perfect sound.", ["bv5","bv6","bv7","bv8"], "These lines show what changed in the way she measures success."),
         Q("Text Evidence", "Which detail best supports the idea that Leah is nervous before playing?", [
           "Her brother can hum the solo",
-          "She stepped into the rehearsal room",
+          "She quietly stepped into the crowded rehearsal room before the audition",
           "Her hands felt cold against the violin",
           "Mr. Kwan opened the closet"
         ], 2, "Cold hands are a clear physical clue that she feels anxious.", ["bv2"], "This detail directly shows her nervousness."),
         Q("Author's Purpose", "Why does the author include Mr. Kwan's warning about the scratchy violin?", [
           "To show that the replacement instrument is completely unusable",
-          "To hint at the challenge Leah will have to face calmly",
+          "To hint at the real challenge Leah will have to face calmly and steadily",
           "To prove the closet is old",
           "To show that tuning is more important than performance"
         ], 1, "His comment sets up the real challenge: Leah must stay steady even when conditions are not ideal.", ["bv4","bv5","bv6"], "The warning connects to how Leah later succeeds."),
         Q("Main Idea", "What is this passage mostly about?", [
           "Why students should own backup instruments",
           "How a performer grows by staying steady during an unexpected problem",
-          "Why rehearsal rooms are stressful places",
+          "Why school rehearsal rooms tend to be some of the most stressful places of all",
           "How to replace a violin string"
         ], 1, "The snapped string creates the problem, and the heart of the passage is how Leah responds to it.", ["bv3","bv5","bv6","bv8"], "These parts show the challenge and the lesson.")
       ]
@@ -361,27 +361,27 @@ window.READING_RESCUE = {
       questions: [
         Q("Main Idea", "What is the main idea of this passage?", [
           "Aquariums should stay open later for the public",
-          "Much of an aquarium's most important work happens after visitors leave",
+          "Much of an aquarium's most important work happens after visitors leave for the night",
           "Veterinarians do all the work in aquariums",
-          "Fish prefer complete darkness at all times"
+          "Fish generally prefer to live in complete and total darkness during all hours"
         ], 1, "The passage contrasts what visitors see with the large amount of behind-the-scenes work done at night.", ["na1","na2","na3","na6","na7"], "These lines frame the hidden nighttime work."),
         Q("Author's Purpose", "Why does the author describe fish being fed after dark?", [
           "To give one concrete example of why night work matters",
-          "To suggest daytime workers are less skilled",
+          "To suggest that the workers on the daytime shift are far less skilled than others",
           "To prove every fish is dangerous",
           "To compare aquariums to forests"
         ], 0, "That detail is an example that makes the broader point more real and specific.", ["na3","na4"], "The author moves from a general list to a vivid example."),
         Q("Inference", "What can you infer about most aquarium visitors?", [
           "They see only a small part of the work needed to care for the animals",
-          "They often stay overnight in the building",
+          "They frequently choose to stay overnight inside the aquarium building after closing",
           "They already understand water chemistry",
           "They help scrub tanks after closing"
         ], 0, "The passage says guests admire the animals but usually do not notice the hidden maintenance work.", ["na5","na6","na7"], "These lines compare public impressions with employee knowledge."),
         Q("Vocabulary in Context", "In the phrase \"patient observation,\" the word \"patient\" most nearly means —", [
-          "sick and waiting for care",
+          "unwell and quietly waiting to receive care",
           "calm and willing to take time",
-          "easily distracted",
-          "excited and noisy"
+          "the kind of person who is easily distracted",
+          "full of excited, noisy energy the whole time"
         ], 1, "Here, patient describes how employees watch carefully over time rather than rushing.", ["na6"], "The context is careful maintenance and testing, not illness.")
       ]
     },
@@ -411,25 +411,25 @@ window.READING_RESCUE = {
           "Why schools should buy shorter pencils",
           "How a simple object helps a student feel less afraid to begin writing",
           "Why Eli dislikes using erasers",
-          "How Mrs. Park decorates classroom supplies"
+          "How Mrs. Park likes to decorate the ordinary supplies she keeps in her classroom"
         ], 1, "The passage centers on how the little pencil changes Eli's attitude toward drafting and making mistakes.", ["lp3","lp4","lp6","lp8"], "These lines connect the pencil to Eli's new confidence."),
         Q("Inference", "Why does Eli keep the pencil in his backpack?", [
           "He wants to sharpen it at home for a test",
           "He now connects it with feeling braver about writing",
           "He plans to give it back to Mrs. Park later",
-          "He thinks it is the only pencil left in school"
+          "He is convinced that this is truly the only pencil left anywhere in the school"
         ], 1, "Eli keeps the pencil because it now means something to him beyond being a school supply.", ["lp4","lp7","lp8"], "The teacher's advice and Eli's final feeling explain why the pencil matters."),
         Q("Author's Purpose", "Why does the author include Mrs. Park's words about the first draft?", [
           "To explain the lesson Eli needs to hear",
-          "To show that Mrs. Park talks too much",
+          "To show readers that Mrs. Park has a habit of talking far too much in class",
           "To prove the pencil is expensive",
           "To compare two writing teachers"
         ], 0, "Her words explain the big idea behind the scene: drafts are for moving forward, not for looking perfect.", ["lp3","lp4"], "These lines give the message that shapes Eli's change."),
         Q("Vocabulary in Context", "In the phrase \"without thinking twice,\" the words \"thinking twice\" most nearly mean —", [
-          "counting carefully",
+          "counting each item slowly and very carefully",
           "hesitating or reconsidering",
-          "solving a difficult problem",
-          "writing two drafts"
+          "working out the answer to a difficult problem",
+          "writing out two full drafts before finishing"
         ], 1, "Students would toss the pencil without thinking twice, meaning without stopping to reconsider it.", ["lp2"], "The context shows it is usually seen as unimportant.")
       ]
     },
@@ -458,7 +458,7 @@ window.READING_RESCUE = {
       questions: [
         Q("Inference", "What can you infer about Talia before she speaks?", [
           "She is secretly happy because she hates soccer",
-          "She is worried about more than just the rain",
+          "She is worried about something more serious than just the rain",
           "She wants to sit alone because she is angry at Miguel",
           "She thinks the referee made the wrong call"
         ], 1, "Her stillness and the way she watches her hands suggest she is carrying another worry.", ["rb3","rb4","rb5"], "These details hint at nervousness before she explains it."),
@@ -466,7 +466,7 @@ window.READING_RESCUE = {
           "He notices the white field lines",
           "He sits beside her and watches what she is doing",
           "He looks at the muddy field",
-          "He hears the referee close a notebook"
+          "He listens as the referee quietly folds his notebook shut in the rain"
         ], 1, "Miguel notices something specific about her hands and mood, which shows real attention.", ["rb4","rb5"], "This is the strongest evidence of his observation."),
         Q("Main Idea", "What is a central idea of this passage?", [
           "Rainstorms ruin every sports season",
@@ -477,7 +477,7 @@ window.READING_RESCUE = {
         Q("Author's Purpose", "Why does the author end with Miguel's last line?", [
           "To show that the conversation helped Talia feel understood",
           "To prove Miguel knows more about injuries than coaches do",
-          "To suggest the game will start again",
+          "To suggest to the reader that the soccer game is about to start up again soon",
           "To explain why the field became muddy"
         ], 0, "Miguel's line reframes Talia's fear and gives the scene its emotional landing point.", ["rb7","rb9"], "His response directly answers what Talia was worried about.")
       ]
@@ -505,27 +505,27 @@ window.READING_RESCUE = {
       ],
       questions: [
         Q("Main Idea", "What is this passage mainly about?", [
-          "Why closets should be cleaned every month",
+          "Why the closets in a home really should be cleaned out at least once every month",
           "How an old jar helps Ava connect to a family habit of reusing things",
           "Why denim is stronger than other fabrics",
           "How to sew a new pencil case from scratch"
         ], 1, "The story focuses on Ava discovering the jar and then using it to connect with an older family way of thinking.", ["jb3","jb5","jb6","jb8"], "These details connect the object to family memory and Ava's choice."),
         Q("Inference", "What can you infer about Ava's grandmother's mother?", [
           "She disliked making clothes",
-          "She believed useful things should not be wasted",
+          "She believed useful things should be saved and not wasted",
           "She collected buttons only because they were pretty",
           "She sold buttons at the market"
         ], 1, "Saving strong buttons from worn-out clothes suggests she valued reuse and practicality.", ["jb4","jb5"], "The explanation about worn-out shirts gives the clue."),
         Q("Author's Purpose", "Why does the author describe one button as looking like \"a tiny moon\"?", [
           "To show Ava notices the jar with imagination and care",
-          "To prove the button glows in the dark",
+          "To prove to the reader that the old button actually glows softly in the dark",
           "To explain the phases of the moon",
           "To suggest the jar belongs outside"
         ], 0, "That description helps the reader see the buttons through Ava's imaginative attention.", ["jb2"], "The comparison makes the jar feel vivid and special."),
         Q("Vocabulary in Context", "In the sentence about a conversation that had started long before Ava was born, the word \"conversation\" most nearly refers to —", [
           "a loud argument in the kitchen",
           "a family idea being passed forward through actions",
-          "an online chat about school supplies",
+          "a long online chat between friends about which school supplies to buy",
           "instructions printed on the pouch"
         ], 1, "The pouch feels like part of a long conversation because Ava is continuing a family habit or value.", ["jb5","jb7","jb8"], "The older habit and Ava's new choice connect the meaning.")
       ]
@@ -557,25 +557,25 @@ window.READING_RESCUE = {
           "She is more interested in understanding than rushing",
           "She forgot the rules of the contest",
           "She refuses to compete with classmates",
-          "She has made paper rockets for years"
+          "She has quietly been building paper rockets like these one for many years"
         ], 0, "Priya keeps testing and adjusting instead of throwing right away, which suggests patience and curiosity.", ["pr5","pr6"], "Her actions show how she approaches the challenge."),
         Q("Main Idea", "What is the central idea of the passage?", [
           "Fast starts always lead to wins",
           "Careful experimenting can matter more than immediate victory",
           "Paper is too weak for science class",
-          "Students should avoid classroom contests"
+          "Students would probably be better off avoiding classroom contests altogether"
         ], 1, "The class learns from Priya's design even though it does not win, showing the value of thoughtful testing.", ["pr6","pr7","pr8"], "These parts move the story beyond just who won."),
         Q("Author's Purpose", "Why does the author include Jaden asking to borrow Priya's idea?", [
           "To show he has learned to respect her approach",
           "To prove he never liked contests",
-          "To suggest Mr. Lobo will cancel the activity",
+          "To suggest to readers that Mr. Lobo is about to cancel the whole activity",
           "To explain that Jaden's rocket was broken"
         ], 0, "That final detail shows Jaden changing from quick confidence to real interest in Priya's method.", ["pr3","pr9"], "The ending contrasts with how he began."),
         Q("Vocabulary in Context", "In the sentence about energy beginning to \"slide,\" the word \"slide\" most nearly means —", [
           "move down or fade",
-          "rush upward",
-          "bounce loudly",
-          "freeze in place"
+          "suddenly rush straight upward",
+          "bounce around very loudly",
+          "freeze completely in one place"
         ], 0, "The class energy is fading after lunch, not literally moving across the floor.", ["pr1"], "The context is about alertness dropping.")
       ]
     },
@@ -605,26 +605,26 @@ window.READING_RESCUE = {
         Q("Inference", "What does the phrase \"the scrape underneath them\" suggest about Imani's comment?", [
           "It sounded partly sharp or jealous beneath the joke",
           "It was too quiet for Mara to hear",
-          "It was actually praise with no mixed feeling",
+          "It was honestly meant as pure praise, without any mixed feeling behind it",
           "It was a comment about cleaning the floor"
         ], 0, "The phrase suggests Mara hears a rough edge under the words, not just the words themselves.", ["ss3","ss4"], "The author uses this image to show tone and feeling."),
         Q("Main Idea", "What is a central idea of this passage?", [
           "Good friends never say awkward things",
           "Honest repair can matter after a hurtful moment",
           "New shoes always cause problems",
-          "Community centers should have stricter rules"
+          "The rules at community centers really ought to be made much stricter than they are"
         ], 1, "The passage moves from a small hurt to an apology that repairs the friendship.", ["ss5","ss6","ss7","ss9"], "These lines show the conflict and how it gets fixed."),
         Q("Author's Purpose", "Why does the author include Mara's final laugh?", [
           "To show the tension between the friends begins to ease",
           "To prove she no longer likes the shoes",
-          "To suggest she is laughing at someone else",
+          "To suggest to the reader that she is quietly laughing at some other person",
           "To show she did not hear Imani"
         ], 0, "The laugh signals a release after the apology and makes the ending warmer.", ["ss6","ss7","ss8","ss9"], "It helps land the scene emotionally."),
         Q("Vocabulary in Context", "In the sentence \"The words were light,\" the word \"light\" most nearly means —", [
-          "glowing brightly",
+          "shining and glowing very brightly",
           "said in a casual or joking way",
-          "too quiet to hear",
-          "written on paper"
+          "spoken far too quietly to hear",
+          "carefully written down on a sheet of paper"
         ], 1, "The comment sounds casual on the surface, even though Mara hears something else underneath.", ["ss3","ss4"], "The context contrasts the surface tone with the hidden edge.")
       ]
     },
@@ -653,27 +653,27 @@ window.READING_RESCUE = {
       questions: [
         Q("Main Idea", "What is this passage mainly about?", [
           "Why digital accounts are confusing",
-          "How an old library card becomes a symbol of memory and continued value",
-          "Why Sofia writes her name neatly now",
+          "How an old library card becomes a symbol of memory and continued personal value",
+          "The reason that Sofia has started writing her own name so neatly these days",
           "How libraries store bookmarks"
         ], 1, "The passage focuses on Sofia realizing the old card still matters because of what it represents.", ["lc3","lc5","lc8","lc9"], "These lines connect the object to memory and new use."),
         Q("Inference", "Why does Sofia hesitate before dropping the card in the basket?", [
           "She suddenly remembers what the card has meant to her",
           "She does not trust the librarian",
           "She forgot how digital accounts work",
-          "She wants to keep using the old account number"
+          "She would rather just keep on using the same old library account number forever"
         ], 0, "The worn corners and old handwriting trigger memories that make the card feel important.", ["lc3","lc4","lc5"], "These details explain her pause."),
         Q("Author's Purpose", "Why does the author include Mrs. Alvarez's line about usefulness?", [
           "To state the larger idea of the story clearly",
-          "To advertise the library's new system",
+          "To advertise the brand-new borrowing system the library has just installed",
           "To prove bookmarks are expensive",
           "To compare Sofia to other students"
         ], 0, "That line expresses the passage's theme: something can change purpose and still hold value.", ["lc7","lc8","lc9"], "The line explains Sofia's final choice."),
         Q("Vocabulary in Context", "In the sentence about the card's corners being \"soft,\" the word \"soft\" most nearly suggests —", [
-          "made of cloth",
+          "sewn together out of soft cloth",
           "worn smooth from long use",
-          "easily broken in half",
-          "still wet from rain"
+          "so fragile it could be broken in half",
+          "damp and still wet from the falling rain"
         ], 1, "The corners are soft because the card has been handled and carried for years.", ["lc3"], "The backpack-pocket detail gives the clue.")
       ]
     },
@@ -701,28 +701,28 @@ window.READING_RESCUE = {
       ],
       questions: [
         Q("Inference", "How does Mina's feeling change by the end of the passage?", [
-          "She grows from impatient excitement into quiet appreciation",
+          "She grows from impatient excitement into a quiet, thoughtful appreciation",
           "She becomes angrier with June than before",
-          "She decides to leave the house immediately",
+          "She makes up her mind to leave the house right away without waiting",
           "She forgets the storm completely"
         ], 0, "Mina begins focused on the cancellation, but ends up listening closely and appreciating the music.", ["sm2","sm8","sm9"], "The beginning and ending create the change."),
         Q("Author's Purpose", "Why does the author include June's line about practice time?", [
           "To show how differently the sisters view the same snow day",
           "To prove June dislikes school",
           "To explain how violins are tuned",
-          "To suggest Mina should join the orchestra"
+          "To suggest to readers that Mina really ought to go and join the orchestra"
         ], 0, "June's line highlights the contrast between Mina's hope for free time and June's disciplined view.", ["sm4","sm6"], "These lines set up the sisters' difference."),
         Q("Main Idea", "What is a central idea of the passage?", [
           "Snow days always ruin musicians' plans",
           "The same event can mean something different to different people",
-          "Practice is more important than rest in every situation",
+          "Practicing an instrument is always more important than resting, no matter the situation",
           "You should never listen outside a bedroom door"
         ], 1, "The snow day means play to Mina at first and practice to June, and the ending brings those views closer together.", ["sm2","sm6","sm9"], "These details show two meanings for the same day."),
         Q("Vocabulary in Context", "In the phrase \"drifting down the hallway,\" the word \"drifting\" most nearly means —", [
-          "breaking suddenly",
+          "cracking and breaking all of a sudden",
           "moving lightly and slowly",
-          "getting louder by force",
-          "stopping without warning"
+          "being forced to grow louder and louder",
+          "coming to a stop with no warning at all"
         ], 1, "The violin sound drifts because it moves gently through the house.", ["sm7"], "The image is soft and gradual, not sharp.")
       ]
     },
@@ -749,7 +749,7 @@ window.READING_RESCUE = {
       ],
       questions: [
         Q("Inference", "Why does Devin stop using the shortcut?", [
-          "He is told by a teacher that the gate is locked",
+          "One of his teachers tells him that the gate near the field has been locked",
           "Seeing Mateo almost fall changes how he thinks about the risk",
           "He wants more exercise after school",
           "The shortcut no longer saves any time"
@@ -758,19 +758,19 @@ window.READING_RESCUE = {
           "Fences are always badly designed",
           "A risky choice can look different once it affects someone else",
           "Students should never walk home alone",
-          "Time-saving tricks are always worth it"
+          "Little tricks that save a bit of time are always completely worth the risk"
         ], 1, "The passage is about Devin rethinking the shortcut when he sees its danger more clearly.", ["fs2","fs5","fs8"], "The beginning attitude and ending insight create the theme."),
         Q("Author's Purpose", "Why does the author include the line about the board sounding louder than it should have?", [
-          "To show how sharply the moment hits Devin",
+          "To show how sharply and suddenly the moment hits Devin",
           "To prove the fence is made of metal",
           "To suggest Mateo is shouting",
           "To explain why tennis practice ended early"
         ], 0, "That sound detail makes the danger feel bigger and more real to Devin in that moment.", ["fs4","fs5"], "The author uses sound to underline the seriousness."),
         Q("Vocabulary in Context", "In the sentence about seeing things through someone else's shoes, the word \"shoes\" most nearly stands for —", [
-          "fashion choices",
+          "the everyday choices people make about fashion",
           "another person's point of view",
-          "the length of the walk home",
-          "sports equipment"
+          "exactly how long the daily walk home really is",
+          "the sports equipment kept in the school locker"
         ], 1, "The phrase means understanding the situation from another person's perspective.", ["fs8"], "It is a figurative way of talking about empathy.")
       ]
     },
@@ -798,7 +798,7 @@ window.READING_RESCUE = {
       ],
       questions: [
         Q("Inference", "What can you infer about why Ren brings the lantern?", [
-          "Ren wants to show off the best design on the block",
+          "Ren mainly wants to show everyone that he made the best lantern design on the block",
           "Ren suspects Mr. Sato might feel left out and wants to include him",
           "Ren has been sent by every family on the street",
           "Ren is trying to sell paper lanterns"
@@ -807,18 +807,18 @@ window.READING_RESCUE = {
           "To explain why the lantern matters emotionally to him",
           "To prove he invented the tradition",
           "To suggest he is moving away soon",
-          "To compare Maple Street with another town"
+          "To compare the homes on Maple Street with those in a completely different town"
         ], 0, "His memory reveals why the gesture affects him so strongly.", ["lw6","lw7","lw8"], "These lines deepen the meaning of the moment."),
         Q("Main Idea", "What is a central idea of this passage?", [
-          "Neighborhood traditions are expensive to keep",
+          "Keeping up the old traditions of a neighborhood tends to be quite expensive",
           "A small act of welcome can carry deep meaning",
-          "People should always attend block parties",
-          "Winter nights are better than summer nights"
+          "People in a neighborhood should really make a point to attend every block party",
+          "Cold winter nights are almost always nicer to be out in than summer nights"
         ], 1, "The story shows how one thoughtful action brings warmth and belonging to someone else.", ["lw5","lw8","lw9"], "These details show the gesture and its effect."),
         Q("Vocabulary in Context", "In the phrase \"a nerve problem,\" the word \"nerve\" most nearly refers to —", [
           "a medical illness",
-          "the courage to do something awkward or difficult",
-          "a loud feeling of anger",
+          "the courage it takes to do something awkward or difficult",
+          "a sudden and very loud feeling of anger toward someone",
           "an interest in science"
         ], 1, "Ren is nervous, and the phrase means trying to gather courage.", ["lw5"], "The context is social bravery, not health.")
       ]
@@ -848,12 +848,12 @@ window.READING_RESCUE = {
         Q("Main Idea", "What is this passage mostly about?", [
           "Why markers are easier to use than crayons",
           "How attention and care can turn something overlooked into something valuable",
-          "Why indoor recess should include only puzzles",
+          "The reason that indoor recess time really ought to include nothing but quiet puzzles",
           "How to organize a classroom cabinet"
         ], 1, "The passage focuses on Isaac seeing value in something others ignored and helping transform it.", ["bc3","bc4","bc7","bc8"], "These lines show the shift from junk to something meaningful."),
         Q("Inference", "What can you infer about Isaac?", [
           "He likes finding possibilities in things other people dismiss",
-          "He only helps when the teacher tells him to",
+          "He is the sort of student who only ever helps out when a teacher tells him to",
           "He is angry that the crayons are old",
           "He prefers mosaics to all other art"
         ], 0, "Isaac notices what is still usable and works carefully with it instead of rejecting it.", ["bc4","bc5"], "His choices suggest patience and imagination."),
@@ -861,12 +861,12 @@ window.READING_RESCUE = {
           "To show how easily the crayons could have been ignored",
           "To prove Mila is the best artist in class",
           "To explain where the box came from",
-          "To show that Isaac is offended by jokes"
+          "To show the reader that Isaac tends to get offended whenever people make jokes"
         ], 0, "The joke sets up the contrast between how others see the crayons and how Isaac chooses to see them.", ["bc3","bc4"], "It helps frame Isaac's different response."),
         Q("Vocabulary in Context", "In the sentence about the crayons becoming \"something worth protecting,\" the word \"protecting\" most nearly means —", [
           "hiding forever",
-          "treating with care so it is not lost or damaged",
-          "returning to the store",
+          "treating something with care so it is not lost or damaged",
+          "carefully carrying it all the way back to the store",
           "using up quickly"
         ], 1, "Isaac closes the box gently because he now sees it as worth caring for.", ["bc8"], "The context points to careful treatment, not hiding.")
       ]
@@ -897,17 +897,17 @@ window.READING_RESCUE = {
           "Why apartment alleys are noisy places",
           "How paying closer attention changes the way Jonah sees an ordinary place",
           "Why drawing homework is too difficult",
-          "How bakeries prepare bread each morning"
+          "The careful way that neighborhood bakeries prepare their fresh bread each morning"
         ], 1, "The story is about Jonah moving from dismissal to careful noticing.", ["ff2","ff3","ff4","ff7"], "These lines show how his view changes."),
         Q("Inference", "What does Jonah learn through the assignment?", [
-          "A place can hold more life and detail than it first seems to",
-          "He should ask to switch bedrooms immediately",
+          "An ordinary place can hold more life and detail than it first seems to",
+          "He ought to go and ask his parents to switch his bedroom right away",
           "Cats make the best subjects for all art",
           "Homework is more important than sleep"
         ], 0, "The alley seems plain at first, but attention reveals patterns and life in it.", ["ff3","ff4","ff5","ff7"], "Those details support the broader lesson."),
         Q("Author's Purpose", "Why does the author include the shirts, cat, and bakery light?", [
           "To show the specific details that change Jonah's opinion",
-          "To suggest Jonah should become a baker",
+          "To suggest to the reader that Jonah ought to grow up to become a baker someday",
           "To compare city life to country life",
           "To prove the alley is dangerous"
         ], 0, "These details are the evidence that the alley is richer and more interesting than Jonah first thought.", ["ff4","ff5"], "The author uses them to make the change concrete."),
@@ -915,7 +915,7 @@ window.READING_RESCUE = {
           "was newly built overnight",
           "had always had value, even before Jonah noticed it",
           "wanted someone to move away from it",
-          "was closed off from the city"
+          "had been quietly closed off and hidden away from the rest of the city"
         ], 1, "The alley did not change physically; Jonah's way of seeing it changed.", ["ff6","ff7","ff8"], "The ending makes that idea clear.")
       ]
     },
@@ -943,20 +943,20 @@ window.READING_RESCUE = {
       questions: [
         Q("Inference", "Why does Nia blink twice before speaking?", [
           "She is trying to remember where the concert is",
-          "She is surprised and moved by Kayla's offer",
+          "She is surprised and deeply moved by Kayla's kind offer",
           "She cannot hear what Kayla said",
           "She does not want to go to the concert"
         ], 1, "Her reaction suggests the offer matters to her more than she expected or wanted to show.", ["et3","et4","et5"], "The context explains why the ticket feels important."),
         Q("Main Idea", "What is a central idea of this passage?", [
           "Concerts are more fun than sports events",
           "A small generous choice can quietly matter a great deal to someone else",
-          "Tickets should always be given to best friends first",
+          "Concert tickets really ought to be handed out to a person's best friends before anyone else",
           "Families should attend every school event"
         ], 1, "The passage shows that the extra ticket becomes meaningful because of who receives it.", ["et5","et6","et7","et8"], "These lines show the choice and its emotional result."),
         Q("Author's Purpose", "Why does the author include Nia's father driving late routes?", [
           "To explain why being invited to the concert matters to Nia",
           "To show that Kayla dislikes delivery trucks",
-          "To prove Nia is a better student than Kayla",
+          "To prove to readers that Nia is clearly a much better student than Kayla is",
           "To explain how tickets are printed"
         ], 0, "That detail gives the reader the missing background needed to understand Nia's silence and reaction.", ["et3","et4"], "It builds the emotional stakes of the offer."),
         Q("Vocabulary in Context", "In the sentence about changing \"who the night belonged to,\" the word \"belonged\" most nearly suggests —", [
@@ -991,14 +991,14 @@ window.READING_RESCUE = {
       ],
       questions: [
         Q("Main Idea", "What is this passage mostly about?", [
-          "Why classroom furniture should be replaced",
+          "The reasons that old and worn classroom furniture really ought to be replaced",
           "How quiet support can help someone feel steadier",
-          "Why sticky notes are useful for vocabulary",
+          "The many reasons that little sticky notes turn out to be useful for learning vocabulary",
           "How reading circles should be organized"
         ], 1, "The heart of the passage is Lena's gentle help and the effect it has on Theo.", ["qc5","qc6","qc7","qc9"], "These details show both the support and the result."),
         Q("Inference", "What can you infer about Lena?", [
-          "She enjoys being the center of attention",
-          "She notices what others need and helps without embarrassing them",
+          "She truly loves being the center of attention whenever she possibly can be",
+          "She quietly notices what others need and helps them without embarrassing them",
           "She does not like reading circles",
           "She wants Theo to owe her a favor"
         ], 1, "Lena helps quietly and thoughtfully after paying attention to Theo's struggle.", ["qc5","qc6","qc7"], "Her actions suggest sensitivity and care."),
@@ -1006,7 +1006,7 @@ window.READING_RESCUE = {
           "To compare what stayed shaky with what became steadier",
           "To show the chair broke apart",
           "To prove Lena fixed the furniture",
-          "To explain why the class ended early"
+          "To explain to the reader exactly why the reading class happened to end early that day"
         ], 0, "The contrast in the final line highlights Theo's change with a memorable image.", ["qc2","qc9"], "The wobbling chair becomes a symbol the author can use at the end."),
         Q("Vocabulary in Context", "In the sentence saying the first sentence almost \"disappeared,\" the word \"disappeared\" most nearly means —", [
           "was erased from the book",
@@ -1042,18 +1042,18 @@ window.READING_RESCUE = {
           "She wants to win an art prize with it",
           "She wants to honor the thought Mateo had already put into it",
           "She needs extra credit before the weekend",
-          "She thinks the room looks empty without decorations"
+          "She feels that the whole art room looks far too empty when it has no decorations"
         ], 1, "After learning Mateo planned the design, Hana sees the kite as something worth completing respectfully.", ["uk4","uk5","uk6"], "Those details explain her motive."),
         Q("Main Idea", "What is a central idea of this passage?", [
           "Art rooms should label every unfinished project",
           "Completing someone else's work can become an act of care and remembrance",
-          "Students should never move during the school year",
+          "Students and their families really should never have to move in the middle of a school year",
           "Kites are the best classroom decoration"
         ], 1, "The story is about Hana turning an abandoned-looking object into a way of honoring someone who left.", ["uk4","uk6","uk7","uk8"], "These lines show the emotional purpose of finishing the kite."),
         Q("Author's Purpose", "Why does the author include the sketch from the supply drawer?", [
-          "To show that the kite was imagined carefully before it was left unfinished",
+          "To show that the kite was imagined and planned carefully before it was left unfinished",
           "To prove Ms. Baird prefers blue and silver",
-          "To explain how to build a kite step by step",
+          "To carefully explain to the reader how a person builds a paper kite step by step",
           "To suggest Mateo will return soon"
         ], 0, "The sketch proves the kite carried Mateo's intention, which changes how Hana and the reader see it.", ["uk4","uk5"], "It turns the project from random leftovers into a meaningful plan."),
         Q("Vocabulary in Context", "In the phrase \"not hers in the usual sense,\" the word \"usual\" most nearly means —", [
@@ -1087,21 +1087,21 @@ window.READING_RESCUE = {
       ],
       questions: [
         Q("Inference", "Why does the phrase affect Noah so strongly?", [
-          "He knows it may be a joke, but it still feels pointed and repeated",
+          "He knows it may only be a joke, but it still feels pointed and personally aimed at him",
           "He is worried about failing drama club",
           "He cannot hear very well in science class",
-          "He thinks the teacher gave the phrase as homework"
+          "He honestly believes his teacher handed out that phrase as a piece of homework"
         ], 0, "The repeated line feels personal enough that Noah carries it around mentally even outside class.", ["he1","he2","he3"], "These details show why the words stick with him."),
         Q("Author's Purpose", "Why does the author include Drew rehearsing voices?", [
           "To complicate the situation and make Noah's understanding less simple",
           "To prove drama club causes trouble",
-          "To show that science and drama are taught together",
+          "To show the reader that the science class and the drama club are somehow taught together",
           "To explain why the lockers are noisy"
         ], 0, "The rehearsal detail makes the moment less clear-cut and adds uncertainty.", ["he4","he5","he7","he8"], "It changes how Noah and the reader interpret the earlier phrase."),
         Q("Main Idea", "What is a central idea of this passage?", [
           "Sarcasm is always harmless when people laugh",
           "Words can linger, especially when their meaning feels uncertain",
-          "Students should avoid answering difficult questions",
+          "Students would honestly be wiser to avoid answering any difficult questions in class",
           "Hallways are louder than classrooms"
         ], 1, "The story focuses on how a repeated phrase follows Noah because he cannot fully trust what it means.", ["he2","he3","he8"], "Those lines emphasize the lasting effect of the words."),
         Q("Vocabulary in Context", "In the final sentence, the word \"echoing\" most nearly suggests —", [
@@ -1137,16 +1137,16 @@ window.READING_RESCUE = {
           "A child trying to hide from bedtime",
           "A child noticing how strange and funny a shadow seems",
           "A lesson about keeping a room clean",
-          "A plan to draw people at different heights"
+          "A careful plan the speaker makes to draw many people at very different heights"
         ], 1, "The speaker keeps describing the shadow's odd behavior with curiosity and humor.", ["mys1","mys2","mys5","mys8"], "Those lines show the poem focuses on the shadow's puzzling and playful changes."),
         Q("Inference", "How does the speaker most likely feel about the shadow?", [
-          "Amused and curious",
+          "Amused, curious, and playful",
           "Angry and embarrassed",
           "Bored and sleepy",
           "Jealous and worried"
         ], 0, "Calling the shadow's behavior 'the funniest thing' suggests the speaker enjoys wondering about it.", ["mys2","mys5"], "The poem sounds playful rather than upset."),
         Q("Author's Purpose", "Why does Stevenson compare the shadow to a child that grows?", [
-          "To explain a scientific fact about mirrors",
+          "To explain a real scientific fact about the way that mirrors reflect light",
           "To help readers picture how the shadow changes size",
           "To prove the speaker has a twin",
           "To show the speaker wants to be taller"
@@ -1187,28 +1187,28 @@ window.READING_RESCUE = {
       ],
       questions: [
         Q("Main Idea", "What is the main idea of this poem?", [
-          "Winter mornings are harder than summer mornings",
-          "The speaker thinks summer bedtime feels unfair because daylight remains",
+          "Getting up on cold winter mornings is much harder than on warm summer mornings",
+          "The speaker thinks summer bedtime feels unfair because so much daylight remains",
           "Birds are louder in summer than in winter",
           "Candles make bedtime less frightening"
         ], 1, "The poem centers on the speaker's complaint that bedtime comes while the day still feels active and bright.", ["bis3","bis4","bis9","bis12"], "Those lines return to the same unfairness."),
         Q("Inference", "What can you infer about the speaker in summer?", [
           "The speaker wants to stay awake and keep enjoying the day",
-          "The speaker is eager to go to sleep early",
+          "The speaker feels genuinely eager to climb into bed and fall asleep early",
           "The speaker dislikes birds and traffic",
           "The speaker prefers winter weather"
         ], 0, "The speaker notices signs of life outdoors and says, 'I should like so much to play.'", ["bis5","bis6","bis7","bis11"], "These details show the speaker wants more time."),
         Q("Author's Purpose", "Why does the poet include the birds and the grown-up people's feet?", [
           "To show that the world outside is still awake and busy",
           "To prove the speaker lives in a noisy city",
-          "To explain what wakes the speaker in winter",
+          "To explain to the reader exactly what it is that wakes the speaker during winter",
           "To compare children and adults directly"
         ], 0, "Those images make bedtime feel especially early because activity is still going on outside.", ["bis5","bis6","bis7","bis8"], "The details underline the speaker's complaint."),
         Q("Vocabulary in Context", "In the question \"does it not seem hard to you,\" the word \"hard\" most nearly means —", [
-          "solid",
+          "firm and completely solid",
           "difficult or unfair",
-          "cold",
-          "loud"
+          "chilly and rather cold",
+          "noisy and very loud"
         ], 1, "The speaker is not describing texture; the word means the situation feels unfair.", ["bis9","bis12"], "The final question explains why the speaker uses that word.")
       ]
     },
@@ -1246,26 +1246,26 @@ window.READING_RESCUE = {
         Q("Main Idea", "What is this poem mostly about?", [
           "A dangerous storm on the river",
           "A child imagining a long journey for tiny boats",
-          "How mills are built near valleys",
-          "A lesson about cleaning up litter"
+          "The careful way that old mills are built along the edges of green valleys",
+          "An important lesson about picking up and cleaning up litter near the river"
         ], 1, "The poem follows the speaker's boats as imagination carries them farther and farther away.", ["wgb7","wgb8","wgb13","wgb16"], "Those lines focus on the boats' journey."),
         Q("Inference", "What does the ending suggest about the speaker?", [
-          "The speaker feels angry that the boats are gone",
+          "The speaker feels quietly angry and upset that all the little boats have floated away",
           "The speaker imagines a friendly world beyond what can be seen",
           "The speaker believes the boats will sink at once",
           "The speaker wants to stop the river"
         ], 1, "Imagining other children finding the boats gives the ending a hopeful, connected feeling.", ["wgb14","wgb15","wgb16"], "The speaker pictures a welcoming destination, not a loss."),
         Q("Author's Purpose", "Why does Stevenson describe the river's color and the trees at the beginning?", [
-          "To create a vivid picture before the boats begin their journey",
+          "To create a vivid picture of the setting before the boats begin their journey",
           "To prove the river is deeper than a lake",
           "To show that the boats are made from wood",
-          "To warn readers away from the water"
+          "To warn young readers to stay far away from the fast-moving river water"
         ], 0, "The opening images help the reader see the setting clearly before the imagination takes off.", ["wgb1","wgb2","wgb3","wgb4"], "These details paint the scene."),
         Q("Vocabulary in Context", "In the line \"It flows along for ever,\" the phrase \"for ever\" most nearly suggests —", [
-          "for a few minutes",
+          "lasting only for a few short minutes",
           "without seeming to end",
-          "only during storms",
-          "in complete silence"
+          "happening only in the middle of storms",
+          "going on in complete and total silence"
         ], 1, "The poem uses the phrase to make the river feel endless to a child's eye.", ["wgb3","wgb13","wgb14"], "The later lines continue that long, far-moving feeling.")
       ]
     },
@@ -1297,28 +1297,28 @@ window.READING_RESCUE = {
       ],
       questions: [
         Q("Main Idea", "What is the poem mainly about?", [
-          "A child feeling afraid of heights",
+          "A young child who feels quite afraid of high places",
           "The joy and freedom of riding on a swing",
-          "How to build a swing in a garden",
-          "The difference between a roof and a wall"
+          "Careful directions for building a wooden swing in a garden",
+          "A comparison explaining the difference between a roof and a wall"
         ], 1, "The speaker calls swinging 'the pleasantest thing' and describes its exciting motion and view.", ["sw1","sw3","sw7","sw11"], "The whole poem celebrates the experience."),
         Q("Inference", "How does the speaker feel while swinging?", [
-          "Proud and bossy",
-          "Delighted and exhilarated",
-          "Confused and worried",
-          "Tired and impatient"
+          "Feeling proud and rather bossy",
+          "Delighted, thrilled, and full of energy",
+          "Feeling both confused and worried",
+          "Growing tired and quite impatient"
         ], 1, "The enthusiastic questions and lively motion show pure enjoyment.", ["sw1","sw3","sw4","sw11"], "The tone is energetic and happy."),
         Q("Author's Purpose", "Why does Stevenson list \"Rivers and trees and cattle and all\"?", [
           "To show how high the swing lifts the speaker's point of view",
           "To explain where farms are located",
-          "To prove the child is traveling miles away",
+          "To try to prove to the reader that the child is really traveling miles and miles away",
           "To compare city life to country life"
         ], 0, "The list helps readers picture the broad view the child gets from the top of the swing.", ["sw5","sw6","sw7","sw8"], "The details widen the scene."),
         Q("Vocabulary in Context", "In the phrase \"Till I can see so wide,\" the word \"wide\" most nearly means —", [
-          "large in size",
+          "quite large and wide in size",
           "over a broad area",
-          "hard to understand",
-          "close to the ground"
+          "tricky and hard to understand",
+          "staying low and close to the ground"
         ], 1, "The speaker can see across the countryside, so 'wide' refers to a broad view.", ["sw6","sw7","sw8"], "The next line explains what that wide view includes.")
       ]
     },
@@ -1347,27 +1347,27 @@ window.READING_RESCUE = {
       questions: [
         Q("Main Idea", "What is the central idea of this passage?", [
           "Fancy clothing makes rulers wiser",
-          "People may pretend to believe something false because they fear looking foolish",
-          "Children care more about fashion than adults do",
+          "People may pretend to believe something false because they are afraid of looking foolish in front of others",
+          "Young children tend to care far more about fashion and clothing than grown adults ever do",
           "Parades are the best way to test new fabric"
         ], 1, "The story shows how fear and pride keep people from admitting the truth.", ["enc2","enc4","enc5","enc8"], "Those lines trace the lie from beginning to end."),
         Q("Inference", "Why are the officers willing to praise the invisible cloth?", [
           "They secretly love sewing",
           "They are afraid the truth will make them seem foolish or unfit",
-          "They can actually see magical colors",
+          "They truly believe they can actually see the magical colors woven into the cloth",
           "They want the child to speak first"
         ], 1, "The passage directly links their pretending to fear of judgment.", ["enc2","enc4","enc5"], "Their silence and praise come from self-protection."),
         Q("Author's Purpose", "Why does Andersen end the scene with the child speaking up?", [
           "To show that honesty can cut through group pressure",
-          "To prove children always understand politics",
+          "To try to prove that young children will always understand politics better than adults",
           "To suggest the child wants attention",
           "To explain why the parade stops suddenly"
         ], 0, "The child's honesty breaks the spell of pretending and reveals the truth plainly.", ["enc6","enc7","enc8"], "The ending contrasts public praise with simple honesty."),
         Q("Vocabulary in Context", "In this passage, the word \"swindlers\" most nearly means —", [
-          "skilled artists",
-          "traveling guards",
+          "gifted and highly skilled artists",
+          "armed guards traveling with the king",
           "dishonest tricksters",
-          "careful servants"
+          "quiet and very careful royal servants"
         ], 2, "The men fool the Emperor by pretending to weave magical cloth.", ["enc2"], "Their actions reveal what the word means.")
       ]
     },
@@ -1398,10 +1398,10 @@ window.READING_RESCUE = {
           "Why walls are useful in cold weather",
           "How selfishness pushes joy away and welcome brings it back",
           "How birds migrate during spring",
-          "Why children should not play in gardens"
+          "The reasons that young children really should not be allowed to play in gardens"
         ], 1, "The garden grows cold when the Giant shuts others out and brightens when he welcomes them back.", ["sg1","sg4","sg5","sg7"], "The changing garden reflects the Giant's behavior."),
         Q("Inference", "What can you infer about the garden's endless winter?", [
-          "It symbolizes the Giant's selfish attitude",
+          "It stands as a symbol of the Giant's cold, selfish attitude",
           "It proves the garden is at the North Pole",
           "It happens because the wall blocks sunlight forever",
           "It means the children broke the trees"
@@ -1409,14 +1409,14 @@ window.READING_RESCUE = {
         Q("Author's Purpose", "Why does Wilde describe the garden as lovely before the Giant returns?", [
           "To show what is lost when the Giant becomes possessive",
           "To explain how expensive the trees are",
-          "To compare peach-trees with apple-trees",
+          "To carefully compare the garden's peach-trees with its neighboring apple-trees",
           "To prove the children are noisy"
         ], 0, "The beautiful opening makes the later emptiness and recovery more meaningful.", ["sg1","sg2","sg5","sg7"], "The contrast drives the lesson."),
         Q("Vocabulary in Context", "In the sentence about the children having \"crept in,\" the word \"crept\" most nearly means —", [
-          "marched proudly",
+          "marched along quite proudly",
           "moved slowly and quietly",
-          "jumped wildly",
-          "flew overhead"
+          "jumped around rather wildly",
+          "went flying by overhead"
         ], 1, "The children enter through a small hole in the wall, so they move carefully and quietly.", ["sg7"], "The situation gives the clue.")
       ]
     },
@@ -1444,7 +1444,7 @@ window.READING_RESCUE = {
       ],
       questions: [
         Q("Main Idea", "What is the main idea of this passage?", [
-          "Beautiful statues should be protected from weather",
+          "Truly beautiful statues really ought to be carefully protected from all kinds of weather",
           "True worth can come from giving up treasure to help others",
           "Cities need more birds at night",
           "Poor families should ask rulers for help directly"
@@ -1452,20 +1452,20 @@ window.READING_RESCUE = {
         Q("Inference", "What can you infer about the Happy Prince from his request to the Swallow?", [
           "He cares more about appearances than people",
           "He feels compassion when he sees suffering below him",
-          "He wants the Swallow to leave the city quickly",
+          "He mostly wishes for the little Swallow to fly away and leave the whole city quickly",
           "He regrets being placed on a tall column"
         ], 1, "Seeing the seamstress and her son leads him to give away something valuable.", ["hp3","hp4","hp5"], "His action reveals his character."),
         Q("Author's Purpose", "Why does Wilde describe the Prince as covered in gold and jewels at the start?", [
-          "To make the Prince seem dull and ordinary",
-          "To set up a contrast between outward splendor and inner generosity",
+          "To make the Happy Prince come across as rather dull and completely ordinary",
+          "To set up a clear contrast between the Prince's outward splendor and inner generosity",
           "To explain why the city is wealthy",
           "To prove the Swallow likes shiny things"
         ], 1, "The rich description makes the Prince's later sacrifice more powerful.", ["hp1","hp2","hp7","hp8"], "The contrast matters to the theme."),
         Q("Vocabulary in Context", "In the phrase \"a large red ruby glowed,\" the word \"glowed\" most nearly means —", [
           "shone brightly",
-          "melted slowly",
-          "turned dark",
-          "broke apart"
+          "slowly melted away",
+          "gradually turned dark",
+          "cracked and broke apart"
         ], 0, "The jewel is being described as bright and shining on the statue.", ["hp2"], "The image is visual, not destructive.")
       ]
     },
@@ -1494,27 +1494,27 @@ window.READING_RESCUE = {
       questions: [
         Q("Main Idea", "What is this passage mainly about?", [
           "Why crocodiles live near rivers",
-          "How curiosity leads the Elephant's Child into trouble and change",
+          "How curiosity leads the Elephant's Child into trouble and lasting change",
           "Why snakes and elephants are enemies",
-          "How to cross the Limpopo River safely"
+          "A careful explanation of how to cross the wide Limpopo River safely"
         ], 1, "The story follows the Elephant's Child from question-asking to the event that changes his nose.", ["ec1","ec2","ec4","ec6"], "Those moments trace the cause and effect."),
         Q("Inference", "What can you infer about the Elephant's Child at the end?", [
           "He has become completely silent",
           "He has learned caution without losing his curious nature",
-          "He is angry at all the other animals forever",
+          "He remains angry at every single one of the other animals for the rest of his life",
           "He wishes his nose had stayed small"
         ], 1, "The final line says he became more careful, not less curious.", ["ec7","ec8"], "His experience changes his behavior but not his personality."),
         Q("Author's Purpose", "Why does Kipling list the trunk's many uses?", [
           "To show that the change, though painful, becomes practical and important",
-          "To explain how to train an elephant",
+          "To explain to the reader, step by step, how a person might train a young elephant",
           "To prove the Crocodile was kind",
           "To compare trunks with tails"
         ], 0, "The list turns the trunk from a strange result into a useful adaptation.", ["ec6","ec7"], "These details explain why the new nose matters."),
         Q("Vocabulary in Context", "In the phrase \"'satiable curiosity,\" the word \"curiosity\" most nearly means —", [
-          "anger",
+          "a burst of anger",
           "a strong desire to know",
-          "fear of rivers",
-          "hunger for fruit"
+          "a strong fear of rivers",
+          "a growing hunger for fruit"
         ], 1, "The Elephant's Child keeps asking questions because he wants to know things.", ["ec1","ec2"], "His behavior defines the word.")
       ]
     },
@@ -1544,12 +1544,12 @@ window.READING_RESCUE = {
         Q("Main Idea", "What is the main idea of this story passage?", [
           "Animals should live only in deserts",
           "Avoiding work can create bigger consequences later",
-          "Horses and dogs are better workers than oxen",
+          "When it comes to hard work, horses and dogs turn out to be far better workers than oxen",
           "A hump makes a camel run faster"
         ], 1, "The Camel refuses to help and ends up with a lasting consequence tied to that idleness.", ["cam1","cam2","cam4","cam7"], "The passage connects cause and consequence clearly."),
         Q("Inference", "Why does the Djinn give the Camel a hump?", [
-          "To decorate him for the desert",
-          "To solve the problem created by the Camel's laziness",
+          "To dress him up and decorate him nicely for life out in the desert",
+          "To solve the problem that the Camel's own laziness had created for the others",
           "To make the other animals laugh",
           "To hide him from travelers"
         ], 1, "The hump is both a punishment and a practical way to make the Camel work afterward.", ["cam4","cam5","cam6"], "The Djinn responds to the imbalance the Camel caused."),
@@ -1557,13 +1557,13 @@ window.READING_RESCUE = {
           "To show the Camel's stubborn refusal in a memorable way",
           "To prove the Camel has a cough",
           "To explain how deserts sound at night",
-          "To show that the other animals are frightened"
+          "To show the reader that all of the other desert animals are truly frightened"
         ], 0, "The repeated word gives the Camel a comic but clearly unhelpful attitude.", ["cam2"], "It captures his stubbornness in one sound."),
         Q("Vocabulary in Context", "In this passage, the word \"idle\" most nearly means —", [
-          "restless",
+          "fidgety and restless",
           "lazy or avoiding work",
-          "confused",
-          "polite"
+          "puzzled and confused",
+          "gentle and polite"
         ], 1, "The Djinn uses the word while explaining that the Camel would not do his share.", ["cam1","cam4","cam7"], "The surrounding details define it.")
       ]
     },
@@ -1590,27 +1590,27 @@ window.READING_RESCUE = {
       ],
       questions: [
         Q("Main Idea", "What is this passage mainly about?", [
-          "Why forests are darker than deserts",
+          "The reasons that thick forests happen to be so much darker than open deserts",
           "How changing surroundings force the Leopard to adapt",
           "Why hunters prefer grasslands",
           "How to paint animal fur"
         ], 1, "The passage shows that once the setting changes, the Leopard must change too in order to blend in.", ["leo1","leo3","leo4","leo7"], "The story is about adaptation to a new environment."),
         Q("Inference", "Why do the animals in the forest become harder to see?", [
-          "They leave the forest every night",
+          "They quietly slip away and leave the shadowy forest every single night",
           "The shadows and broken light help hide them",
           "They learn to run faster than the Leopard",
-          "They cover themselves with sand"
+          "They hide by covering their whole bodies with loose desert sand"
         ], 1, "The forest is described as full of shadows and blotches, which naturally conceal them.", ["leo3","leo4"], "The setting itself provides the clue."),
         Q("Author's Purpose", "Why does Kipling describe the forest as full of \"shadows and blotches and bars of light\"?", [
           "To create the visual pattern that explains why spots would help",
           "To prove the forest is unsafe for children",
           "To compare the forest to a city street",
-          "To show that the Leopard is frightened of trees"
+          "To try to show the reader that the Leopard is secretly frightened of tall trees"
         ], 0, "The image prepares readers to understand why spotted camouflage would work there.", ["leo3","leo7"], "The description sets up the solution."),
         Q("Vocabulary in Context", "In the sentence saying the Leopard and Ethiopian \"stood out,\" that phrase most nearly means —", [
           "looked unusual and easy to notice",
-          "stood very still",
-          "refused to hunt",
+          "stood there without moving at all",
+          "stubbornly refused to go and hunt",
           "moved away from each other"
         ], 0, "They are easy to notice because their coloring no longer matches the environment.", ["leo3","leo4"], "The contrast with the hidden animals explains the phrase.")
       ]
@@ -1641,7 +1641,7 @@ window.READING_RESCUE = {
           "Real greatness depends on talking loudly",
           "Pride and self-importance can blind someone to reality",
           "Fireworks are too dangerous for celebrations",
-          "Children understand rockets better than adults"
+          "Young children tend to understand fireworks and rockets far better than grown adults"
         ], 1, "The Rocket thinks he is extraordinary, but his vanity keeps leading him into ridiculous failure.", ["rr1","rr2","rr4","rr7"], "The ending exposes how wrong his self-image is."),
         Q("Inference", "Why is the Rocket unable to join the other fireworks?", [
           "He is hidden behind the palace",
@@ -1650,7 +1650,7 @@ window.READING_RESCUE = {
           "The other fireworks push him away"
         ], 1, "His emotional display literally makes him too damp to be lit.", ["rr3","rr4"], "The cause and result are stated directly."),
         Q("Author's Purpose", "Why does Wilde have the Rocket finally explode when no one is watching?", [
-          "To create irony and reveal the emptiness of his vanity",
+          "To create irony and reveal the complete emptiness of his vanity",
           "To show that boys understand fireworks better than royals",
           "To prove the wedding celebration lasted too long",
           "To explain how campfires are usually started"

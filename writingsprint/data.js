@@ -207,25 +207,25 @@ window.WRITING_SPRINT = {
           "Which revision combines the ideas best?",
           [
             "The dog barked at the mail carrier, pressing its paws against the screen door.",
-            "The dog barked. The mail carrier and the screen door.",
-            "Pressing the screen door was the dog and the barked mail carrier.",
-            "The dog barked at the mail carrier. It was a door."
+            "The dog barked at the mail carrier and the dog also pressed its paws hard against the screen door while it kept on barking.",
+            "The mail carrier barked at the dog and pressed against the screen door.",
+            "The dog barked, it pressed its paws on the door."
           ],
           0,
-          "The best combined sentence keeps both ideas, sounds natural, and avoids awkward repetition."
+          "The best combined sentence keeps both ideas, sounds natural, and avoids awkward repetition. The second choice says the same thing but repeats 'the dog' and rambles; the third accidentally changes the meaning; the fourth is a comma splice (two sentences joined by only a comma)."
         ),
         DrillCard(
           "Add detail cleanly",
           "Maya opened her notebook. She was nervous about the speech.",
           "Which sentence combines the ideas most effectively?",
           [
-            "Maya opened her notebook because the speech was notebook nervous.",
+            "Maya was nervous about the speech, and because of that she slowly opened up her notebook to look over her notes again.",
             "Nervous about the speech, Maya opened her notebook.",
-            "Maya opened her notebook, and nervous, and speech.",
-            "Maya was the speech. She opened nervous notebook."
+            "Maya opened her notebook, so she felt nervous about the speech.",
+            "Maya opened her notebook. She felt nervous."
           ],
           1,
-          "A good opener can show the feeling first, then the action."
+          "A good opener can show the feeling first, then the action — and stay short. The first choice is wordy, the third reverses the cause (opening the notebook didn't make her nervous), and the fourth is still two choppy sentences."
         ),
         DrillCard(
           "Use a precise connector",
@@ -233,77 +233,77 @@ window.WRITING_SPRINT = {
           "Which revision is strongest?",
           [
             "The clouds darkened, but the game continued for a few more minutes.",
-            "The clouds darkened, the game continued, darkened.",
-            "The clouds darkened. The game, too, because minutes.",
-            "Darkened were clouds and the game continuedly."
+            "The clouds darkened, so the game continued for a few more minutes.",
+            "Because the clouds darkened, the game had to continue for several more long minutes without ever stopping.",
+            "The clouds darkened, the game continued for a few more minutes."
           ],
           0,
-          "The word 'but' shows the contrast between the stormy sky and the game continuing."
+          "The word 'but' shows the contrast between the stormy sky and the game continuing. 'So' and 'because' claim the dark clouds caused the game to keep going, which isn't right, and the last choice is a comma splice."
         ),
         DrillCard(
           "Avoid choppy writing",
           "The bell rang. Students rushed into the hallway. Lockers slammed.",
           "Which revision combines the ideas best?",
           [
-            "The bell rang because lockers slammed the hallway students.",
+            "The bell rang and then the students rushed into the hallway and then the lockers slammed shut all around them.",
             "When the bell rang, students rushed into the hallway and lockers slammed.",
-            "Students, bell, hallway, lockers slammed.",
-            "The bell rang. Students rushed. Lockers slammed in ringing."
+            "When the lockers slammed, the bell rang and students rushed into the hallway.",
+            "The bell rang, students rushed, lockers slammed."
           ],
           1,
-          "The stronger sentence keeps the sequence clear and turns three short pieces into one smooth moment."
+          "The strongest version keeps the order clear and reads smoothly. The first choice strings everything together with repeated 'and then,' the third scrambles the order of events, and the fourth is a comma splice."
         ),
         DrillCard(
           "Place description well",
           "The creek was shallow. It moved quickly over the rocks.",
           "Which revision is strongest?",
           [
+            "The creek, which happened to be pretty shallow, went ahead and moved very quickly over all of the rocks.",
+            "The creek was shallow, it moved quickly over the rocks.",
             "The shallow creek moved quickly over the rocks.",
-            "The creek was shallow over the rocks and quickly.",
-            "Moved quickly was the creek because shallow rocks.",
-            "The creek was rocks. It shallow quickly moved."
+            "The quick creek made the rocks shallow as it moved."
           ],
-          0,
-          "This version turns one sentence into a useful adjective and keeps the image crisp."
+          2,
+          "The shortest choice here is the strongest: it turns 'was shallow' into the adjective 'shallow' and keeps the image crisp. The first is wordy, the second is a comma splice, and the fourth changes the meaning."
         ),
         DrillCard(
           "Combine with cause",
           "Jordan practiced every afternoon. Jordan improved at serving.",
           "Which revision combines the ideas most clearly?",
           [
-            "Jordan improved at serving, practicing every afternoon.",
+            "Jordan improved at serving, so he practiced every afternoon.",
             "Jordan practiced every afternoon, so he improved at serving.",
-            "Jordan serving improved and afternoon practiced.",
-            "Every afternoon improved Jordan because serving."
+            "Jordan kept practicing his serving every single afternoon after school, and that is the whole reason he slowly got better at it.",
+            "Jordan practiced every afternoon, he improved at serving."
           ],
           1,
-          "The connector 'so' clearly shows the cause-and-effect relationship."
+          "The connector 'so' shows cause and effect: practice led to improvement. The first choice flips the cause backward, the third rambles, and the fourth is a comma splice."
         ),
         DrillCard(
           "Keep the sentence readable",
           "The museum was crowded. We stayed an extra hour.",
           "Which revision works best?",
           [
+            "The museum was crowded, we stayed an extra hour.",
+            "Because the museum was crowded, we stayed an extra hour.",
             "Although the museum was crowded, we stayed an extra hour.",
-            "Crowded the museum stayed we hour extra.",
-            "The museum was crowded, staying we hour.",
-            "We stayed. The museum crowded. An hour extra."
+            "The museum was really crowded that day, but even so we decided that we would go ahead and stay for one whole extra hour."
           ],
-          0,
-          "The word 'although' cleanly signals contrast."
+          2,
+          "'Although' cleanly signals the contrast — we stayed in spite of the crowd. The first is a comma splice, 'because' wrongly says the crowd was the reason we stayed, and the last choice is padded with extra words."
         ),
         DrillCard(
           "Combine to show timing",
           "Leah finished the puzzle. Her brother walked into the room.",
           "Which revision is strongest?",
           [
-            "Leah finished the puzzle, into the room her brother walked.",
+            "Leah finished the puzzle so that her brother would walk into the room.",
             "Just as Leah finished the puzzle, her brother walked into the room.",
-            "Leah finished. Brother room puzzle walked.",
-            "The puzzle was finished by walking into the room."
+            "Leah was just about finished with the puzzle at the exact same time that her brother came walking into the room.",
+            "Leah finished the puzzle, her brother walked in."
           ],
           1,
-          "A time phrase can make two actions feel connected and natural."
+          "A time phrase like 'just as' connects the two actions naturally. The first choice invents a cause that isn't there, the third is wordy, and the fourth is a comma splice."
         ),
         DrillCard(
           "Use a vivid sentence",
@@ -311,12 +311,12 @@ window.WRITING_SPRINT = {
           "Which revision combines the ideas best?",
           [
             "The candles flickered when the power went out.",
-            "The candles flickered, power out candles.",
-            "The power the candles went flickered out.",
-            "Flickered were the candles. Out power."
+            "The power went out when the candles flickered.",
+            "The candles started to flicker right at the very moment when the power in the whole entire house suddenly went out.",
+            "The candles flickered, the power went out."
           ],
           0,
-          "The stronger version shows the relationship between the two events clearly."
+          "This shows the relationship between the two events in just a few words. The second choice reverses which event happened first, the third is padded, and the fourth is a comma splice."
         ),
         DrillCard(
           "Fold in an appositive",
@@ -324,25 +324,25 @@ window.WRITING_SPRINT = {
           "Which revision is strongest?",
           [
             "Mr. Chen, who teaches science, leads the robotics club.",
-            "Mr. Chen leads, science teaches, robotics club.",
-            "Science is Mr. Chen and the robotics club leads him.",
-            "Mr. Chen leads the robotics club and science because teaches."
+            "Mr. Chen leads the robotics club, which teaches science.",
+            "Mr. Chen teaches science, he leads the robotics club.",
+            "Mr. Chen is a teacher who teaches science classes, and he is also the person who leads the school robotics club."
           ],
           0,
-          "This revision combines both facts smoothly and shows how they relate."
+          "The phrase 'who teaches science' tucks the second fact in smoothly. The second choice accidentally says the club teaches science, the third is a comma splice, and the fourth says it correctly but uses far too many words."
         ),
         DrillCard(
           "Use parallel structure",
           "Ella packed snacks. Ella packed sunscreen. Ella packed a map.",
           "Which revision is strongest?",
           [
+            "Ella packed snacks, and she packed sunscreen, and she also packed a map for the trip.",
             "Ella packed snacks, sunscreen, and a map.",
-            "Ella packed snacks and sunscreen and packed a map and packed.",
-            "Packed Ella map sunscreen snacks.",
-            "Ella was packing because a map had sunscreen."
+            "Ella packed snacks, she packed sunscreen, she packed a map.",
+            "Ella packed snacks along with also packing sunscreen and a map too."
           ],
-          0,
-          "Parallel lists sound cleaner than repeating the same subject again and again."
+          1,
+          "A parallel list is the cleanest fix — and here it's also the shortest. The first choice repeats 'she packed,' the third is a comma splice, and the fourth is awkward."
         ),
         DrillCard(
           "Strengthen with purpose",
@@ -350,12 +350,12 @@ window.WRITING_SPRINT = {
           "Which revision combines the ideas best?",
           [
             "The team met after school to revise the project.",
-            "After school the project revised wanted the team.",
-            "The team met after school. Wanted to revise project.",
-            "The project met the team after school to want."
+            "The team met after school, but they wanted to revise the project.",
+            "The team decided to get together after school because what they really wanted to do was revise their whole project.",
+            "The team met after school, they wanted to revise the project."
           ],
           0,
-          "The infinitive phrase 'to revise' makes the purpose of the meeting clear."
+          "The short phrase 'to revise the project' makes the purpose of the meeting clear. 'But' signals a contrast that isn't there, the third choice is wordy, and the fourth is a comma splice."
         )
       ]
     },
@@ -369,13 +369,13 @@ window.WRITING_SPRINT = {
           "Paragraph draft: 'Our cafeteria can get loud. Trays bang. People talk over one another. Some students rush to finish and leave.'",
           "Which sentence would work best as a topic sentence at the beginning?",
           [
+            "Many students bring their own lunches from home instead of buying food in the cafeteria line each day.",
+            "The cafeteria can feel chaotic at lunchtime.",
             "Lunch happens every day at school.",
-            "The cafeteria can feel chaotic because of the noise and rush.",
-            "People like different foods at lunch.",
-            "Trays are made from strong materials."
+            "People have different favorite foods."
           ],
           1,
-          "A strong topic sentence previews the main idea of the whole paragraph, not just one tiny detail."
+          "A strong topic sentence previews the main idea of the whole paragraph — here, the noise and rush — even if it's short. The other choices are all true but wander off the paragraph's point."
         ),
         DrillCard(
           "Best transition",
@@ -383,25 +383,25 @@ window.WRITING_SPRINT = {
           "Which transition best fits the blank?",
           [
             "On the other hand",
+            "In conclusion",
             "Next",
-            "For example",
-            "At last year"
+            "For example"
           ],
-          1,
-          "This paragraph is sequential, so the transition should show the next step."
+          2,
+          "This paragraph lists steps in order (First... Finally), so the transition should show the next step. 'On the other hand' and 'For example' signal a contrast or an example, and 'In conclusion' would end the paragraph too early."
         ),
         DrillCard(
           "Remove repetition",
           "Paragraph draft: 'The assembly was exciting. The assembly was loud. The assembly was full of students cheering.'",
           "Which revision improves the paragraph most?",
           [
+            "The exciting assembly was loud, and it really was an exciting, loud assembly that was full of loud cheering.",
             "The assembly was exciting, loud, and full of cheering students.",
-            "The assembly assembly was exciting and assembly loud.",
-            "Exciting students were the assembly of loud.",
-            "The assembly was exciting. The assembly was an assembly."
+            "The assembly was exciting. It was also loud. Students cheered a lot.",
+            "The students cheered."
           ],
-          0,
-          "The strongest revision keeps the meaning but removes unnecessary repetition."
+          1,
+          "The best revision keeps every idea but says 'the assembly' just once. The first choice still repeats words, the third is still choppy, and the fourth drops most of the meaning."
         ),
         DrillCard(
           "Fix a fragment",
@@ -409,25 +409,25 @@ window.WRITING_SPRINT = {
           "What is the best fix?",
           [
             "Because the markers kept drying out.",
-            "Our group wanted to finish the poster on time because the markers kept drying out.",
+            "The markers kept drying out, so our group wanted to finish the poster on time.",
             "Our group wanted to finish the poster on time, but the markers kept drying out.",
-            "Markers drying out on time the poster."
+            "Our group wanted to finish the poster on time because the markers kept drying out."
           ],
           2,
-          "The second sentence is a fragment. The best fix keeps the original idea and turns it into a complete sentence."
+          "The second part is a fragment. The best fix joins it to a complete sentence AND keeps the real meaning — the markers made finishing harder. 'Because'/'so' versions say the drying markers were the reason they wanted to finish, which flips the logic."
         ),
         DrillCard(
           "Choose the best conclusion",
           "Paragraph draft: 'Students should have access to water bottles during the school day because staying hydrated helps them focus and feel better in class.'",
           "Which concluding sentence is strongest?",
           [
-            "Water bottles are made of different materials.",
+            "Everyone should always be allowed to do whatever they want during the entire school day, no matter what.",
             "For these reasons, allowing water bottles is a simple change that could support learning.",
-            "Students go to school many days each year.",
-            "Hydration means drinking water, which is water."
+            "Water bottles are made of different materials.",
+            "Students go to school many days each year."
           ],
           1,
-          "A strong conclusion wraps up the main point instead of drifting to a new topic."
+          "A strong conclusion wraps up the paragraph's own point. The first choice overreaches into something the paragraph never argued, and the last two drift to unrelated topics."
         ),
         DrillCard(
           "Clarify pronouns",
@@ -435,12 +435,12 @@ window.WRITING_SPRINT = {
           "Which revision is clearest?",
           [
             "After Kai glued the last wheel on, he handed the model to Marcus.",
-            "Kai handed it after he did it and Marcus got it.",
-            "After he glued it, Marcus was Kai.",
-            "Kai handed the model to Marcus after Marcus and Kai."
+            "Kai handed the model to Marcus after Marcus glued the last wheel on.",
+            "After the last wheel was glued on, the finished model was then handed over to Marcus by him.",
+            "He handed the model to him after he glued the last wheel on."
           ],
           0,
-          "The original sentence is confusing because 'he' could refer to either person. The best revision names the correct person."
+          "In the original, 'he' could mean Kai or Marcus. The best fix names Kai as the gluer. The second choice picks the wrong person, and the third and fourth still leave 'him'/'he' unclear."
         ),
         DrillCard(
           "Evidence sentence",
@@ -450,75 +450,75 @@ window.WRITING_SPRINT = {
             "It gives evidence supporting the first sentence.",
             "It changes the topic completely.",
             "It repeats the first sentence word for word.",
-            "It asks the reader a question."
+            "It lists some features but has nothing to do with helping students at all."
           ],
           0,
-          "Strong paragraphs follow a claim with concrete support."
+          "Strong paragraphs follow a claim with concrete support. The beanbags, lighting, and books are the details that show HOW the corner helps."
         ),
         DrillCard(
           "Order ideas better",
           "Paragraph draft: 'The game ended in a tie. Everyone cheered when Luis scored the final basket. The clock had only three seconds left.'",
           "Which revision puts the events in the clearest order?",
           [
-            "The game ended in a tie, and everyone likes basketball.",
-            "With only three seconds left on the clock, everyone cheered when Luis scored the final basket, and the game ended in a tie.",
-            "Everyone cheered because a tie is a clock.",
-            "Luis scored. Tie. Basket. Clock."
+            "The game ended in a tie, and everyone really likes basketball.",
+            "With three seconds left, Luis scored the final basket, and the game ended in a tie.",
+            "Luis scored the final basket after the game had already ended in a tie with three seconds left on the clock.",
+            "Everyone cheered, the clock had three seconds, the game tied, Luis scored."
           ],
           1,
-          "Good paragraph structure often depends on putting events in an order the reader can follow."
+          "Good structure puts events in an order the reader can follow: time running down, the basket, then the tie. The third choice contradicts itself (scoring after the game ended), and the last one is jumbled."
         ),
         DrillCard(
           "Sentence variety",
           "Paragraph draft: 'I opened the window. I heard the rain. I smelled the wet grass.'",
           "Which revision improves sentence variety most?",
           [
+            "The window was opened by me, and then the rain was heard by me, and the wet grass was smelled by me too.",
             "I opened the window and heard the rain while smelling the wet grass.",
-            "I opened the I and heard the I and smelled the I.",
-            "Window rain grass were opened heard smelled.",
-            "I opened the window. The window was opened by me."
+            "I opened the window, and I heard the rain, and I smelled the wet grass.",
+            "I opened the window. I heard the rain. I smelled the wet grass."
           ],
-          0,
-          "Variety makes the writing sound more mature and less robotic."
+          1,
+          "Combining the actions into one flowing sentence adds variety. The first choice is clumsy passive voice, the third still repeats 'and I,' and the fourth leaves the choppy original unchanged."
         ),
         DrillCard(
           "Strong supporting detail",
           "Paragraph draft: 'The art room is inspiring.'",
           "Which sentence would best support that idea?",
           [
-            "Many art rooms exist in schools.",
+            "Art is something that people all over the world have enjoyed making for a very, very long time.",
             "Finished student work covers the walls, and jars of bright paint line the shelves.",
-            "Inspiration is a word with four syllables.",
+            "Many art rooms exist in schools.",
             "The room is inside the school building."
           ],
           1,
-          "The strongest support uses concrete details the reader can picture."
+          "The strongest support uses concrete details the reader can picture. The other choices are true but general and don't show what makes THIS room inspiring."
         ),
         DrillCard(
           "Fix tense shift",
           "Paragraph draft: 'Yesterday we walked to the creek, and then we collect water samples.'",
           "Which revision is correct?",
           [
+            "Yesterday we had walked all the way to the creek, and then we are collecting the water samples now.",
             "Yesterday we walked to the creek, and then we collected water samples.",
-            "Yesterday we walked to the creek, and then we collecting water samples.",
             "Yesterday we walk to the creek, and then we collect water samples.",
-            "Yesterday we collected to the creek."
+            "Yesterday we walked to the creek, and then we collecting water samples."
           ],
-          0,
-          "The paragraph starts in past tense, so the second verb should stay in past tense too."
+          1,
+          "The paragraph starts in past tense ('Yesterday... walked'), so the second verb should stay past tense: 'collected.' The other choices mix tenses or use the wrong verb form."
         ),
         DrillCard(
           "Make the claim stronger",
           "Paragraph draft: 'Recycling is good.'",
           "Which revision is the strongest claim sentence?",
           [
-            "Recycling is good because good things are good.",
+            "Recycling is a very important topic that a lot of people all around the world care deeply about these days.",
             "Our school should recycle more paper because it would reduce waste and save supplies.",
-            "Recycling is a topic people know.",
-            "Paper can be white or lined."
+            "Recycling is good because it is good for us.",
+            "Recycling helps."
           ],
           1,
-          "A stronger claim is specific and gives the reader a direction right away."
+          "A stronger claim is specific and gives the reader a clear direction. The first choice sounds big but says nothing specific, the third is circular, and the fourth is too vague."
         )
       ]
     },
@@ -532,78 +532,78 @@ window.WRITING_SPRINT = {
           "Source: The school garden produced vegetables that were donated to a local pantry, and science classes used the beds for plant observations.",
           "Which claim is best supported by the source?",
           [
+            "The school garden grew vegetables that were given to a food pantry while science classes studied the plants growing in the beds.",
             "The school garden helped both the community and student learning.",
             "Gardens are always easy to maintain.",
-            "Vegetables are the only useful school project.",
-            "Science classes should happen outdoors every day."
+            "Science should only ever be taught outdoors in a garden."
           ],
-          0,
-          "A strong claim matches what the evidence actually proves, not what sounds biggest."
+          1,
+          "A strong claim matches what the evidence proves — and it's a claim, not just a retelling. The first choice only restates the source without making a point, and the last two overreach beyond what the source shows."
         ),
         DrillCard(
           "Best evidence",
           "Claim: A later school start time could help students feel more prepared for class.",
           "Which detail is the strongest evidence?",
           [
-            "Many students like breakfast foods.",
+            "A recent report found that teenagers all around the world generally enjoy sleeping in whenever they possibly can.",
             "Students often say mornings feel early.",
             "A survey showed that more students arrived on time after the start time was pushed back.",
-            "The school building opens before sunrise in winter."
+            "Many students like breakfast foods."
           ],
           2,
-          "Strong evidence is specific and directly connected to the claim."
+          "Strong evidence is specific and directly tied to the claim. The first choice is long but irrelevant to feeling prepared, and the other two are vague or off-topic."
         ),
         DrillCard(
           "Best reasoning",
           "Claim: The reading corner improves focus. Evidence: Students choose books there and spend more time reading quietly.",
           "Which reasoning sentence is strongest?",
           [
-            "This means the reading corner has chairs.",
+            "This proves that every single student everywhere loves reading in beanbag chairs all day long.",
             "This shows the space helps students settle in and stay engaged with reading.",
-            "This proves all students everywhere like the same books.",
-            "This is evidence because it is a sentence."
+            "This means the reading corner has chairs.",
+            "This is true because reading is reading."
           ],
           1,
-          "Reasoning should explain why the evidence matters, not just repeat it."
+          "Reasoning explains WHY the evidence matters. The first choice overreaches wildly, the third just notices a detail, and the fourth is circular."
         ),
         DrillCard(
           "Match evidence to claim",
           "Claim: The new bus route is more efficient.",
           "Which evidence best supports the claim?",
           [
-            "The buses are painted in school colors.",
+            "The bus company decided to rearrange several of the stops along the route earlier this year for a number of reasons.",
             "Students enjoy talking on the bus.",
             "The average ride time dropped by eight minutes after the route changed.",
-            "The route has many turns."
+            "The buses are painted in school colors."
           ],
           2,
-          "Efficiency is about time or effort saved, so the strongest evidence should measure that."
+          "Efficiency is about time or effort saved, so the strongest evidence measures that. The first choice is long but never mentions any improvement, and the others are unrelated."
         ),
         DrillCard(
           "Spot weak reasoning",
           "Claim: Students should have more time to revise essays. Evidence: Many students improve their drafts after teacher feedback.",
           "Which sentence shows weak reasoning?",
           [
-            "This matters because feedback gives students a chance to strengthen weak parts of their writing.",
-            "This matters because revision can turn first ideas into clearer final answers.",
+            "This matters because feedback gives students a chance to strengthen the weak parts of their writing.",
+            "This matters because revision can turn rough first ideas into much clearer final answers.",
             "This matters because essays have words in them.",
-            "This matters because time to revise can improve organization and detail."
+            "This matters because more time to revise can improve a draft's organization and detail."
           ],
           2,
-          "Weak reasoning does not actually explain the connection between the claim and the evidence."
+          "Weak reasoning doesn't actually explain the link between the claim and the evidence. Notice the weak one is the SHORTEST here — length doesn't decide strength; connection does."
         ),
         DrillCard(
           "Find the strongest CER line",
           "Prompt: Should students be allowed to redo one major assignment each quarter?",
           "Which sentence works best as evidence?",
           [
-            "Redoing work sounds interesting.",
+            "Almost everyone would probably agree that being able to redo things is a really wonderful idea for all students.",
             "Students can probably learn from mistakes.",
             "In one class pilot, students who revised major assignments raised both their scores and the quality of later work.",
-            "Assignments are part of school."
+            "Redoing work sounds interesting."
           ],
           2,
-          "The strongest evidence includes a concrete example with a result."
+          "The strongest evidence gives a concrete example with a result. The first choice is long but just an opinion, and the other two are vague."
         ),
         DrillCard(
           "Claim or opinion?",
@@ -611,77 +611,77 @@ window.WRITING_SPRINT = {
           "Which sentence is the strongest claim?",
           [
             "Washable trays reduced waste in the cafeteria.",
+            "The cafeteria switched to washable trays, and after that change the trash bags filled up much more slowly than they used to.",
             "Trays are very interesting to think about.",
-            "The cafeteria is a room in the building.",
             "Disposable items are always bad no matter what."
           ],
           0,
-          "A strong claim stays grounded in what the source can actually support."
+          "A strong claim is a short, clear point the source supports. The second choice just retells the source without making a point, and the last two are off-topic or an overreach."
         ),
         DrillCard(
           "Use precise reasoning",
           "Claim: Class jobs build responsibility. Evidence: Students remember to water plants, organize supplies, and report missing materials.",
           "Which reasoning sentence is best?",
           [
+            "These examples show that students who do class jobs will grow up to be perfectly responsible adults in every possible way.",
             "These examples show that class jobs give students repeated chances to take care of shared tasks.",
             "These examples show that supplies exist in classrooms.",
-            "These examples show that students are always perfect.",
-            "These examples show that water is important to plants only."
+            "These examples show that water is important to plants."
           ],
-          0,
-          "The best reasoning names the pattern in the evidence and connects it to the claim."
+          1,
+          "The best reasoning names the pattern in the evidence and links it to the claim. The first choice overreaches, and the other two miss the point about responsibility."
         ),
         DrillCard(
           "Choose relevant evidence",
           "Claim: A longer lunch period could help students return to class calmer.",
           "Which detail is most relevant?",
           [
-            "The cafeteria walls were painted last summer.",
+            "A longer lunch would obviously fix every single problem that students have ever had at school.",
             "Students reported feeling less rushed when they had enough time to eat and talk before class.",
             "Many lunches include fruit.",
-            "Teachers also eat lunch during the day."
+            "The cafeteria walls were painted last summer."
           ],
           1,
-          "Relevant evidence connects directly to calmness and the length of lunch."
+          "Relevant evidence connects directly to calmness and the length of lunch. The first choice overreaches, and the others have nothing to do with the claim."
         ),
         DrillCard(
           "Reasoning vs. repetition",
           "Claim: The school newspaper helps students become stronger writers. Evidence: Student editors revise headlines, cut repetition, and reorganize articles before printing.",
           "Which sentence is reasoning, not repetition?",
           [
-            "The editors revise headlines, cut repetition, and reorganize articles.",
+            "The student editors revise the headlines, cut out repetition, and reorganize the articles before they print them.",
             "This matters because practicing those revision moves teaches students how real writing improves before publication.",
             "The newspaper is printed at school.",
-            "Writing is writing because writers write."
+            "Writing is good because writers are people who write things."
           ],
           1,
-          "Reasoning explains the importance of the evidence instead of just copying it."
+          "Reasoning explains why the evidence matters instead of just repeating it. The first choice simply says the evidence again in new words, and the last is circular."
         ),
         DrillCard(
           "Find the overclaim",
           "Claim: The debate club helps students speak with more confidence. Evidence: Several students volunteered to present in class after joining the club.",
           "Which sentence goes too far beyond the evidence?",
           [
-            "The club may help students feel more comfortable speaking in front of others.",
-            "The evidence suggests the club supports public speaking practice.",
-            "The evidence proves every student in the school is now confident in every situation.",
-            "The evidence connects debate practice with classroom participation."
+            "The club may well help many students feel a good deal more comfortable when they speak in front of other people.",
+            "The evidence suggests the club gives students useful public speaking practice.",
+            "The evidence proves every student is now confident in every situation.",
+            "The evidence connects debate practice with more classroom participation."
           ],
           2,
-          "Strong CER writing avoids exaggerating beyond what the evidence supports."
+          "An overclaim says more than the evidence can show. A few volunteers don't prove EVERY student is now confident in EVERY situation. The longest choice here is actually a careful, reasonable statement — so length isn't the clue, the words 'every' and 'proves' are."
         ),
         DrillCard(
           "Best short CER response",
           "Prompt: Why might a classroom job chart be useful?",
           "Which answer is strongest?",
           [
+            "Job charts can be very colorful, and lots of teachers all over the place really seem to enjoy putting them up on their walls.",
+            "A classroom job chart can help students share responsibility. For example, students take turns passing out papers, watering plants, and checking supplies. This matters because regular shared tasks help a class run smoothly and teach students to contribute.",
             "A job chart is useful. It exists in classrooms.",
-            "A classroom job chart can help students share responsibility. For example, students can take turns passing out papers, watering plants, and checking supplies. This matters because regular shared tasks help a class run smoothly and teach students to contribute.",
-            "Job charts are colorful and some people like charts.",
             "Classrooms should have charts because schools have walls."
           ],
           1,
-          "The strongest answer includes a claim, evidence, and reasoning in one short response."
+          "The strongest answer has all three parts — a claim, evidence, and reasoning. The first choice is long but never explains why a chart helps, and the last two are too thin."
         )
       ]
     }
