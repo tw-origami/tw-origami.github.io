@@ -1,7 +1,8 @@
 /* Shared per-app stopwatch. Drop <script src="/stopwatch.js"></script> before
  * </body> on any app page. Shows a small pill in the bottom-left with how long
- * the child has spent in THIS app today. Counts only while the tab is visible,
- * resets automatically each new day, and is stored per-app in localStorage. */
+ * the child has spent in THIS app today. Counts only while the tab is visible
+ * and not paused, resets automatically each new day, and is stored per-app in
+ * localStorage. A pause/resume button lets a child stop the clock for a break. */
 (function(){
   if (window.__lzStopwatch) return; window.__lzStopwatch = true;
 
@@ -13,6 +14,7 @@
   function load(){ try { var o = JSON.parse(localStorage.getItem(KEY) || 'null'); if (o && o.d === today()) return o.s | 0; } catch(e){} return 0; }
   function save(s){ try { localStorage.setItem(KEY, JSON.stringify({ d: today(), s: s })); } catch(e){} }
   var secs = load();
+  var paused = false;
 
   var style = document.createElement('style');
   style.textContent =
@@ -23,13 +25,24 @@
     'font-weight:800;font-size:13.5px;color:#334155;font-variant-numeric:tabular-nums;user-select:none;pointer-events:none;}' +
     '#lzStopwatch .sw-ic{font-size:15px;line-height:1;}' +
     '#lzStopwatch .sw-lbl{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;margin-left:2px;}' +
+    /* only the button is interactive, so the pill never blocks the app underneath */
+    '#lzStopwatch .sw-btn{pointer-events:auto;cursor:pointer;border:none;padding:0;margin-left:4px;' +
+    'width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;' +
+    'background:rgba(15,23,42,.07);color:#475569;font-size:11px;line-height:1;font-family:inherit;' +
+    'transition:background .15s,color .15s,transform .06s;}' +
+    '#lzStopwatch .sw-btn:hover{background:#334155;color:#fff;}' +
+    '#lzStopwatch .sw-btn:active{transform:scale(.9);}' +
+    '#lzStopwatch.paused #lzSwTime{color:#94a3b8;}' +
+    '#lzStopwatch.paused .sw-lbl{color:#16a34a;}' +
+    '#lzStopwatch.paused .sw-btn{background:#16a34a;color:#fff;}' +
     '@media (max-width:480px){#lzStopwatch{font-size:12.5px;padding:6px 11px;} #lzStopwatch .sw-lbl{display:none;}}';
   document.head.appendChild(style);
 
   var el = document.createElement('div');
   el.id = 'lzStopwatch';
   el.title = 'Time spent in this app today';
-  el.innerHTML = '<span class="sw-ic">⏱️</span><span id="lzSwTime"></span><span class="sw-lbl">today</span>';
+  el.innerHTML = '<span class="sw-ic">⏱️</span><span id="lzSwTime"></span><span class="sw-lbl">today</span>' +
+    '<button id="lzSwBtn" class="sw-btn" type="button" aria-label="Pause timer" title="Pause timer">⏸</button>';
 
   function fmt(s){
     var h = Math.floor(s/3600), m = Math.floor((s%3600)/60), ss = s%60;
@@ -38,15 +51,30 @@
   }
   function render(){ var t = document.getElementById('lzSwTime'); if (t) t.textContent = fmt(secs); }
 
+  function update(){
+    el.classList.toggle('paused', paused);
+    var btn = document.getElementById('lzSwBtn');
+    if (btn){
+      btn.textContent = paused ? '▶' : '⏸';
+      btn.title = paused ? 'Resume timer' : 'Pause timer';
+      btn.setAttribute('aria-label', paused ? 'Resume timer' : 'Pause timer');
+    }
+    var lbl = el.querySelector('.sw-lbl'); if (lbl) lbl.textContent = paused ? 'paused' : 'today';
+    render();
+  }
+  function toggle(){ paused = !paused; update(); }
+
   function mount(){
     document.body.appendChild(el);
     // don't sit on top of the math app's full-width practice-timer bar
     if (document.getElementById('lzTimer')) el.style.bottom = '96px';
+    var btn = document.getElementById('lzSwBtn');
+    if (btn) btn.addEventListener('click', toggle);
     render();
   }
   if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
 
   setInterval(function(){
-    if (document.visibilityState === 'visible'){ secs++; save(secs); render(); }
+    if (!paused && document.visibilityState === 'visible'){ secs++; save(secs); render(); }
   }, 1000);
 })();
