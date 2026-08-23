@@ -53,7 +53,7 @@
   .endcard.show{ display:flex; }
   .endcard .em{ font-size:44px; } .endcard .msg{ font-size:22px; font-weight:900; }
   .endcard .ebtns{ display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
-  .endcard button{ font-family:inherit; font-weight:800; font-size:15px; border:none; border-radius:12px; padding:11px 18px; cursor:pointer; }
+  .endcard button, .oops button{ font-family:inherit; font-weight:800; font-size:15px; border:none; border-radius:12px; padding:11px 18px; cursor:pointer; }
   .eb-again{ background:#fff; color:var(--ink); } .eb-more{ background:var(--accent); color:#fff; }
   /* friendly overlay for an unplayable video */
   .oops{ position:absolute; inset:0; z-index:6; display:none; flex-direction:column; align-items:center; justify-content:center; gap:8px;
@@ -109,7 +109,7 @@
     </div>
   </details>
 
-<script src="data.js?v=1"></script>
+<script src="data.js?v=2"></script>
 <script>
 (function(){
   const $ = id => document.getElementById(id);
@@ -157,7 +157,8 @@
         `<button class="eb-more" id="moreBtn">📺 More videos</button></div>`+
       `</div>`+
       `<div class="oops" id="oops"><div class="em">😕</div><div class="msg" id="oopsMsg"></div>`+
-      `<div class="small">Try another video below.</div></div>`+
+      `<div class="small">Sometimes this is just a hiccup.</div>`+
+      `<div class="ebtns" style="margin-top:10px"><button class="eb-again" id="retryBtn">↻ Try again</button></div></div>`+
     `</div>`+
     `<div class="nowinfo"><h2 id="nowTitle"></h2><div class="by" id="nowBy"></div><div class="note" id="nowNote"></div></div>`+
     (videos.length > 1 ? `<div class="more-h">📼 All videos</div><div class="gallery" id="gallery"></div>` : '');
@@ -268,6 +269,7 @@
     if (e.key === ' ' && !/INPUT|TEXTAREA|BUTTON/.test(document.activeElement.tagName)){ e.preventDefault(); togglePlay(); }
   });
 
+  $('retryBtn').onclick = ()=>{ hideOverlays(); if (player) player.loadVideoById(videos[current].id); };
   $('againBtn').onclick = ()=>{ hideOverlays(); if (player){ player.seekTo(0); player.playVideo(); } };
   $('moreBtn').onclick = ()=>{ hideOverlays(); const g=$('gallery'); (g||document.querySelector('.player')).scrollIntoView({behavior:'smooth', block: g?'start':'center'}); };
 
