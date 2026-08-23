@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Draw Lab</title>
+<style>
+  :root{
+    --ink:#1f2937; --muted:#6b7280; --accent:#7c3aed; --accent-soft:#ede9fe; --accent2:#ec4899;
+    --correct:#16a34a; --wrong:#dc2626; --gold:#f59e0b;
+    --shadow:0 10px 30px rgba(76,29,149,.14);
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#faf5ff,#f5f3ff,#fdf2f8); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:20px 14px 60px; }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; }
+  .nav a,.nav button{ text-decoration:none; font-family:inherit; font-weight:800; font-size:14px; color:var(--muted); padding:8px 14px; border-radius:9px; border:none; background:transparent; cursor:pointer; }
+  .nav a:hover,.nav button:hover{ background:var(--accent-soft); color:var(--accent); }
+  h1{ font-size:27px; margin:4px 0 2px; letter-spacing:-.5px; }
+  .sub{ color:var(--muted); margin:0 0 16px; font-size:15px; text-align:center; max-width:520px; }
+
+  .seg{ display:flex; gap:5px; background:#fff; padding:5px; border-radius:14px; box-shadow:var(--shadow); margin-bottom:14px; flex-wrap:wrap; justify-content:center; }
+  .seg button{ font-family:inherit; font-weight:800; font-size:14.5px; border:none; background:transparent; color:var(--muted); padding:9px 16px; border-radius:10px; cursor:pointer; transition:background .15s,color .15s; }
+  .seg button:hover{ background:var(--accent-soft); }
+  .seg button.on{ background:var(--accent); color:#fff; }
+
+  .howto{ width:100%; max-width:540px; margin:0 auto 14px; background:#fff; border:2px solid var(--accent-soft); border-left:4px solid var(--accent); border-radius:14px; padding:11px 15px; font-size:14px; font-weight:600; color:#334155; line-height:1.45; box-shadow:var(--shadow); }
+  .howto b{ color:var(--accent); font-weight:800; }
+
+  .stage{ width:100%; max-width:540px; }
+  .card{ background:#fff; border-radius:22px; box-shadow:var(--shadow); padding:18px 18px 20px; }
+  .hidden{ display:none !important; }
+
+  /* mode bars */
+  .chiprow{ display:flex; gap:7px; flex-wrap:wrap; justify-content:center; margin-bottom:12px; }
+  .chip{ font-family:inherit; font-weight:800; font-size:13.5px; border:2px solid #e5e7eb; background:#fff; color:var(--ink); padding:7px 12px; border-radius:999px; cursor:pointer; transition:border-color .12s,background .12s; }
+  .chip:hover{ border-color:var(--accent); background:var(--accent-soft); }
+  .chip.on{ border-color:var(--accent); background:var(--accent); color:#fff; }
+
+  .stepinfo{ display:flex; align-items:center; gap:10px; background:var(--accent-soft); border-radius:13px; padding:11px 14px; margin-bottom:12px; }
+  .stepinfo .num{ flex:0 0 auto; width:30px; height:30px; border-radius:50%; background:var(--accent); color:#fff; font-weight:900; font-size:15px; display:flex; align-items:center; justify-content:center; }
+  .stepinfo .say{ font-weight:700; font-size:15.5px; line-height:1.35; }
+
+  .prompt-line{ text-align:center; font-weight:800; font-size:16px; margin-bottom:12px; min-height:22px; color:var(--ink); }
+  .prompt-line span{ color:var(--accent); }
+
+  /* drawing surface */
+  .pad{ position:relative; width:100%; margin:0 auto; border-radius:16px; overflow:hidden; background:#fff;
+    border:2px solid #e5e7eb; box-shadow:inset 0 2px 6px rgba(0,0,0,.04); touch-action:none; }
+  .pad canvas{ position:absolute; inset:0; width:100%; height:100%; }
+  #fg{ cursor:crosshair; }
+  .pad-msg{ position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center;
+    background:rgba(255,255,255,.86); -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); text-align:center; padding:20px; }
+  .pad-msg.show{ display:flex; }
+  .pad-msg .stars{ font-size:44px; letter-spacing:4px; }
+  .pad-msg .big{ font-size:26px; font-weight:900; margin:6px 0 2px; }
+  .pad-msg .small{ color:var(--muted); font-weight:700; font-size:14px; }
+
+  /* toolbar */
+  .tools{ display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; margin-top:14px; justify-content:center; }
+  .swatches{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+  .sw{ width:26px; height:26px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1.5px #e5e7eb; cursor:pointer; padding:0; }
+  .sw.on{ box-shadow:0 0 0 3px var(--accent); transform:scale(1.12); }
+  .sizes{ display:flex; gap:6px; align-items:center; }
+  .sz{ width:34px; height:30px; border-radius:9px; border:2px solid #e5e7eb; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .sz.on{ border-color:var(--accent); background:var(--accent-soft); }
+  .sz .dot{ background:var(--ink); border-radius:50%; }
+  .tool{ font-family:inherit; font-weight:800; font-size:13.5px; border:2px solid #e5e7eb; background:#fff; color:var(--ink); padding:8px 12px; border-radius:11px; cursor:pointer; transition:border-color .12s,background .12s; }
+  .tool:hover{ border-color:var(--accent); background:var(--accent-soft); }
+  .tool.on{ border-color:var(--accent); background:var(--accent); color:#fff; }
+
+  .btnrow{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:14px; }
+  .btn{ font-family:inherit; font-size:15px; font-weight:800; border:none; border-radius:13px; padding:11px 18px; cursor:pointer; transition:transform .1s,background .15s; }
+  .btn:active{ transform:scale(.96); }
+  .btn:disabled{ opacity:.5; cursor:default; transform:none; }
+  .btn-primary{ background:var(--accent); color:#fff; } .btn-primary:hover{ background:#6d28d9; }
+  .btn-ghost{ background:var(--accent-soft); color:var(--accent); }
+  .btn-gold{ background:var(--gold); color:#fff; }
+
+  .timer-wrap{ display:flex; align-items:center; gap:8px; justify-content:center; margin-top:2px; flex-wrap:wrap; }
+  .timer-wrap .tdisp{ font-weight:900; font-size:18px; color:var(--accent); font-variant-numeric:tabular-nums; min-width:52px; text-align:center; }
+
+  /* teacher guide */
+  .teacher{ width:100%; max-width:540px; margin:20px auto 0; background:#fff; border:2px solid #eef0f3; border-radius:16px; box-shadow:var(--shadow); overflow:hidden; }
+  .teacher>summary{ list-style:none; cursor:pointer; padding:13px 16px; font-weight:800; font-size:14px; color:var(--accent); display:flex; align-items:center; gap:8px; }
+  .teacher>summary::-webkit-details-marker{ display:none; }
+  .teacher>summary::after{ content:'▸'; margin-left:auto; color:var(--muted); transition:transform .15s; }
+  .teacher[open]>summary::after{ transform:rotate(90deg); }
+  .teacher .tbody{ padding:0 18px 16px; }
+  .teacher .trow{ margin:12px 0 0; font-size:13.5px; line-height:1.5; }
+  .teacher .trow b{ display:block; font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin-bottom:3px; }
+
+  /* modal */
+  .modal{ position:fixed; inset:0; background:rgba(30,20,60,.45); z-index:80; display:flex; align-items:center; justify-content:center; padding:18px; }
+  .modal.hidden{ display:none; }
+  .sheet{ background:#fff; border-radius:22px; box-shadow:0 24px 60px rgba(76,29,149,.35); width:100%; max-width:540px; max-height:82vh; overflow-y:auto; padding:24px 22px 28px; position:relative; }
+  .sheet h2{ margin:0 0 4px; font-size:22px; }
+  .sheet .sheet-sub{ color:var(--muted); font-size:14px; margin:0 0 16px; }
+  .closeBtn{ position:sticky; float:right; top:0; width:34px; height:34px; border:none; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-size:17px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .trow2{ padding:10px 0; border-top:1px solid #eef0f3; }
+  .trow2:first-of-type{ border-top:none; }
+  .trow2 .t{ font-weight:800; font-size:15.5px; }
+  .trow2 .d{ color:var(--muted); font-size:13.5px; line-height:1.5; margin-top:2px; }
+
+  #confetti{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf{ position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; animation:fall linear forwards; }
+  @keyframes fall{ to{ transform:translateY(105vh) rotate(720deg); } }
+</style>
+</head>
+<body>
+  <div id="confetti"></div>
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <button id="wordsBtn" title="See the art words">🎨 Art Words</button>
+  </div>
+  <h1>✏️ Draw Lab</h1>
+  <p class="sub">Learn to draw step by step, practice your lines, and create anything you can imagine.</p>
+
+  <div class="seg" id="modeSeg">
+    <button data-mode="learn" class="on">✏️ Step-by-Step</button>
+    <button data-mode="trace">✍️ Trace It</button>
+    <button data-mode="studio">🎨 Studio</button>
+  </div>
+
+  <div class="howto" id="howto"></div>
+
+  <div class="stage">
+    <div class="card">
+      <!-- LEARN bar -->
+      <div id="learnBar">
+        <div class="chiprow" id="subjectChips"></div>
+        <div class="stepinfo"><div class="num" id="stepNum">1</div><div class="say" id="stepSay"></div></div>
+      </div>
+      <!-- TRACE bar -->
+      <div id="traceBar" class="hidden">
+        <div class="chiprow" id="traceChips"></div>
+        <div class="prompt-line" id="traceMsg">Trace right on top of the dotted shape ✍️</div>
+      </div>
+      <!-- STUDIO bar -->
+      <div id="studioBar" class="hidden">
+        <div class="prompt-line" id="promptLine">Draw anything you like — or tap <span>🎲 Prompt</span> for an idea!</div>
+      </div>
+
+      <div class="pad" id="pad">
+        <canvas id="bg"></canvas>
+        <canvas id="fg"></canvas>
+        <div class="pad-msg" id="padMsg"></div>
+      </div>
+
+      <div class="tools" id="tools">
+        <div class="swatches" id="swatches"></div>
+        <div class="sizes" id="sizes"></div>
+        <button class="tool" id="eraserBtn">🧽 Eraser</button>
+        <button class="tool" id="undoBtn">↩︎ Undo</button>
+        <button class="tool" id="clearBtn">🗑️ Clear</button>
+        <button class="tool" id="saveBtn">💾 Save</button>
+      </div>
+
+      <!-- LEARN buttons -->
+      <div class="btnrow" id="learnBtns">
+        <button class="btn btn-ghost" id="prevStep">◀ Back</button>
+        <button class="btn btn-ghost" id="guideToggle">👁️ Hide guide</button>
+        <button class="btn btn-primary" id="nextStep">Next step ▶</button>
+      </div>
+      <!-- TRACE buttons -->
+      <div class="btnrow hidden" id="traceBtns">
+        <button class="btn btn-ghost" id="traceClear">↩︎ Try again</button>
+        <button class="btn btn-primary" id="traceCheck">Check ✓</button>
+        <button class="btn btn-gold" id="traceNext">Next shape ▶</button>
+      </div>
+      <!-- STUDIO buttons -->
+      <div class="btnrow hidden" id="studioBtns">
+        <button class="btn btn-ghost" id="promptBtn">🎲 Prompt</button>
+        <div class="timer-wrap">
+          <button class="btn btn-ghost" id="timer30">⏱ 30s</button>
+          <button class="btn btn-ghost" id="timer60">⏱ 60s</button>
+          <span class="tdisp hidden" id="tdisp">0:30</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <details class="teacher">
+    <summary>👩‍🏫 Teacher Guide</summary>
+    <div class="tbody" id="teachBody"></div>
+  </details>
+
+  <div class="modal hidden" id="wordsModal"><div class="sheet" id="wordsSheet"></div></div>
+
+<script src="data.js?v=1"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const D = window.DRAW;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+
+  const pad = $('pad'), bg = $('bg'), fg = $('fg');
+  const bgx = bg.getContext('2d'), fgx = fg.getContext('2d');
+  let S = 0, sc = 1;                       // canvas side (css px) and 0-100 scale factor
+
+  // ---- drawing state ----
+  let color = '#1f2937', size = 7, tool = 'brush';
+  let drawing = false, last = null;
+  const undoStack = [];
+
+  const COLORS = ['#1f2937','#ef4444','#f97316','#f59e0b','#eab308','#22c55e','#14b8a6','#3b82f6','#6366f1','#a855f7','#ec4899','#92400e','#9ca3af'];
+  const SIZES = [3, 7, 14, 26];
+
+  let mode = 'learn';
+
+  // ---------- canvas fitting ----------
+  function fitCanvas(){
+    const w = Math.max(220, Math.min(pad.parentElement.clientWidth, 460));
+    // preserve current drawing across a resize
+    let prev = null;
+    if (S){ prev = document.createElement('canvas'); prev.width = fg.width; prev.height = fg.height; prev.getContext('2d').drawImage(fg, 0, 0); }
+    S = Math.round(w); sc = S / 100;
+    pad.style.height = S + 'px';
+    [bg, fg].forEach(cv => { cv.width = Math.round(S*dpr); cv.height = Math.round(S*dpr); });
+    bgx.setTransform(dpr,0,0,dpr,0,0);
+    fgx.setTransform(dpr,0,0,dpr,0,0);
+    fgx.lineCap = 'round'; fgx.lineJoin = 'round';
+    if (prev){ fgx.save(); fgx.setTransform(1,0,0,1,0,0); fgx.drawImage(prev, 0, 0, prev.width, prev.height, 0, 0, fg.width, fg.height); fgx.restore(); }
+    renderCurrent();
+  }
+
+  // ---------- primitive drawing (guides) ----------
+  function drawPrim(ctx, pr){
+    ctx.beginPath();
+    if (pr.c){ const [x,y,r]=pr.c; ctx.arc(x*sc, y*sc, r*sc, 0, 2*Math.PI); ctx.stroke(); }
+    else if (pr.d){ const [x,y,r]=pr.d; ctx.arc(x*sc, y*sc, r*sc, 0, 2*Math.PI); ctx.fillStyle=ctx.strokeStyle; ctx.fill(); }
+    else if (pr.e){ const [x,y,rx,ry,rot=0]=pr.e; ctx.ellipse(x*sc, y*sc, rx*sc, ry*sc, rot*Math.PI/180, 0, 2*Math.PI); ctx.stroke(); }
+    else if (pr.l){ const [x1,y1,x2,y2]=pr.l; ctx.moveTo(x1*sc,y1*sc); ctx.lineTo(x2*sc,y2*sc); ctx.stroke(); }
+    else if (pr.a){ const [x,y,r,s,e]=pr.a; ctx.arc(x*sc, y*sc, r*sc, s*Math.PI/180, e*Math.PI/180); ctx.stroke(); }
+    else if (pr.p){ pr.p.forEach((pt,i)=> i? ctx.lineTo(pt[0]*sc,pt[1]*sc) : ctx.moveTo(pt[0]*sc,pt[1]*sc)); if (pr.close) ctx.closePath(); ctx.stroke(); }
+  }
+
+  // ================= STEP-BY-STEP =================
+  let subject = D.SUBJECTS[0], step = 0, guideOn = true;
+
+  function drawGuide(){
+    bgx.clearRect(0,0,S,S);
+    if (!guideOn) return;
+    for (let i=0; i<=step && i<subject.steps.length; i++){
+      const isCur = (i === step);
+      bgx.strokeStyle = isCur ? 'rgba(124,58,237,.95)' : 'rgba(148,163,184,.5)';
+      bgx.lineWidth = isCur ? 2.4 : 1.6;
+      (subject.steps[i].add || []).forEach(pr => drawPrim(bgx, pr));
+    }
+  }
+  function renderLearn(){
+    $('stepNum').textContent = step + 1;
+    $('stepSay').textContent = subject.steps[step].say;
+    $('prevStep').disabled = step === 0;
+    $('nextStep').textContent = step >= subject.steps.length-1 ? 'Start over ↺' : 'Next step ▶';
+    drawGuide();
+  }
+  function buildSubjectChips(){
+    const box = $('subjectChips'); box.innerHTML='';
+    D.SUBJECTS.forEach((s,i)=>{
+      const b=document.createElement('button'); b.className='chip'+(s===subject?' on':'');
+      b.innerHTML = s.emoji+' '+s.name;
+      b.onclick = ()=>{ subject=s; step=0; clearFg(true); [...box.children].forEach(c=>c.classList.remove('on')); b.classList.add('on'); renderLearn(); };
+      box.appendChild(b);
+    });
+  }
+
+  // ================= TRACE IT =================
+  let traceShape = D.TRACE[0], tracePts = [];
+  function genShape(key){
+    const P=[], push=(x,y)=>P.push([x,y]);
+    if (key==='circle'){ for(let i=0;i<=72;i++){ const a=i/72*2*Math.PI; push(50+34*Math.cos(a), 50+34*Math.sin(a)); } }
+    else if (key==='square'){ const c=[[18,18],[82,18],[82,82],[18,82],[18,18]]; edge(c,P); }
+    else if (key==='triangle'){ const c=[[50,14],[85,82],[15,82],[50,14]]; edge(c,P); }
+    else if (key==='wave'){ for(let i=0;i<=80;i++){ const x=12+i/80*76; push(x, 50+18*Math.sin(i/80*4*Math.PI)); } }
+    else if (key==='zigzag'){ const c=[[12,30],[30,74],[50,30],[70,74],[88,30]]; edge(c,P); }
+    else if (key==='star'){ const c=[]; for(let i=0;i<=10;i++){ const a=-Math.PI/2 + i*Math.PI/5; const r=(i%2?14:34); c.push([50+r*Math.cos(a),50+r*Math.sin(a)]); } edge(c,P); }
+    else if (key==='spiral'){ for(let i=0;i<=140;i++){ const a=i/140*5*Math.PI; const r=4+i/140*34; push(50+r*Math.cos(a),50+r*Math.sin(a)); } }
+    else if (key==='heart'){ for(let i=0;i<=80;i++){ const t=i/80*2*Math.PI; const x=16*Math.pow(Math.sin(t),3); const y=13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t); push(50+x*2.0, 48-y*2.0); } }
+    return P;
+  }
+  function edge(corners, P){                        // sample straight edges between corners
+    for (let s=0;s<corners.length-1;s++){ const [x1,y1]=corners[s],[x2,y2]=corners[s+1]; const n=18; for(let i=0;i<=n;i++){ P.push([x1+(x2-x1)*i/n, y1+(y2-y1)*i/n]); } }
+  }
+  function drawTraceGuide(){
+    bgx.clearRect(0,0,S,S);
+    bgx.strokeStyle = 'rgba(124,58,237,.55)'; bgx.lineWidth = 3; bgx.setLineDash([2, 9]); bgx.lineCap='round';
+    bgx.beginPath();
+    tracePts.forEach((p,i)=> i? bgx.lineTo(p[0]*sc,p[1]*sc) : bgx.moveTo(p[0]*sc,p[1]*sc));
+    bgx.stroke(); bgx.setLineDash([]);
+    // start dot
+    bgx.fillStyle='#7c3aed'; bgx.beginPath(); bgx.arc(tracePts[0][0]*sc, tracePts[0][1]*sc, 5, 0, 2*Math.PI); bgx.fill();
+  }
+  function newTrace(shape){
+    traceShape = shape; tracePts = genShape(shape.key);
+    clearFg(true); hideMsg();
+    $('traceMsg').textContent = 'Trace the ' + shape.name.toLowerCase() + ' — follow the dots ✍️';
+    drawTraceGuide();
+  }
+  function buildTraceChips(){
+    const box=$('traceChips'); box.innerHTML='';
+    D.TRACE.forEach(s=>{
+      const b=document.createElement('button'); b.className='chip'+(s===traceShape?' on':'');
+      b.innerHTML=s.emoji+' '+s.name;
+      b.onclick=()=>{ [...box.children].forEach(c=>c.classList.remove('on')); b.classList.add('on'); newTrace(s); };
+      box.appendChild(b);
+    });
+  }
+  function checkTrace(){
+    const img = fgx.getImageData(0,0,fg.width,fg.height).data;
+    const W = fg.width, tol = Math.round(13*dpr);
+    // subsample guide points
+    const pts = tracePts.filter((_,i)=> i % 2 === 0);
+    let covered = 0;
+    pts.forEach(p=>{
+      const cx = Math.round(p[0]*sc*dpr), cy = Math.round(p[1]*sc*dpr);
+      let hit=false;
+      for (let dy=-tol; dy<=tol && !hit; dy+=3){ for (let dx=-tol; dx<=tol; dx+=3){
+        const x=cx+dx, y=cy+dy; if (x<0||y<0||x>=fg.width||y>=fg.height) continue;
+        if (img[(y*W + x)*4 + 3] > 30){ hit=true; break; }
+      }}
+      if (hit) covered++;
+    });
+    const pct = Math.round(covered / pts.length * 100);
+    const stars = pct>=85 ? 3 : pct>=65 ? 2 : pct>=40 ? 1 : 0;
+    showTraceResult(pct, stars);
+    if (stars===3) confetti();
+  }
+  function showTraceResult(pct, stars){
+    const m=$('padMsg');
+    m.innerHTML = `<div class="stars">${'⭐'.repeat(stars)}${'▫️'.repeat(3-stars)}</div>`+
+      `<div class="big">${pct}% traced</div>`+
+      `<div class="small">${stars===3?'Amazing line control!':stars===2?'Nice and steady!':stars===1?'Good start — trace closer to the dots.':'Follow the dots more closely — you can do it!'}</div>`;
+    m.classList.add('show');
+  }
+  function hideMsg(){ $('padMsg').classList.remove('show'); }
+
+  // ================= STUDIO =================
+  let timerId = null, timeLeft = 0;
+  function newPrompt(){
+    const p = D.PROMPTS[Math.floor(Math.random()*D.PROMPTS.length)];
+    $('promptLine').innerHTML = 'Draw: <span>' + p + '</span>';
+  }
+  function startTimer(secs){
+    stopTimer();
+    timeLeft = secs; const disp=$('tdisp'); disp.classList.remove('hidden'); updTimer();
+    timerId = setInterval(()=>{ timeLeft--; updTimer(); if (timeLeft<=0){ stopTimer(); timeUp(); } }, 1000);
+  }
+  function updTimer(){ const m=Math.floor(timeLeft/60), s=timeLeft%60; $('tdisp').textContent = m+':'+String(s).padStart(2,'0'); }
+  function stopTimer(){ if (timerId){ clearInterval(timerId); timerId=null; } }
+  function timeUp(){
+    const m=$('padMsg'); m.innerHTML = `<div class="stars">⏱️</div><div class="big">Time!</div><div class="small">Great speed-draw. Tap the canvas to keep going.</div>`;
+    m.classList.add('show'); confetti();
+    m.onclick = ()=>{ hideMsg(); m.onclick=null; };
+  }
+
+  // ---------- shared drawing ----------
+  function pos(e){ const r = fg.getBoundingClientRect(); return [ (e.clientX - r.left), (e.clientY - r.top) ]; }
+  function pushUndo(){ try { undoStack.push(fgx.getImageData(0,0,fg.width,fg.height)); if (undoStack.length>24) undoStack.shift(); } catch(e){} }
+  function down(e){
+    if (mode==='trace') hideMsg();
+    e.preventDefault(); pushUndo(); drawing = true; last = pos(e);
+    try { fg.setPointerCapture(e.pointerId); } catch(_){}
+    fgx.globalCompositeOperation = tool==='eraser' ? 'destination-out' : 'source-over';
+    // a tap makes a dot
+    fgx.beginPath(); fgx.fillStyle = color;
+    if (tool==='eraser'){ fgx.beginPath(); fgx.arc(last[0],last[1], size*1.6/2, 0, 2*Math.PI); fgx.fill(); }
+    else { fgx.arc(last[0],last[1], size/2, 0, 2*Math.PI); fgx.fill(); }
+  }
+  function move(e){
+    if (!drawing) return; e.preventDefault();
+    const p = pos(e);
+    fgx.strokeStyle = color; fgx.lineWidth = tool==='eraser' ? size*1.6 : size;
+    fgx.beginPath(); fgx.moveTo(last[0], last[1]); fgx.lineTo(p[0], p[1]); fgx.stroke();
+    last = p;
+  }
+  function up(e){ if (!drawing) return; drawing=false; fgx.globalCompositeOperation='source-over'; }
+  fg.addEventListener('pointerdown', down);
+  fg.addEventListener('pointermove', move);
+  fg.addEventListener('pointerup', up);
+  fg.addEventListener('pointercancel', up);
+  fg.addEventListener('pointerleave', up);
+
+  function clearFg(silent){ if (!silent) pushUndo(); fgx.save(); fgx.setTransform(1,0,0,1,0,0); fgx.clearRect(0,0,fg.width,fg.height); fgx.restore(); }
+  function undo(){ if (undoStack.length){ fgx.putImageData(undoStack.pop(), 0, 0); } }
+  function savePng(){
+    const out = document.createElement('canvas'); out.width = fg.width; out.height = fg.height;
+    const o = out.getContext('2d'); o.fillStyle = '#ffffff'; o.fillRect(0,0,out.width,out.height); o.drawImage(fg,0,0);
+    const name = (mode==='learn' ? subject.name.toLowerCase().replace(/\s+/g,'-') : 'drawing') + '.png';
+    out.toBlob(function(blob){
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click();
+      setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); }, 500);
+    });
+  }
+
+  // ---------- tools UI ----------
+  function buildTools(){
+    const sw = $('swatches'); sw.innerHTML='';
+    COLORS.forEach(c=>{
+      const b=document.createElement('button'); b.className='sw'+(c===color?' on':''); b.style.background=c; b.title=c;
+      b.onclick=()=>{ color=c; tool='brush'; $('eraserBtn').classList.remove('on'); [...sw.children].forEach(x=>x.classList.remove('on')); b.classList.add('on'); };
+      sw.appendChild(b);
+    });
+    const sz = $('sizes'); sz.innerHTML='';
+    SIZES.forEach(s=>{
+      const b=document.createElement('button'); b.className='sz'+(s===size?' on':'');
+      const d=document.createElement('span'); d.className='dot'; const px=Math.max(4, s*0.7); d.style.width=px+'px'; d.style.height=px+'px'; b.appendChild(d);
+      b.onclick=()=>{ size=s; [...sz.children].forEach(x=>x.classList.remove('on')); b.classList.add('on'); };
+      sz.appendChild(b);
+    });
+  }
+
+  // ---------- mode switching ----------
+  function renderCurrent(){
+    if (mode==='learn') renderLearn();
+    else if (mode==='trace') drawTraceGuide();
+    else bgx.clearRect(0,0,S,S);
+  }
+  function setMode(m){
+    mode = m; stopTimer(); $('tdisp').classList.add('hidden'); hideMsg();
+    ['learn','trace','studio'].forEach(x=>{
+      $(x+'Bar').classList.toggle('hidden', x!==m);
+      $(x+'Btns').classList.toggle('hidden', x!==m);
+    });
+    // eraser off when switching
+    tool='brush'; $('eraserBtn').classList.remove('on');
+    clearFg(true);
+    if (m==='learn'){ step=0; renderLearn(); }
+    else if (m==='trace'){ newTrace(traceShape); }
+    else { bgx.clearRect(0,0,S,S); }
+    updateGuide();
+  }
+
+  function updateGuide(){
+    const t = D.TEACHER[mode] || {};
+    $('howto').innerHTML = '<b>How to play:</b> ' + (t.how||'');
+    $('teachBody').innerHTML =
+      `<div class="trow"><b>🎯 The point</b>${t.point||''}</div>`+
+      `<div class="trow"><b>📚 What they learn</b>${t.learn||''}</div>`+
+      `<div class="trow"><b>🔍 Keep exploring</b>${t.explore||''}</div>`;
+  }
+
+  // ---------- Art Words modal ----------
+  function openWords(){
+    const rows = D.TERMS.map(t=>`<div class="trow2"><div class="t">${t.term}</div><div class="d">${t.def}</div></div>`).join('');
+    $('wordsSheet').innerHTML = `<button class="closeBtn" id="closeWords">✕</button><h2>🎨 Art Words</h2>`+
+      `<p class="sheet-sub">${D.TERMS.length} words every young artist should know.</p>`+rows;
+    $('wordsModal').className='modal'; $('wordsSheet').scrollTop=0; $('closeWords').onclick=closeWords;
+  }
+  function closeWords(){ $('wordsModal').className='modal hidden'; }
+
+  // ---------- confetti ----------
+  function confetti(){
+    const cols=['#7c3aed','#ec4899','#f59e0b','#22c55e','#3b82f6','#ef4444']; const box=$('confetti');
+    for (let i=0;i<70;i++){ const c=document.createElement('div'); c.className='conf'; c.style.left=Math.random()*100+'vw';
+      c.style.background=cols[i%cols.length]; c.style.animationDuration=(1.6+Math.random()*1.4)+'s'; c.style.animationDelay=(Math.random()*.3)+'s';
+      box.appendChild(c); setTimeout(()=>c.remove(),3400); }
+  }
+
+  // ---------- events ----------
+  $('modeSeg').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return;
+    [...$('modeSeg').children].forEach(x=>x.classList.toggle('on', x===b)); setMode(b.dataset.mode); });
+  $('eraserBtn').onclick = ()=>{ tool = tool==='eraser' ? 'brush' : 'eraser'; $('eraserBtn').classList.toggle('on', tool==='eraser'); };
+  $('undoBtn').onclick = undo;
+  $('clearBtn').onclick = ()=>{ clearFg(); if (mode==='trace') hideMsg(); };
+  $('saveBtn').onclick = savePng;
+  $('prevStep').onclick = ()=>{ if (step>0){ step--; renderLearn(); } };
+  $('nextStep').onclick = ()=>{ if (step >= subject.steps.length-1){ step=0; clearFg(true); } else step++; renderLearn(); };
+  $('guideToggle').onclick = ()=>{ guideOn=!guideOn; $('guideToggle').textContent = guideOn ? '👁️ Hide guide' : '👁️ Show guide'; drawGuide(); };
+  $('traceCheck').onclick = checkTrace;
+  $('traceClear').onclick = ()=>{ clearFg(); hideMsg(); };
+  $('traceNext').onclick = ()=>{ const i=D.TRACE.indexOf(traceShape); const n=D.TRACE[(i+1)%D.TRACE.length]; buildTraceChips? null:null; newTrace(n); [...$('traceChips').children].forEach(c=>c.classList.toggle('on', c.textContent.includes(n.name))); };
+  $('promptBtn').onclick = newPrompt;
+  $('timer30').onclick = ()=>startTimer(30);
+  $('timer60').onclick = ()=>startTimer(60);
+  $('wordsBtn').onclick = openWords;
+  $('wordsModal').addEventListener('click', e=>{ if (e.target===$('wordsModal')) closeWords(); });
+  document.addEventListener('keydown', e=>{ if (e.key==='Escape') closeWords(); });
+  window.addEventListener('resize', ()=>{ clearTimeout(window.__rz); window.__rz=setTimeout(fitCanvas, 200); });
+
+  // ---------- init ----------
+  buildTools(); buildSubjectChips(); buildTraceChips();
+  fitCanvas();
+  updateGuide();
+  renderLearn();
+})();
+</script>
+<script src="/stopwatch.js?v=2"></script>
+</body>
+</html>
