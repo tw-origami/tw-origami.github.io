@@ -226,8 +226,12 @@
   // ----- YouTube IFrame API (privacy-enhanced; controls:0 so no YouTube UI exists) -----
   window.onYouTubeIframeAPIReady = function(){
     apiReady = true;
+    // Note: the standard host, not youtube-nocookie — "Made for Kids" videos
+    // (extra storage restrictions) refuse to play on the nocookie domain.
+    // Privacy is preserved the way that matters here: our shield blocks every
+    // link out, and rel/controls are off.
     player = new YT.Player('ytplayer', {
-      host: 'https://www.youtube-nocookie.com',
+      host: 'https://www.youtube.com',
       videoId: videos[0].id,
       playerVars: { rel:0, iv_load_policy:3, playsinline:1, controls:0, disablekb:1, fs:0 },
       events: {
@@ -236,8 +240,17 @@
           else if (e.data === YT.PlayerState.PLAYING){ hideOverlays(); $('poster').classList.add('hidden'); $('ctrlbar').style.display='flex'; $('ppBtn').textContent='⏸'; startTick(); }
           else if (e.data === YT.PlayerState.PAUSED){ $('ppBtn').textContent='▶'; }
         },
-        onError: () => { $('poster').classList.add('hidden'); $('oopsMsg').textContent = 'This video can’t be played here — its owner turned off embedding, or it isn’t available.';
-                         $('oops').classList.add('show'); }
+        onError: e => {
+          $('poster').classList.add('hidden');
+          const code = e && e.data;
+          const why = code===101||code===150 ? 'its owner doesn’t allow it to play on other websites'
+                    : code===153 ? 'the browser didn’t send the page info YouTube wants'
+                    : code===2 ? 'the video link looks wrong'
+                    : code===5 ? 'the player hit a technical problem'
+                    : 'it isn’t available right now';
+          $('oopsMsg').textContent = 'This video can’t be played here — ' + why + '. (error ' + code + ')';
+          $('oops').classList.add('show');
+        }
       }
     });
   };
