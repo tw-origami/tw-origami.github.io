@@ -6,291 +6,32 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Video of the Week</title>
 <style>
-  :root{
-    --ink:#1f2430; --muted:#6b7280; --accent:#e11d48; --accent-soft:#ffe4e6; --accent2:#7c3aed;
-    --shadow:0 10px 30px rgba(136,19,55,.14);
-  }
+  :root{ --ink:#1f2430; --muted:#6b7280; --accent:#e11d48; --accent-soft:#ffe4e6; --shadow:0 10px 30px rgba(136,19,55,.14); }
   *{ box-sizing:border-box; }
   body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
-    background:linear-gradient(160deg,#fff1f2,#f8fafc); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:20px 14px 70px; }
-  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; }
+    background:linear-gradient(160deg,#fff1f2,#f8fafc); min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px 16px; }
+  .nav{ position:fixed; top:16px; display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); }
   .nav a{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 14px; border-radius:9px; }
   .nav a:hover{ background:var(--accent-soft); color:var(--accent); }
-  h1{ font-size:27px; margin:4px 0 2px; letter-spacing:-.5px; text-align:center; }
-  .sub{ color:var(--muted); margin:0 0 18px; font-size:15px; text-align:center; max-width:520px; }
-
-  .wrap{ width:100%; max-width:720px; }
-
-  .pick-label{ display:inline-flex; align-items:center; gap:7px; font-weight:900; font-size:13px; text-transform:uppercase; letter-spacing:.6px;
-    color:var(--accent); background:var(--accent-soft); padding:6px 13px; border-radius:999px; margin-bottom:10px; }
-
-  /* chrome-free player: YouTube's own controls are disabled and the whole frame
-     sits under a transparent shield, so nothing of YouTube's UI (title, logo,
-     cards) can ever be clicked. We draw our own controls on top. */
-  .player{ position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:16px; overflow:hidden; box-shadow:var(--shadow); }
-  .player #ytplayer, .player iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
-  .clickshield{ position:absolute; inset:0; z-index:4; cursor:pointer; }
-  /* custom poster shown before the first play — YouTube's poster (with its logo) never appears */
-  .poster{ position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
-    background:#000 center/cover no-repeat; cursor:pointer; }
-  .poster::before{ content:''; position:absolute; inset:0; background:rgba(0,0,0,.35); }
-  .poster .pbtn{ position:relative; width:72px; height:72px; border-radius:50%; background:var(--accent); color:#fff; font-size:30px;
-    display:flex; align-items:center; justify-content:center; box-shadow:0 10px 30px rgba(0,0,0,.4); padding-left:6px; transition:transform .12s; }
-  .poster:hover .pbtn{ transform:scale(1.08); }
-  .poster .ptext{ position:relative; color:#fff; font-weight:800; font-size:15px; text-shadow:0 2px 8px rgba(0,0,0,.6); }
-  .poster.hidden{ display:none; }
-  /* our own control bar */
-  .ctrlbar{ position:absolute; left:0; right:0; bottom:0; z-index:7; display:flex; align-items:center; gap:10px;
-    padding:10px 12px 9px; background:linear-gradient(transparent, rgba(0,0,0,.75)); }
-  .ctrlbar button{ flex:0 0 auto; width:38px; height:38px; border:none; border-radius:10px; background:rgba(255,255,255,.14); color:#fff;
-    font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-family:inherit; transition:background .15s; }
-  .ctrlbar button:hover{ background:rgba(255,255,255,.3); }
-  .ctrlbar .time{ flex:0 0 auto; color:#fff; font-weight:700; font-size:12.5px; font-variant-numeric:tabular-nums; min-width:84px; text-align:center; }
-  .ctrlbar input[type=range]{ flex:1 1 auto; min-width:60px; accent-color:var(--accent); height:6px; cursor:pointer; }
-  /* our own end screen hides YouTube's suggested-video grid when a video finishes */
-  .endcard{ position:absolute; inset:0; z-index:6; display:none; flex-direction:column; align-items:center; justify-content:center; gap:14px;
-    background:linear-gradient(160deg,rgba(20,10,25,.92),rgba(60,10,40,.92)); color:#fff; text-align:center; padding:20px; }
-  .endcard.show{ display:flex; }
-  .endcard .em{ font-size:44px; } .endcard .msg{ font-size:22px; font-weight:900; }
-  .endcard .ebtns{ display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
-  .endcard button, .oops button{ font-family:inherit; font-weight:800; font-size:15px; border:none; border-radius:12px; padding:11px 18px; cursor:pointer; }
-  .eb-again{ background:#fff; color:var(--ink); } .eb-more{ background:var(--accent); color:#fff; }
-  /* friendly overlay for an unplayable video */
-  .oops{ position:absolute; inset:0; z-index:6; display:none; flex-direction:column; align-items:center; justify-content:center; gap:8px;
-    background:#111827; color:#fff; text-align:center; padding:24px; }
-  .oops.show{ display:flex; } .oops .em{ font-size:40px; } .oops .msg{ font-weight:800; font-size:16px; max-width:360px; line-height:1.4; }
-  .oops .small{ color:#9ca3af; font-size:13px; }
-
-  .nowinfo{ margin:16px 2px 6px; }
-  .nowinfo h2{ font-size:21px; margin:0 0 4px; letter-spacing:-.3px; }
-  .nowinfo .by{ color:var(--accent); font-weight:800; font-size:13.5px; }
-  .nowinfo .note{ color:var(--ink); font-size:15px; line-height:1.5; margin-top:8px; }
-
-  .more-h{ font-size:14px; font-weight:900; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin:26px 4px 12px; }
-  .gallery{ display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:16px; }
-  .vcard{ text-align:left; background:#fff; border:2px solid transparent; border-radius:16px; box-shadow:var(--shadow); overflow:hidden; cursor:pointer; padding:0;
-    font-family:inherit; transition:transform .12s, border-color .12s; }
-  .vcard:hover{ transform:translateY(-3px); border-color:var(--accent); }
-  .vcard.on{ border-color:var(--accent); }
-  .vthumb{ position:relative; width:100%; aspect-ratio:16/9; background:#e5e7eb center/cover no-repeat; display:block; }
-  .vthumb .play{ position:absolute; inset:0; margin:auto; width:46px; height:46px; border-radius:50%; background:rgba(0,0,0,.55); color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; }
-  .vthumb .badge{ position:absolute; top:8px; left:8px; background:var(--accent); color:#fff; font-size:10.5px; font-weight:900; text-transform:uppercase; letter-spacing:.4px; padding:4px 8px; border-radius:999px; }
-  .vmeta{ padding:11px 13px 14px; }
-  .vmeta .t{ font-weight:800; font-size:14.5px; line-height:1.3; }
-  .vmeta .b{ color:var(--muted); font-weight:700; font-size:12px; margin-top:3px; }
-
-  .empty{ background:#fff; border:2px dashed var(--accent-soft); border-radius:18px; padding:34px 24px; text-align:center; box-shadow:var(--shadow); }
-  .empty .em{ font-size:44px; } .empty h3{ margin:10px 0 6px; font-size:20px; } .empty p{ color:var(--muted); font-size:14.5px; line-height:1.55; margin:0 auto; max-width:420px; }
-  .empty code{ background:#f1f5f9; border-radius:6px; padding:2px 6px; font-size:13px; }
-
-  .grown{ width:100%; max-width:720px; margin:22px auto 0; background:#fff; border:2px solid #eef0f3; border-radius:16px; box-shadow:var(--shadow); overflow:hidden; }
-  .grown>summary{ list-style:none; cursor:pointer; padding:13px 16px; font-weight:800; font-size:14px; color:var(--accent); display:flex; align-items:center; gap:8px; }
-  .grown>summary::-webkit-details-marker{ display:none; }
-  .grown>summary::after{ content:'▸'; margin-left:auto; color:var(--muted); transition:transform .15s; }
-  .grown[open]>summary::after{ transform:rotate(90deg); }
-  .grown .gbody{ padding:0 18px 18px; font-size:13.5px; line-height:1.6; color:var(--ink); }
-  .grown .gbody b{ color:var(--ink); } .grown .gbody code{ background:#f1f5f9; border-radius:6px; padding:1px 6px; }
+  .card{ background:#fff; border-radius:24px; box-shadow:var(--shadow); padding:44px 34px; text-align:center; max-width:460px; }
+  .cones{ font-size:56px; letter-spacing:6px; }
+  h1{ font-size:26px; margin:14px 0 8px; letter-spacing:-.5px; }
+  p{ color:var(--muted); font-size:15.5px; line-height:1.6; margin:0 0 22px; }
+  .tape{ display:inline-block; background:repeating-linear-gradient(45deg,#fbbf24,#fbbf24 14px,#1f2430 14px,#1f2430 28px);
+    color:#fff; font-weight:900; font-size:13px; letter-spacing:1.5px; text-transform:uppercase; padding:9px 20px; border-radius:8px;
+    text-shadow:0 1px 3px rgba(0,0,0,.7); margin-bottom:22px; }
+  .home{ display:inline-block; background:var(--accent); color:#fff; text-decoration:none; font-weight:800; font-size:15px; padding:12px 22px; border-radius:13px; }
+  .home:hover{ background:#be123c; }
 </style>
 </head>
 <body>
   <div class="nav"><a href="../index.html">🏠 Home</a></div>
-  <h1>📺 Video of the Week</h1>
-  <p class="sub">Hand-picked videos for the week — one click to watch, with no suggested videos and no wandering off to YouTube.</p>
-
-  <div class="wrap" id="wrap"></div>
-
-  <details class="grown">
-    <summary>🧑‍🍳 For grown-ups — how to add videos</summary>
-    <div class="gbody">
-      <p>Open <code>videoweek/data.js</code> and add a line to the <code>videos</code> list — the <b>top of the list is this week's featured pick</b>. Each entry looks like:</p>
-      <p><code>{ url: 'paste the YouTube link', title: 'A title', by: 'Channel', note: 'Why it's worth watching', date: '2026-08-19' },</code></p>
-      <p>You can paste any YouTube link (<code>youtube.com/watch?v=…</code>, <code>youtu.be/…</code>, or <code>shorts/…</code>) — or just the 11-character video ID. Only <b>url</b> and <b>title</b> are required. Save and refresh.</p>
-      <p style="color:var(--muted)"><b>About ads:</b> suggested videos and links to YouTube are blocked here, but whether a video shows ads is decided by that video's owner and can't be turned off from outside — so pick channels that keep it clean.</p>
-    </div>
-  </details>
-
-<script src="data.js?v=3"></script>
-<script>
-(function(){
-  const $ = id => document.getElementById(id);
-  const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-
-  function ytid(s){
-    if (!s) return '';
-    s = String(s).trim();
-    if (/^[\w-]{11}$/.test(s)) return s;
-    const m = s.match(/(?:v=|\/embed\/|youtu\.be\/|\/shorts\/|\/v\/|\/live\/)([\w-]{11})/);
-    return m ? m[1] : '';
-  }
-
-  const raw = (window.VIDEOWEEK && window.VIDEOWEEK.videos) || [];
-  const videos = raw.map(v => ({ id: ytid(v.url || v.id), title: v.title || 'Untitled', by: v.by || '', note: v.note || '', date: v.date || '' }))
-                    .filter(v => v.id);
-
-  const wrap = $('wrap');
-  let player = null, apiReady = false, current = 0;
-
-  if (!videos.length){
-    wrap.innerHTML =
-      `<div class="empty"><div class="em">🎬</div><h3>No videos yet!</h3>`+
-      `<p>Add your first pick in <code>videoweek/data.js</code> — paste a YouTube link and a title. Open the <b>For grown-ups</b> box below for the how-to.</p></div>`;
-    return;
-  }
-
-  // ----- build the page -----
-  wrap.innerHTML =
-    `<div class="pick-label">⭐ This week's pick</div>`+
-    `<div class="player" id="playerBox">`+
-      `<div id="ytplayer"></div>`+
-      `<div class="clickshield" id="clickshield" title="Play / pause"></div>`+
-      `<div class="ctrlbar" id="ctrlbar" style="display:none">`+
-        `<button id="ppBtn" title="Play / pause">▶</button>`+
-        `<span class="time" id="timeDisp">0:00 / 0:00</span>`+
-        `<input type="range" id="seek" min="0" max="1000" value="0" title="Skip around">`+
-        `<button id="muteBtn" title="Sound on/off">🔊</button>`+
-        `<button id="fsBtn" title="Full screen">⛶</button>`+
-      `</div>`+
-      `<div class="poster" id="poster"><div class="pbtn">▶</div><div class="ptext">Watch this week's pick</div></div>`+
-      `<div class="endcard" id="endcard">`+
-        `<div class="em">🎉</div><div class="msg">The End!</div>`+
-        `<div class="ebtns"><button class="eb-again" id="againBtn">▶ Watch again</button>`+
-        `<button class="eb-more" id="moreBtn">📺 More videos</button></div>`+
-      `</div>`+
-      `<div class="oops" id="oops"><div class="em">😕</div><div class="msg" id="oopsMsg"></div>`+
-      `<div class="small">Sometimes this is just a hiccup.</div>`+
-      `<div class="ebtns" style="margin-top:10px"><button class="eb-again" id="retryBtn">↻ Try again</button></div></div>`+
-    `</div>`+
-    `<div class="nowinfo"><h2 id="nowTitle"></h2><div class="by" id="nowBy"></div><div class="note" id="nowNote"></div></div>`+
-    (videos.length > 1 ? `<div class="more-h">📼 All videos</div><div class="gallery" id="gallery"></div>` : '');
-
-  function renderInfo(){
-    const v = videos[current];
-    $('nowTitle').textContent = v.title;
-    $('nowBy').textContent = v.by ? '📺 ' + v.by : '';
-    $('nowNote').textContent = v.note || '';
-    [...document.querySelectorAll('.vcard')].forEach((c,i)=> c.classList.toggle('on', i===current));
-  }
-
-  function buildGallery(){
-    if (videos.length < 2) return;
-    const g = $('gallery'); g.innerHTML = '';
-    videos.forEach((v,i)=>{
-      const c = document.createElement('button');
-      c.className = 'vcard' + (i===current?' on':'');
-      c.innerHTML =
-        `<span class="vthumb" style="background-image:url('https://i.ytimg.com/vi/${v.id}/hqdefault.jpg')">`+
-          (i===0?`<span class="badge">⭐ This week</span>`:``)+
-          `<span class="play">▶</span></span>`+
-        `<span class="vmeta"><span class="t">${esc(v.title)}</span>`+
-        (v.by?`<span class="b">${esc(v.by)}</span>`:``)+`</span>`;
-      c.onclick = ()=> select(i, true);
-      g.appendChild(c);
-    });
-  }
-
-  function hideOverlays(){ $('endcard').classList.remove('show'); $('oops').classList.remove('show'); }
-
-  function setPoster(i){
-    const p = $('poster');
-    p.classList.remove('hidden');
-    p.style.backgroundImage = `url('https://i.ytimg.com/vi/${videos[i].id}/hqdefault.jpg')`;
-    $('ctrlbar').style.display = 'none';
-  }
-
-  function select(i, play){
-    current = i; hideOverlays(); renderInfo();
-    if (apiReady && player){
-      if (play){ $('poster').classList.add('hidden'); $('ctrlbar').style.display='flex'; player.loadVideoById(videos[i].id); }
-      else { setPoster(i); player.cueVideoById(videos[i].id); }
-    } else setPoster(i);
-    document.querySelector('.player').scrollIntoView({ behavior:'smooth', block:'center' });
-  }
-
-  // ----- our own controls (YouTube's are fully disabled) -----
-  const fmtT = s => { s=Math.max(0, Math.floor(s||0)); const m=Math.floor(s/60), ss=s%60; return m+':'+String(ss).padStart(2,'0'); };
-  let tickId = null, seeking = false;
-  function tick(){
-    if (!player || !player.getDuration) return;
-    const d = player.getDuration() || 0, t = player.getCurrentTime() || 0;
-    if (!seeking && d > 0) $('seek').value = Math.round(t/d*1000);
-    $('timeDisp').textContent = fmtT(t) + ' / ' + fmtT(d);
-  }
-  function startTick(){ if (!tickId) tickId = setInterval(tick, 500); }
-  function stopTick(){ if (tickId){ clearInterval(tickId); tickId = null; } }
-  function togglePlay(){
-    if (!player || !player.getPlayerState) return;
-    const st = player.getPlayerState();
-    if (st === YT.PlayerState.PLAYING) player.pauseVideo(); else player.playVideo();
-  }
-
-  // ----- YouTube IFrame API (privacy-enhanced; controls:0 so no YouTube UI exists) -----
-  window.onYouTubeIframeAPIReady = function(){
-    apiReady = true;
-    // Note: the standard host, not youtube-nocookie — "Made for Kids" videos
-    // (extra storage restrictions) refuse to play on the nocookie domain.
-    // Privacy is preserved the way that matters here: our shield blocks every
-    // link out, and rel/controls are off.
-    player = new YT.Player('ytplayer', {
-      host: 'https://www.youtube.com',
-      videoId: videos[0].id,
-      playerVars: { rel:0, iv_load_policy:3, playsinline:1, controls:0, disablekb:1, fs:0 },
-      events: {
-        onStateChange: e => {
-          if (e.data === YT.PlayerState.ENDED){ $('endcard').classList.add('show'); $('ppBtn').textContent='▶'; stopTick(); tick(); }
-          else if (e.data === YT.PlayerState.PLAYING){ hideOverlays(); $('poster').classList.add('hidden'); $('ctrlbar').style.display='flex'; $('ppBtn').textContent='⏸'; startTick(); }
-          else if (e.data === YT.PlayerState.PAUSED){ $('ppBtn').textContent='▶'; }
-        },
-        onError: e => {
-          $('poster').classList.add('hidden');
-          const code = e && e.data;
-          const why = code===101||code===150 ? 'its owner doesn’t allow it to play on other websites'
-                    : code===153 ? 'the browser didn’t send the page info YouTube wants'
-                    : code===2 ? 'the video link looks wrong'
-                    : code===5 ? 'the player hit a technical problem'
-                    : 'it isn’t available right now';
-          $('oopsMsg').textContent = 'This video can’t be played here — ' + why + '. (error ' + code + ')';
-          $('oops').classList.add('show');
-        }
-      }
-    });
-  };
-  (function loadAPI(){ const s=document.createElement('script'); s.src='https://www.youtube.com/iframe_api'; document.head.appendChild(s); })();
-
-  // poster + shield start / toggle playback
-  $('poster').onclick = ()=> select(current, true);
-  $('clickshield').onclick = togglePlay;
-  $('ppBtn').onclick = togglePlay;
-  $('seek').addEventListener('input', ()=>{ seeking = true; });
-  $('seek').addEventListener('change', ()=>{
-    if (player && player.getDuration){ player.seekTo($('seek').value/1000 * player.getDuration(), true); }
-    seeking = false;
-  });
-  let muted = false;                       // tracked locally — isMuted() lags across the iframe
-  $('muteBtn').onclick = ()=>{
-    if (!player) return;
-    muted = !muted;
-    if (muted){ player.mute(); $('muteBtn').textContent='🔇'; }
-    else { player.unMute(); $('muteBtn').textContent='🔊'; }
-  };
-  $('fsBtn').onclick = ()=>{
-    const box = $('playerBox');
-    if (document.fullscreenElement) document.exitFullscreen();
-    else if (box.requestFullscreen) box.requestFullscreen();
-    else if (box.webkitRequestFullscreen) box.webkitRequestFullscreen();
-  };
-  document.addEventListener('keydown', e=>{
-    if (e.key === ' ' && !/INPUT|TEXTAREA|BUTTON/.test(document.activeElement.tagName)){ e.preventDefault(); togglePlay(); }
-  });
-
-  $('retryBtn').onclick = ()=>{ hideOverlays(); if (player) player.loadVideoById(videos[current].id); };
-  $('againBtn').onclick = ()=>{ hideOverlays(); if (player){ player.seekTo(0); player.playVideo(); } };
-  $('moreBtn').onclick = ()=>{ hideOverlays(); const g=$('gallery'); (g||document.querySelector('.player')).scrollIntoView({behavior:'smooth', block: g?'start':'center'}); };
-
-  buildGallery();
-  renderInfo();
-  setPoster(0);
-})();
-</script>
-<script src="/stopwatch.js?v=2"></script>
+  <div class="card">
+    <div class="cones">🚧📺🚧</div>
+    <div><span class="tape">Under construction</span></div>
+    <h1>Video of the Week</h1>
+    <p>Our movie theater is getting built! 🍿<br>The crew is hammering away — check back soon for this week's hand-picked video.</p>
+    <a class="home" href="../index.html">← Back to the Learn Zone</a>
+  </div>
 </body>
 </html>
