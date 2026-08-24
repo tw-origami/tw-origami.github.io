@@ -30,7 +30,17 @@ window.SPELL = {
         { w:'before',  pos:'preposition', def:'Earlier than something else.',                     s:'Brush your teeth before bed.' },
         { w:'money',   pos:'noun',        def:'The coins and bills we use to buy things.',        s:'She saved her money in a jar.' },
         { w:'under',   pos:'preposition', def:'Below or beneath something.',                      s:'The cat hid under the bed.' },
-        { w:'every',   pos:'adjective',   def:'Each one, with none left out.',                    s:'We practice the words every day.' }
+        { w:'every',   pos:'adjective',   def:'Each one, with none left out.',                    s:'We practice the words every day.' },
+        { w:'again',   pos:'adverb',      def:'One more time.',                                   s:'Let’s play that game again.' },
+        { w:'could',   pos:'verb',        def:'Was able to.',                                     s:'She could jump very high.' },
+        { w:'laugh',   pos:'verb',        def:'To make a happy sound when something is funny.',   s:'The joke made everyone laugh.' },
+        { w:'night',   pos:'noun',        def:'The dark time of day when the stars are out.',     s:'The owl hoots at night.' },
+        { w:'house',   pos:'noun',        def:'A building where people live.',                    s:'Our house has a red door.' },
+        { w:'party',   pos:'noun',        def:'A fun gathering to celebrate something.',          s:'We had cake at the birthday party.' },
+        { w:'pretty',  pos:'adjective',   def:'Nice to look at.',                                 s:'She picked a pretty flower.' },
+        { w:'animal',  pos:'noun',        def:'A living creature like a dog, bird, or fish.',     s:'The zoo has every kind of animal.' },
+        { w:'winter',  pos:'noun',        def:'The coldest season of the year.',                  s:'We build snowmen in winter.' },
+        { w:'ocean',   pos:'noun',        def:'The huge body of salt water that covers the Earth.', s:'Whales live in the ocean.' }
       ]
     },
     {
@@ -56,7 +66,17 @@ window.SPELL = {
         { w:'build',     pos:'verb',      def:'To make something by putting parts together.',     s:'They will build a treehouse.' },
         { w:'minute',    pos:'noun',      def:'A length of time equal to sixty seconds.',         s:'Please wait one minute.' },
         { w:'group',     pos:'noun',      def:'A number of people or things that are together.',  s:'Our group won the game.' },
-        { w:'early',     pos:'adverb',    def:'Before the usual or expected time.',               s:'We woke up early for the trip.' }
+        { w:'early',     pos:'adverb',    def:'Before the usual or expected time.',               s:'We woke up early for the trip.' },
+        { w:'library',   pos:'noun',      def:'A place full of books you can borrow.',            s:'We checked out three books from the library.' },
+        { w:'stomach',   pos:'noun',      def:'The part of your body where food goes.',           s:'My stomach growled before lunch.' },
+        { w:'straight',  pos:'adjective', def:'Not bent or curved.',                              s:'Draw a straight line with a ruler.' },
+        { w:'listen',    pos:'verb',      def:'To pay attention with your ears.',                 s:'Listen carefully to the directions.' },
+        { w:'breakfast', pos:'noun',      def:'The first meal of the day.',                       s:'We ate pancakes for breakfast.' },
+        { w:'mountain',  pos:'noun',      def:'A very tall hill of rock.',                        s:'Snow covered the top of the mountain.' },
+        { w:'suddenly',  pos:'adverb',    def:'Quickly and without warning.',                     s:'Suddenly the lights went out.' },
+        { w:'whistle',   pos:'verb',      def:'To make a high sound by blowing through your lips.', s:'He can whistle his favorite song.' },
+        { w:'caught',    pos:'verb',      def:'Grabbed or trapped — past tense of “catch.”',      s:'She caught the ball with one hand.' },
+        { w:'machine',   pos:'noun',      def:'A tool with moving parts that does work.',         s:'The washing machine hummed quietly.' }
       ]
     },
     {
@@ -82,7 +102,17 @@ window.SPELL = {
         { w:'medicine',    pos:'noun',      def:'Something you take to feel better when sick.',   s:'He took his medicine and rested.' },
         { w:'curious',     pos:'adjective', def:'Eager to learn or know more about something.',   s:'The curious kitten explored the box.' },
         { w:'opposite',    pos:'noun',      def:'Something completely different from another.',   s:'Hot is the opposite of cold.' },
-        { w:'exercise',    pos:'noun',      def:'Activity that keeps your body strong and fit.',  s:'Running is good exercise.' }
+        { w:'exercise',    pos:'noun',      def:'Activity that keeps your body strong and fit.',  s:'Running is good exercise.' },
+        { w:'occasion',    pos:'noun',      def:'A special event or time.',                       s:'She saved the dress for a special occasion.' },
+        { w:'immediately', pos:'adverb',    def:'Right away, with no delay.',                     s:'Please come home immediately after school.' },
+        { w:'character',   pos:'noun',      def:'A person in a story, or what kind of person you are.', s:'The main character solves the mystery.' },
+        { w:'interrupt',   pos:'verb',      def:'To break in while someone else is talking.',     s:'It is rude to interrupt the speaker.' },
+        { w:'achievement', pos:'noun',      def:'Something great that you worked hard to do.',    s:'Winning the trophy was a big achievement.' },
+        { w:'community',   pos:'noun',      def:'The people who live in the same area.',          s:'Our community held a food drive.' },
+        { w:'success',     pos:'noun',      def:'Reaching a goal you were trying for.',           s:'The bake sale was a huge success.' },
+        { w:'occurred',    pos:'verb',      def:'Happened — past tense of “occur.”',              s:'The eclipse occurred just after noon.' },
+        { w:'disappear',   pos:'verb',      def:'To go out of sight.',                            s:'The magician made the coin disappear.' },
+        { w:'brilliant',   pos:'adjective', def:'Very bright, or very smart.',                    s:'She had a brilliant idea for the project.' }
       ]
     },
     {
@@ -108,7 +138,17 @@ window.SPELL = {
         { w:'Renaissance',   pos:'noun',      def:'A period of great art and learning in Europe.', s:'Leonardo lived during the Renaissance.' },
         { w:'hierarchy',     pos:'noun',      def:'A system where things are ranked by level.',   s:'Ants live in a strict hierarchy.' },
         { w:'silhouette',    pos:'noun',      def:'The dark outline of something against light.', s:'We saw the silhouette of the mountains.' },
-        { w:'camouflage',    pos:'noun',      def:'Coloring or covering that helps something blend in.', s:'The lizard used camouflage to hide.' }
+        { w:'camouflage',    pos:'noun',      def:'Coloring or covering that helps something blend in.', s:'The lizard used camouflage to hide.' },
+        { w:'entrepreneur',  pos:'noun',      def:'A person who starts their own business.',      s:'The young entrepreneur sold lemonade all summer.' },
+        { w:'miscellaneous', pos:'adjective', def:'Made up of many different kinds of things.',   s:'The drawer was full of miscellaneous supplies.' },
+        { w:'acknowledgment',pos:'noun',      def:'Admitting or accepting that something is true.', s:'She nodded in acknowledgment of the applause.' },
+        { w:'sophomore',     pos:'noun',      def:'A student in the second year of high school or college.', s:'My cousin is a sophomore this year.' },
+        { w:'pneumonia',     pos:'noun',      def:'An illness that makes it hard to breathe.',    s:'He stayed home sick with pneumonia.' },
+        { w:'catastrophe',   pos:'noun',      def:'A sudden terrible disaster.',                  s:'The flood was a catastrophe for the town.' },
+        { w:'susceptible',   pos:'adjective', def:'Easily affected by something.',                s:'Tired swimmers are susceptible to cramps.' },
+        { w:'simultaneous',  pos:'adjective', def:'Happening at exactly the same time.',          s:'The dancers made simultaneous turns.' },
+        { w:'parallel',      pos:'adjective', def:'Running side by side without ever crossing.',  s:'Train tracks are parallel lines.' },
+        { w:'anonymous',     pos:'adjective', def:'From a person whose name is not known.',       s:'An anonymous donor paid for the new library.' }
       ]
     },
     {
@@ -134,7 +174,17 @@ window.SPELL = {
         { w:'rhinoceros',pos:'noun',      def:'A large animal with thick skin and horns.',        s:'The rhinoceros has two horns.' },
         { w:'mysterious',pos:'adjective', def:'Full of mystery; hard to explain or understand.',  s:'A mysterious light glowed in the woods.' },
         { w:'lightning', pos:'noun',      def:'The bright flash of light during a storm.',        s:'Lightning lit up the whole sky.' },
-        { w:'vegetable', pos:'noun',      def:'A plant grown to be eaten, such as a carrot.',     s:'Spinach is a healthy vegetable.' }
+        { w:'vegetable', pos:'noun',      def:'A plant grown to be eaten, such as a carrot.',     s:'Spinach is a healthy vegetable.' },
+        { w:'colonel',   pos:'noun',      def:'A high-ranking army officer. (Sounds like “kernel!”)', s:'The colonel saluted the troops.' },
+        { w:'choir',     pos:'noun',      def:'A group of people who sing together.',             s:'The choir sang at the assembly.' },
+        { w:'dessert',   pos:'noun',      def:'A sweet treat after a meal. (Two s’s — you want seconds!)', s:'We had ice cream for dessert.' },
+        { w:'foreign',   pos:'adjective', def:'From another country.',                            s:'She collects foreign coins.' },
+        { w:'ninety',    pos:'noun',      def:'The number after eighty-nine.',                    s:'My great-grandma just turned ninety.' },
+        { w:'awkward',   pos:'adjective', def:'Clumsy, or a little uncomfortable.',               s:'There was an awkward silence in the room.' },
+        { w:'doubt',     pos:'noun',      def:'A feeling of not being sure.',                     s:'There is no doubt she studied hard.' },
+        { w:'biscuit',   pos:'noun',      def:'A small soft bread roll.',                         s:'He buttered a warm biscuit.' },
+        { w:'cemetery',  pos:'noun',      def:'A place where people are buried.',                 s:'The old cemetery is quiet and shady.' },
+        { w:'gnome',     pos:'noun',      def:'A tiny make-believe person from fairy tales.',     s:'A garden gnome stood by the flowers.' }
       ]
     }
   ],
