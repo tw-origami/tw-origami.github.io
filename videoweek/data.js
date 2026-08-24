@@ -14,6 +14,7 @@
    ========================================================================== */
 window.VIDEOWEEK = {
   videos: [
-    { url: 'https://www.youtube.com/watch?v=AehgK6e_a5Y', title: '7 Continents of the World', by: 'Learn Bright', note: 'A fun tour of all seven continents — goes great with the World Explorer app!', date: '2026-08-19' }
+    { url: 'https://www.youtube.com/watch?v=OjqjwtkiOok', title: 'The 7 Continents of the World', by: 'The Homeschool Library', note: 'A fun tour of all seven continents — goes great with the World Explorer app!', date: '2026-08-19' },
+    { url: 'https://www.youtube.com/watch?v=AehgK6e_a5Y', title: '7 Continents of the World', by: 'Learn Bright', note: 'Another look at the continents, with facts about each one.', date: '2026-08-19' }
   ]
 };
