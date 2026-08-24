@@ -232,7 +232,8 @@
     u.rate = rate || 0.9; u.pitch = 1;
     synth.speak(u);
   }
-  // Recorded voice (ElevenLabs / Quinn). File name = slug of the word.
+  // Recorded voice: "Spell It Bee (clone of original)" — regenerate clips with
+  // tools/regen-audio.mjs. File name = slug of the word (+_s sentence, +_d definition).
   function slugify(w){ return w.normalize('NFKD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_+|_+$/g,'').toLowerCase(); }
   let curAudio = null;
   function stopSpeaking(){
@@ -321,7 +322,7 @@
     let html = '';
     if(kind==='def'){
       html = `<div class="row"><span class="lab">Definition</span><span class="pos">${esc(cur.pos)}</span> — ${answered?esc(cur.def):maskIn(cur.def,cur.w)}</div>`;
-      say(`${cur.pos}. ${cur.def}`, 0.92);
+      playClip(slugify(cur.w) + '_d', `${cur.pos}. ${cur.def}`, 0.92);
     } else if(kind==='sent'){
       html = `<div class="row"><span class="lab">Sentence</span>${answered?esc(cur.s):maskIn(cur.s,cur.w)}</div>`;
       playClip(slugify(cur.w) + '_s', cur.s, 0.92);
