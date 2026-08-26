@@ -239,11 +239,18 @@
       res.innerHTML = `<div class="starrow">${'⭐'.repeat(stars)}${'▫️'.repeat(3-stars)}</div>
         <div class="big">${wpm} <span style="font-size:20px;color:var(--muted)">WPM</span></div>
         <div style="color:var(--muted);font-weight:700;margin-bottom:4px">Accuracy: ${acc}%  ·  Mistakes: ${errors}</div>
-        <div class="feedback good">${wpm>=30?'🚀 Speedy!':wpm>=15?'👍 Nice pace!':'🌱 Keep practicing!'}</div>`;
+        <div class="feedback good">${wpm>=30?'🚀 Speedy!':wpm>=15?'👍 Nice pace!':'🌱 Keep practicing!'}</div>
+        <div style="color:var(--muted);font-size:13px;font-weight:700;margin-top:6px">press <b>Enter ⏎</b> for the next drill</div>`;
       card.insertBefore(res, ctr);
       ctr.innerHTML='';
-      ctr.appendChild(mkBtn('Next drill ▶',()=>renderDrill(L, idx)));
+      const nextB = mkBtn('Next drill ▶',()=>renderDrill(L, idx));
+      ctr.appendChild(nextB);
       ctr.appendChild(mkBtn('← Lessons', showMenu,'btn-ghost'));
+      nextB.focus();
+      // Enter starts the next drill — hands never have to leave the keyboard.
+      // Reuses keyHandler so detach() cleans it up when the next drill starts.
+      keyHandler = function(e){ if(e.key==='Enter'){ e.preventDefault(); renderDrill(L, idx); } };
+      document.addEventListener('keydown', keyHandler, true);
     }
 
     highlight();
