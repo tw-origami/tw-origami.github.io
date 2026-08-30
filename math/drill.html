@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Multiplication Drill Sheet</title>
+<style>
+  :root{
+    --ink:#1e293b; --muted:#64748b; --accent:#4f46e5; --accent-soft:#eef2ff;
+    --correct:#16a34a; --wrong:#dc2626;
+    --shadow:0 10px 30px rgba(30,41,99,.12);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    background:linear-gradient(160deg,#eef2ff,#f8fafc); color:var(--ink);
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:20px 14px 60px;
+  }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; flex-wrap:wrap; justify-content:center; max-width:640px; }
+  .nav a{ text-decoration:none; font-weight:800; font-size:13.5px; color:var(--muted); padding:8px 13px; border-radius:9px; }
+  .nav a.on{ background:var(--accent); color:#fff; }
+  h1{ font-size:24px; margin:2px 0; letter-spacing:-.5px; }
+  .sub{ color:var(--muted); margin:0 0 16px; font-size:14px; text-align:center; max-width:480px; }
+
+  /* setup */
+  .setup{ background:#fff; border-radius:20px; box-shadow:var(--shadow); padding:26px 24px; max-width:460px; width:100%; text-align:center; }
+  .setup h2{ margin:0 0 6px; font-size:20px; }
+  .setup p{ color:var(--muted); font-size:14px; line-height:1.5; margin:0 0 16px; }
+  .levels{ display:flex; flex-direction:column; gap:9px; margin-bottom:16px; }
+  .lvl{ font-family:inherit; text-align:left; border:3px solid #e2e8f0; background:#fff; color:var(--ink);
+    padding:12px 16px; border-radius:14px; cursor:pointer; transition:border-color .12s,background .12s; }
+  .lvl:hover{ border-color:var(--accent); background:var(--accent-soft); }
+  .lvl.on{ border-color:var(--accent); background:var(--accent-soft); }
+  .lvl b{ font-size:15.5px; display:block; }
+  .lvl span{ color:var(--muted); font-size:12.5px; font-weight:600; }
+  .best{ color:var(--muted); font-size:13px; font-weight:700; min-height:18px; margin-bottom:14px; }
+  button.act{ font-family:inherit; font-size:16px; font-weight:800; border:none; border-radius:13px; padding:12px 24px; cursor:pointer; transition:transform .1s,background .15s; }
+  button.act:active{ transform:scale(.96); }
+  .btn-primary{ background:var(--accent); color:#fff; } .btn-primary:hover{ background:#4338ca; }
+  .btn-ghost{ background:var(--accent-soft); color:var(--accent); } .btn-ghost:hover{ background:#e0e7ff; }
+
+  /* timer bar */
+  .timerbar{ position:sticky; top:10px; z-index:40; display:flex; align-items:center; gap:14px; background:#fff;
+    border-radius:999px; box-shadow:var(--shadow); padding:9px 20px; margin-bottom:14px; }
+  .timerbar .clock{ font-size:26px; font-weight:900; font-variant-numeric:tabular-nums; letter-spacing:.5px; color:var(--accent); }
+  .timerbar.warn .clock{ color:#ea580c; } .timerbar.danger .clock{ color:var(--wrong); animation:pulse 1s infinite; }
+  @keyframes pulse{ 50%{ opacity:.55; } }
+  .timerbar .done-count{ font-weight:800; font-size:14px; color:var(--muted); }
+  .timerbar .stop{ font-family:inherit; border:none; background:var(--accent-soft); color:var(--accent); font-weight:800; font-size:13px; border-radius:999px; padding:7px 13px; cursor:pointer; }
+  .timerbar .stop:hover{ background:var(--accent); color:#fff; }
+
+  /* worksheet: grid of stacked problems, like the printed 5-minute drills */
+  .paper{ background:#fff; border-radius:20px; box-shadow:var(--shadow); width:100%; max-width:760px; padding:20px 16px 24px; }
+  .paper .phead{ text-align:center; font-weight:900; font-size:15px; letter-spacing:.4px; color:var(--accent); text-transform:uppercase; }
+  .paper .psub{ text-align:center; color:var(--muted); font-weight:700; font-size:12.5px; margin:2px 0 16px; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(64px, 1fr)); gap:12px 8px; }
+  .cell{ display:flex; flex-direction:column; align-items:stretch; padding:5px 4px 4px; border-radius:10px; border:2px solid transparent; }
+  .cell.cur{ background:var(--accent-soft); border-color:var(--accent); }
+  .cell .top,.cell .bot{ font-size:19px; font-weight:800; text-align:right; padding-right:8px; line-height:1.25; font-variant-numeric:tabular-nums; }
+  .cell .bot{ border-bottom:2.5px solid var(--ink); }
+  .cell .bot .x{ float:left; margin-left:2px; color:var(--accent); }
+  .cell input{ width:100%; margin-top:4px; font-family:inherit; font-size:17px; font-weight:800; text-align:right; padding:3px 6px 3px 2px;
+    border:2px solid #e2e8f0; border-radius:8px; outline:none; color:var(--ink); -moz-appearance:textfield; min-width:0; }
+  .cell input::-webkit-outer-spin-button,.cell input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+  .cell input:focus{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .cell .mark{ height:16px; font-size:12px; font-weight:900; text-align:center; line-height:16px; }
+  .cell.right .mark{ color:var(--correct); } .cell.miss .mark{ color:var(--wrong); }
+  .cell.locked input{ background:#f1f5f9; color:var(--muted); }
+
+  /* results */
+  .results{ background:#fff; border-radius:20px; box-shadow:var(--shadow); padding:26px 24px; max-width:440px; width:100%; text-align:center; }
+  .results .starrow{ font-size:40px; letter-spacing:6px; margin-bottom:6px; }
+  .results .big{ font-size:44px; font-weight:900; color:var(--accent); }
+  .results .big small{ font-size:16px; color:var(--muted); font-weight:700; }
+  .rstats{ display:flex; gap:10px; justify-content:center; margin:14px 0 6px; flex-wrap:wrap; }
+  .rchip{ background:var(--accent-soft); border-radius:12px; padding:8px 14px; font-weight:800; font-size:13px; }
+  .rchip b{ display:block; font-size:19px; color:var(--accent); }
+  .newbest{ color:#ea580c; font-weight:900; font-size:15px; min-height:20px; margin:6px 0 2px; }
+  .fixes{ text-align:left; margin:14px auto 4px; max-width:340px; }
+  .fixes h3{ font-size:13px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin:0 0 8px; }
+  .fix{ display:flex; justify-content:space-between; padding:6px 10px; border-radius:9px; background:#fef2f2; margin-bottom:6px; font-weight:700; font-size:15px; }
+  .fix .good{ color:var(--correct); } .fix .bad{ color:var(--wrong); text-decoration:line-through; margin-left:8px; }
+  .btnrow{ display:flex; gap:10px; justify-content:center; margin-top:16px; flex-wrap:wrap; }
+  .hidden{ display:none !important; }
+
+  #confetti{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:50; }
+  .conf{ position:absolute; top:-20px; width:11px; height:14px; border-radius:2px; animation:fall linear forwards; }
+  @keyframes fall{ to{ transform:translateY(105vh) rotate(720deg); } }
+</style>
+</head>
+<body>
+  <div id="confetti"></div>
+
+  <div class="nav">
+    <a href="../index.html">🏠 Home</a>
+    <a href="index.html">📊 Blocks</a>
+    <a href="chart.html">🔢 Chart</a>
+    <a href="drill.html" class="on">📝 Drill</a>
+    <a href="fractions.html">🍰 Fractions</a>
+    <a href="decimals.html">🔟 Decimals</a>
+    <a href="ratios.html">➗ Ratios</a>
+    <a href="integers.html">➕➖ Integers</a>
+    <a href="stats.html">📊 Data</a>
+    <a href="angles.html">📐 Angles</a>
+    <a href="algebra.html">🧩 Algebra</a>
+  </div>
+
+  <h1>📝 Multiplication Drill</h1>
+  <p class="sub">A real 5-minute drill sheet — 100 problems, just like the printed ones. Type each answer and press <b>Enter</b> to jump to the next.</p>
+
+  <!-- setup -->
+  <div class="setup" id="setup">
+    <h2>⏱ 5-Minute Drill · 100 Questions</h2>
+    <p>Pick a level. Press <b>Enter</b> after each answer (blank + Enter skips). ✓ and ✗ show as you go; fix-ups come at the end.</p>
+    <div class="levels" id="levels"></div>
+    <div class="best" id="bestLine"></div>
+    <button class="act btn-primary" id="startBtn">▶ Start the drill</button>
+  </div>
+
+  <!-- drill -->
+  <div class="timerbar hidden" id="timerbar">
+    <span class="clock" id="clock">5:00</span>
+    <span class="done-count"><span id="doneCount">0</span>/100</span>
+    <button class="stop" id="stopBtn">I'm done</button>
+  </div>
+  <div class="paper hidden" id="paper">
+    <div class="phead">Multiplication Worksheet</div>
+    <div class="psub" id="paperSub">5 Minute Drill (100 Questions)</div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <!-- results -->
+  <div class="results hidden" id="results"></div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const ri = (a,b) => a + Math.floor(Math.random()*(b-a+1));
+  const shuffle = a => { const b=a.slice(); for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; };
+
+  const N = 100, DRILL_SECS = 300;
+
+  // Easy is grouped by times table (like a "Multiplying by 4" sheet); the harder
+  // levels mix more and more, ending fully random.
+  const LEVELS = [
+    { key:'easy', name:'🌱 Easy — grouped by table',
+      desc:'Ten of the ×1s, then ten of the ×2s… up to ×10, in order. Spot the pattern!',
+      sub:'Easy · grouped ×1 through ×10',
+      gen(){
+        const out = [];
+        for (let t = 1; t <= 10; t++)
+          for (let i = 0; i < 10; i++){
+            const other = ri(1, 9);
+            out.push(Math.random() < 0.7 ? { a: other, b: t } : { a: t, b: other });
+          }
+        return out;
+      } },
+    { key:'medium', name:'🔥 Medium — small bunches',
+      desc:'Little groups of five from one table at a time, but the tables jump around (×2–×12).',
+      sub:'Medium · mixed bunches ×2–×12',
+      gen(){
+        const out = [];
+        let prev = 0;
+        for (let g = 0; g < N/5; g++){
+          let t; do { t = ri(2, 12); } while (t === prev); prev = t;
+          for (let i = 0; i < 5; i++){
+            const other = ri(1, 12);
+            out.push(Math.random() < 0.5 ? { a: other, b: t } : { a: t, b: other });
+          }
+        }
+        return out;
+      } },
+    { key:'hard', name:'⚡ Hard — totally mixed',
+      desc:'100 fully random problems, ×1 through ×12. The real deal.',
+      sub:'Hard · fully mixed ×1–×12',
+      gen(){
+        const out = [];
+        let pa = 0, pb = 0;
+        for (let i = 0; i < N; i++){
+          let a, b, tries = 0;
+          do { a = ri(1, 12); b = ri(1, 12); tries++; } while (a === pa && b === pb && tries < 10);
+          pa = a; pb = b;
+          out.push({ a, b });
+        }
+        return out;
+      } }
+  ];
+  let level = LEVELS[0];
+  let cells = [], cur = 0, answered = 0;
+  let timeLeft = DRILL_SECS, timerId = null, running = false;
+
+  /* ---------- setup ---------- */
+  function bestKey(){ return 'lz_drill_best_' + level.key; }
+  function showBest(){
+    const b = localStorage.getItem(bestKey());
+    $('bestLine').textContent = b ? ('🏆 Your best on ' + level.name.replace(/^..\s*/,'').split(' — ')[0] + ': ' + b + '/100') : 'No best score yet — set one!';
+  }
+  LEVELS.forEach(l => {
+    const b = document.createElement('button');
+    b.className = 'lvl' + (l === level ? ' on' : '');
+    b.innerHTML = '<b>' + l.name + '</b><span>' + l.desc + '</span>';
+    b.onclick = () => { level = l; [...$('levels').children].forEach(x => x.classList.toggle('on', x === b)); showBest(); };
+    $('levels').appendChild(b);
+  });
+  showBest();
+
+  /* ---------- build the worksheet ---------- */
+  function buildSheet(){
+    cells = []; cur = 0; answered = 0;
+    $('paperSub').textContent = '5 Minute Drill (100 Questions) · ' + level.sub.split(' · ')[1];
+    const grid = $('grid'); grid.innerHTML = '';
+    const probs = level.gen();
+    probs.forEach((p, i) => {
+      const div = document.createElement('div');
+      div.className = 'cell';
+      div.innerHTML = '<span class="top">' + p.a + '</span>' +
+        '<span class="bot"><span class="x">×</span>' + p.b + '</span>' +
+        '<input type="number" inputmode="numeric" autocomplete="off" aria-label="' + p.a + ' times ' + p.b + '">' +
+        '<span class="mark"></span>';
+      const input = div.querySelector('input');
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter'){ e.preventDefault(); submitCell(i); }
+      });
+      input.addEventListener('focus', () => setCur(i));
+      grid.appendChild(div);
+      cells.push({ a: p.a, b: p.b, div, input, done: false, correct: false });
+    });
+  }
+
+  function setCur(i){
+    if (cells[cur]) cells[cur].div.classList.remove('cur');
+    cur = i;
+    cells[cur].div.classList.add('cur');
+  }
+  function focusCell(i){
+    setCur(i);
+    cells[i].input.focus();
+    cells[i].div.scrollIntoView({ block:'center', behavior:'smooth' });
+  }
+
+  function submitCell(i){
+    if (!running) return;
+    const c = cells[i];
+    if (!c.done){
+      const v = c.input.value.trim();
+      if (v === ''){ c.div.querySelector('.mark').textContent = '–'; }
+      else {
+        c.done = true; answered++;
+        c.correct = Number(v) === c.a * c.b;
+        c.div.classList.add(c.correct ? 'right' : 'miss');
+        c.div.querySelector('.mark').textContent = c.correct ? '✓' : '✗';
+        $('doneCount').textContent = answered;
+      }
+    }
+    // jump to the next unanswered cell (wraps past answered ones)
+    let n = i + 1;
+    while (n < cells.length && cells[n].done) n++;
+    if (n < cells.length) focusCell(n);
+    else if (answered >= cells.length) finish();
+    else { // everything after is done; look from the top for anything left
+      let m = 0; while (m < cells.length && cells[m].done) m++;
+      if (m < cells.length) focusCell(m); else finish();
+    }
+  }
+
+  /* ---------- timer ---------- */
+  function fmt(s){ return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); }
+  function tick(){
+    if (document.visibilityState !== 'visible') return;   // pause while hidden
+    timeLeft--;
+    $('clock').textContent = fmt(Math.max(0, timeLeft));
+    $('timerbar').classList.toggle('warn', timeLeft <= 60 && timeLeft > 15);
+    $('timerbar').classList.toggle('danger', timeLeft <= 15);
+    if (timeLeft <= 0) finish();
+  }
+
+  /* ---------- start / finish ---------- */
+  function start(){
+    buildSheet();
+    $('setup').classList.add('hidden');
+    $('results').classList.add('hidden');
+    $('paper').classList.remove('hidden');
+    $('timerbar').classList.remove('hidden','warn','danger');
+    timeLeft = DRILL_SECS; $('clock').textContent = fmt(timeLeft); $('doneCount').textContent = 0;
+    running = true;
+    clearInterval(timerId); timerId = setInterval(tick, 1000);
+    focusCell(0);
+  }
+
+  function finish(){
+    if (!running) return;
+    running = false;
+    clearInterval(timerId); timerId = null;
+    cells.forEach(c => { c.input.disabled = true; c.div.classList.add('locked'); });
+    $('timerbar').classList.add('hidden');
+    $('paper').classList.add('hidden');
+
+    const attempted = cells.filter(c => c.done);
+    const correct = attempted.filter(c => c.correct);
+    const misses = attempted.filter(c => !c.correct);
+    const mins = (DRILL_SECS - Math.max(0, timeLeft)) / 60 || 1/60;
+    const perMin = (correct.length / mins).toFixed(1);
+    const acc = attempted.length ? Math.round(correct.length / attempted.length * 100) : 0;
+    const stars = correct.length >= 60 ? 3 : correct.length >= 35 ? 2 : correct.length >= 15 ? 1 : 0;
+
+    const prevBest = Number(localStorage.getItem(bestKey()) || 0);
+    const isBest = correct.length > prevBest;
+    if (isBest) localStorage.setItem(bestKey(), correct.length);
+
+    const res = $('results');
+    res.innerHTML =
+      '<div class="starrow">' + '⭐'.repeat(stars) + '▫️'.repeat(3-stars) + '</div>' +
+      '<div class="big">' + correct.length + '<small>/100 correct</small></div>' +
+      '<div class="newbest">' + (isBest ? '🏆 New personal best!' : (prevBest ? 'Best: ' + Math.max(prevBest, correct.length) + '/100' : '')) + '</div>' +
+      '<div class="rstats">' +
+        '<div class="rchip"><b>' + attempted.length + '</b>answered</div>' +
+        '<div class="rchip"><b>' + acc + '%</b>accuracy</div>' +
+        '<div class="rchip"><b>' + perMin + '</b>right per min</div>' +
+      '</div>' +
+      (misses.length ?
+        '<div class="fixes"><h3>🔧 Fix-ups</h3>' + misses.slice(0, 12).map(c =>
+          '<div class="fix"><span>' + c.a + ' × ' + c.b + ' = <span class="good">' + (c.a*c.b) + '</span>' +
+          '<span class="bad">' + c.input.value + '</span></span></div>').join('') +
+        (misses.length > 12 ? '<div style="color:var(--muted);font-size:13px;font-weight:700">…and ' + (misses.length-12) + ' more</div>' : '') +
+        '</div>'
+        : (attempted.length ? '<div style="color:var(--correct);font-weight:800;margin-top:8px">💯 Not a single miss!</div>' : '')) +
+      '<div class="btnrow">' +
+        '<button class="act btn-primary" id="againBtn">↻ New sheet</button>' +
+        '<button class="act btn-ghost" id="levelBtn">Change level</button>' +
+      '</div>';
+    res.classList.remove('hidden');
+    if (stars === 3) confetti();
+    document.getElementById('againBtn').onclick = start;
+    document.getElementById('levelBtn').onclick = () => { res.classList.add('hidden'); $('setup').classList.remove('hidden'); showBest(); };
+    document.getElementById('againBtn').focus();
+  }
+
+  function confetti(){
+    const cols = ['#4f46e5','#818cf8','#f59e0b','#16a34a','#ec4899','#06b6d4'];
+    for (let i = 0; i < 80; i++){
+      const c = document.createElement('div');
+      c.className = 'conf';
+      c.style.left = Math.random()*100 + 'vw';
+      c.style.background = cols[i % cols.length];
+      c.style.animationDuration = (1.6 + Math.random()*1.4) + 's';
+      c.style.animationDelay = (Math.random()*0.4) + 's';
+      $('confetti').appendChild(c);
+      setTimeout(() => c.remove(), 3400);
+    }
+  }
+
+  $('startBtn').onclick = start;
+  $('stopBtn').onclick = finish;
+})();
+</script>
+<script src="/stopwatch.js?v=2"></script>
+</body>
+</html>
