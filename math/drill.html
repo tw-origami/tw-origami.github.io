@@ -67,6 +67,17 @@
   .cell .mark{ height:16px; font-size:12px; font-weight:900; text-align:center; line-height:16px; }
   .cell.right .mark{ color:var(--correct); } .cell.miss .mark{ color:var(--wrong); }
   .cell.locked input{ background:#f1f5f9; color:var(--muted); }
+  /* a wrong answer stays editable so it can be fixed */
+  .cell.miss input{ border-color:var(--wrong); background:#fef2f2; }
+  .cell.right input{ border-color:var(--correct); background:#f0fdf4; }
+  .cell.fixed .mark{ color:var(--correct); }
+  /* after time is up: the right answer appears under any miss or blank */
+  .cell .fix{ display:none; font-size:14px; font-weight:900; text-align:right; padding-right:4px; color:var(--correct); margin-top:2px; }
+  .cell.reveal .fix{ display:block; }
+  .cell.reveal{ background:#f0fdf4; border-color:#bbf7d0; }
+  .cell.reveal.wasblank{ background:#fffbeb; border-color:#fde68a; }
+  .cell.reveal input{ text-decoration:line-through; color:var(--wrong); background:#fff; }
+  .cell.reveal.wasblank input{ text-decoration:none; }
 
   /* results */
   .results{ background:#fff; border-radius:20px; box-shadow:var(--shadow); padding:26px 24px; max-width:440px; width:100%; text-align:center; }
@@ -77,6 +88,8 @@
   .rchip{ background:var(--accent-soft); border-radius:12px; padding:8px 14px; font-weight:800; font-size:13px; }
   .rchip b{ display:block; font-size:19px; color:var(--accent); }
   .newbest{ color:#ea580c; font-weight:900; font-size:15px; min-height:20px; margin:6px 0 2px; }
+  .reviewnote{ background:#f0fdf4; border:2px solid #bbf7d0; border-radius:12px; padding:10px 14px; margin:12px auto 2px;
+    font-size:13.5px; font-weight:700; color:#166534; line-height:1.45; max-width:360px; }
   .fixes{ text-align:left; margin:14px auto 4px; max-width:340px; }
   .fixes h3{ font-size:13px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin:0 0 8px; }
   .fix{ display:flex; justify-content:space-between; padding:6px 10px; border-radius:9px; background:#fef2f2; margin-bottom:6px; font-weight:700; font-size:15px; }
@@ -112,7 +125,7 @@
   <!-- setup -->
   <div class="setup" id="setup">
     <h2>⏱ 5-Minute Drill · 100 Questions</h2>
-    <p>Pick a level. Press <b>Enter</b> after each answer (blank + Enter skips). ✓ and ✗ show as you go; fix-ups come at the end.</p>
+    <p>Pick a level. Press <b>Enter</b> after each answer (blank + Enter skips). Get one wrong? It turns red — <b>just retype it and press Enter again</b>. When time's up, the right answer appears under anything you missed.</p>
     <div class="levels" id="levels"></div>
     <div class="best" id="bestLine"></div>
     <button class="act btn-primary" id="startBtn">▶ Start the drill</button>
@@ -124,14 +137,14 @@
     <span class="done-count"><span id="doneCount">0</span>/100</span>
     <button class="stop" id="stopBtn">I'm done</button>
   </div>
+  <!-- results (sits above the sheet so the worksheet stays on screen) -->
+  <div class="results hidden" id="results"></div>
+
   <div class="paper hidden" id="paper">
     <div class="phead">Multiplication Worksheet</div>
     <div class="psub" id="paperSub">5 Minute Drill (100 Questions)</div>
     <div class="grid" id="grid"></div>
   </div>
-
-  <!-- results -->
-  <div class="results hidden" id="results"></div>
 
 <script>
 (function(){
@@ -217,7 +230,8 @@
       div.innerHTML = '<span class="top">' + p.a + '</span>' +
         '<span class="bot"><span class="x">×</span>' + p.b + '</span>' +
         '<input type="number" inputmode="numeric" autocomplete="off" aria-label="' + p.a + ' times ' + p.b + '">' +
-        '<span class="mark"></span>';
+        '<span class="mark"></span>' +
+        '<span class="fix">' + (p.a * p.b) + '</span>';
       const input = div.querySelector('input');
       input.addEventListener('keydown', e => {
         if (e.key === 'Enter'){ e.preventDefault(); submitCell(i); }
@@ -242,26 +256,39 @@
   function submitCell(i){
     if (!running) return;
     const c = cells[i];
-    if (!c.done){
-      const v = c.input.value.trim();
-      if (v === ''){ c.div.querySelector('.mark').textContent = '–'; }
-      else {
-        c.done = true; answered++;
-        c.correct = Number(v) === c.a * c.b;
-        c.div.classList.add(c.correct ? 'right' : 'miss');
-        c.div.querySelector('.mark').textContent = c.correct ? '✓' : '✗';
-        $('doneCount').textContent = answered;
+    const v = c.input.value.trim();
+    const mark = c.div.querySelector('.mark');
+
+    if (!c.correct){                       // already-correct cells just pass through
+      if (v === ''){
+        mark.textContent = '–';            // blank + Enter = skip for now
+      } else {
+        const right = Number(v) === c.a * c.b;
+        if (c.firstTry === undefined) c.firstTry = right;   // score honesty: remember the first attempt
+        if (right){
+          if (!c.correct){ c.correct = true; if (!c.counted){ c.counted = true; answered++; } }
+          c.div.classList.remove('miss');
+          c.div.classList.add('right');
+          if (!c.firstTry) c.div.classList.add('fixed');   // corrected after a miss
+          mark.textContent = '✓';
+          $('doneCount').textContent = answered;
+        } else {
+          if (!c.counted){ c.counted = true; answered++; $('doneCount').textContent = answered; }
+          c.div.classList.add('miss');
+          mark.textContent = '✗';
+          // Stay put so it can be fixed — unless they press Enter again on the
+          // same wrong value, which means "I want to move on."
+          if (c.lastWrong === v){ c.lastWrong = null; }
+          else { c.lastWrong = v; c.input.select(); return; }
+        }
       }
     }
-    // jump to the next unanswered cell (wraps past answered ones)
+    // move to the next cell that still needs an answer
     let n = i + 1;
-    while (n < cells.length && cells[n].done) n++;
-    if (n < cells.length) focusCell(n);
-    else if (answered >= cells.length) finish();
-    else { // everything after is done; look from the top for anything left
-      let m = 0; while (m < cells.length && cells[m].done) m++;
-      if (m < cells.length) focusCell(m); else finish();
-    }
+    while (n < cells.length && cells[n].correct) n++;
+    if (n < cells.length){ focusCell(n); return; }
+    let m = 0; while (m < cells.length && cells[m].correct) m++;
+    if (m < cells.length) focusCell(m); else finish();
   }
 
   /* ---------- timer ---------- */
@@ -292,13 +319,25 @@
     if (!running) return;
     running = false;
     clearInterval(timerId); timerId = null;
-    cells.forEach(c => { c.input.disabled = true; c.div.classList.add('locked'); });
     $('timerbar').classList.add('hidden');
-    $('paper').classList.add('hidden');
+    // Keep the worksheet on screen and mark it up like a teacher would: every
+    // miss or blank gets the right answer printed underneath it.
+    cells.forEach(c => {
+      c.input.disabled = true;
+      c.div.classList.add('locked');
+      if (!c.correct){
+        const blank = c.input.value.trim() === '';
+        c.div.classList.add('reveal');
+        if (blank) c.div.classList.add('wasblank');
+        c.div.querySelector('.mark').textContent = blank ? '–' : '✗';
+      }
+    });
 
-    const attempted = cells.filter(c => c.done);
-    const correct = attempted.filter(c => c.correct);
-    const misses = attempted.filter(c => !c.correct);
+    const attempted = cells.filter(c => c.counted);
+    const correct = cells.filter(c => c.correct);
+    const misses = cells.filter(c => c.counted && !c.correct);
+    const blanks = cells.filter(c => !c.counted);
+    const firstTryRight = cells.filter(c => c.firstTry === true);
     const mins = (DRILL_SECS - Math.max(0, timeLeft)) / 60 || 1/60;
     const perMin = (correct.length / mins).toFixed(1);
     const acc = attempted.length ? Math.round(correct.length / attempted.length * 100) : 0;
@@ -316,14 +355,15 @@
       '<div class="rstats">' +
         '<div class="rchip"><b>' + attempted.length + '</b>answered</div>' +
         '<div class="rchip"><b>' + acc + '%</b>accuracy</div>' +
+        '<div class="rchip"><b>' + firstTryRight.length + '</b>first try</div>' +
         '<div class="rchip"><b>' + perMin + '</b>right per min</div>' +
       '</div>' +
-      (misses.length ?
-        '<div class="fixes"><h3>🔧 Fix-ups</h3>' + misses.slice(0, 12).map(c =>
-          '<div class="fix"><span>' + c.a + ' × ' + c.b + ' = <span class="good">' + (c.a*c.b) + '</span>' +
-          '<span class="bad">' + c.input.value + '</span></span></div>').join('') +
-        (misses.length > 12 ? '<div style="color:var(--muted);font-size:13px;font-weight:700">…and ' + (misses.length-12) + ' more</div>' : '') +
-        '</div>'
+      (misses.length || blanks.length ?
+        '<div class="reviewnote">👇 Your sheet is below with the answers filled in — ' +
+          (misses.length ? '<b>' + misses.length + '</b> to fix' : '') +
+          (misses.length && blanks.length ? ' and ' : '') +
+          (blanks.length ? '<b>' + blanks.length + '</b> left blank' : '') +
+        '. Green numbers are the right answers.</div>'
         : (attempted.length ? '<div style="color:var(--correct);font-weight:800;margin-top:8px">💯 Not a single miss!</div>' : '')) +
       '<div class="btnrow">' +
         '<button class="act btn-primary" id="againBtn">↻ New sheet</button>' +
@@ -332,8 +372,13 @@
     res.classList.remove('hidden');
     if (stars === 3) confetti();
     document.getElementById('againBtn').onclick = start;
-    document.getElementById('levelBtn').onclick = () => { res.classList.add('hidden'); $('setup').classList.remove('hidden'); showBest(); };
+    document.getElementById('levelBtn').onclick = () => {
+      res.classList.add('hidden'); $('paper').classList.add('hidden');
+      $('setup').classList.remove('hidden'); showBest();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
     document.getElementById('againBtn').focus();
+    res.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
 
   function confetti(){
