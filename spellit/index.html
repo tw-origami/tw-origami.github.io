@@ -261,10 +261,11 @@
 
   /* ---------- state ---------- */
   let level = S.LEVELS[0];
-  let queue = [], qi = 0, cur = null;
+  let queue = [], qi = 0, cur = null, curIdx = null;
   let correct = 0, tried = 0, streak = 0;
   let answered = false, misses = 0, lastAttempt = '';
   let hintSet = null;   // revealed letter indices for the wheel-of-fortune hint
+  let pendingRepeats = [];   // word indices bumped by a hint, waiting for a slot in the NEXT queue
 
   function buildLevelSeg(){
     const box = $('levels'); box.innerHTML = '';
@@ -281,7 +282,24 @@
     correct = 0; tried = 0; streak = 0; updateScore();
     newQueue(); newWord(speak);
   }
-  function newQueue(){ queue = shuffle(level.words.map((_,i)=>i)); qi = 0; }
+  function newQueue(){
+    queue = shuffle(level.words.map((_,i)=>i));
+    // words bumped by a hint that ran out of room in the last pass get a slot
+    // near the front of the new one, so they still come back around soon.
+    pendingRepeats.forEach(idx => {
+      const pos = Math.min(queue.length, 2 + Math.floor(Math.random()*4));
+      queue.splice(pos, 0, idx);
+    });
+    pendingRepeats = [];
+    qi = 0;
+  }
+  // Bump a word to reappear in the next 5-10 words (used when a hint is taken).
+  function scheduleRepeat(wordIdx){
+    const offset = 5 + Math.floor(Math.random()*6);   // 5-10 words from now
+    const pos = qi + offset;
+    if(pos < queue.length) queue.splice(pos, 0, wordIdx);
+    else pendingRepeats.push(wordIdx);
+  }
   function updateScore(){ $('correctCount').textContent=correct; $('triedCount').textContent=tried; $('streak').textContent=streak; }
 
   /* mask the target word inside a definition/sentence so it isn't a giveaway */
@@ -294,6 +312,7 @@
 
   function newWord(speak){
     if(qi >= queue.length){ newQueue(); }
+    curIdx = queue[qi];
     cur = level.words[queue[qi++]];
     answered = false; misses = 0; lastAttempt = ''; hintSet = null;
     $('feedback').textContent=''; $('feedback').className='feedback';
@@ -340,6 +359,8 @@
       for(let i=0;i<cur.w.length;i++){ if(!isLetter(cur.w[i])) hintSet.add(i); }
       // reveal the first actual letter
       for(let i=0;i<cur.w.length;i++){ if(isLetter(cur.w[i])){ hintSet.add(i); break; } }
+      // needed a hint on this one — bring it back for another try soon
+      scheduleRepeat(curIdx);
     }
     renderHint();
   }
