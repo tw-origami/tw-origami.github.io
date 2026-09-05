@@ -223,19 +223,33 @@ function kidBlock(kid){
   </div>`;
 }
 
-function render(){
-  const kids = state.kid==="both"? ["ryland","reid"] : [state.kid];
-  document.getElementById("body").innerHTML = kids.map(kidBlock).join("");
-  centerNextInScrollers();
+// Checking a box rebuilds the whole page's HTML, which used to make everything visibly
+// jump: the page would scroll back to the top, and every subject's scroll box would snap
+// back to re-center on "next" — even boxes you weren't touching. Fix: remember where the
+// page and each box were scrolled to, and put them back after rebuilding. A box only
+// auto-centers on "next" the very first time (no saved position yet).
+let scrollPositions = {};
+function saveScrollPositions(){
+  document.querySelectorAll(".lesson-scroll[data-scroll]").forEach(box=>{
+    scrollPositions[box.dataset.scroll] = box.scrollTop;
+  });
 }
-
-// Center the "next" lesson inside its subject's scroll box, so you land on "today" but can
-// freely scroll up (past, done) or down (future, not yet done) within the same box.
-function centerNextInScrollers(){
-  document.querySelectorAll(".lesson-scroll").forEach(box=>{
+function restoreScrollPositions(){
+  document.querySelectorAll(".lesson-scroll[data-scroll]").forEach(box=>{
+    const key = box.dataset.scroll;
+    if(key in scrollPositions){ box.scrollTop = scrollPositions[key]; return; }
     const next = box.querySelector(".lesson.next");
     if(next) box.scrollTop = next.offsetTop - (box.clientHeight/2) + (next.offsetHeight/2);
   });
+}
+
+function render(){
+  const winY = window.scrollY;
+  saveScrollPositions();
+  const kids = state.kid==="both"? ["ryland","reid"] : [state.kid];
+  document.getElementById("body").innerHTML = kids.map(kidBlock).join("");
+  restoreScrollPositions();
+  window.scrollTo(0, winY);
 }
 
 document.addEventListener("click", e=>{
