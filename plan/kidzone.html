@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<title>My Work · The Learn Zone</title>
+<style>
+  :root{ --ink:#1e293b; --muted:#64748b; --accent:#4f46e5; --line:#e2e8f0; --head:#1f3864;
+    --ry:#4f46e5; --ry-soft:#eef2ff; --reid:#0f766e; --reid-soft:#ccfbf1; --amber:#b45309; --green:#166534; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#eef2ff,#f8fafc); min-height:100vh; padding:22px 16px 80px; }
+  .wrap{ max-width:720px; margin:0 auto; }
+  .top{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; flex-wrap:wrap; }
+  h1{ font-size:26px; margin:0; }
+  .back{ text-decoration:none; color:var(--accent); font-weight:800; font-size:14px; background:#fff; padding:8px 14px; border-radius:999px; box-shadow:0 8px 24px rgba(30,41,99,.12); }
+  .sub{ color:var(--muted); font-size:13px; margin:2px 0 16px; }
+
+  .kidtabs{ display:flex; gap:10px; margin-bottom:18px; }
+  .kidtab{ flex:1; text-align:center; padding:14px 10px; border-radius:16px; font-weight:800; font-size:17px; cursor:pointer;
+    background:#fff; box-shadow:0 6px 18px rgba(30,41,99,.08); border:3px solid transparent; color:var(--muted); }
+  .kidtab .g{ display:block; font-weight:600; font-size:11.5px; margin-top:2px; opacity:.75; }
+  .kidtab.active.ry{ border-color:var(--ry); color:var(--ry); background:var(--ry-soft); }
+  .kidtab.active.reid{ border-color:var(--reid); color:var(--reid); background:var(--reid-soft); }
+
+  .kidhead{ display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:16px; color:#fff; margin-bottom:16px; }
+  .kidhead.ry{ background:var(--ry); } .kidhead.reid{ background:var(--reid); }
+  .kidhead .stat{ margin-left:auto; font-size:15px; font-weight:800; text-align:right; }
+  .kidhead .stat small{ display:block; font-weight:500; opacity:.85; font-size:11px; }
+
+  .card{ background:#fff; border-radius:18px; box-shadow:0 8px 24px rgba(30,41,99,.08); padding:16px 18px; margin-bottom:14px; }
+  .ch{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .ch .s{ font-weight:800; font-size:18px; } .ch .bk{ font-size:12px; color:var(--muted); font-weight:600; }
+  .ch .prog{ margin-left:auto; font-size:11.5px; color:var(--muted); font-weight:700; text-align:right; min-width:120px; }
+  .bar{ height:8px; border-radius:999px; background:var(--line); overflow:hidden; margin-top:3px; }
+  .bar>i{ display:block; height:100%; border-radius:999px; background:var(--accent); }
+
+  .lesson{ display:flex; align-items:center; gap:12px; padding:10px 8px; border-radius:12px; cursor:pointer; }
+  .lesson.now{ background:#f5f6ff; }
+  .lesson:hover{ background:#f8fafc; }
+  .lesson .box{ flex:none; width:28px; height:28px; border:2.5px solid #94a3b8; border-radius:8px; display:flex; align-items:center;
+    justify-content:center; color:#fff; font-size:18px; font-weight:800; }
+  .lesson.now .box{ border-color:var(--accent); }
+  .lesson.done .box{ background:var(--green); border-color:var(--green); }
+  .lesson.done .t{ text-decoration:line-through; color:var(--muted); }
+  .lesson .t{ font-size:15.5px; line-height:1.3; font-weight:600; }
+  .lesson.now .t{ font-weight:800; font-size:16.5px; }
+  .lesson .pg{ font-size:11.5px; color:var(--muted); display:block; margin-top:1px; font-weight:500; }
+  .nowpill{ display:inline-block; font-size:9.5px; font-weight:800; background:var(--accent); color:#fff; padding:2px 8px; border-radius:999px; margin-left:8px; vertical-align:middle; }
+  .upnext-lbl{ font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin:6px 0 2px 8px; }
+  .opts{ margin-top:6px; font-size:12.5px; color:var(--amber); }
+  .opts b{ color:var(--muted); }
+  .sessboxes{ display:flex; gap:9px; margin-top:9px; }
+  .sessboxes .box{ width:26px; height:26px; border:2.5px solid #94a3b8; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; }
+  .sessboxes .box.on{ background:var(--green); border-color:var(--green); }
+  .empty{ font-size:15px; color:var(--green); font-weight:800; padding:6px 8px; }
+  .paused{ background:#fff; border-radius:14px; box-shadow:0 6px 18px rgba(30,41,99,.06); padding:10px 15px; margin-top:18px; font-size:12.5px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>✅ My Work</h1>
+    <div style="display:flex;gap:8px;">
+      <a class="back" href="print.html">🖨️ Daily sheets</a>
+      <a class="back" href="master.html">📋 Master</a>
+      <a class="back" href="../index.html">← The Learn Zone</a>
+    </div>
+  </div>
+  <div class="sub">Tap a box to check it off — it saves right away and shows up on the Master Tracker too.</div>
+
+  <div class="kidtabs" id="kidtabs"></div>
+  <div id="body"></div>
+</div>
+
+<script src="curriculum.js"></script>
+<script src="lz-common.js"></script>
+<script>
+const CUR = window.CURRICULUM || {};
+const CFG = window.LZ_CONFIG || {paused:[]};
+const { slug, dkey, skey, isDone, setDone, undoneLessons, upcomingLessons, subjProgress } = window.LZ;
+const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th grade"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th grade"} };
+
+let kid = localStorage.getItem("lzKZkid") || "ryland";
+
+function lessonRow(kidId, sub, les, isNow){
+  const k = dkey(kidId, sub, les);
+  const done = isDone(k) || les.done;
+  return `<div class="lesson${done?' done':''}${isNow?' now':''}" data-k="${k}">
+    <div class="box">${done?'✓':''}</div>
+    <div><span class="t">${les.t}${isNow?'<span class="nowpill">now</span>':''}</span><span class="pg">p.${les.p}</span></div>
+  </div>`;
+}
+
+function subjectCard(kidId, sub){
+  if(sub.kind==="ongoing"){
+    const n = sub.goal;
+    let boxes=""; for(let i=0;i<n;i++){ const k=skey(kidId,sub,"week",i); boxes+=`<div class="box${isDone(k)?' on':''}" data-k="${k}"></div>`; }
+    return `<div class="card"><div class="ch"><span class="s">${sub.subject}</span></div>
+      <div class="opts"><b>Do:</b> ${(sub.options||[]).join(" or ")}${sub.note?`<br>${sub.note}`:""}</div>
+      <div class="sessboxes" title="one box per time you do it this week">${boxes}</div>
+    </div>`;
+  }
+  const undone = undoneLessons(kidId, sub);
+  const p = subjProgress(kidId, sub);
+  let body;
+  if(undone.length===0){
+    body = `<div class="empty">🎉 All caught up in ${sub.book||sub.subject}!</div>`;
+  } else {
+    const now = undone[0];
+    const upcoming = undone.slice(1,4);
+    body = lessonRow(kidId, sub, now, true);
+    if(upcoming.length){
+      body += `<div class="upnext-lbl">Coming up</div>` + upcoming.map(l=>lessonRow(kidId,sub,l,false)).join("");
+    }
+  }
+  return `<div class="card">
+    <div class="ch"><span class="s">${sub.subject}</span> <span class="bk">${sub.book||""}</span>
+      <span class="prog">${p.done}/${p.total} done<div class="bar"><i style="width:${p.pct}%"></i></div></span></div>
+    ${body}
+  </div>`;
+}
+
+function render(){
+  document.getElementById("kidtabs").innerHTML = Object.keys(KIDS).map(id=>{
+    const k=KIDS[id];
+    return `<div class="kidtab ${k.cls}${kid===id?' active':''}" data-kid="${id}">${k.name}<span class="g">${k.grade}</span></div>`;
+  }).join("");
+
+  const subs = (CUR[kid]||[]).filter(s=>!(CFG.paused||[]).includes(s.subject));
+  let d=0,t=0; subs.forEach(s=>{ if(s.kind!=="ongoing"){ const p=subjProgress(kid,s); d+=p.done; t+=p.total; } });
+  const pct = t? Math.round(d/t*100) : 0;
+  const cards = subs.map(s=>subjectCard(kid,s)).join("");
+  const pausedNote = (CFG.paused&&CFG.paused.length)? `<div class="paused">Paused for now: ${CFG.paused.join(", ")}</div>` : "";
+
+  document.getElementById("body").innerHTML = `
+    <div class="kidhead ${KIDS[kid].cls}"><h2 style="margin:0;font-size:19px;">${KIDS[kid].name}'s work</h2>
+      <span class="stat">${d}/${t} lessons done<small>${pct}% of the way there</small></span></div>
+    ${cards}${pausedNote}`;
+}
+
+document.addEventListener("click", e=>{
+  const tab = e.target.closest(".kidtab");
+  if(tab){ kid = tab.dataset.kid; localStorage.setItem("lzKZkid", kid); render(); return; }
+  const box = e.target.closest("[data-k]");
+  if(box){ const k=box.dataset.k; setDone(k, !isDone(k)); render(); return; }
+});
+
+render();
+</script>
+<script src="/stopwatch.js?v=1"></script>
+</body>
+</html>

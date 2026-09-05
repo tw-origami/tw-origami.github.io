@@ -6,6 +6,7 @@
 # large source image pack (only slim foodimg/ is used)
 nutrition/food_emoji_pack_high_res_300/
 
-# weekly plan — stays local. Holds the boys' names, grades and workbook
-# progress, and this repo is published publicly via GitHub Pages.
-plan/
+# Note: plan/ used to be excluded here (it has the boys' first names, grades, and
+# lesson progress, and this repo is public). 2026-09-05: published on purpose —
+# robots.txt + noindex meta tags on those pages keep it out of search/AI-crawler
+# indexing, but the pages themselves are public to anyone with the link.

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<title>Daily Plan Sheets · The Learn Zone</title>
+<style>
+  :root{ --ink:#1e293b; --muted:#64748b; --accent:#4f46e5; --line:#cbd5e1; --head:#1f3864; --amber:#b45309; --green:#166534; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:#eef2ff; padding:22px 16px 60px; }
+  .wrap{ max-width:760px; margin:0 auto; }
+  .toolbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; flex-wrap:wrap; }
+  .toolbar h1{ font-size:22px; margin:0; }
+  .btns{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .btn{ border:none; border-radius:999px; padding:10px 18px; font-weight:800; font-size:14px; cursor:pointer; text-decoration:none; }
+  .btn.print{ background:var(--accent); color:#fff; }
+  .btn.back{ background:#fff; color:var(--accent); box-shadow:0 6px 18px rgba(30,41,99,.12); }
+  select{ padding:8px 12px; border-radius:10px; border:1px solid var(--line); font-weight:700; font-size:14px; }
+  .sub{ color:var(--muted); font-size:12.5px; margin:0 0 14px; }
+
+  .daypicker{ display:flex; align-items:center; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .daypicker .lbl{ font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); }
+  .daypicker .n{ border:2px solid var(--line); background:#fff; border-radius:999px; padding:7px 15px; font-weight:800; font-size:14px; cursor:pointer; color:var(--ink); }
+  .daypicker .n.active{ border-color:var(--accent); background:var(--accent); color:#fff; }
+
+  .sheet{ background:#fff; border-radius:12px; box-shadow:0 10px 30px rgba(30,41,99,.12); padding:26px 28px; margin-bottom:22px; }
+  .shead{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; border-bottom:3px solid var(--head); padding-bottom:8px; margin-bottom:6px; flex-wrap:wrap; }
+  .shead .name{ font-size:26px; font-weight:800; }
+  .shead .name .g{ font-size:13px; color:var(--muted); font-weight:600; margin-left:8px; }
+  .shead .day{ font-size:16px; color:var(--head); font-weight:800; }
+  .intro{ font-size:12px; color:var(--muted); margin:6px 0 14px; }
+
+  table{ width:100%; border-collapse:collapse; }
+  td{ border-bottom:1px solid #e6e9ef; padding:9px 4px; vertical-align:top; }
+  td.subj{ width:120px; font-weight:800; font-size:14px; }
+  td.subj .pace{ display:block; font-weight:600; font-size:10px; color:var(--muted); margin-top:2px; }
+  td.task{ font-size:13.5px; }
+  .item{ display:flex; align-items:flex-start; gap:8px; line-height:1.35; margin:2px 0; cursor:pointer; }
+  .item .box{ flex:none; width:16px; height:16px; border:2px solid #475569; border-radius:3px; margin-top:1px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; }
+  .item.done .box{ background:var(--green); border-color:var(--green); }
+  .item.done .src, .item.done .les{ text-decoration:line-through; color:var(--muted); }
+  .item.alt{ color:var(--amber); font-size:12.5px; cursor:default; }
+  .item.alt .box{ width:14px; height:14px; border-color:var(--amber); border-radius:50%; }
+  .item.nocheck{ cursor:default; }
+  .line{ display:inline-block; border-bottom:1px solid #94a3b8; min-width:150px; }
+  .src{ font-weight:800; font-size:13px; }
+  .les{ font-size:12.5px; color:#334155; margin-top:1px; }
+  .foot{ font-size:11px; color:var(--muted); margin-top:14px; border-top:1px solid #e6e9ef; padding-top:8px; }
+
+  @page{ size: letter portrait; margin: 0.5in; }
+  @media print{
+    body{ background:#fff; padding:0; }
+    .toolbar{ display:none; } .daypicker{ display:none; }
+    .wrap{ max-width:none; }
+    .sheet{ box-shadow:none; border-radius:0; margin:0; padding:0; page-break-after:always; }
+    .sheet:last-child{ page-break-after:auto; }
+    .sheet.hide{ display:none; }
+    .item .box{ background:#fff !important; } /* boxes print empty for pen-and-paper checking */
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toolbar">
+    <h1>🖨️ Daily Plan Sheets</h1>
+    <div class="btns">
+      <select id="filter"></select>
+      <a class="btn back" href="kidzone.html">✅ My Work</a>
+      <a class="btn back" href="master.html">📋 Master</a>
+      <a class="btn back" href="index.html">← Back</a>
+      <button class="btn print" onclick="window.print()">Print</button>
+    </div>
+  </div>
+  <div class="sub">Check boxes on screen and they save (and show up on the Master Tracker / My Work page too) — or print the sheets and check them off on paper.</div>
+  <div class="daypicker">
+    <span class="lbl">Days to show</span>
+    <div class="n" data-n="1">1</div><div class="n" data-n="3">3</div><div class="n active" data-n="5">5</div><div class="n" data-n="10">10</div>
+  </div>
+  <div id="sheets"></div>
+</div>
+
+<script src="curriculum.js"></script>
+<script src="lz-common.js"></script>
+<script src="books.js"></script>
+<script>
+const CUR = window.CURRICULUM || {};
+const CFG = window.LZ_CONFIG || {paused:[]};
+const { slug, dkey, dateKey, isDone, setDone, undoneLessons } = window.LZ;
+const STUDENTS = window.STUDENTS || []; // ryland/reid meta (name, grade) — books.js
+const KIDMETA = {}; STUDENTS.forEach(s=>KIDMETA[s.id]={name:s.name, grade:s.grade});
+
+let NDAYS = 5;
+
+function isoDate(d){ return d.toISOString().slice(0,10); }
+function nextSchoolDays(n){
+  const days=[]; let d=new Date(); d.setHours(0,0,0,0);
+  // start today if it's a weekday, else roll to next Monday
+  if(d.getDay()===0) d.setDate(d.getDate()+1);
+  if(d.getDay()===6) d.setDate(d.getDate()+2);
+  while(days.length<n){
+    days.push(new Date(d));
+    d.setDate(d.getDate()+1);
+    if(d.getDay()===0) d.setDate(d.getDate()+1);
+    if(d.getDay()===6) d.setDate(d.getDate()+2);
+  }
+  return days.map((dt,i)=>({ i, date:dt, iso:isoDate(dt),
+    label: dt.toLocaleDateString(undefined,{weekday:"long", month:"long", day:"numeric"}) }));
+}
+
+function altItem(text){ return `<div class="item alt nocheck"><span class="box"></span><span>or ${text}</span></div>`; }
+function box(t){ return `<div class="item nocheck"><span class="box"></span><span>${t}</span></div>`; }
+
+// Per-day-of-week overrides (cycle if more than 5 days are requested).
+const OVERRIDES = {
+  "Math":      ["learnzone","learnzone","learnzone","khan","khan"],
+  "Reading":   ["book","workbook","book","book","book"],
+  "Spelling":  ["spellit","workbook","workbook","workbook","workbook"],
+  "Geography": ["workbook","workbook","workbook","workbook","workbook"],
+  "Typing":    ["typing","typing","typing","typing","typing"],
+  "Science":   ["workbook","workbook","workbook","workbook","workbook"]
+};
+function directiveFor(sub, dayIdx){
+  const ov = OVERRIDES[sub.subject];
+  if(ov) return ov[dayIdx % ov.length];
+  return sub.kind==="book" ? "workbook" : "ongoing";
+}
+// how many of THIS subject's workbook-days have occurred at or before dayIdx (cyclical pattern).
+// Subjects with no explicit OVERRIDES pattern (e.g. Writing) are workbook every day.
+function workbookOccurrencesThrough(sub, dayIdx){
+  const ov = OVERRIDES[sub.subject];
+  if(!ov) return sub.kind==="book" ? dayIdx+1 : 0;
+  let c=0; for(let i=0;i<=dayIdx;i++){ if(ov[i % ov.length]==="workbook") c++; }
+  return c;
+}
+function taskItem(src, les, done, k){
+  const attr = k ? ` data-k="${k}"` : '';
+  return `<div class="item${done?' done':''}"${attr}><span class="box">${done?'✓':''}</span><div><div class="src">${src}</div>${les?`<div class="les">${les}</div>`:""}</div></div>`;
+}
+const THIS_WEEK = {
+  "Reading": [
+    {src:"The Mighty Macy", les:"Section 1: <i>Piano</i>"},
+    {src:"The Mighty Macy", les:"Section 2: <i>Mezzo Piano</i>"},
+    {src:"The Mighty Macy", les:"Section 3: <i>Crescendo</i>"},
+    {src:"The Mighty Macy", les:"Section 4: <i>Forte</i>"},
+    {src:"The Mighty Macy", les:"Finish &amp; narrate / discuss"}
+  ],
+  "Geography": [
+    null,
+    {src:"Class Teach", les:"World Continents — North America (pp.1–3)"},
+    {src:"Class Teach", les:"World Continents — South America (pp.4–5)"},
+    {src:"Class Teach", les:"World Continents — Europe (pp.6–7)"},
+    {src:"Class Teach", les:"World Continents — Africa (pp.8–9)"}
+  ]
+};
+// Snapshot of each subject's undone-lesson list, taken once per page load (not re-taken on every
+// checkbox click). This is what pins a specific lesson to a specific day: checking off "today's"
+// box marks THAT lesson done and shows it struck through, instead of the day silently reassigning
+// itself to the next lesson. Reload the page to pick up a fresh snapshot (e.g. after lessons were
+// completed elsewhere, on the Master Tracker or My Work page).
+let PLAN = null;
+function ensurePlan(){
+  if(PLAN) return;
+  PLAN = {};
+  Object.keys(CUR).forEach(kid => (CUR[kid]||[]).forEach(sub => {
+    if(sub.kind==="book") PLAN[kid+"|"+sub.subject] = undoneLessons(kid, sub);
+  }));
+}
+function taskCell(kid, sub, dayIdx, dateIso){
+  const wk = THIS_WEEK[sub.subject];
+  if(wk && dayIdx<wk.length && wk[dayIdx]) return taskItem(wk[dayIdx].src, wk[dayIdx].les, false, null);
+  const dir = directiveFor(sub, dayIdx);
+  if(dir==="workbook"){
+    const idx = workbookOccurrencesThrough(sub, dayIdx) - 1; // 0-based
+    const undone = PLAN[kid+"|"+sub.subject] || [];
+    const les = undone[idx];
+    if(!les) return taskItem(sub.book||"Workbook", "🎉 All caught up — nothing left queued!", false, null);
+    const k = dkey(kid, sub, les);
+    const done = isDone(k) || les.done;
+    return taskItem(sub.book||"Workbook", `${les.t} — p.${les.p}`, done, k);
+  }
+  if(dir==="book")      return taskItem("Read a book", '<span class="line">&nbsp;</span>', false, null);
+  const k = dateKey(kid, sub.subject, dateIso);
+  const done = isDone(k);
+  if(dir==="spellit")   return taskItem("Learn Zone", "Spell It", done, k);
+  if(dir==="learnzone") return taskItem("Learn Zone", sub.subject==="Math" ? "Multiplication &amp; Division" : "15 minutes", done, k);
+  if(dir==="khan")      return taskItem("Khan Academy", "next lesson", done, k);
+  if(dir==="typing")    return taskItem("Learn Zone or Typing Land", "~15 min", done, k);
+  const menu = (sub.options||[]).join("  ·  ") || "";
+  return taskItem(sub.subject, menu, false, null);
+}
+
+const PAUSED = CFG.paused || [];
+function sheet(kid, day){
+  const subs = (CUR[kid]||[]).filter(s=>!PAUSED.includes(s.subject));
+  const rows = subs.map(sub=>`<tr>
+      <td class="subj">${sub.subject}</td>
+      <td class="task">${taskCell(kid, sub, day.i, day.iso)}</td>
+    </tr>`).join("");
+  const meta = KIDMETA[kid] || {};
+  return `<div class="sheet" data-kid="${kid}" data-day="${day.i}">
+    <div class="shead">
+      <div class="name">${meta.name||kid}<span class="g">${meta.grade||""}</span></div>
+      <div class="day">${day.label}</div>
+    </div>
+    <table><tbody>${rows}</tbody></table>
+  </div>`;
+}
+
+function buildAll(){
+  ensurePlan();
+  const DAYS = nextSchoolDays(NDAYS);
+  const kids = Object.keys(CUR);
+  let all = [];
+  kids.forEach(kid => DAYS.forEach(d => all.push({kid, d})));
+  document.getElementById("sheets").innerHTML = all.map(x=>sheet(x.kid, x.d)).join("");
+
+  const sel = document.getElementById("filter");
+  sel.innerHTML = `<option value="all">All — every kid, every day shown</option>`;
+  kids.forEach(kid => {
+    const o=document.createElement("option"); o.value=kid+"|all"; o.textContent=(KIDMETA[kid]?.name||kid)+" — all days shown"; sel.appendChild(o);
+  });
+  kids.forEach(kid => DAYS.forEach(d => {
+    const o=document.createElement("option"); o.value=kid+"|"+d.i; o.textContent=(KIDMETA[kid]?.name||kid)+" — "+d.label; sel.appendChild(o);
+  }));
+  sel.onchange = applyFilter;
+  applyFilter();
+
+  document.title = "Daily Plan Sheets · "+DAYS[0].label+(DAYS.length>1?" – "+DAYS[DAYS.length-1].label:"");
+}
+function applyFilter(){
+  const v = document.getElementById("filter").value;
+  document.querySelectorAll(".sheet").forEach(el=>{
+    let show=true;
+    if(v!=="all"){ const [kid,day]=v.split("|"); show = el.dataset.kid===kid && (day==="all" || el.dataset.day===day); }
+    el.classList.toggle("hide", !show);
+    el.style.display = show ? "" : "none";
+  });
+}
+
+document.addEventListener("click", e=>{
+  const n = e.target.closest(".daypicker .n");
+  if(n){ NDAYS = parseInt(n.dataset.n,10);
+    document.querySelectorAll(".daypicker .n").forEach(x=>x.classList.toggle("active", x===n));
+    buildAll(); return;
+  }
+  const item = e.target.closest(".item[data-k]");
+  if(item && !item.classList.contains("nocheck")){
+    const k = item.dataset.k; setDone(k, !isDone(k)); buildAll(); return;
+  }
+});
+
+buildAll();
+</script>
+<script src="/stopwatch.js?v=1"></script>
+</body>
+</html>

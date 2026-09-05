@@ -1,0 +1,59 @@
+# The Learn Zone is a family homeschool site. Everything under /plan/ is a private
+# progress tracker (kids' names, grades, daily lesson data) and should not be indexed
+# by search engines or used for AI training, even though the URL itself is public.
+
+User-agent: *
+Disallow: /plan/
+
+# Known AI training / scraping crawlers — blocked entirely from /plan/, matching the
+# wildcard rule above (listed explicitly since some bots ignore the generic "*" group).
+User-agent: GPTBot
+Disallow: /plan/
+
+User-agent: ChatGPT-User
+Disallow: /plan/
+
+User-agent: ClaudeBot
+Disallow: /plan/
+
+User-agent: anthropic-ai
+Disallow: /plan/
+
+User-agent: Claude-Web
+Disallow: /plan/
+
+User-agent: CCBot
+Disallow: /plan/
+
+User-agent: Google-Extended
+Disallow: /plan/
+
+User-agent: Applebot-Extended
+Disallow: /plan/
+
+User-agent: Bytespider
+Disallow: /plan/
+
+User-agent: Diffbot
+Disallow: /plan/
+
+User-agent: FacebookBot
+Disallow: /plan/
+
+User-agent: meta-externalagent
+Disallow: /plan/
+
+User-agent: cohere-ai
+Disallow: /plan/
+
+User-agent: PerplexityBot
+Disallow: /plan/
+
+User-agent: Omgili
+Disallow: /plan/
+
+User-agent: Omgilibot
+Disallow: /plan/
+
+User-agent: img2dataset
+Disallow: /plan/

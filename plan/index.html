@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<title>Weekly Plan · The Learn Zone</title>
+<style>
+  :root{
+    --ink:#1e293b; --muted:#64748b; --accent:#4f46e5; --accent-soft:#eef2ff;
+    --shadow:0 10px 30px rgba(30,41,99,.12); --line:#e2e8f0;
+    --ry:#4f46e5; --ry-soft:#eef2ff; --reid:#0f766e; --reid-soft:#ccfbf1;
+    --done:#16a34a; --amber:#d97706; --amber-soft:#fef3c7;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#eef2ff,#f8fafc); min-height:100vh; padding:26px 16px 60px; }
+  .wrap{ max-width:900px; margin:0 auto; }
+  .top{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
+  h1{ font-size:26px; margin:0; letter-spacing:-.5px; }
+  .sub{ color:var(--muted); font-size:13px; margin-top:2px; }
+  .back{ text-decoration:none; color:var(--accent); font-weight:800; font-size:14px; background:#fff; padding:8px 14px; border-radius:999px; box-shadow:var(--shadow); }
+
+  .tabs{ display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+  .tab{ border:2px solid var(--line); background:#fff; border-radius:999px; padding:8px 18px; font-weight:800; cursor:pointer; font-size:15px; color:var(--muted); }
+  .tab.active{ color:#fff; }
+  .tab.ry.active{ background:var(--ry); border-color:var(--ry); }
+  .tab.reid.active{ background:var(--reid); border-color:var(--reid); }
+
+  .studenthead{ display:flex; align-items:baseline; gap:10px; margin:4px 2px 14px; }
+  .studenthead h2{ margin:0; font-size:20px; }
+  .studenthead .g{ color:var(--muted); font-size:13px; }
+
+  .card{ background:#fff; border-radius:18px; box-shadow:var(--shadow); padding:16px 18px; margin-bottom:14px; }
+  .subjrow{ display:flex; align-items:flex-start; gap:12px; }
+  .check{ width:24px; height:24px; border-radius:8px; border:2px solid #cbd5e1; flex:none; display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; cursor:pointer; margin-top:2px; }
+  .card.done .check{ background:var(--done); border-color:var(--done); }
+  .card.done .body{ opacity:.55; }
+  .body{ flex:1; }
+  .subj{ font-size:16px; font-weight:800; }
+  .src{ font-size:12px; color:var(--muted); font-weight:700; }
+  .upnext{ margin-top:4px; font-size:15px; }
+  .upnext b{ color:var(--accent); }
+  .opts{ margin-top:8px; display:flex; gap:6px; flex-wrap:wrap; }
+  .opt{ font-size:12.5px; font-weight:700; background:var(--accent-soft); color:var(--accent); padding:5px 11px; border-radius:999px; border:1px solid transparent; cursor:pointer; }
+  .opt.pick{ background:var(--accent); color:#fff; }
+  .optlabel{ font-size:11px; color:var(--muted); font-weight:800; text-transform:uppercase; letter-spacing:.4px; margin-top:8px; }
+
+  .prog{ margin-top:10px; }
+  .bar{ height:8px; border-radius:999px; background:var(--line); overflow:hidden; }
+  .bar > i{ display:block; height:100%; border-radius:999px; }
+  .ry .bar > i{ background:var(--ry); } .reid .bar > i{ background:var(--reid); }
+  .progmeta{ display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-top:4px; }
+
+  .note{ background:var(--amber-soft); color:#92400e; border-radius:14px; padding:12px 14px; font-size:13px; margin-bottom:16px; }
+  .hide{ display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>🗂️ Weekly Plan</h1><div class="sub" id="updated"></div></div>
+    <div style="display:flex;gap:8px;">
+      <a class="back" href="kidzone.html" style="background:var(--accent);color:#fff;">✅ My Work</a>
+      <a class="back" href="master.html">📋 Master</a>
+      <a class="back" href="print.html">🖨️ Daily sheets</a>
+      <a class="back" href="../index.html">← The Learn Zone</a>
+    </div>
+  </div>
+
+  <div class="note">Tick a subject when it’s finished (saves on this device). To move the book forward, tell Claude what got done — e.g. “Reid finished Spelling lesson 22” — and the “up next” lesson updates for everyone.</div>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="panel"></div>
+</div>
+
+<script src="books.js"></script>
+<script>
+const STUDENTS = window.STUDENTS || [];
+const META = window.BOOKS_META || {};
+let active = STUDENTS.length ? STUDENTS[0].id : null;
+
+const KEY = (sid,subj) => "lz_plan_"+sid+"_"+subj.replace(/\s+/g,"");
+const isDone = (sid,subj) => localStorage.getItem(KEY(sid,subj))==="1";
+const setDone = (sid,subj,v) => v?localStorage.setItem(KEY(sid,subj),"1"):localStorage.removeItem(KEY(sid,subj));
+const PICKKEY = (sid,subj) => "lz_pick_"+sid+"_"+subj.replace(/\s+/g,"");
+
+document.getElementById("updated").textContent = META.updated ? ("Current lessons as of "+META.updated) : "";
+
+function tabs(){
+  document.getElementById("tabs").innerHTML = STUDENTS.map(s=>{
+    const cls = s.id==="reid"?"reid":"ry";
+    return `<div class="tab ${cls} ${s.id===active?'active':''}" data-id="${s.id}">${s.name}</div>`;
+  }).join("");
+}
+
+function pagesLeft(sub){
+  if(sub.page==null || sub.last==null) return null;
+  return Math.max(0, sub.last - sub.page);
+}
+function pct(sub){
+  if(sub.page==null || sub.last==null) return null;
+  return Math.min(100, Math.round(sub.page/sub.last*100));
+}
+
+function card(s, sub){
+  const done = isDone(s.id, sub.subject) ? " done" : "";
+  const cls = s.id==="reid"?"reid":"ry";
+  const src = sub.book || sub.source || "";
+  let opts = "";
+  if(sub.options && sub.options.length){
+    const picked = localStorage.getItem(PICKKEY(s.id,sub.subject));
+    opts = `<div class="optlabel">Choose one</div><div class="opts">` +
+      sub.options.map(o=>`<span class="opt${picked===o?' pick':''}" data-subj="${sub.subject}" data-opt="${o.replace(/"/g,'&quot;')}">${o}</span>`).join("") +
+      `</div>`;
+  }
+  let prog = "";
+  const p = pct(sub), left = pagesLeft(sub);
+  if(p!==null){
+    prog = `<div class="prog"><div class="bar"><i style="width:${p}%"></i></div>
+      <div class="progmeta"><span>${p}% through the book</span><span>~${left} pages left</span></div></div>`;
+  }
+  return `<div class="card ${cls}${done}" data-subj="${sub.subject}">
+    <div class="subjrow">
+      <div class="check" data-check="${sub.subject}">${isDone(s.id,sub.subject)?"✓":""}</div>
+      <div class="body">
+        <div class="subj">${sub.subject} ${src?`<span class="src">· ${src}</span>`:""}</div>
+        <div class="upnext">Up next: <b>${sub.upNext||""}</b></div>
+        ${opts}
+        ${prog}
+      </div>
+    </div>
+  </div>`;
+}
+
+function render(){
+  tabs();
+  const s = STUDENTS.find(x=>x.id===active);
+  if(!s){ document.getElementById("panel").innerHTML="<p>No data.</p>"; return; }
+  const cls = s.id==="reid"?"reid":"ry";
+  document.getElementById("panel").innerHTML =
+    `<div class="studenthead"><h2>${s.name}</h2><span class="g">${s.grade||""}</span></div>` +
+    s.subjects.map(sub=>card(s,sub)).join("");
+}
+
+document.addEventListener("click", e=>{
+  const tab=e.target.closest(".tab");
+  if(tab){ active=tab.dataset.id; render(); return; }
+  const chk=e.target.closest(".check");
+  if(chk){ const subj=chk.dataset.check; setDone(active,subj,!isDone(active,subj)); render(); return; }
+  const opt=e.target.closest(".opt");
+  if(opt){ const subj=opt.dataset.subj, o=opt.dataset.opt;
+    const k=PICKKEY(active,subj);
+    if(localStorage.getItem(k)===o) localStorage.removeItem(k); else localStorage.setItem(k,o);
+    render(); return; }
+});
+
+render();
+</script>
+<script src="/stopwatch.js?v=1"></script>
+</body>
+</html>

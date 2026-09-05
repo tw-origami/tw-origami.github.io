@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<title>Master Tracker · The Learn Zone</title>
+<style>
+  :root{ --ink:#1e293b; --muted:#64748b; --accent:#4f46e5; --line:#e2e8f0; --head:#1f3864;
+    --ry:#4f46e5; --ry-soft:#eef2ff; --reid:#0f766e; --reid-soft:#ccfbf1; --amber:#b45309; --green:#166534; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#eef2ff,#f8fafc); min-height:100vh; padding:22px 16px 70px; }
+  .wrap{ max-width:960px; margin:0 auto; }
+  .top{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px; flex-wrap:wrap; }
+  h1{ font-size:25px; margin:0; }
+  .back{ text-decoration:none; color:var(--accent); font-weight:800; font-size:14px; background:#fff; padding:8px 14px; border-radius:999px; box-shadow:0 8px 24px rgba(30,41,99,.12); }
+  .sub{ color:var(--muted); font-size:13px; margin:2px 0 14px; }
+
+  .controls{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; position:sticky; top:0; z-index:5;
+    background:linear-gradient(180deg,#eef2ff,rgba(238,242,255,.85)); padding:8px 0; }
+  .ctl{ display:flex; flex-direction:column; gap:3px; }
+  .ctl label{ font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); padding-left:4px; }
+  select{ padding:9px 12px; border-radius:11px; border:1px solid var(--line); font-weight:700; font-size:14px; background:#fff; min-width:150px; }
+
+  .kidwrap{ margin-bottom:26px; }
+  .kidhead{ display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:14px; color:#fff; margin-bottom:12px; }
+  .kidhead.ry{ background:var(--ry); } .kidhead.reid{ background:var(--reid); }
+  .kidhead h2{ margin:0; font-size:19px; } .kidhead .g{ opacity:.85; font-size:12px; }
+  .kidhead .stat{ margin-left:auto; font-size:13px; font-weight:800; text-align:right; }
+  .kidhead .stat small{ display:block; font-weight:500; opacity:.85; }
+
+  .suggest{ background:#fff; border-radius:14px; box-shadow:0 8px 24px rgba(30,41,99,.06); padding:12px 15px; margin-bottom:12px; border-left:4px solid var(--amber); }
+  .suggest h3{ margin:0 0 6px; font-size:13px; color:var(--amber); text-transform:uppercase; letter-spacing:.4px; }
+  .suggest ul{ margin:0; padding-left:18px; } .suggest li{ font-size:13px; margin:3px 0; line-height:1.35; }
+  .suggest .books{ font-size:13px; margin-bottom:4px; } .suggest .add{ color:var(--muted); font-style:italic; }
+
+  .card{ background:#fff; border-radius:14px; box-shadow:0 8px 24px rgba(30,41,99,.07); padding:14px 16px; margin-bottom:12px; }
+  .ch{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; border-bottom:1px solid var(--line); padding-bottom:8px; margin-bottom:8px; }
+  .ch .s{ font-weight:800; font-size:16px; }
+  .ch .bk{ font-size:11px; color:var(--muted); font-weight:600; }
+  .ch .goal{ font-size:11px; font-weight:800; color:var(--green); }
+  .ch .prog{ margin-left:auto; min-width:150px; text-align:right; }
+  .bar{ height:7px; border-radius:999px; background:var(--line); overflow:hidden; margin-top:3px; }
+  .bar>i{ display:block; height:100%; border-radius:999px; }
+  .ry .bar>i{ background:var(--ry);} .reid .bar>i{ background:var(--reid);}
+  .pmeta{ font-size:11px; color:var(--muted); }
+
+  .lesson{ display:flex; align-items:flex-start; gap:9px; padding:5px 4px; border-radius:8px; cursor:pointer; }
+  .lesson:hover{ background:#f8fafc; }
+  .lesson .box{ flex:none; width:18px; height:18px; border:2px solid #94a3b8; border-radius:5px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px; margin-top:1px; }
+  .lesson.done .box{ background:var(--green); border-color:var(--green); }
+  .lesson.done .t{ text-decoration:line-through; color:var(--muted); }
+  .lesson .t{ font-size:14px; line-height:1.3; }
+  .lesson .pg{ font-size:11px; color:var(--muted); }
+  .lesson.next .t{ font-weight:800; }
+  .nextpill{ display:inline-block; font-size:9.5px; font-weight:800; background:var(--accent); color:#fff; padding:1px 7px; border-radius:999px; margin-left:6px; vertical-align:middle; }
+  .opts{ margin-top:8px; font-size:12px; color:var(--amber); }
+  .opts b{ color:var(--muted); }
+  .sessboxes{ display:flex; gap:8px; margin-top:8px; }
+  .sessboxes .box{ width:20px; height:20px; border:2px solid #94a3b8; border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; }
+  .sessboxes .box.on{ background:var(--green); border-color:var(--green); }
+  .more{ font-size:12px; color:var(--accent); font-weight:700; cursor:pointer; margin-top:6px; display:inline-block; }
+  .empty{ font-size:13px; color:var(--green); font-weight:700; padding:4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>📋 Master Tracker</h1>
+    <div style="display:flex;gap:8px;">
+      <a class="back" href="kidzone.html">✅ My Work</a>
+      <a class="back" href="print.html">🖨️ Daily sheets</a>
+      <a class="back" href="../index.html">← The Learn Zone</a>
+    </div>
+  </div>
+  <div class="sub" id="sub">Everything both boys are working on. Check items off as they’re done — it saves automatically.</div>
+
+  <div class="controls">
+    <div class="ctl"><label>Child</label>
+      <select id="fKid"><option value="both">Both kids</option><option value="ryland">Ryland</option><option value="reid">Reid</option></select></div>
+    <div class="ctl"><label>Show</label>
+      <select id="fView"><option value="week">This week</option><option value="month">This month</option><option value="all">Everything</option></select></div>
+    <div class="ctl"><label>Subject</label>
+      <select id="fSubj"><option value="all">All subjects</option></select></div>
+  </div>
+
+  <div id="body"></div>
+</div>
+
+<script src="curriculum.js"></script>
+<script src="lz-common.js"></script>
+<script>
+const CUR = window.CURRICULUM || {};
+const SUG = window.SUGGESTIONS || {};
+const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th · grade 5–6 books"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th · grade 3 books"} };
+
+const { slug, dkey, skey, isDone, setDone, subjProgress } = window.LZ;
+
+// populate subject filter
+(function(){
+  const set=new Set();
+  Object.values(CUR).forEach(subs=>subs.forEach(s=>set.add(s.subject)));
+  const sel=document.getElementById("fSubj");
+  [...set].forEach(s=>{ const o=document.createElement("option"); o.value=s; o.textContent=s; sel.appendChild(o); });
+})();
+
+const state = { kid:"both", view:"week", subj:"all" };
+["fKid","fView","fSubj"].forEach(id=>{
+  document.getElementById(id).addEventListener("change", e=>{
+    state[id==="fKid"?"kid":id==="fView"?"view":"subj"]=e.target.value; render();
+  });
+});
+
+function lessonRow(kid,sub,les,isNext){
+  const k=dkey(kid,sub,les); const done=isDone(k)||les.done;
+  return `<div class="lesson${done?' done':''}${isNext?' next':''}" data-k="${k}">
+    <div class="box">${done?'✓':''}</div>
+    <div><span class="t">${les.t}${isNext?'<span class="nextpill">next</span>':''}</span> <span class="pg">p.${les.p}</span></div>
+  </div>`;
+}
+
+function subjectCard(kid, sub){
+  const cls=KIDS[kid].cls;
+  const p=subjProgress(kid,sub);
+  let list="";
+  if(sub.kind==="ongoing"){
+    const n = state.view==="all"? sub.goal*4 : state.view==="month"? sub.goal*4 : sub.goal;
+    let boxes="";
+    for(let i=0;i<n;i++){ const k=skey(kid,sub,state.view,i); boxes+=`<div class="box${isDone(k)?' on':''}" data-k="${k}"></div>`; }
+    list = `<div class="opts"><b>Do:</b> ${(sub.options||[]).join(" · ")}${sub.note?`<br><span style="color:var(--muted)">${sub.note}</span>`:""}</div>
+      <div class="sessboxes" title="one box per session">${boxes}</div>`;
+    return `<div class="card"><div class="ch"><span class="s">${sub.subject}</span>
+       <span class="goal">aim ≥${sub.goal}/wk</span></div>${list}</div>`;
+  }
+  const undone = sub.lessons.filter(l=>!(isDone(dkey(kid,sub,l))||l.done));
+  let show;
+  if(state.view==="all") show=sub.lessons;
+  else { const n = state.view==="month"? sub.goal*4 : sub.goal; show=undone.slice(0,n); }
+  const nextK = undone.length? dkey(kid,sub,undone[0]) : null;
+  if(show.length===0) list=`<div class="empty">✓ All caught up for now!</div>`;
+  else list=show.map(l=>lessonRow(kid,sub,l, dkey(kid,sub,l)===nextK)).join("");
+  const opts = (sub.options&&sub.options.length)? `<div class="opts"><b>or instead:</b> ${sub.options.join(" · ")}</div>`:"";
+  const hidden = (state.view!=="all") ? Math.max(0, undone.length-show.length) : 0;
+  const more = hidden? `<div class="more" data-all="1">+ ${hidden} more remaining →</div>`:"";
+  return `<div class="card">
+    <div class="ch"><span class="s">${sub.subject}</span> <span class="bk">${sub.book||""}</span> <span class="goal">≥${sub.goal}/wk</span>
+      <span class="prog"><div class="pmeta">${p.done}/${p.total} done · ${p.left} left</div><div class="bar"><i style="width:${p.pct}%"></i></div></span>
+    </div>
+    ${list}${opts}${more}
+  </div>`;
+}
+
+function suggestCard(kid){
+  const s=SUG[kid]||{}; const books=(s.books&&s.books.length)? s.books.join(" · ") : `<span class="add">none added yet — tell Claude your reading list</span>`;
+  const ideas=(s.ideas||[]).map(i=>`<li>${i}</li>`).join("");
+  return `<div class="suggest">
+    <h3>Suggested books & things to do together</h3>
+    <div class="books"><b>Reading choices:</b> ${books}</div>
+    ${ideas?`<ul>${ideas}</ul>`:""}
+  </div>`;
+}
+
+function kidBlock(kid){
+  const subs = CUR[kid]||[];
+  const filt = state.subj==="all"? subs : subs.filter(s=>s.subject===state.subj);
+  // overall progress across book subjects
+  let d=0,t=0; subs.forEach(s=>{ if(s.kind!=="ongoing"){ const p=subjProgress(kid,s); d+=p.done; t+=p.total; } });
+  const pct=t?Math.round(d/t*100):0;
+  const cards=filt.map(s=>subjectCard(kid,s)).join("");
+  return `<div class="kidwrap ${KIDS[kid].cls}">
+    <div class="kidhead ${KIDS[kid].cls}"><h2>${KIDS[kid].name}</h2><span class="g">${KIDS[kid].grade}</span>
+      <span class="stat">${d}/${t} lessons done<small>${pct}% of remaining work</small></span></div>
+    ${state.subj==="all"?suggestCard(kid):""}
+    ${cards}
+  </div>`;
+}
+
+function render(){
+  const kids = state.kid==="both"? ["ryland","reid"] : [state.kid];
+  document.getElementById("body").innerHTML = kids.map(kidBlock).join("");
+}
+
+document.addEventListener("click", e=>{
+  const more=e.target.closest(".more");
+  if(more){ state.view="all"; document.getElementById("fView").value="all"; render(); return; }
+  const box=e.target.closest("[data-k]");
+  if(box){ const k=box.dataset.k; setDone(k,!isDone(k)); render(); return; }
+});
+
+render();
+</script>
+<script src="/stopwatch.js?v=1"></script>
+</body>
+</html>
