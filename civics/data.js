@@ -562,6 +562,7 @@ window.CIVICS = {
     { right: 'Freedom of Speech', icon: '🗣️', amendment: '1st Amendment',
       us: 'You can speak, write, and share opinions — even criticize the government — without being punished by the government.',
       eli5: 'You can say the government is doing a bad job — out loud — and not get arrested for it.',
+      amendText: '“Congress shall make no law … abridging the freedom of speech.” — 1st Amendment',
       world: [
         { country: 'Norway', flag: '🇳🇴', status: 'strong', note: 'Among the freest in the world for speech and press.' },
         { country: 'China', flag: '🇨🇳', status: 'restricted', note: 'The government censors the internet and punishes public criticism.' },
@@ -570,6 +571,7 @@ window.CIVICS = {
     { right: 'Freedom of Religion', icon: '🕊️', amendment: '1st Amendment',
       us: 'You can follow any religion, or none at all, and the government cannot set up an official national religion.',
       eli5: 'You pick your own beliefs — the government doesn’t pick them for you.',
+      amendText: '“Congress shall make no law respecting an establishment of religion, or prohibiting the free exercise thereof.” — 1st Amendment',
       world: [
         { country: 'Canada', flag: '🇨🇦', status: 'strong', note: 'Religious freedom is protected by its Charter of Rights.' },
         { country: 'Saudi Arabia', flag: '🇸🇦', status: 'restricted', note: 'Public worship of other religions is heavily restricted.' },
@@ -578,6 +580,7 @@ window.CIVICS = {
     { right: 'Freedom of the Press', icon: '📰', amendment: '1st Amendment',
       us: 'Newspapers, TV, and websites can report the news and criticize leaders without government control.',
       eli5: 'Reporters can tell the truth even when leaders don’t like it.',
+      amendText: '“Congress shall make no law … abridging the freedom … of the press.” — 1st Amendment',
       world: [
         { country: 'Sweden', flag: '🇸🇪', status: 'strong', note: 'One of the first nations to protect press freedom, back in 1766.' },
         { country: 'Germany', flag: '🇩🇪', status: 'strong', note: 'A free and independent press is protected by law.' },
@@ -586,6 +589,7 @@ window.CIVICS = {
     { right: 'Right to Peaceful Assembly', icon: '🪧', amendment: '1st Amendment',
       us: 'You can gather and protest peacefully, and ask the government to fix problems (petition).',
       eli5: 'You and your friends can gather with signs to say something’s unfair.',
+      amendText: '“Congress shall make no law … abridging … the right of the people peaceably to assemble, and to petition the Government for a redress of grievances.” — 1st Amendment',
       world: [
         { country: 'France', flag: '🇫🇷', status: 'strong', note: 'Public protest is a well-known part of French political life.' },
         { country: 'China', flag: '🇨🇳', status: 'restricted', note: 'Large unapproved protests are usually broken up.' },
@@ -594,6 +598,7 @@ window.CIVICS = {
     { right: 'Right to Vote', icon: '🗳️', amendment: '15th, 19th & 26th Amendments', img: 'img/voting.webp',
       us: 'Citizens 18 and older can vote. Voting cannot be denied because of race (15th), sex (19th), or age over 18 (26th).',
       eli5: 'Every adult citizen gets a say — no matter their race, sex, or wealth.',
+      amendText: '“The right … to vote shall not be denied or abridged … on account of race” — 15th Amendment · “… on account of sex” — 19th Amendment · “… who are eighteen years of age or older … on account of age” — 26th Amendment',
       world: [
         { country: 'Australia', flag: '🇦🇺', status: 'compulsory', note: 'Voting is required by law — you can be fined for not voting.' },
         { country: 'Brazil', flag: '🇧🇷', status: 'compulsory', note: 'Voting is mandatory for most adults.' },
@@ -602,6 +607,7 @@ window.CIVICS = {
     { right: 'Right to a Fair Trial by Jury', icon: '⚖️', amendment: '6th & 7th Amendments', img: 'img/jury.webp',
       us: 'If accused of a crime, you get a speedy, public trial by an impartial jury of citizens, with a lawyer to defend you.',
       eli5: 'If you’re accused, regular people hear your side before anyone can punish you.',
+      amendText: '“In all criminal prosecutions, the accused shall enjoy the right to a speedy and public trial, by an impartial jury … and to have the Assistance of Counsel for his defence.” — 6th Amendment · “In Suits at common law … the right of trial by jury shall be preserved.” — 7th Amendment',
       world: [
         { country: 'United Kingdom', flag: '🇬🇧', status: 'strong', note: 'Jury trials began here centuries ago and are still used for serious crimes.' },
         { country: 'Japan', flag: '🇯🇵', status: 'mixed', note: 'Uses a mix of citizen judges and professional judges (the saiban-in system).' },
@@ -610,6 +616,7 @@ window.CIVICS = {
     { right: 'Protection from Unreasonable Searches', icon: '🔒', amendment: '4th Amendment',
       us: 'Police generally need a warrant from a judge to search your home or belongings.',
       eli5: 'Police can’t dig through your stuff without a judge’s permission slip.',
+      amendText: '“The right of the people to be secure in their persons, houses, papers, and effects, against unreasonable searches and seizures, shall not be violated, and no Warrants shall issue, but upon probable cause.” — 4th Amendment',
       world: [
         { country: 'Germany', flag: '🇩🇪', status: 'strong', note: 'Privacy of the home is strongly protected by its Basic Law.' },
         { country: 'China', flag: '🇨🇳', status: 'restricted', note: 'The government runs wide surveillance with few privacy limits.' },
@@ -618,6 +625,7 @@ window.CIVICS = {
     { right: 'Right to Remain Silent (Due Process)', icon: '🤐', amendment: '5th Amendment',
       us: 'You don’t have to testify against yourself, and the government must follow fair legal steps before punishing you.',
       eli5: 'You never have to be a witness against yourself.',
+      amendText: '“No person … shall be compelled in any criminal case to be a witness against himself, nor be deprived of life, liberty, or property, without due process of law.” — 5th Amendment',
       world: [
         { country: 'Canada', flag: '🇨🇦', status: 'strong', note: 'The Charter protects the right to silence and fair process.' },
         { country: 'India', flag: '🇮🇳', status: 'strong', note: 'The constitution protects against self-incrimination.' },
@@ -626,6 +634,7 @@ window.CIVICS = {
     { right: 'No Cruel or Unusual Punishment', icon: '🚫', amendment: '8th Amendment',
       us: 'Punishments cannot be cruel or unusual, and bail or fines cannot be excessive.',
       eli5: 'Punishments have to fit the crime — no torture, ever.',
+      amendText: '“Excessive bail shall not be required, nor excessive fines imposed, nor cruel and unusual punishments inflicted.” — 8th Amendment',
       world: [
         { country: 'Norway', flag: '🇳🇴', status: 'strong', note: 'Prisons focus on rehabilitation; there is no death penalty.' },
         { country: 'Germany', flag: '🇩🇪', status: 'strong', note: 'Human dignity is the first line of its constitution.' },

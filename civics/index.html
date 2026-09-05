@@ -107,6 +107,10 @@
   .eli5 { margin-top:12px; background:#fefce8; border-left:3px solid #eab308; border-radius:8px; padding:10px 13px; font-size:14px; color:#713f12; line-height:1.5; }
   .eli5 b { color:#854d0e; }
 
+  /* Actual amendment text, shown on Your Rights */
+  .amend { margin-top:12px; background:#eff6ff; border-left:3px solid #3b82f6; border-radius:8px; padding:10px 13px; font-size:14px; color:#1e3a8a; line-height:1.55; font-style:italic; }
+  .amend b { color:#1e40af; font-style:normal; }
+
   /* World Governments: pros/cons + history & trajectory boxes */
   .proscons { display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
   .pc-col { flex:1 1 140px; min-width:140px; background:#f8fafc; border-radius:10px; padding:10px 12px; }
@@ -400,10 +404,11 @@
       revealHTML:
         (r.img ? `<img class="rev-img" src="${r.img}" alt="">` : '') +
         `<div class="rev-title">${r.icon} ${esc(r.right)} — ${esc(r.amendment)}</div>` +
+        (r.amendText ? `<div class="amend">📜 <b>What it actually says:</b> ${esc(r.amendText)}</div>` : '') +
         eli5Box(r.eli5) +
         `<div class="rev-label">🌍 How this right varies around the world</div>` +
         worldRows +
-        srcLink('freedom')
+        srcLink('bor') + ' ' + srcLink('freedom')
     };
   }
 
@@ -558,10 +563,11 @@
     startReadLock();
   }
 
-  // 3s read-lock so the reveal actually gets read.
+  // Read-lock so the reveal actually gets read — longer on Your Rights since
+  // there's real amendment text to read, not just a one-line explanation.
   function startReadLock(){
     advanceReady = false;
-    let secs = 3;
+    let secs = mode === 'rights' ? 6 : 3;
     const nb = $('nextBtn');
     nb.disabled = true; nb.textContent = `Read it… (${secs})`;
     $('nextRow').style.display = 'flex';
@@ -573,7 +579,7 @@
     advanceTimer = setTimeout(() => {
       advanceReady = true; advanceTimer = null;
       nb.disabled = false; nb.textContent = 'Next ➡️'; nb.focus();
-    }, 3000);
+    }, secs * 1000);
   }
   function tryAdvance(){ if (answered && advanceReady) newRound(); }
 
