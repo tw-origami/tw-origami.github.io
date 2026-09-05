@@ -141,7 +141,7 @@ function render(){
   if(!s){ document.getElementById("panel").innerHTML="<p>No data.</p>"; return; }
   const cls = s.id==="reid"?"reid":"ry";
   document.getElementById("panel").innerHTML =
-    `<div class="studenthead"><h2>${s.name}</h2><span class="g">${s.grade||""}</span></div>` +
+    `<div class="studenthead"><h2>${s.name}</h2></div>` +
     s.subjects.map(sub=>card(s,sub)).join("");
 }
 

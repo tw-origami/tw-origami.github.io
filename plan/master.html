@@ -216,7 +216,7 @@ function kidBlock(kid){
   const pct=t?Math.round(d/t*100):0;
   const cards=filt.map(s=>subjectCard(kid,s)).join("");
   return `<div class="kidwrap ${KIDS[kid].cls}">
-    <div class="kidhead ${KIDS[kid].cls}"><h2>${KIDS[kid].name}</h2><span class="g">${KIDS[kid].grade}</span>
+    <div class="kidhead ${KIDS[kid].cls}"><h2>${KIDS[kid].name}</h2>
       <span class="stat">${d}/${t} lessons done<small>${pct}% of remaining work</small></span></div>
     ${state.subj==="all"?suggestCard(kid):""}
     ${cards}

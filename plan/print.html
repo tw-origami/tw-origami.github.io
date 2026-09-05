@@ -219,7 +219,7 @@ function sheet(kid, day){
   const meta = KIDMETA[kid] || {};
   return `<div class="sheet" data-kid="${kid}" data-day="${day.i}">
     <div class="shead">
-      <div class="name">${meta.name||kid}<span class="g">${meta.grade||""}</span></div>
+      <div class="name">${meta.name||kid}</div>
       <div class="day">${day.label}</div>
     </div>
     <table><tbody>${rows}</tbody></table>

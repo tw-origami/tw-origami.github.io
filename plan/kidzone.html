@@ -188,7 +188,7 @@ function subjectCard(kidId, sub){
 function render(){
   document.getElementById("kidtabs").innerHTML = Object.keys(KIDS).map(id=>{
     const k=KIDS[id];
-    return `<div class="kidtab ${k.cls}${kid===id?' active':''}" data-kid="${id}">${k.name}<span class="g">${k.grade}</span></div>`;
+    return `<div class="kidtab ${k.cls}${kid===id?' active':''}" data-kid="${id}">${k.name}</div>`;
   }).join("");
 
   const subs = (CUR[kid]||[]).filter(s=>!(CFG.paused||[]).includes(s.subject));
