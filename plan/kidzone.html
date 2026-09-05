@@ -57,6 +57,7 @@
   .lesson .pg{ font-size:11.5px; color:var(--muted); display:block; margin-top:1px; font-weight:500; }
   .nowpill{ display:inline-block; font-size:9.5px; font-weight:800; background:var(--accent); color:#fff; padding:2px 8px; border-radius:999px; margin-left:8px; vertical-align:middle; }
   .upnext-lbl{ font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin:6px 0 2px 8px; }
+  .today-lbl{ font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--green); margin:6px 0 2px 8px; }
   .expandBtn{ font-size:12.5px; font-weight:800; color:var(--accent); cursor:pointer; padding:6px 8px; text-align:center; }
   .expandBtn:hover{ text-decoration:underline; }
   .opts{ margin-top:6px; font-size:12.5px; color:var(--amber); }
@@ -90,7 +91,7 @@
 <script>
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[]};
-const { slug, dkey, skey, isDone, setDone, undoneLessons, upcomingLessons, subjProgress, doneLessons } = window.LZ;
+const { slug, dkey, skey, isDone, setDone, undoneLessons, upcomingLessons, subjProgress, doneLessons, doneDate, todayISO } = window.LZ;
 const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th grade"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th grade"} };
 
 let kid = localStorage.getItem("lzKZkid") || "ryland";
@@ -136,29 +137,39 @@ function subjectCard(kidId, sub){
   const p = subjProgress(kidId, sub);
   const est = expandFor(kidId, sub);
   const done = doneLessons(kidId, sub);
+  const today = todayISO();
+  // What got done TODAY stays visible in the main flow (checked, struck through) all day,
+  // so a kid (or parent) can see it actually happened — it only rolls into the collapsed
+  // "Recently done" history once a new day starts. Static/legacy done records with no
+  // date attached count as older history, not "today".
+  const doneToday = done.filter(l => doneDate(dkey(kidId,sub,l)) === today);
+  const doneOlder = done.filter(l => doneDate(dkey(kidId,sub,l)) !== today);
 
-  // "Recently done" — collapsed by default; expands 5 at a time so a kid can find and
-  // undo an accidental or rapid-fire check-off without scrolling through everything.
+  // "Recently done" (older than today) — collapsed by default; expands 5 at a time so a
+  // kid can scroll back and undo an accidental or rapid-fire check-off from a previous day.
   let doneSection = "";
-  if(done.length){
-    const shownDone = done.slice(0, est.done);
-    const moreDone = done.length - shownDone.length;
+  if(doneOlder.length){
+    const shownDone = doneOlder.slice(0, est.done);
+    const moreDone = doneOlder.length - shownDone.length;
     let btnLabel, btnMode;
-    if(est.done===0){ btnLabel = `▲ Recently done (${done.length})`; btnMode = "expand"; }
+    if(est.done===0){ btnLabel = `▲ Recently done (${doneOlder.length})`; btnMode = "expand"; }
     else if(moreDone>0){ btnLabel = `▲ Show ${Math.min(5,moreDone)} more`; btnMode = "expand"; }
     else { btnLabel = `▲ Hide`; btnMode = "collapse"; }
     doneSection = shownDone.map(l=>lessonRow(kidId,sub,l,false)).join("")
       + `<div class="expandBtn" data-expand="done" data-mode="${btnMode}" data-key="${kidId}|${sub.subject}">${btnLabel}</div>`;
   }
+  const todaySection = doneToday.length
+    ? `<div class="today-lbl">Done today</div>` + doneToday.map(l=>lessonRow(kidId,sub,l,false)).join("")
+    : "";
 
   let body;
   if(undone.length===0){
-    body = doneSection + `<div class="empty">🎉 All caught up in ${sub.book||sub.subject}!</div>`;
+    body = doneSection + todaySection + `<div class="empty">🎉 All caught up in ${sub.book||sub.subject}!</div>`;
   } else {
     const now = undone[0];
     const upcoming = undone.slice(1, 1+est.upcoming);
     const moreUpcoming = undone.length - 1 - upcoming.length;
-    body = doneSection + lessonRow(kidId, sub, now, true);
+    body = doneSection + todaySection + lessonRow(kidId, sub, now, true);
     if(upcoming.length){
       body += `<div class="upnext-lbl">Coming up</div>` + upcoming.map(l=>lessonRow(kidId,sub,l,false)).join("");
     }
