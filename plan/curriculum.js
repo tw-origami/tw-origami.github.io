@@ -1,5 +1,6 @@
 // Full remaining curriculum for the master dashboard. Generated from Master_Lesson_Plans.xlsx.
-// 2026-09-05: applied confirmed pagination fixes (Ryland Science Ch3 +2, Ryland Writing Ch2 L6-L10 +2)
+// 2026-09-05: applied confirmed pagination fixes (Ryland Science ch3 +2, Ryland Writing Ch2 L6-L10 +2)
+// 2026-09-05: Reid switched to Spectrum Spelling 4 (new book), starting at Lesson 1
 window.CURRICULUM = {
  "ryland": [
   {
@@ -1819,7 +1820,7 @@ window.CURRICULUM = {
   },
   {
    "subject": "Spelling",
-   "book": "Spectrum Spelling 3",
+   "book": "Spectrum Spelling 4",
    "goal": 3,
    "options": [
     "Learn Zone → Spell It (×3/wk)"
@@ -1827,74 +1828,230 @@ window.CURRICULUM = {
    "kind": "book",
    "lessons": [
     {
-     "t": "Lesson 22 Names of Holidays",
-     "p": "100",
-     "cur": false,
-     "done": true
-    },
-    {
-     "t": "Review",
-     "p": "104",
+     "t": "Lesson 1: Words with the Short a and Short e Sounds",
+     "p": "6",
      "cur": true,
      "done": false
     },
     {
-     "t": "Lesson 23 Words with ld and ft",
-     "p": "106",
+     "t": "Lesson 2: Words with the Short i, o, and u Sounds",
+     "p": "10",
      "cur": false,
      "done": false
     },
     {
-     "t": "Lesson 24 /kw/ and /skw/ Sounds",
-     "p": "110",
+     "t": "Lesson 3: Words with scr, squ, str, and thr",
+     "p": "14",
      "cur": false,
      "done": false
     },
     {
-     "t": "Lesson 25 Silent k or w",
-     "p": "114",
+     "t": "Lesson 4: Words with ch and sh",
+     "p": "18",
      "cur": false,
      "done": false
     },
     {
-     "t": "Lesson 26 lf, mb, tch",
-     "p": "118",
+     "t": "Lesson 5: Silent Letters: Words with gn, mb, tch, and wr",
+     "p": "22",
      "cur": false,
      "done": false
     },
     {
      "t": "Review",
+     "p": "26",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 6: Words with the Long a Sound",
+     "p": "28",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 7: Words with the Long e Sound",
+     "p": "32",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 8: Words with the Long i Sound",
+     "p": "36",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 9: Words with the Long o Sound",
+     "p": "40",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 10: Words with the Long u",
+     "p": "44",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Review",
+     "p": "48",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 11: Words with the /ôr/ Sound",
+     "p": "50",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 12: Words with the /ûr/ Sound",
+     "p": "54",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 13: Words with the /e/ Sound",
+     "p": "58",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Review",
+     "p": "62",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 14: Possessive Nouns",
+     "p": "64",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 15: Easily Misspelled Words",
+     "p": "68",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 16: Irregular Plurals",
+     "p": "72",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 17: Words with the Final /el/ Sound",
+     "p": "76",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 18: Homophones",
+     "p": "80",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Review",
+     "p": "84",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 19: Words with the /j/ Sound",
+     "p": "86",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 20: Words with the /k/ Sound",
+     "p": "90",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 21: Words with the /s/ Sound",
+     "p": "94",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 22: Words with ex-",
+     "p": "98",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Review",
+     "p": "102",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 23: Words with the Prefixes in-, re-, and un-",
+     "p": "104",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 24: Words with the Prefixes dis- and mis-",
+     "p": "108",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 25: Words with the Suffix -ly",
+     "p": "112",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 26: Words with the Suffixes -ful and -less",
+     "p": "116",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Review",
+     "p": "120",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Lesson 27: Number Words",
      "p": "122",
      "cur": false,
      "done": false
     },
     {
-     "t": "Lesson 27 /âr/ Sound",
-     "p": "124",
+     "t": "Lesson 28: Words That End with -tion, -ture, and -ure",
+     "p": "126",
      "cur": false,
      "done": false
     },
     {
-     "t": "Lesson 28 /ôr/ and /ûr/ Sounds",
-     "p": "128",
+     "t": "Lesson 29: Adjectives That End with -er and -est",
+     "p": "130",
      "cur": false,
      "done": false
     },
     {
-     "t": "Lesson 29 Compound Words",
-     "p": "132",
+     "t": "Lesson 30: More Easily Misspelled Words",
+     "p": "134",
      "cur": false,
      "done": false
     },
     {
-     "t": "Lesson 30 More Compound Words",
-     "p": "136",
+     "t": "Lesson 31: Compound Words",
+     "p": "138",
      "cur": false,
      "done": false
     },
     {
      "t": "Review",
-     "p": "140",
+     "p": "142",
      "cur": false,
      "done": false
     }

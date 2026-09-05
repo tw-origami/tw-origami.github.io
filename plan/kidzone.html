@@ -37,6 +37,13 @@
   .bar{ height:8px; border-radius:999px; background:var(--line); overflow:hidden; margin-top:3px; }
   .bar>i{ display:block; height:100%; border-radius:999px; background:var(--accent); }
 
+  .noteBtn{ display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px;
+    border-radius:50%; background:#eef2ff; color:var(--accent); font-size:15px; font-weight:800; cursor:pointer; }
+  .noteBtn.has{ background:var(--amber); color:#fff; }
+  .notewrap{ margin-top:10px; } .notewrap.hide{ display:none; }
+  .noteinput{ width:100%; font-size:14px; padding:9px 11px; border:1px solid var(--line); border-radius:9px;
+    font-family:inherit; background:#fffbeb; }
+
   .lesson{ display:flex; align-items:center; gap:12px; padding:10px 8px; border-radius:12px; cursor:pointer; }
   .lesson.now{ background:#f5f6ff; }
   .lesson:hover{ background:#f8fafc; }
@@ -66,6 +73,7 @@
     <div style="display:flex;gap:8px;">
       <a class="back" href="print.html">🖨️ Daily sheets</a>
       <a class="back" href="master.html">📋 Master</a>
+      <a class="back" href="calendar.html">🗓️ Calendar</a>
       <a class="back" href="../index.html">← The Learn Zone</a>
     </div>
   </div>
@@ -94,13 +102,24 @@ function lessonRow(kidId, sub, les, isNow){
   </div>`;
 }
 
+function escapeAttr(s){ return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
+function noteBlock(kidId, sub){
+  const nkey = window.LZ.noteKey(kidId, sub.subject, window.LZ.todayISO());
+  const note = window.LZ.getNote(nkey);
+  return { btn: `<span class="noteBtn${note?' has':''}" data-notebtn="${nkey}" title="Add today's note">${note?'✎':'+'}</span>`,
+    wrap: `<div class="notewrap${note?'':' hide'}" data-notewrap="${nkey}">
+      <input type="text" class="noteinput" data-notekey="${nkey}" value="${escapeAttr(note)}" placeholder="What did you do today?"></div>` };
+}
+
 function subjectCard(kidId, sub){
+  const nb = noteBlock(kidId, sub);
   if(sub.kind==="ongoing"){
     const n = sub.goal;
     let boxes=""; for(let i=0;i<n;i++){ const k=skey(kidId,sub,"week",i); boxes+=`<div class="box${isDone(k)?' on':''}" data-k="${k}"></div>`; }
-    return `<div class="card"><div class="ch"><span class="s">${sub.subject}</span></div>
+    return `<div class="card"><div class="ch"><span class="s">${sub.subject}</span>${nb.btn}</div>
       <div class="opts"><b>Do:</b> ${(sub.options||[]).join(" or ")}${sub.note?`<br>${sub.note}`:""}</div>
       <div class="sessboxes" title="one box per time you do it this week">${boxes}</div>
+      ${nb.wrap}
     </div>`;
   }
   const undone = undoneLessons(kidId, sub);
@@ -117,9 +136,10 @@ function subjectCard(kidId, sub){
     }
   }
   return `<div class="card">
-    <div class="ch"><span class="s">${sub.subject}</span> <span class="bk">${sub.book||""}</span>
+    <div class="ch"><span class="s">${sub.subject}</span> <span class="bk">${sub.book||""}</span>${nb.btn}
       <span class="prog">${p.done}/${p.total} done<div class="bar"><i style="width:${p.pct}%"></i></div></span></div>
     ${body}
+    ${nb.wrap}
   </div>`;
 }
 
@@ -144,8 +164,30 @@ function render(){
 document.addEventListener("click", e=>{
   const tab = e.target.closest(".kidtab");
   if(tab){ kid = tab.dataset.kid; localStorage.setItem("lzKZkid", kid); render(); return; }
+  const nbtn = e.target.closest(".noteBtn");
+  if(nbtn){
+    const wrap = document.querySelector(`.notewrap[data-notewrap="${CSS.escape(nbtn.dataset.notebtn)}"]`);
+    if(wrap){ wrap.classList.toggle("hide"); if(!wrap.classList.contains("hide")) wrap.querySelector("input").focus(); }
+    return;
+  }
   const box = e.target.closest("[data-k]");
   if(box){ const k=box.dataset.k; setDone(k, !isDone(k)); render(); return; }
+});
+
+function saveNoteInput(input){
+  const k = input.dataset.notekey;
+  window.LZ.setNote(k, input.value);
+  const btn = document.querySelector(`.noteBtn[data-notebtn="${CSS.escape(k)}"]`);
+  if(btn){ const has=!!window.LZ.getNote(k); btn.classList.toggle("has", has); btn.textContent = has?"✎":"+"; }
+}
+document.addEventListener("focusout", e=>{
+  const input = e.target.closest(".noteinput");
+  if(input) saveNoteInput(input);
+});
+document.addEventListener("keydown", e=>{
+  if(e.key==="Enter" && e.target.classList && e.target.classList.contains("noteinput")){
+    saveNoteInput(e.target); e.target.blur();
+  }
 });
 
 render();
