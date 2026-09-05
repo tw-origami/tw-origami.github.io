@@ -46,7 +46,11 @@
   .kidsec{ margin-bottom:10px; }
   .kidsec .kn{ font-weight:800; font-size:13.5px; margin-bottom:4px; }
   .kidsec.ry .kn{ color:var(--ry); } .kidsec.reid .kn{ color:var(--reid); }
-  .entry{ font-size:13px; line-height:1.5; padding:3px 0 3px 10px; border-left:3px solid var(--line); margin-bottom:3px; }
+  .entry{ font-size:13px; line-height:1.5; padding:3px 8px 3px 10px; border-left:3px solid var(--line); margin-bottom:3px;
+    display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .undoBtn{ flex:none; width:20px; height:20px; border-radius:50%; background:#fee2e2; color:#b91c1c; font-size:12px;
+    font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .undoBtn:hover{ background:#fecaca; }
   .entry.lesson{ border-left-color:var(--green); }
   .entry.ongoing{ border-left-color:var(--accent); }
   .entry.note{ border-left-color:var(--amber); background:#fffbeb; border-radius:0 6px 6px 0; }
@@ -87,7 +91,8 @@
 <script src="lz-common.js"></script>
 <script>
 const CUR = window.CURRICULUM || {};
-const { slug, dkey, dateKey, noteKey, isDone, doneDate, getNote, scanKeys } = window.LZ;
+const { slug, dkey, dateKey, noteKey, isDone, setDone, doneDate, getNote, setNote, scanKeys } = window.LZ;
+function escapeAttr(s){ return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
 const KIDS = { ryland:{name:"Ryland",cls:"ry"}, reid:{name:"Reid",cls:"reid"} };
 
 let kidFilter = "both";
@@ -108,8 +113,9 @@ function buildActivityIndex(){
     (CUR[kid]||[]).forEach(sub=>{
       if(sub.kind==="book"){
         (sub.lessons||[]).forEach(l=>{
-          const d = doneDate(dkey(kid, sub, l));
-          if(d) add(d, {kid, subject:sub.subject, type:"lesson", title:l.t, page:l.p});
+          const k = dkey(kid, sub, l);
+          const d = doneDate(k);
+          if(d) add(d, {kid, subject:sub.subject, type:"lesson", title:l.t, page:l.p, key:k});
         });
       }
     });
@@ -117,13 +123,13 @@ function buildActivityIndex(){
   scanKeys("lzDay|").forEach(k=>{
     const parts = k.split("|"); const kid=parts[1], subjSlug=parts[2], d=parts[3];
     const sub = findSubjectBySlug(kid, subjSlug);
-    if(sub && isDone(k)) add(d, {kid, subject:sub.subject, type:"ongoing"});
+    if(sub && isDone(k)) add(d, {kid, subject:sub.subject, type:"ongoing", key:k});
   });
   scanKeys("lzNote|").forEach(k=>{
     const parts = k.split("|"); const kid=parts[1], subjSlug=parts[2], d=parts[3];
     const sub = findSubjectBySlug(kid, subjSlug);
     const text = getNote(k);
-    if(sub && text) add(d, {kid, subject:sub.subject, type:"note", text});
+    if(sub && text) add(d, {kid, subject:sub.subject, type:"note", text, key:k});
   });
   return byDate;
 }
@@ -177,9 +183,13 @@ function renderDetail(){
     const mine = entries.filter(e=>e.kid===kid);
     if(!mine.length) return;
     const rows = mine.map(e=>{
-      if(e.type==="lesson") return `<div class="entry lesson"><b>${e.subject}:</b> ${e.title} — p.${e.page}</div>`;
-      if(e.type==="ongoing") return `<div class="entry ongoing"><b>${e.subject}</b> — done</div>`;
-      return `<div class="entry note"><b>${e.subject}:</b> ${e.text}</div>`;
+      let inner, confirmMsg;
+      if(e.type==="lesson"){ inner = `<b>${e.subject}:</b> ${e.title} — p.${e.page}`; confirmMsg = `Undo "${e.title}" for ${e.subject}? It'll go back to not-done.`; }
+      else if(e.type==="ongoing"){ inner = `<b>${e.subject}</b> — done`; confirmMsg = `Remove this ${e.subject} check-off for this day?`; }
+      else { inner = `<b>${e.subject}:</b> ${e.text}`; confirmMsg = `Delete this note for ${e.subject}?`; }
+      return `<div class="entry ${e.type}">${inner}
+        <span class="undoBtn" data-key="${e.key}" data-type="${e.type}" data-confirm="${escapeAttr(confirmMsg)}" title="Undo">✕</span>
+      </div>`;
     }).join("");
     body += `<div class="kidsec ${KIDS[kid].cls}"><div class="kn">${KIDS[kid].name}</div>${rows}</div>`;
   });
@@ -190,6 +200,15 @@ function renderDetail(){
 document.addEventListener("click", e=>{
   const kf = e.target.closest(".kf");
   if(kf){ kidFilter = kf.dataset.kid; renderKidFilter(); renderGrid(); return; }
+  const undo = e.target.closest(".undoBtn");
+  if(undo){
+    if(window.confirm(undo.dataset.confirm)){
+      if(undo.dataset.type==="note") setNote(undo.dataset.key, "");
+      else setDone(undo.dataset.key, false);
+      renderGrid();
+    }
+    return;
+  }
   const day = e.target.closest(".day[data-date]");
   if(day){ selected = day.dataset.date; renderGrid(); return; }
 });

@@ -34,6 +34,18 @@
     const done=total - undoneLessons(kid,sub).length;
     return {done,total,pct: total?Math.round(done/total*100):0, left: total-done};
   }
+  // Completed lessons for a subject, most-recently-done first (by stored completion date,
+  // tiebroken by page descending) — so "recently done" always surfaces what a kid just
+  // checked off, letting them undo an accidental or rapid-fire click.
+  function doneLessons(kid, sub){
+    return (sub.lessons||[])
+      .filter(l=>isDone(dkey(kid,sub,l))||l.done)
+      .sort((a,b)=>{
+        const da = doneDate(dkey(kid,sub,a))||"", db = doneDate(dkey(kid,sub,b))||"";
+        if(da!==db) return db.localeCompare(da);
+        return (parseInt(b.p,10)||0) - (parseInt(a.p,10)||0);
+      });
+  }
 
   // A specific calendar day's "did you do it" checkbox for non-workbook subjects on the
   // daily print sheet (e.g. Math via Khan Academy, Typing) — distinct from the weekly
@@ -55,7 +67,7 @@
   }
 
   window.LZ = { slug, dkey, skey, dateKey, noteKey, isDone, setDone, doneDate, getNote, setNote, scanKeys, todayISO,
-    undoneLessons, nextLesson, upcomingLessons, subjProgress };
+    undoneLessons, nextLesson, upcomingLessons, subjProgress, doneLessons };
 
   // Shared weekly config — the one place to pause a subject or tweak per-day overrides.
   // Edit this (or ask Claude to) and kidzone.html + print.html both pick it up automatically.

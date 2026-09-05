@@ -56,6 +56,10 @@
   .lesson .pg{ font-size:11px; color:var(--muted); }
   .lesson.next .t{ font-weight:800; }
   .nextpill{ display:inline-block; font-size:9.5px; font-weight:800; background:var(--accent); color:#fff; padding:1px 7px; border-radius:999px; margin-left:6px; vertical-align:middle; }
+  .lesson-scroll{ max-height:220px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:2px 4px;
+    scroll-behavior:smooth; }
+  .lesson-scroll::-webkit-scrollbar{ width:7px; }
+  .lesson-scroll::-webkit-scrollbar-thumb{ background:var(--line); border-radius:99px; }
   .opts{ margin-top:8px; font-size:12px; color:var(--amber); }
   .opts b{ color:var(--muted); }
   .sessboxes{ display:flex; gap:8px; margin-top:8px; }
@@ -135,21 +139,20 @@ function subjectCard(kid, sub){
     return `<div class="card"><div class="ch"><span class="s">${sub.subject}</span>
        <span class="goal">aim ≥${sub.goal}/wk</span></div>${list}</div>`;
   }
-  const undone = sub.lessons.filter(l=>!(isDone(dkey(kid,sub,l))||l.done));
-  let show;
-  if(state.view==="all") show=sub.lessons;
-  else { const n = state.view==="month"? sub.goal*4 : sub.goal; show=undone.slice(0,n); }
-  const nextK = undone.length? dkey(kid,sub,undone[0]) : null;
-  if(show.length===0) list=`<div class="empty">✓ All caught up for now!</div>`;
-  else list=show.map(l=>lessonRow(kid,sub,l, dkey(kid,sub,l)===nextK)).join("");
+  // Always render the full lesson list (done + not-done, in book order) in a scrollable
+  // box, auto-centered on "next" — so you can scroll up to review/undo past completions or
+  // scroll down to preview what's coming, instead of only seeing a slice of the book.
+  const nextK = (() => { const u = sub.lessons.find(l=>!(isDone(dkey(kid,sub,l))||l.done)); return u ? dkey(kid,sub,u) : null; })();
+  if(sub.lessons.length===0) list=`<div class="empty">✓ All caught up for now!</div>`;
+  else list = `<div class="lesson-scroll" data-scroll="${kid}|${sub.subject}">` +
+    sub.lessons.map(l=>lessonRow(kid,sub,l, dkey(kid,sub,l)===nextK)).join("") + `</div>`;
   const opts = (sub.options&&sub.options.length)? `<div class="opts"><b>or instead:</b> ${sub.options.join(" · ")}</div>`:"";
-  const hidden = (state.view!=="all") ? Math.max(0, undone.length-show.length) : 0;
-  const more = hidden? `<div class="more" data-all="1">+ ${hidden} more remaining →</div>`:"";
+
   return `<div class="card">
     <div class="ch"><span class="s">${sub.subject}</span> <span class="bk">${sub.book||""}</span> <span class="goal">≥${sub.goal}/wk</span>
       <span class="prog"><div class="pmeta">${p.done}/${p.total} done · ${p.left} left</div><div class="bar"><i style="width:${p.pct}%"></i></div></span>
     </div>
-    ${list}${opts}${more}
+    ${list}${opts}
   </div>`;
 }
 
@@ -181,11 +184,19 @@ function kidBlock(kid){
 function render(){
   const kids = state.kid==="both"? ["ryland","reid"] : [state.kid];
   document.getElementById("body").innerHTML = kids.map(kidBlock).join("");
+  centerNextInScrollers();
+}
+
+// Center the "next" lesson inside its subject's scroll box, so you land on "today" but can
+// freely scroll up (past, done) or down (future, not yet done) within the same box.
+function centerNextInScrollers(){
+  document.querySelectorAll(".lesson-scroll").forEach(box=>{
+    const next = box.querySelector(".lesson.next");
+    if(next) box.scrollTop = next.offsetTop - (box.clientHeight/2) + (next.offsetHeight/2);
+  });
 }
 
 document.addEventListener("click", e=>{
-  const more=e.target.closest(".more");
-  if(more){ state.view="all"; document.getElementById("fView").value="all"; render(); return; }
   const box=e.target.closest("[data-k]");
   if(box){ const k=box.dataset.k; setDone(k,!isDone(k)); render(); return; }
 });
