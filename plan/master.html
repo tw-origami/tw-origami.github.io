@@ -106,7 +106,7 @@ const CUR = window.CURRICULUM || {};
 const SUG = window.SUGGESTIONS || {};
 const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th · grade 5–6 books"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th · grade 3 books"} };
 
-const { slug, dkey, skey, isDone, setDone, subjProgress, doneDate, getNote, setNote, scanKeys } = window.LZ;
+const { slug, dkey, skey, dateKey, isDone, setDone, subjProgress, doneDate, getNote, setNote, scanKeys, doneDatesForSubject, todayISO } = window.LZ;
 
 // populate subject filter
 (function(){
@@ -161,18 +161,51 @@ function subjectHistory(kid, sub){
   return items;
 }
 
+// Same idea for an "ongoing" subject (Math, Typing) — no fixed book, so the "lesson" is just
+// the calendar date itself. Same dateKey record print.html/kidzone.html/the calendar use.
+function dayRow(kid, sub, dateISO, isNext){
+  const k = dateKey(kid, sub.subject, dateISO);
+  const done = isDone(k);
+  const label = new Date(dateISO+"T00:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+  return `<div class="lesson${done?' done':''}${isNext?' next':''}" data-k="${k}">
+    <div class="box">${done?'✓':''}</div>
+    <div><span class="t">${sub.subject}${isNext?'<span class="nextpill">today</span>':''}</span> <span class="pg">${label}</span></div>
+  </div>`;
+}
+function ongoingHistory(kid, sub){
+  const items = [];
+  const today = todayISO();
+  // Today's day-checkbox is rendered separately as the trailing "today" row (below), so skip it
+  // here to avoid showing it twice — but a note recorded today still belongs in history, same as
+  // it would for a book subject, so it can appear right before that trailing row.
+  doneDatesForSubject(kid, sub.subject).filter(d=>d!==today).forEach(d=> items.push({type:"day", date:d}));
+  scanKeys(`lzNote|${kid}|${slug(sub.subject)}|`).forEach(k=>{
+    const d = k.split("|")[3]; const text=getNote(k);
+    if(text) items.push({type:"note", date:d||"", key:k, text, dateStr:d});
+  });
+  items.sort((a,b)=>{
+    if(a.date!==b.date) return a.date.localeCompare(b.date);
+    return a.type==="day" ? -1 : 1;
+  });
+  return items;
+}
+
 function subjectCard(kid, sub){
   const cls=KIDS[kid].cls;
   const p=subjProgress(kid,sub);
   let list="";
   if(sub.kind==="ongoing"){
-    const n = state.view==="all"? sub.goal*4 : state.view==="month"? sub.goal*4 : sub.goal;
-    let boxes="";
-    for(let i=0;i<n;i++){ const k=skey(kid,sub,state.view,i); boxes+=`<div class="box${isDone(k)?' on':''}" data-k="${k}"></div>`; }
+    const today = todayISO();
+    const history = ongoingHistory(kid, sub);
+    const doneCount = doneDatesForSubject(kid, sub.subject).length;
+    const histHtml = history.map(item=> item.type==="day"
+      ? dayRow(kid,sub,item.date,false)
+      : noteRow(kid,sub,item.key,item.text,item.dateStr)).join("");
+    const scroller = `<div class="lesson-scroll" data-scroll="${kid}|${sub.subject}">` + histHtml + dayRow(kid,sub,today,true) + `</div>`;
     list = `<div class="opts"><b>Do:</b> ${(sub.options||[]).join(" · ")}${sub.note?`<br><span style="color:var(--muted)">${sub.note}</span>`:""}</div>
-      <div class="sessboxes" title="one box per session">${boxes}</div>`;
+      ${scroller}`;
     return `<div class="card"><div class="ch"><span class="s">${sub.subject}</span>
-       <span class="goal">aim ≥${sub.goal}/wk</span></div>${list}</div>`;
+       <span class="goal">${doneCount} day${doneCount===1?'':'s'} done</span></div>${list}</div>`;
   }
   // Render history (done lessons + "+" notes, chronological) followed by what's left (in
   // book order), all in one scrollable box auto-centered on "next" — scroll up to review a

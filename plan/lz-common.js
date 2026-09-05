@@ -47,10 +47,17 @@
       });
   }
 
-  // A specific calendar day's "did you do it" checkbox for non-workbook subjects on the
-  // daily print sheet (e.g. Math via Khan Academy, Typing) — distinct from the weekly
-  // tally boxes on master.html/kidzone.html, since this ties to one exact date.
+  // A specific calendar day's "did you do it" checkbox for "ongoing" subjects with no fixed
+  // book (Math, Typing) — the single source of truth for these across My Work, Daily Sheets,
+  // Master Tracker, and the Calendar, so checking one off anywhere shows up everywhere else.
   function dateKey(kid,subject,dateISO){ return `lzDay|${kid}|${slug(subject)}|${dateISO}`; }
+  // Every ISO date an ongoing subject was marked done, oldest first.
+  function doneDatesForSubject(kid, subject){
+    return scanKeys(`lzDay|${kid}|${slug(subject)}|`)
+      .filter(k=>isDone(k))
+      .map(k=>k.split("|")[3])
+      .sort();
+  }
 
   // Free-text "what we actually did" note for one kid+subject+day (the "+" button on
   // print.html / kidzone.html). Empty string clears the note.
@@ -67,7 +74,7 @@
   }
 
   window.LZ = { slug, dkey, skey, dateKey, noteKey, isDone, setDone, doneDate, getNote, setNote, scanKeys, todayISO,
-    undoneLessons, nextLesson, upcomingLessons, subjProgress, doneLessons };
+    undoneLessons, nextLesson, upcomingLessons, subjProgress, doneLessons, doneDatesForSubject };
 
   // Shared weekly config — the one place to pause a subject or tweak per-day overrides.
   // Edit this (or ask Claude to) and kidzone.html + print.html both pick it up automatically.
