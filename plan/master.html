@@ -60,6 +60,11 @@
     scroll-behavior:smooth; }
   .lesson-scroll::-webkit-scrollbar{ width:7px; }
   .lesson-scroll::-webkit-scrollbar-thumb{ background:var(--line); border-radius:99px; }
+  .note-row{ cursor:default; background:#fffbeb; }
+  .note-row .t{ font-style:italic; }
+  .note-box{ background:var(--amber); border-color:var(--amber); }
+  .undoNote{ flex:none; width:18px; height:18px; border-radius:50%; background:#fee2e2; color:#b91c1c; font-size:11px;
+    font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; margin-left:auto; }
   .opts{ margin-top:8px; font-size:12px; color:var(--amber); }
   .opts b{ color:var(--muted); }
   .sessboxes{ display:flex; gap:8px; margin-top:8px; }
@@ -101,7 +106,7 @@ const CUR = window.CURRICULUM || {};
 const SUG = window.SUGGESTIONS || {};
 const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th · grade 5–6 books"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th · grade 3 books"} };
 
-const { slug, dkey, skey, isDone, setDone, subjProgress } = window.LZ;
+const { slug, dkey, skey, isDone, setDone, subjProgress, doneDate, getNote, setNote, scanKeys } = window.LZ;
 
 // populate subject filter
 (function(){
@@ -125,6 +130,36 @@ function lessonRow(kid,sub,les,isNext){
     <div><span class="t">${les.t}${isNext?'<span class="nextpill">next</span>':''}</span> <span class="pg">p.${les.p}</span></div>
   </div>`;
 }
+function noteRow(kid,sub,noteKeyStr,text,dateStr){
+  const label = dateStr ? new Date(dateStr+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"}) : "";
+  return `<div class="lesson note-row">
+    <div class="box note-box">✎</div>
+    <div style="flex:1;"><span class="t">${text}</span> <span class="pg">${label}</span></div>
+    <span class="undoNote" data-notekey="${noteKeyStr}" data-confirm="Delete this note?" title="Delete note">✕</span>
+  </div>`;
+}
+// Everything DONE for a subject, in true chronological order (oldest first) — completed
+// lessons interleaved with any "+" notes recorded that day — so a note like "did a science
+// museum trip instead" shows up right where it actually happened, not detached from context.
+// Anything still to do stays in normal page order after this, unchanged.
+function subjectHistory(kid, sub){
+  const items = [];
+  sub.lessons.forEach(l=>{
+    const k = dkey(kid,sub,l);
+    if(isDone(k)||l.done) items.push({type:"lesson", date: doneDate(k)||"", page: parseInt(l.p,10)||0, lesson:l});
+  });
+  scanKeys(`lzNote|${kid}|${slug(sub.subject)}|`).forEach(k=>{
+    const d = k.split("|")[3];
+    const text = getNote(k);
+    if(text) items.push({type:"note", date: d||"", page: Infinity, key:k, text, dateStr:d});
+  });
+  items.sort((a,b)=>{
+    if(a.date!==b.date) return a.date.localeCompare(b.date);
+    if(a.type!==b.type) return a.type==="lesson" ? -1 : 1;
+    return a.page - b.page;
+  });
+  return items;
+}
 
 function subjectCard(kid, sub){
   const cls=KIDS[kid].cls;
@@ -139,13 +174,20 @@ function subjectCard(kid, sub){
     return `<div class="card"><div class="ch"><span class="s">${sub.subject}</span>
        <span class="goal">aim ≥${sub.goal}/wk</span></div>${list}</div>`;
   }
-  // Always render the full lesson list (done + not-done, in book order) in a scrollable
-  // box, auto-centered on "next" — so you can scroll up to review/undo past completions or
-  // scroll down to preview what's coming, instead of only seeing a slice of the book.
-  const nextK = (() => { const u = sub.lessons.find(l=>!(isDone(dkey(kid,sub,l))||l.done)); return u ? dkey(kid,sub,u) : null; })();
+  // Render history (done lessons + "+" notes, chronological) followed by what's left (in
+  // book order), all in one scrollable box auto-centered on "next" — scroll up to review a
+  // past completion or note (and undo/delete it), scroll down to preview what's coming.
+  const history = subjectHistory(kid, sub);
+  const undone = sub.lessons.filter(l=>!(isDone(dkey(kid,sub,l))||l.done));
+  const nextK = undone.length? dkey(kid,sub,undone[0]) : null;
   if(sub.lessons.length===0) list=`<div class="empty">✓ All caught up for now!</div>`;
-  else list = `<div class="lesson-scroll" data-scroll="${kid}|${sub.subject}">` +
-    sub.lessons.map(l=>lessonRow(kid,sub,l, dkey(kid,sub,l)===nextK)).join("") + `</div>`;
+  else{
+    const histHtml = history.map(item=> item.type==="lesson"
+      ? lessonRow(kid,sub,item.lesson,false)
+      : noteRow(kid,sub,item.key,item.text,item.dateStr)).join("");
+    const undoneHtml = undone.map(l=>lessonRow(kid,sub,l, dkey(kid,sub,l)===nextK)).join("");
+    list = `<div class="lesson-scroll" data-scroll="${kid}|${sub.subject}">` + histHtml + undoneHtml + `</div>`;
+  }
   const opts = (sub.options&&sub.options.length)? `<div class="opts"><b>or instead:</b> ${sub.options.join(" · ")}</div>`:"";
 
   return `<div class="card">
@@ -197,6 +239,11 @@ function centerNextInScrollers(){
 }
 
 document.addEventListener("click", e=>{
+  const undo = e.target.closest(".undoNote");
+  if(undo){
+    if(window.confirm(undo.dataset.confirm)){ setNote(undo.dataset.notekey, ""); render(); }
+    return;
+  }
   const box=e.target.closest("[data-k]");
   if(box){ const k=box.dataset.k; setDone(k,!isDone(k)); render(); return; }
 });
