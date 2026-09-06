@@ -3,15 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="refresh" content="0; url=plan/kidzone.html">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>My Work · The Learn Zone</title>
 <style>
-  body{ margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; background:#eef2ff; color:#1e293b; }
-  a{ color:#4f46e5; font-weight:800; }
+  :root{ --ink:#1e293b; --muted:#64748b; --ry:#4f46e5; --ry-soft:#eef2ff; --reid:#0f766e; --reid-soft:#ccfbf1;
+    --shadow:0 10px 30px rgba(30,41,99,.12); }
+  *{ box-sizing:border-box; }
+  body{ margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; background:linear-gradient(160deg,#eef2ff,#f8fafc);
+    color:var(--ink); padding:24px; }
+  h1{ font-size:26px; margin:0 0 22px; }
+  .picks{ display:flex; gap:18px; flex-wrap:wrap; justify-content:center; }
+  a.pick{ text-decoration:none; color:inherit; background:#fff; border-radius:20px; box-shadow:var(--shadow);
+    padding:28px 34px; display:flex; flex-direction:column; align-items:center; gap:10px; border:3px solid transparent;
+    transition:transform .15s; min-width:160px; }
+  a.pick:hover{ transform:translateY(-4px); }
+  a.pick.ry:hover{ border-color:var(--ry); } a.pick.reid:hover{ border-color:var(--reid); }
+  .pick .ic{ font-size:40px; }
+  .pick .nm{ font-weight:800; font-size:19px; }
+  .pick.ry .nm{ color:var(--ry); } .pick.reid .nm{ color:var(--reid); }
 </style>
 </head>
 <body>
-  <p>Taking you to <a href="plan/kidzone.html">My Work</a>…</p>
+  <h1>✅ Whose work?</h1>
+  <div class="picks">
+    <a class="pick ry" href="ry.html"><span class="ic">🧑‍🎓</span><span class="nm">Ryland</span></a>
+    <a class="pick reid" href="reid.html"><span class="ic">🧑‍🎓</span><span class="nm">Reid</span></a>
+  </div>
 </body>
 </html>

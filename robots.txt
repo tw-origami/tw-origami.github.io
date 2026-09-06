@@ -1,59 +1,79 @@
-# The Learn Zone is a family homeschool site. Everything under /plan/ is a private
-# progress tracker (kids' names, grades, daily lesson data) and should not be indexed
-# by search engines or used for AI training, even though the URL itself is public.
+# The Learn Zone is a family homeschool site. Everything under /plan/, plus the
+# teacher dashboard, is a private progress tracker (kids' names, grades, daily lesson
+# data) and should not be indexed by search engines or used for AI training, even
+# though the URL itself is public.
 
 User-agent: *
 Disallow: /plan/
+Disallow: /teacher.html
 
-# Known AI training / scraping crawlers — blocked entirely from /plan/, matching the
-# wildcard rule above (listed explicitly since some bots ignore the generic "*" group).
+# Known AI training / scraping crawlers — blocked entirely from /plan/ and the teacher
+# dashboard, matching the wildcard rule above (listed explicitly since some bots ignore
+# the generic "*" group).
 User-agent: GPTBot
 Disallow: /plan/
+Disallow: /teacher.html
 
 User-agent: ChatGPT-User
 Disallow: /plan/
+Disallow: /teacher.html
 
 User-agent: ClaudeBot
 Disallow: /plan/
+Disallow: /teacher.html
 
 User-agent: anthropic-ai
 Disallow: /plan/
+Disallow: /teacher.html
 
 User-agent: Claude-Web
 Disallow: /plan/
+Disallow: /teacher.html
 
 User-agent: CCBot
 Disallow: /plan/
+Disallow: /teacher.html
 
 User-agent: Google-Extended
 Disallow: /plan/
+Disallow: /teacher.html
 
 User-agent: Applebot-Extended
 Disallow: /plan/
+Disallow: /teacher.html
 
 User-agent: Bytespider
 Disallow: /plan/
+Disallow: /teacher.html
 
 User-agent: Diffbot
 Disallow: /plan/
+Disallow: /teacher.html
 
 User-agent: FacebookBot
 Disallow: /plan/
+Disallow: /teacher.html
 
 User-agent: meta-externalagent
 Disallow: /plan/
+Disallow: /teacher.html
 
 User-agent: cohere-ai
 Disallow: /plan/
+Disallow: /teacher.html
 
 User-agent: PerplexityBot
 Disallow: /plan/
+Disallow: /teacher.html
 
 User-agent: Omgili
 Disallow: /plan/
+Disallow: /teacher.html
 
 User-agent: Omgilibot
 Disallow: /plan/
+Disallow: /teacher.html
 
 User-agent: img2dataset
 Disallow: /plan/
+Disallow: /teacher.html

@@ -83,7 +83,7 @@
     <div style="display:flex;gap:8px;">
       <a class="back" href="print.html">🖨️ Daily sheets</a>
       <a class="back" href="master.html">📋 Master</a>
-      <a class="back" href="calendar.html">🗓️ Calendar</a>
+      <a class="back" id="navCalendar" href="calendar.html">🗓️ Calendar</a>
       <a class="back" href="../index.html">← The Learn Zone</a>
     </div>
   </div>
@@ -102,7 +102,17 @@ const { slug, dkey, skey, dateKey, isDone, setDone, undoneLessons, upcomingLesso
   doneLessons, doneDate, todayISO, doneDatesForSubject, noteKey, getNote, setNote } = window.LZ;
 const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th grade"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th grade"} };
 
-let kid = localStorage.getItem("lzKZkid") || "ryland";
+// ?kid=ryland (or reid) in the URL locks this page to just that kid — no switcher tabs, and
+// the Calendar link stays scoped to the same kid. Used by the per-kid hub pages (ry.html /
+// reid.html) so each kid only ever sees their own work.
+const LOCK_PARAMS = new URLSearchParams(location.search);
+const LOCKED = KIDS[LOCK_PARAMS.get("kid")] ? LOCK_PARAMS.get("kid") : null;
+
+let kid = LOCKED || localStorage.getItem("lzKZkid") || "ryland";
+if(LOCKED){
+  const calNav = document.getElementById("navCalendar");
+  if(calNav) calNav.href = "calendar.html?kid=" + LOCKED;
+}
 // How many "recently done" / "coming up" items are expanded per subject, in-memory only
 // (resets on reload). Lets a kid undo an accidental or rapid-fire check-off.
 let expand = {};
@@ -240,10 +250,16 @@ function subjectCard(kidId, sub){
 }
 
 function render(){
-  document.getElementById("kidtabs").innerHTML = Object.keys(KIDS).map(id=>{
-    const k=KIDS[id];
-    return `<div class="kidtab ${k.cls}${kid===id?' active':''}" data-kid="${id}">${k.name}</div>`;
-  }).join("");
+  const kidtabsEl = document.getElementById("kidtabs");
+  if(LOCKED){
+    kidtabsEl.innerHTML = "";
+    kidtabsEl.style.display = "none";
+  } else {
+    kidtabsEl.innerHTML = Object.keys(KIDS).map(id=>{
+      const k=KIDS[id];
+      return `<div class="kidtab ${k.cls}${kid===id?' active':''}" data-kid="${id}">${k.name}</div>`;
+    }).join("");
+  }
 
   const subs = (CUR[kid]||[]).filter(s=>!(CFG.paused||[]).includes(s.subject));
   let d=0,t=0; subs.forEach(s=>{ if(s.kind!=="ongoing"){ const p=subjProgress(kid,s); d+=p.done; t+=p.total; } });

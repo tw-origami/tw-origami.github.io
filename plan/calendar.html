@@ -63,7 +63,7 @@
   <div class="top">
     <h1>🗓️ Calendar</h1>
     <div style="display:flex;gap:8px;">
-      <a class="back" href="kidzone.html">✅ My Work</a>
+      <a class="back" id="navWork" href="kidzone.html">✅ My Work</a>
       <a class="back" href="master.html">📋 Master</a>
       <a class="back" href="../index.html">← The Learn Zone</a>
     </div>
@@ -95,7 +95,16 @@ const { slug, dkey, dateKey, noteKey, isDone, setDone, doneDate, getNote, setNot
 function escapeAttr(s){ return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
 const KIDS = { ryland:{name:"Ryland",cls:"ry"}, reid:{name:"Reid",cls:"reid"} };
 
-let kidFilter = "both";
+// ?kid=ryland (or reid) locks this calendar to just that kid — no filter buttons, and the
+// My Work link stays scoped to the same kid. Used by the per-kid hub pages (ry.html / reid.html).
+const LOCK_PARAMS = new URLSearchParams(location.search);
+const LOCKED = KIDS[LOCK_PARAMS.get("kid")] ? LOCK_PARAMS.get("kid") : null;
+if(LOCKED){
+  const workNav = document.getElementById("navWork");
+  if(workNav) workNav.href = "kidzone.html?kid=" + LOCKED;
+}
+
+let kidFilter = LOCKED || "both";
 let viewDate = new Date(); viewDate.setDate(1); viewDate.setHours(0,0,0,0);
 let selected = isoToday();
 
@@ -146,8 +155,10 @@ function monthMatrix(viewDate){
 }
 
 function renderKidFilter(){
+  const el = document.getElementById("kidfilter");
+  if(LOCKED){ el.innerHTML = ""; el.style.display = "none"; return; }
   const opts = [["both","Both"],["ryland","Ryland"],["reid","Reid"]];
-  document.getElementById("kidfilter").innerHTML = opts.map(([id,name])=>{
+  el.innerHTML = opts.map(([id,name])=>{
     const cls = id==="ryland"?"ry":id==="reid"?"reid":"both";
     return `<div class="kf ${cls}${kidFilter===id?' active':''}" data-kid="${id}">${name}</div>`;
   }).join("");

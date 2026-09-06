@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<title>Teacher Dashboard · The Learn Zone</title>
+<style>
+  :root{ --ink:#1e293b; --muted:#64748b; --accent:#1f3864; --accent-soft:#e0e7ff; --shadow:0 10px 30px rgba(30,41,99,.12); }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#e0e7ff,#f8fafc); display:flex; flex-direction:column; }
+  .top{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 18px; flex-wrap:wrap; }
+  h1{ font-size:24px; margin:0; color:var(--accent); }
+  .navlinks{ display:flex; gap:8px; }
+  .back{ text-decoration:none; color:var(--accent); font-weight:800; font-size:13.5px; background:#fff; padding:8px 14px; border-radius:999px; box-shadow:var(--shadow); }
+  .tabs{ display:flex; gap:8px; padding:0 18px 12px; }
+  .tab{ border:2px solid var(--accent-soft); background:#fff; border-radius:999px; padding:9px 20px; font-weight:800; cursor:pointer; font-size:14.5px; color:var(--muted); }
+  .tab.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .frame-wrap{ flex:1; padding:0 12px 12px; }
+  iframe{ width:100%; height:100%; border:none; border-radius:18px; box-shadow:var(--shadow); background:#fff; display:block; }
+  .hide{ display:none; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <h1>📋 Teacher Dashboard</h1>
+    <div class="navlinks">
+      <a class="back" href="plan/print.html">🖨️ Daily sheets</a>
+      <a class="back" href="index.html">← The Learn Zone</a>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" data-tab="master">📋 Master Plan</div>
+    <div class="tab" data-tab="cal">🗓️ All Calendars</div>
+  </div>
+  <div class="frame-wrap">
+    <iframe id="fMaster" src="plan/master.html"></iframe>
+    <iframe id="fCal" class="hide" src="plan/calendar.html"></iframe>
+  </div>
+
+<script>
+document.querySelectorAll(".tab").forEach(t=>{
+  t.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+    const isMaster = t.dataset.tab==="master";
+    document.getElementById("fMaster").classList.toggle("hide", !isMaster);
+    document.getElementById("fCal").classList.toggle("hide", isMaster);
+  });
+});
+</script>
+</body>
+</html>
