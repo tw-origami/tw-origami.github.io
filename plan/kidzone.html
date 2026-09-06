@@ -425,6 +425,20 @@ document.addEventListener("keydown", e=>{
 });
 
 render();
+
+// Undoing something on the calendar (a sibling iframe on the same page, e.g. ry.html's
+// mini calendar or the My Calendar tab) writes to this same localStorage — a same-origin
+// 'storage' event fires here when that happens, so this page picks up the uncheck/delete
+// live instead of only on the next click. Skip refreshing while a note/outing input is being
+// typed into, so we don't yank it out from under the kid mid-sentence; a light poll is kept
+// as a fallback since 'storage' event timing/support can vary by browser.
+function safeRender(){
+  const ae = document.activeElement;
+  if(ae && ae.classList && (ae.classList.contains("noteinput") || ae.classList.contains("outinginput"))) return;
+  render();
+}
+window.addEventListener("storage", safeRender);
+setInterval(safeRender, 4000);
 </script>
 <script src="/stopwatch.js?v=1"></script>
 </body>
