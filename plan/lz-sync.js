@@ -1,16 +1,17 @@
 // The Learn Zone — optional cross-device sync.
 // Load this AFTER lz-common.js on any page that reads/writes progress (kidzone.html,
-// calendar.html, master.html, journal.html). Does nothing at all unless SYNC_URL below
-// is filled in with a deployed Google Apps Script Web App URL — see SETUP-Sync.md.
+// calendar.html, master.html, journal.html, print.html). Does nothing at all unless
+// SYNC_URL below is filled in with a deployed Google Apps Script Web App URL — see
+// SETUP-Sync.md.
 //
-// How it works: every few seconds this scans localStorage for every key starting with
-// "lz" (that's everything this app stores — lesson check-offs, notes, daily habits, day
-// outings, journal entries, teacher-inserted manual lessons, custom lesson order, which
-// kid tab was last selected, etc.) and compares each one to what was last successfully
-// pushed or pulled. Anything changed locally gets pushed up to the shared Google Sheet;
-// anything changed elsewhere since our last pull gets written into localStorage here.
-// Each key carries its own "last updated" timestamp, so if two devices ever touch the
-// same key, whichever wrote most recently wins.
+// How it works: this scans localStorage for every key starting with "lz" (that's
+// everything this app stores — lesson check-offs, notes, daily habits, day outings,
+// journal entries, teacher-inserted manual lessons, custom lesson order, which kid tab
+// was last selected, etc.) and compares each one to what was last successfully pushed or
+// pulled. Anything changed locally gets pushed up to the shared Google Sheet as soon as
+// it happens; anything changed elsewhere gets pulled down and written into localStorage
+// on a steady ~5s heartbeat. Each key carries its own "last updated" timestamp, so if two
+// devices ever touch the same key, whichever wrote most recently wins.
 //
 // This file intentionally has no dependency on lz-common.js's internals — it works
 // purely off the localStorage key namespace, so it never needs updating when new kinds
@@ -22,18 +23,21 @@
 
   const META_KEY = "_lzSyncMeta";     // our own bookkeeping — deliberately NOT prefixed "lz" so it's never swept up as content
   const CURSOR_KEY = "_lzSyncCursor";
-  const TICK_MS = 5000;
+  const HEARTBEAT_MS = 3000;   // background pull, catches changes made on OTHER devices — safe to
+                                // run this often now that only one frame per tab does it (see below)
+  const QUICK_PUSH_MS = 250;   // debounce for pushing a change made right here, right now
 
   function loadMeta() { try { return JSON.parse(localStorage.getItem(META_KEY) || "{}"); } catch (e) { return {}; } }
   function saveMeta(m) { try { localStorage.setItem(META_KEY, JSON.stringify(m)); } catch (e) {} }
   function loadCursor() { return Number(localStorage.getItem(CURSOR_KEY) || 0); }
   function saveCursor(n) { try { localStorage.setItem(CURSOR_KEY, String(n)); } catch (e) {} }
+  function isContentKey(k) { return typeof k === "string" && k.indexOf("lz") === 0 && k !== META_KEY && k !== CURSOR_KEY; }
 
   function contentKeys() {
     const out = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k && k.indexOf("lz") === 0) out.push(k);
+      if (isContentKey(k)) out.push(k);
     }
     return out;
   }
@@ -57,7 +61,7 @@
     el.style.color = isError ? "#b91c1c" : "#64748b";
   }
 
-  // --- push: find everything changed locally since our last known-synced state ------
+  // --- find everything changed locally since our last known-synced state ------------
   function collectLocalChanges(meta) {
     const changes = [];
     const seen = new Set();
@@ -98,6 +102,10 @@
     if (!changes.length) return Promise.resolve(true);
     return Promise.all(changes.map(pushOne)).then(results => results.every(Boolean));
   }
+  function commitPushedChanges(meta, changes) {
+    changes.forEach(c => { meta[c.key] = { value: c.value, updated: c.updated, deleted: c.deleted }; });
+    saveMeta(meta);
+  }
 
   // --- pull: ask the server for anything changed since our cursor -------------------
   function pullChanges(since) {
@@ -122,6 +130,58 @@
     return newCursor;
   }
 
+  // --- quick push: fires within ~250ms of an actual local write, from THIS document --
+  // Independent of the heartbeat/election below — every frame gets this, since it only
+  // ever reacts to a write that happened in its own document (never redundant across
+  // sibling iframes), and it's what makes a check-off show up elsewhere in a couple
+  // seconds instead of waiting up to a full heartbeat interval.
+  let quickTimer = null;
+  let quickInFlight = false;
+  function quickPush() {
+    if (quickInFlight) { quickTimer = setTimeout(quickPush, QUICK_PUSH_MS); return; }
+    const meta = loadMeta();
+    const changes = collectLocalChanges(meta);
+    if (!changes.length) return;
+    quickInFlight = true;
+    setStatus("Syncing…");
+    pushChanges(changes).then(ok => {
+      if (ok) {
+        commitPushedChanges(meta, changes);
+        setStatus("Synced ✓ " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+      } else {
+        setStatus("Sync error — will retry", true);
+      }
+    }).finally(() => { quickInFlight = false; });
+  }
+  function scheduleQuickPush() {
+    clearTimeout(quickTimer);
+    quickTimer = setTimeout(quickPush, QUICK_PUSH_MS);
+  }
+
+  // Hook localStorage writes so a change gets queued for a quick push the moment it
+  // happens, rather than waiting to be noticed by the next periodic scan. This runs in
+  // every frame (not just the elected heartbeat owner below) since it only ever fires
+  // for writes made in this exact document.
+  try {
+    // Patching the shared Storage.prototype (rather than the localStorage instance
+    // itself) is the reliable way to do this — localStorage is a "legacy platform
+    // object" with its own property-interception behavior, so assigning directly to
+    // localStorage.setItem doesn't consistently stick across environments. Guarded by
+    // `this === localStorage` so a hypothetical sessionStorage write (this app never
+    // makes one) can't trigger a sync push.
+    const REAL_SET = Storage.prototype.setItem;
+    const REAL_REMOVE = Storage.prototype.removeItem;
+    Storage.prototype.setItem = function (k, v) {
+      REAL_SET.call(this, k, v);
+      if (this === localStorage && isContentKey(k)) scheduleQuickPush();
+    };
+    Storage.prototype.removeItem = function (k) {
+      REAL_REMOVE.call(this, k);
+      if (this === localStorage && isContentKey(k)) scheduleQuickPush();
+    };
+  } catch (e) { /* if Storage.prototype can't be patched, the heartbeat below still catches everything */ }
+
+  // --- heartbeat: full pull (+ safety-net push) on a steady interval ----------------
   let inFlight = false;
   function tick() {
     if (inFlight) return;
@@ -139,8 +199,7 @@
       const changes = collectLocalChanges(meta);
       return pushChanges(changes).then(ok => {
         if (ok) {
-          changes.forEach(c => { meta[c.key] = { value: c.value, updated: c.updated, deleted: c.deleted }; });
-          saveMeta(meta);
+          commitPushedChanges(meta, changes);
           setStatus("Synced ✓ " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
         } else if (changes.length) {
           setStatus("Sync error — will retry", true);
@@ -153,13 +212,31 @@
     }).finally(() => { inFlight = false; });
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => setTimeout(tick, 800));
-  } else {
-    setTimeout(tick, 800);
+  // ry.html/reid.html/teacher.html each keep 2-3 of this app's pages loaded as same-origin
+  // iframes at once (e.g. ry.html has kidzone.html + calendar.html + journal.html all live
+  // simultaneously, just hidden by CSS, not lazy-loaded) — every one of them would otherwise
+  // run its own independent heartbeat against the exact same localStorage, tripling or
+  // quadrupling pull traffic for no benefit (the quick-push reflex above already covers
+  // each frame's own writes regardless). So: whichever frame's copy of this script runs
+  // first in a given browser tab claims the recurring heartbeat on the shared top window;
+  // sibling frames skip starting their own, but still see the results a moment later since
+  // they all read/write the same localStorage. A page opened standalone (not inside any of
+  // this app's iframes) is always its own top window, so it always just claims itself.
+  let isHeartbeatOwner = true;
+  try {
+    if (window.top && window.top !== window && window.top._lzSyncOwnerActive) isHeartbeatOwner = false;
+    else if (window.top) window.top._lzSyncOwnerActive = true;
+  } catch (e) { /* cross-origin top (shouldn't happen on this site) — just run normally */ }
+
+  if (isHeartbeatOwner) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => setTimeout(tick, 800));
+    } else {
+      setTimeout(tick, 800);
+    }
+    setInterval(tick, HEARTBEAT_MS);
   }
-  setInterval(tick, TICK_MS);
 
   // exposed for debugging from the browser console: LZSYNC.forceSync()
-  window.LZSYNC = { forceSync: tick };
+  window.LZSYNC = { forceSync: tick, quickPush: quickPush, isHeartbeatOwner: () => isHeartbeatOwner };
 })();
