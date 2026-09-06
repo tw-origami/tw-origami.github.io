@@ -81,8 +81,8 @@
   <div class="top">
     <h1>✅ My Work</h1>
     <div style="display:flex;gap:8px;">
-      <a class="back" href="print.html">🖨️ Daily sheets</a>
-      <a class="back" href="master.html">📋 Master</a>
+      <a class="back" id="navPrint" href="print.html">🖨️ Daily sheets</a>
+      <a class="back" id="navMaster" href="master.html">📋 Master</a>
       <a class="back" id="navCalendar" href="calendar.html">🗓️ Calendar</a>
       <a class="back" href="../index.html">← The Learn Zone</a>
     </div>
@@ -112,6 +112,12 @@ let kid = LOCKED || localStorage.getItem("lzKZkid") || "ryland";
 if(LOCKED){
   const calNav = document.getElementById("navCalendar");
   if(calNav) calNav.href = "calendar.html?kid=" + LOCKED;
+  // Kids' own view only needs Calendar + back to the Learn Zone — Daily Sheets and the
+  // cross-kid Master Tracker are teacher-only tools (reached from teacher.html instead).
+  const printNav = document.getElementById("navPrint");
+  const masterNav = document.getElementById("navMaster");
+  if(printNav) printNav.remove();
+  if(masterNav) masterNav.remove();
 }
 // How many "recently done" / "coming up" items are expanded per subject, in-memory only
 // (resets on reload). Lets a kid undo an accidental or rapid-fire check-off.
