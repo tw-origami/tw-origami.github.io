@@ -78,14 +78,25 @@
     return changes;
   }
 
+  // Apps Script web apps respond to every request with a redirect to the URL that
+  // actually serves the content. Browsers follow that redirect automatically — but per
+  // the Fetch spec, a redirected POST silently gets downgraded to a GET, and the POST
+  // body is dropped in the process. That made every push look "successful" (no error)
+  // while quietly writing nothing at all. GET requests don't have that problem, so
+  // pushes go one key at a time as GET requests with the change encoded in the URL,
+  // reusing the same single-item path the backend already supports.
+  function pushOne(item) {
+    const url = SYNC_URL + (SYNC_URL.indexOf("?") >= 0 ? "&" : "?") +
+      "action=set" +
+      "&key=" + encodeURIComponent(item.key) +
+      "&value=" + encodeURIComponent(item.value == null ? "" : item.value) +
+      "&deleted=" + (item.deleted ? "1" : "0") +
+      "&updated=" + item.updated;
+    return fetch(url, { method: "GET" }).then(r => r.ok).catch(() => false);
+  }
   function pushChanges(changes) {
     if (!changes.length) return Promise.resolve(true);
-    // Sent with the default text/plain content-type (no custom headers) so the browser
-    // treats this as a "simple request" and skips a CORS preflight — Apps Script web
-    // apps don't implement doOptions, so a preflighted request would just fail.
-    return fetch(SYNC_URL, { method: "POST", body: JSON.stringify({ items: changes }) })
-      .then(r => r.ok)
-      .catch(() => false);
+    return Promise.all(changes.map(pushOne)).then(results => results.every(Boolean));
   }
 
   // --- pull: ask the server for anything changed since our cursor -------------------
