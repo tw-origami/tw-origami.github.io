@@ -70,6 +70,12 @@
   // key prefix so it stays separate from subject/lesson records.
   function habitKey(kid,habit,dateISO){ return `lzHabit|${kid}|${slug(habit)}|${dateISO}`; }
 
+  // One kid's free-form diary entry for one day (the "Daily Journal") — separate from the
+  // per-subject "+" notes and the Day Outing log; just one open-ended block of text per day.
+  function journalKey(kid,dateISO){ return `lzJournal|${kid}|${dateISO}`; }
+  function getJournal(k){ return localStorage.getItem(k) || ""; }
+  function setJournal(k, text){ text=(text||"").trim(); text?localStorage.setItem(k,text):localStorage.removeItem(k); }
+
   // One kid+day's list of "Day Outing" entries (Zoo trip, Library, etc.) — unlike a note,
   // a day can have several, so this stores a JSON array under one key instead of one string
   // per record. Each entry is {text, done}: a kid logging something that already happened
@@ -132,8 +138,8 @@
     if(changed) setOutings(k, arr);
   }
 
-  window.LZ = { slug, dkey, skey, dateKey, noteKey, habitKey, outingKey, isDone, setDone, doneDate, getNote, setNote,
-    getOutings, setOutings, scanKeys, todayISO, recurringForDate, ensureRecurringSeeded,
+  window.LZ = { slug, dkey, skey, dateKey, noteKey, habitKey, outingKey, journalKey, isDone, setDone, doneDate, getNote, setNote,
+    getOutings, setOutings, getJournal, setJournal, scanKeys, todayISO, recurringForDate, ensureRecurringSeeded,
     undoneLessons, nextLesson, upcomingLessons, subjProgress, doneLessons, doneDatesForSubject };
 
   // Shared weekly config — the one place to pause a subject, tweak per-day overrides, edit

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<title>Daily Journal · The Learn Zone</title>
+<style>
+  :root{ --ink:#1e293b; --muted:#64748b; --accent:#4f46e5; --line:#e2e8f0;
+    --ry:#4f46e5; --ry-soft:#eef2ff; --reid:#0f766e; --reid-soft:#ccfbf1; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#eef2ff,#f8fafc); min-height:100vh; padding:22px 16px 70px; }
+  .wrap{ max-width:640px; margin:0 auto; }
+  .top{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; flex-wrap:wrap; }
+  h1{ font-size:24px; margin:0; }
+  .back{ text-decoration:none; color:var(--accent); font-weight:800; font-size:13.5px; background:#fff; padding:8px 14px; border-radius:999px; box-shadow:0 8px 24px rgba(30,41,99,.12); }
+  .kidtabs{ display:flex; gap:10px; margin-bottom:16px; }
+  .kidtab{ flex:1; text-align:center; padding:12px 10px; border-radius:14px; font-weight:800; font-size:15px; cursor:pointer;
+    background:#fff; box-shadow:0 6px 18px rgba(30,41,99,.08); border:3px solid transparent; color:var(--muted); }
+  .kidtab.active.ry{ border-color:var(--ry); color:var(--ry); background:var(--ry-soft); }
+  .kidtab.active.reid{ border-color:var(--reid); color:var(--reid); background:var(--reid-soft); }
+  .card{ background:#fff; border-radius:18px; box-shadow:0 8px 24px rgba(30,41,99,.08); padding:16px 18px; margin-bottom:14px; }
+  .card h2{ margin:0 0 8px; font-size:15px; }
+  textarea{ width:100%; min-height:130px; font-size:15px; padding:12px; border:1px solid var(--line); border-radius:12px;
+    font-family:inherit; resize:vertical; }
+  .savedNote{ font-size:11.5px; color:var(--muted); margin-top:6px; height:14px; }
+  .histItem{ padding:10px 2px; border-bottom:1px solid #f1f5f9; cursor:pointer; }
+  .histItem:last-child{ border-bottom:none; }
+  .histDate{ font-size:11.5px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px; }
+  .histText{ font-size:14.5px; white-space:pre-wrap; }
+  .histItem textarea{ margin-top:4px; }
+  .empty{ font-size:13px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>📔 Daily Journal</h1>
+    <a class="back" href="../index.html">← The Learn Zone</a>
+  </div>
+  <div class="kidtabs" id="kidtabs"></div>
+  <div class="card">
+    <h2 id="todayLabel">Today</h2>
+    <textarea id="todayInput" placeholder="Write about your day..."></textarea>
+    <div class="savedNote" id="savedNote"></div>
+  </div>
+  <div class="card">
+    <h2>Past entries</h2>
+    <div id="history"></div>
+  </div>
+</div>
+
+<script src="curriculum.js"></script>
+<script src="lz-common.js"></script>
+<script>
+const { journalKey, getJournal, setJournal, todayISO, scanKeys } = window.LZ;
+const KIDS = { ryland:{name:"Ryland",cls:"ry"}, reid:{name:"Reid",cls:"reid"} };
+
+// ?kid=ryland (or reid) locks this page to just that kid — used by ry.html/reid.html's
+// Daily Journal tab, same lock pattern as kidzone.html/calendar.html.
+const LOCK_PARAMS = new URLSearchParams(location.search);
+const LOCKED = KIDS[LOCK_PARAMS.get("kid")] ? LOCK_PARAMS.get("kid") : null;
+let kid = LOCKED || localStorage.getItem("lzKZkid") || "ryland";
+
+// Which past entry (by date) is currently open for editing, in-memory only.
+let editingDate = null;
+
+function renderKidTabs(){
+  const el = document.getElementById("kidtabs");
+  if(LOCKED){ el.style.display = "none"; el.innerHTML = ""; return; }
+  el.innerHTML = Object.keys(KIDS).map(id=>{
+    const k = KIDS[id];
+    return `<div class="kidtab ${k.cls}${kid===id?' active':''}" data-kid="${id}">${k.name}</div>`;
+  }).join("");
+}
+
+function renderHistory(){
+  const today = todayISO();
+  const dates = scanKeys(`lzJournal|${kid}|`)
+    .map(k=>k.split("|")[2])
+    .filter(d=>d && d!==today)
+    .sort().reverse();
+  const el = document.getElementById("history");
+  if(!dates.length){ el.innerHTML = `<div class="empty">Nothing written yet.</div>`; return; }
+  el.innerHTML = dates.map(d=>{
+    const text = getJournal(journalKey(kid, d));
+    const label = new Date(d+"T00:00:00").toLocaleDateString(undefined,{weekday:"long", month:"long", day:"numeric"});
+    if(editingDate===d){
+      return `<div class="histItem"><div class="histDate">${label}</div>
+        <textarea class="histEdit" data-date="${d}">${text}</textarea></div>`;
+    }
+    return `<div class="histItem" data-editdate="${d}"><div class="histDate">${label}</div>
+      <div class="histText">${text}</div></div>`;
+  }).join("");
+}
+
+function render(){
+  renderKidTabs();
+  document.getElementById("todayInput").value = getJournal(journalKey(kid, todayISO()));
+  document.getElementById("savedNote").textContent = "";
+  renderHistory();
+}
+
+document.addEventListener("click", e=>{
+  const tab = e.target.closest(".kidtab");
+  if(tab){ kid = tab.dataset.kid; localStorage.setItem("lzKZkid", kid); render(); return; }
+  const histItem = e.target.closest("[data-editdate]");
+  if(histItem){
+    editingDate = histItem.dataset.editdate;
+    renderHistory();
+    const ta = document.querySelector(`.histEdit[data-date="${CSS.escape(editingDate)}"]`);
+    if(ta) ta.focus();
+    return;
+  }
+});
+
+let saveTimer = null;
+document.getElementById("todayInput").addEventListener("input", e=>{
+  clearTimeout(saveTimer);
+  const val = e.target.value;
+  saveTimer = setTimeout(()=>{
+    setJournal(journalKey(kid, todayISO()), val);
+    document.getElementById("savedNote").textContent = "Saved";
+  }, 500);
+});
+document.addEventListener("focusout", e=>{
+  if(e.target.id==="todayInput"){
+    setJournal(journalKey(kid, todayISO()), e.target.value);
+    document.getElementById("savedNote").textContent = "Saved";
+    return;
+  }
+  const ta = e.target.closest(".histEdit");
+  if(ta){
+    setJournal(journalKey(kid, ta.dataset.date), ta.value);
+    editingDate = null;
+    renderHistory();
+  }
+});
+
+render();
+
+// A same-origin edit elsewhere (e.g. the compact journal box on ry.html/reid.html's main
+// tab) fires a 'storage' event here — refresh, but not while actively typing.
+function safeRender(){
+  const ae = document.activeElement;
+  if(ae && (ae.id==="todayInput" || (ae.classList && ae.classList.contains("histEdit")))) return;
+  render();
+}
+window.addEventListener("storage", safeRender);
+setInterval(safeRender, 4000);
+</script>
+</body>
+</html>
