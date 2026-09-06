@@ -14,7 +14,6 @@
     background:linear-gradient(160deg,#e0e7ff,#f8fafc); display:flex; flex-direction:column; }
   .top{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 18px; flex-wrap:wrap; }
   h1{ font-size:24px; margin:0; color:var(--accent); }
-  .navlinks{ display:flex; gap:8px; }
   .back{ text-decoration:none; color:var(--accent); font-weight:800; font-size:13.5px; background:#fff; padding:8px 14px; border-radius:999px; box-shadow:var(--shadow); }
   .tabs{ display:flex; gap:8px; padding:0 18px 12px; }
   .tab{ border:2px solid var(--accent-soft); background:#fff; border-radius:999px; padding:9px 20px; font-weight:800; cursor:pointer; font-size:14.5px; color:var(--muted); }
@@ -27,18 +26,17 @@
 <body>
   <div class="top">
     <h1>📋 Teacher Dashboard</h1>
-    <div class="navlinks">
-      <a class="back" href="plan/print.html">🖨️ Daily sheets</a>
-      <a class="back" href="index.html">← The Learn Zone</a>
-    </div>
+    <a class="back" href="index.html">← The Learn Zone</a>
   </div>
   <div class="tabs">
-    <div class="tab active" data-tab="master">📋 Master Plan</div>
-    <div class="tab" data-tab="cal">🗓️ All Calendars</div>
+    <div class="tab active" data-frame="fMaster">📋 Master Plan</div>
+    <div class="tab" data-frame="fCal">🗓️ All Calendars</div>
+    <div class="tab" data-frame="fPrint">🖨️ Daily Sheets</div>
   </div>
   <div class="frame-wrap">
     <iframe id="fMaster" src="plan/master.html"></iframe>
     <iframe id="fCal" class="hide" src="plan/calendar.html"></iframe>
+    <iframe id="fPrint" class="hide" src="plan/print.html"></iframe>
   </div>
 
 <script>
@@ -46,9 +44,10 @@ document.querySelectorAll(".tab").forEach(t=>{
   t.addEventListener("click", ()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
     t.classList.add("active");
-    const isMaster = t.dataset.tab==="master";
-    document.getElementById("fMaster").classList.toggle("hide", !isMaster);
-    document.getElementById("fCal").classList.toggle("hide", isMaster);
+    const target = t.dataset.frame;
+    document.querySelectorAll(".frame-wrap iframe").forEach(f=>{
+      f.classList.toggle("hide", f.id!==target);
+    });
   });
 });
 </script>
