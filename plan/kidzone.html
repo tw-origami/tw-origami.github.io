@@ -87,6 +87,8 @@
   .addOuting:hover{ color:var(--green); border-color:var(--green); }
   .outinginput{ width:100%; font-size:14px; padding:9px 11px; border:1px solid var(--line); border-radius:9px;
     font-family:inherit; background:#f0fdf4; margin-top:4px; }
+  .lesson.manual{ background:#fdf4ff; border:1px dashed #d8b4fe; }
+  .lesson.manual.done .box{ background:#a855f7; border-color:#a855f7; }
 </style>
 </head>
 <body>
@@ -113,7 +115,7 @@ const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[]};
 const { slug, dkey, skey, dateKey, habitKey, outingKey, isDone, setDone, undoneLessons, upcomingLessons, subjProgress,
   doneLessons, doneDate, todayISO, doneDatesForSubject, noteKey, getNote, setNote, getOutings, setOutings,
-  ensureRecurringSeeded } = window.LZ;
+  ensureRecurringSeeded, getManualLessons, manualDoneKey, combinedQueue } = window.LZ;
 const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th grade"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th grade"} };
 
 // ?kid=ryland (or reid) in the URL locks this page to just that kid — no switcher tabs, and
@@ -212,6 +214,31 @@ function dayRow(kidId, sub, dateISO, isNow){
     <div><span class="t">${sub.subject}${isNow?'<span class="nowpill">now</span>':''}</span><span class="pg">${label}</span></div>
   </div>`;
 }
+// A teacher-inserted "extra" lesson slipped into a book subject's queue (e.g. reading a
+// library book instead of the workbook) — same look/checkbox mechanics as lessonRow (reuses
+// the generic [data-k]/isDone/setDone handler below), just a light purple tint so it reads as
+// "not from the book" and no delete button here — that's a teacher-only action on the Master
+// Tracker.
+function manualLessonRow(kidId, sub, manual, isNow){
+  const k = manualDoneKey(kidId, sub.subject, manual.id);
+  const done = isDone(k);
+  const pageLabel = manual.page ? `p.${manual.page}` : "extra";
+  return `<div class="lesson manual${done?' done':''}${isNow?' now':''}" data-k="${k}">
+    <div class="box">${done?'✓':''}</div>
+    <div><span class="t">${manual.title}${isNow?'<span class="nowpill">now</span>':''}</span><span class="pg">${pageLabel}</span></div>
+  </div>`;
+}
+// Same idea for an ongoing subject's one-off dated task (e.g. "Khan Academy instead" on a
+// specific day) — visually matches dayRow but tagged as an "extra".
+function manualDayRow(kidId, sub, manual, isNow){
+  const k = manualDoneKey(kidId, sub.subject, manual.id);
+  const done = isDone(k);
+  const label = new Date(manual.date+"T00:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+  return `<div class="lesson manual${done?' done':''}${isNow?' now':''}" data-k="${k}">
+    <div class="box">${done?'✓':''}</div>
+    <div><span class="t">${manual.title}${isNow?'<span class="nowpill">now</span>':''}</span><span class="pg">${label}</span></div>
+  </div>`;
+}
 
 function escapeAttr(s){ return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
 // Renders whatever belongs in the "note slot" for today: the saved note (with edit/delete),
@@ -239,72 +266,106 @@ function subjectCard(kidId, sub){
   if(sub.kind==="ongoing"){
     const today = todayISO();
     const allDates = doneDatesForSubject(kidId, sub.subject);
-    const pastDates = allDates.filter(d=>d!==today).sort().reverse(); // most-recent-first for the expand list
+    const pastDates = allDates.filter(d=>d!==today);
+    // A teacher may have slipped in a one-off dated task for a past day too (not just today) —
+    // fold those into the same "recently done" history, sorted alongside the day checkmarks.
+    const pastManual = getManualLessons(kidId, sub.subject).filter(m=>m.date && m.date!==today);
+    const historyItems = [
+      ...pastDates.map(d=>({type:"day", date:d})),
+      ...pastManual.map(m=>({type:"manual", date:m.date, manual:m}))
+    ].sort((a,b)=> b.date.localeCompare(a.date)); // most-recent-first for the expand list
     const est = expandFor(kidId, sub);
 
     let doneSection = "";
-    if(pastDates.length){
-      const shown = pastDates.slice(0, est.done);
-      const more = pastDates.length - shown.length;
+    if(historyItems.length){
+      const shown = historyItems.slice(0, est.done);
+      const more = historyItems.length - shown.length;
       let label, mode;
-      if(est.done===0){ label = `▲ Recently done (${pastDates.length})`; mode="expand"; }
+      if(est.done===0){ label = `▲ Recently done (${historyItems.length})`; mode="expand"; }
       else if(more>0){ label = `▲ Show ${Math.min(5,more)} more`; mode="expand"; }
       else { label = `▲ Hide`; mode="collapse"; }
-      doneSection = shown.map(d=>dayRow(kidId,sub,d,false)).join("")
+      doneSection = shown.map(item=> item.type==="day" ? dayRow(kidId,sub,item.date,false) : manualDayRow(kidId,sub,item.manual,false)).join("")
         + `<div class="expandBtn" data-expand="done" data-mode="${mode}" data-key="${kidId}|${sub.subject}">${label}</div>`;
     }
+    // Today's teacher-inserted one-off task (e.g. "Khan Academy instead") sits right alongside
+    // today's regular day-checkbox, both tagged "now".
+    const todayManual = getManualLessons(kidId, sub.subject).filter(m=>m.date===today);
+    const todayManualHtml = todayManual.map(m=>manualDayRow(kidId,sub,m,true)).join("");
     return `<div class="card">
       <div class="ch"><span class="s">${sub.subject}</span>
         <span class="prog">${allDates.length} day${allDates.length===1?'':'s'} done</span></div>
       <div class="opts"><b>Do:</b> ${(sub.options||[]).join(" or ")}${sub.note?`<br>${sub.note}`:""}</div>
       ${doneSection}
       ${noteSlot(kidId, sub)}
+      ${todayManualHtml}
       ${dayRow(kidId, sub, today, true)}
     </div>`;
   }
-  const undone = undoneLessons(kidId, sub);
+  // The upcoming queue mixes real book lessons with any teacher-inserted "extra" lessons
+  // (see Master Tracker's "+ Add lesson"), in whatever order the teacher set — same
+  // combinedQueue() helper master.html uses, so an inserted/reordered lesson shows up here
+  // exactly where the teacher put it, not just on the teacher's own dashboard.
+  const queue = combinedQueue(kidId, sub);
   const p = subjProgress(kidId, sub);
   const est = expandFor(kidId, sub);
-  const done = doneLessons(kidId, sub);
   const today = todayISO();
+  const done = doneLessons(kidId, sub);
   // What got done TODAY stays visible in the main flow (checked, struck through) all day,
   // so a kid (or parent) can see it actually happened — it only rolls into the collapsed
   // "Recently done" history once a new day starts. Static/legacy done records with no
-  // date attached count as older history, not "today".
+  // date attached count as older history, not "today". Completed manual/"extra" lessons
+  // follow the exact same today-vs-older split.
   const doneToday = done.filter(l => doneDate(dkey(kidId,sub,l)) === today);
   const doneOlder = done.filter(l => doneDate(dkey(kidId,sub,l)) !== today);
+  const manualEntries = getManualLessons(kidId, sub.subject).filter(m=>!m.date);
+  const manualDone = manualEntries.filter(m=>isDone(manualDoneKey(kidId, sub.subject, m.id)));
+  const manualDoneToday = manualDone.filter(m=>doneDate(manualDoneKey(kidId,sub.subject,m.id))===today);
+  const manualDoneOlder = manualDone.filter(m=>doneDate(manualDoneKey(kidId,sub.subject,m.id))!==today);
+
+  function histRow(item, isNow){ return item.type==="lesson" ? lessonRow(kidId,sub,item.lesson,isNow) : manualLessonRow(kidId,sub,item.manual,isNow); }
+
+  const combinedOlder = [
+    ...doneOlder.map(l=>({type:"lesson", date:doneDate(dkey(kidId,sub,l))||"", lesson:l})),
+    ...manualDoneOlder.map(m=>({type:"manual", date:doneDate(manualDoneKey(kidId,sub.subject,m.id))||"", manual:m}))
+  ].sort((a,b)=> b.date.localeCompare(a.date));
+  const combinedToday = [
+    ...doneToday.map(l=>({type:"lesson", lesson:l})),
+    ...manualDoneToday.map(m=>({type:"manual", manual:m}))
+  ];
 
   // "Recently done" (older than today) — collapsed by default; expands 5 at a time so a
   // kid can scroll back and undo an accidental or rapid-fire check-off from a previous day.
   let doneSection = "";
-  if(doneOlder.length){
-    const shownDone = doneOlder.slice(0, est.done);
-    const moreDone = doneOlder.length - shownDone.length;
+  if(combinedOlder.length){
+    const shownDone = combinedOlder.slice(0, est.done);
+    const moreDone = combinedOlder.length - shownDone.length;
     let btnLabel, btnMode;
-    if(est.done===0){ btnLabel = `▲ Recently done (${doneOlder.length})`; btnMode = "expand"; }
+    if(est.done===0){ btnLabel = `▲ Recently done (${combinedOlder.length})`; btnMode = "expand"; }
     else if(moreDone>0){ btnLabel = `▲ Show ${Math.min(5,moreDone)} more`; btnMode = "expand"; }
     else { btnLabel = `▲ Hide`; btnMode = "collapse"; }
-    doneSection = shownDone.map(l=>lessonRow(kidId,sub,l,false)).join("")
+    doneSection = shownDone.map(item=>histRow(item,false)).join("")
       + `<div class="expandBtn" data-expand="done" data-mode="${btnMode}" data-key="${kidId}|${sub.subject}">${btnLabel}</div>`;
   }
-  const todaySection = doneToday.length
-    ? `<div class="today-lbl">Done today</div>` + doneToday.map(l=>lessonRow(kidId,sub,l,false)).join("")
+  const todaySection = combinedToday.length
+    ? `<div class="today-lbl">Done today</div>` + combinedToday.map(item=>histRow(item,false)).join("")
     : "";
 
   // The note slot always sits right before the still-unchecked "now" lesson (or the
   // all-caught-up message), so a note about today reads in context, not detached at the end.
   const note = noteSlot(kidId, sub);
 
+  function queueRow(item, isNow){ return item.kind==="real" ? lessonRow(kidId,sub,item.lesson,isNow) : manualLessonRow(kidId,sub,item.manual,isNow); }
+
   let body;
-  if(undone.length===0){
+  if(queue.length===0){
     body = doneSection + todaySection + note + `<div class="empty">🎉 All caught up in ${sub.book||sub.subject}!</div>`;
   } else {
-    const now = undone[0];
-    const upcoming = undone.slice(1, 1+est.upcoming);
-    const moreUpcoming = undone.length - 1 - upcoming.length;
-    body = doneSection + todaySection + note + lessonRow(kidId, sub, now, true);
+    const now = queue[0];
+    const upcoming = queue.slice(1, 1+est.upcoming);
+    const moreUpcoming = queue.length - 1 - upcoming.length;
+    body = doneSection + todaySection + note + queueRow(now, true);
     if(upcoming.length){
-      body += `<div class="upnext-lbl">Coming up</div>` + upcoming.map(l=>lessonRow(kidId,sub,l,false)).join("");
+      body += `<div class="upnext-lbl">Coming up</div>` + upcoming.map(item=>queueRow(item,false)).join("");
     }
     if(moreUpcoming>0){
       body += `<div class="expandBtn" data-expand="upcoming" data-key="${kidId}|${sub.subject}">▼ Show ${Math.min(10,moreUpcoming)} more</div>`;

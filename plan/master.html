@@ -67,6 +67,24 @@
     font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; margin-left:auto; }
   .opts{ margin-top:8px; font-size:12px; color:var(--amber); }
   .opts b{ color:var(--muted); }
+
+  .lesson[draggable="true"]{ cursor:grab; }
+  .lesson[draggable="true"]:active{ cursor:grabbing; }
+  .lesson.dragover{ background:#eef2ff; outline:2px dashed var(--accent); outline-offset:-2px; }
+  .lesson.manual{ background:#fdf4ff; border:1px dashed #d8b4fe; }
+  .lesson.manual.done .box{ background:#a855f7; border-color:#a855f7; }
+  .rmManual{ flex:none; width:18px; height:18px; border-radius:50%; background:#fee2e2; color:#b91c1c; font-size:11px;
+    font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; margin-left:auto; }
+  .addLessonRow{ margin-top:8px; font-size:12.5px; font-weight:700; color:var(--accent); cursor:pointer; padding:4px 2px; }
+  .addLessonRow:hover{ text-decoration:underline; }
+  .addLessonForm{ margin-top:8px; padding:10px; border:1px solid var(--line); border-radius:10px; background:#f8fafc;
+    display:flex; flex-direction:column; gap:6px; }
+  .addLessonForm input, .addLessonForm select{ font-size:13px; padding:7px 9px; border:1px solid var(--line); border-radius:7px;
+    font-family:inherit; width:100%; box-sizing:border-box; }
+  .addSaveBtn, .addOneOffSaveBtn{ background:var(--accent); color:#fff; border:none; border-radius:7px; padding:7px 14px;
+    font-weight:800; font-size:12.5px; cursor:pointer; }
+  .addCancelBtn{ background:#fff; color:var(--muted); border:1px solid var(--line); border-radius:7px; padding:7px 14px;
+    font-weight:700; font-size:12.5px; cursor:pointer; }
   .sessboxes{ display:flex; gap:8px; margin-top:8px; }
   .sessboxes .box{ width:20px; height:20px; border:2px solid #94a3b8; border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; }
   .sessboxes .box.on{ background:var(--green); border-color:var(--green); }
@@ -106,7 +124,8 @@ const CUR = window.CURRICULUM || {};
 const SUG = window.SUGGESTIONS || {};
 const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th · grade 5–6 books"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th · grade 3 books"} };
 
-const { slug, dkey, skey, dateKey, isDone, setDone, subjProgress, doneDate, getNote, setNote, scanKeys, doneDatesForSubject, todayISO } = window.LZ;
+const { slug, dkey, skey, dateKey, isDone, setDone, subjProgress, doneDate, getNote, setNote, scanKeys, doneDatesForSubject, todayISO,
+  getManualLessons, addManualLesson, removeManualLesson, manualDoneKey, getOrder, setOrder, combinedQueue, lessonItemId } = window.LZ;
 
 // populate subject filter
 (function(){
@@ -123,11 +142,73 @@ const state = { kid:"both", view:"week", subj:"all" };
   });
 });
 
-function lessonRow(kid,sub,les,isNext){
+function lessonRow(kid,sub,les,isNext,draggableFlag){
   const k=dkey(kid,sub,les); const done=isDone(k)||les.done;
-  return `<div class="lesson${done?' done':''}${isNext?' next':''}" data-k="${k}">
+  const dragAttrs = draggableFlag ? ` draggable="true" data-itemid="${lessonItemId(les)}"` : "";
+  return `<div class="lesson${done?' done':''}${isNext?' next':''}" data-k="${k}"${dragAttrs}>
     <div class="box">${done?'✓':''}</div>
     <div><span class="t">${les.t}${isNext?'<span class="nextpill">next</span>':''}</span> <span class="pg">p.${les.p}</span></div>
+  </div>`;
+}
+// A teacher-inserted lesson, slipped into a book subject's queue (see LZ.combinedQueue) —
+// same look as a real lesson, plus a remove button since (unlike a real book page) it can be
+// deleted outright, not just checked/unchecked.
+function manualRow(kid,sub,manual,isNext,draggableFlag){
+  const k = manualDoneKey(kid, sub.subject, manual.id);
+  const done = isDone(k);
+  const pageLabel = manual.page ? `p.${manual.page}` : "extra";
+  const dragAttrs = draggableFlag ? ` draggable="true" data-itemid="m|${manual.id}"` : "";
+  return `<div class="lesson manual${done?' done':''}${isNext?' next':''}" data-k="${k}"${dragAttrs}>
+    <div class="box">${done?'✓':''}</div>
+    <div style="flex:1;"><span class="t">${manual.title}${isNext?'<span class="nextpill">next</span>':''}</span> <span class="pg">${pageLabel}</span></div>
+    <span class="rmManual" data-kid="${kid}" data-subj="${sub.subject}" data-id="${manual.id}" data-confirm="Remove this inserted lesson?" title="Remove">✕</span>
+  </div>`;
+}
+// Same idea for an "ongoing" subject's one-off task (e.g. "Khan Academy instead" for a
+// specific date) — checkable/removable exactly like manualRow, just date-labeled.
+function manualDayRow(kid,sub,manual,isNext){
+  const k = manualDoneKey(kid, sub.subject, manual.id);
+  const done = isDone(k);
+  const label = new Date(manual.date+"T00:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+  return `<div class="lesson manual${done?' done':''}${isNext?' next':''}" data-k="${k}">
+    <div class="box">${done?'✓':''}</div>
+    <div style="flex:1;"><span class="t">${manual.title}${isNext?'<span class="nextpill">today</span>':''}</span> <span class="pg">${label}</span></div>
+    <span class="rmManual" data-kid="${kid}" data-subj="${sub.subject}" data-id="${manual.id}" data-confirm="Remove this one-off task?" title="Remove">✕</span>
+  </div>`;
+}
+// Which subject's "+ Add lesson" / "+ Add one-off task" form is open (in-memory only),
+// keyed by kid|subject.
+let addLessonOpen = {};
+function addLessonForm(kid, sub){
+  const key = kid+"|"+sub.subject;
+  if(!addLessonOpen[key]) return `<div class="addLessonRow" data-addkey="${key}">+ Add lesson</div>`;
+  const queue = combinedQueue(kid, sub);
+  const posOptions = [`<option value="0">Insert as next</option>`].concat(
+    queue.map((item,i)=>{
+      const label = item.kind==="real" ? item.lesson.t : item.manual.title;
+      return `<option value="${i+1}">After: ${label}</option>`;
+    })
+  );
+  return `<div class="addLessonForm" data-addkey="${key}">
+    <input type="text" class="addTitle" placeholder="Lesson title (e.g. Read a library book)">
+    <input type="text" class="addPage" placeholder="Page (optional)">
+    <select class="addPos">${posOptions.join("")}</select>
+    <div style="display:flex;gap:8px;margin-top:2px;">
+      <button type="button" class="addSaveBtn" data-kid="${kid}" data-subj="${sub.subject}">Add</button>
+      <button type="button" class="addCancelBtn" data-addkey="${key}">Cancel</button>
+    </div>
+  </div>`;
+}
+function addOneOffForm(kid, sub){
+  const key = kid+"|"+sub.subject;
+  if(!addLessonOpen[key]) return `<div class="addLessonRow" data-addkey="${key}">+ Add one-off task</div>`;
+  return `<div class="addLessonForm" data-addkey="${key}">
+    <input type="text" class="addTitle" placeholder="e.g. Khan Academy instead">
+    <input type="date" class="addDate" value="${todayISO()}">
+    <div style="display:flex;gap:8px;margin-top:2px;">
+      <button type="button" class="addOneOffSaveBtn" data-kid="${kid}" data-subj="${sub.subject}">Add</button>
+      <button type="button" class="addCancelBtn" data-addkey="${key}">Cancel</button>
+    </div>
   </div>`;
 }
 function noteRow(kid,sub,noteKeyStr,text,dateStr){
@@ -177,15 +258,21 @@ function ongoingHistory(kid, sub){
   const today = todayISO();
   // Today's day-checkbox is rendered separately as the trailing "today" row (below), so skip it
   // here to avoid showing it twice — but a note recorded today still belongs in history, same as
-  // it would for a book subject, so it can appear right before that trailing row.
+  // it would for a book subject, so it can appear right before that trailing row. Same for a
+  // manual one-off task dated today — that's rendered separately too (manualDayRow, next to the
+  // trailing "today" row), so exclude today's from history here.
   doneDatesForSubject(kid, sub.subject).filter(d=>d!==today).forEach(d=> items.push({type:"day", date:d}));
   scanKeys(`lzNote|${kid}|${slug(sub.subject)}|`).forEach(k=>{
     const d = k.split("|")[3]; const text=getNote(k);
     if(text) items.push({type:"note", date:d||"", key:k, text, dateStr:d});
   });
+  getManualLessons(kid, sub.subject).filter(m=>m.date && m.date!==today).forEach(m=>{
+    items.push({type:"manual", date:m.date, manual:m});
+  });
   items.sort((a,b)=>{
     if(a.date!==b.date) return a.date.localeCompare(b.date);
-    return a.type==="day" ? -1 : 1;
+    if(a.type===b.type) return 0;
+    return a.type==="day" ? -1 : (a.type==="manual" ? 0 : 1);
   });
   return items;
 }
@@ -198,28 +285,35 @@ function subjectCard(kid, sub){
     const today = todayISO();
     const history = ongoingHistory(kid, sub);
     const doneCount = doneDatesForSubject(kid, sub.subject).length;
-    const histHtml = history.map(item=> item.type==="day"
-      ? dayRow(kid,sub,item.date,false)
-      : noteRow(kid,sub,item.key,item.text,item.dateStr)).join("");
-    const scroller = `<div class="lesson-scroll" data-scroll="${kid}|${sub.subject}">` + histHtml + dayRow(kid,sub,today,true) + `</div>`;
+    const todayManual = getManualLessons(kid, sub.subject).filter(m=>m.date===today);
+    const histHtml = history.map(item=>{
+      if(item.type==="day") return dayRow(kid,sub,item.date,false);
+      if(item.type==="manual") return manualDayRow(kid,sub,item.manual,false);
+      return noteRow(kid,sub,item.key,item.text,item.dateStr);
+    }).join("");
+    const todayManualHtml = todayManual.map(m=>manualDayRow(kid,sub,m,true)).join("");
+    const scroller = `<div class="lesson-scroll" data-scroll="${kid}|${sub.subject}">` + histHtml + todayManualHtml + dayRow(kid,sub,today,true) + `</div>`;
     list = `<div class="opts"><b>Do:</b> ${(sub.options||[]).join(" · ")}${sub.note?`<br><span style="color:var(--muted)">${sub.note}</span>`:""}</div>
-      ${scroller}`;
+      ${scroller}${addOneOffForm(kid,sub)}`;
     return `<div class="card"><div class="ch"><span class="s">${sub.subject}</span>
        <span class="goal">${doneCount} day${doneCount===1?'':'s'} done</span></div>${list}</div>`;
   }
-  // Render history (done lessons + "+" notes, chronological) followed by what's left (in
-  // book order), all in one scrollable box auto-centered on "next" — scroll up to review a
-  // past completion or note (and undo/delete it), scroll down to preview what's coming.
+  // Render history (done lessons + "+" notes, chronological) followed by what's left (real
+  // lessons in book order plus any teacher-inserted manual lessons, in the saved custom order
+  // if one exists), all in one scrollable box auto-centered on "next" — scroll up to review a
+  // past completion or note (and undo/delete it), scroll down to preview/reorder what's coming.
   const history = subjectHistory(kid, sub);
-  const undone = sub.lessons.filter(l=>!(isDone(dkey(kid,sub,l))||l.done));
-  const nextK = undone.length? dkey(kid,sub,undone[0]) : null;
-  if(sub.lessons.length===0) list=`<div class="empty">✓ All caught up for now!</div>`;
+  const queue = combinedQueue(kid, sub);
+  const nextId = queue.length ? queue[0].id : null;
+  if(sub.lessons.length===0 && queue.length===0) list=`<div class="empty">✓ All caught up for now!</div>`;
   else{
     const histHtml = history.map(item=> item.type==="lesson"
       ? lessonRow(kid,sub,item.lesson,false)
       : noteRow(kid,sub,item.key,item.text,item.dateStr)).join("");
-    const undoneHtml = undone.map(l=>lessonRow(kid,sub,l, dkey(kid,sub,l)===nextK)).join("");
-    list = `<div class="lesson-scroll" data-scroll="${kid}|${sub.subject}">` + histHtml + undoneHtml + `</div>`;
+    const queueHtml = queue.map(item=> item.kind==="real"
+      ? lessonRow(kid,sub,item.lesson, item.id===nextId, true)
+      : manualRow(kid,sub,item.manual, item.id===nextId, true)).join("");
+    list = `<div class="lesson-scroll" data-scroll="${kid}|${sub.subject}">` + histHtml + queueHtml + `</div>${addLessonForm(kid,sub)}`;
   }
   const opts = (sub.options&&sub.options.length)? `<div class="opts"><b>or instead:</b> ${sub.options.join(" · ")}</div>`:"";
 
@@ -285,14 +379,114 @@ function render(){
   window.scrollTo(0, winY);
 }
 
+function findSub(kid, subject){ return (CUR[kid]||[]).find(s=>s.subject===subject); }
+
+// Removes an item id from a subject's saved custom order, if present — used when a manual
+// lesson is deleted so a stale id never lingers in order[].
+function cleanFromOrder(kid, subject, itemId){
+  const order = getOrder(kid, subject);
+  if(!order.length) return;
+  setOrder(kid, subject, order.filter(id=>id!==itemId));
+}
+
 document.addEventListener("click", e=>{
   const undo = e.target.closest(".undoNote");
   if(undo){
     if(window.confirm(undo.dataset.confirm)){ setNote(undo.dataset.notekey, ""); render(); }
     return;
   }
+  const rmManual = e.target.closest(".rmManual");
+  if(rmManual){
+    if(window.confirm(rmManual.dataset.confirm)){
+      const {kid,subj,id} = rmManual.dataset;
+      removeManualLesson(kid, subj, id);
+      cleanFromOrder(kid, subj, "m|"+id);
+      render();
+    }
+    return;
+  }
+  const addRow = e.target.closest(".addLessonRow");
+  if(addRow){ addLessonOpen[addRow.dataset.addkey] = true; render(); return; }
+  const cancelBtn = e.target.closest(".addCancelBtn");
+  if(cancelBtn){ addLessonOpen[cancelBtn.dataset.addkey] = false; render(); return; }
+  const saveBtn = e.target.closest(".addSaveBtn");
+  if(saveBtn){
+    const { kid, subj } = saveBtn.dataset;
+    const form = saveBtn.closest(".addLessonForm");
+    const title = form.querySelector(".addTitle").value.trim();
+    const page = form.querySelector(".addPage").value.trim();
+    const pos = parseInt(form.querySelector(".addPos").value, 10) || 0;
+    if(!title) return;
+    const sub = findSub(kid, subj);
+    const beforeIds = combinedQueue(kid, sub).map(x=>x.id);
+    const newId = "m|" + addManualLesson(kid, subj, {title, page});
+    const ids = beforeIds.slice();
+    ids.splice(pos, 0, newId);
+    setOrder(kid, subj, ids);
+    addLessonOpen[kid+"|"+subj] = false;
+    render();
+    return;
+  }
+  const oneOffBtn = e.target.closest(".addOneOffSaveBtn");
+  if(oneOffBtn){
+    const { kid, subj } = oneOffBtn.dataset;
+    const form = oneOffBtn.closest(".addLessonForm");
+    const title = form.querySelector(".addTitle").value.trim();
+    const date = form.querySelector(".addDate").value || todayISO();
+    if(!title) return;
+    addManualLesson(kid, subj, {title, date});
+    addLessonOpen[kid+"|"+subj] = false;
+    render();
+    return;
+  }
   const box=e.target.closest("[data-k]");
   if(box){ const k=box.dataset.k; setDone(k,!isDone(k)); render(); return; }
+});
+
+// Drag-and-drop reordering of a subject's upcoming queue (real + manual lessons). Rows are
+// marked draggable="true" with data-itemid (see lessonRow/manualRow); dropping one onto another
+// within the same .lesson-scroll recomputes the queue order and persists it via setOrder so it
+// survives re-renders and shows up identically on the kid's own checklist (kidzone.html also
+// reads combinedQueue + the same order key).
+let dragItemId = null, dragScrollKey = null;
+document.addEventListener("dragstart", e=>{
+  const row = e.target.closest(".lesson[draggable='true']");
+  if(!row) return;
+  dragItemId = row.dataset.itemid;
+  const scroll = row.closest(".lesson-scroll[data-scroll]");
+  dragScrollKey = scroll ? scroll.dataset.scroll : null;
+  e.dataTransfer.effectAllowed = "move";
+  try{ e.dataTransfer.setData("text/plain", dragItemId); }catch(err){}
+});
+document.addEventListener("dragover", e=>{
+  const row = e.target.closest(".lesson[draggable='true']");
+  if(!row || !dragItemId) return;
+  e.preventDefault();
+  row.classList.add("dragover");
+});
+document.addEventListener("dragleave", e=>{
+  const row = e.target.closest(".lesson[draggable='true']");
+  if(row) row.classList.remove("dragover");
+});
+document.addEventListener("drop", e=>{
+  const row = e.target.closest(".lesson[draggable='true']");
+  if(row) row.classList.remove("dragover");
+  if(!dragItemId || !dragScrollKey) return;
+  e.preventDefault();
+  const [kid, subj] = dragScrollKey.split("|");
+  const sub = findSub(kid, subj);
+  if(!sub) { dragItemId=null; dragScrollKey=null; return; }
+  const ids = combinedQueue(kid, sub).map(x=>x.id).filter(id=>id!==dragItemId);
+  const targetId = row ? row.dataset.itemid : null;
+  if(targetId && targetId!==dragItemId){
+    const idx = ids.indexOf(targetId);
+    ids.splice(idx, 0, dragItemId);
+  } else {
+    ids.push(dragItemId);
+  }
+  setOrder(kid, subj, ids);
+  dragItemId = null; dragScrollKey = null;
+  render();
 });
 
 render();

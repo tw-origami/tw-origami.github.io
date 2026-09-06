@@ -104,6 +104,70 @@
     return out;
   }
 
+  // --- Manual (teacher-inserted) lessons ------------------------------------------------
+  // A one-off task slipped into a book subject's queue ("read a library book instead of the
+  // workbook a few days"), or onto a specific date for an "ongoing" subject like Math ("do
+  // Khan Academy on the 10th") — without touching curriculum.js's real page/book data, which
+  // stays the source of truth for the actual physical book. Stored per kid+subject as a small
+  // array; each entry is checkable via manualDoneKey, using the same isDone/setDone plumbing
+  // as everything else, and removable independent of its done state.
+  function manualKey(kid, subject){ return `lzManual|${kid}|${slug(subject)}`; }
+  function getManualLessons(kid, subject){
+    try{ return JSON.parse(localStorage.getItem(manualKey(kid,subject))||"[]"); }catch(e){ return []; }
+  }
+  function setManualLessons(kid, subject, arr){
+    (arr&&arr.length) ? localStorage.setItem(manualKey(kid,subject), JSON.stringify(arr)) : localStorage.removeItem(manualKey(kid,subject));
+  }
+  // opts: {title, page} for a book-subject insertion, or {title, date} for an ongoing-subject
+  // one-off (dated) task. Returns the new entry's id.
+  function addManualLesson(kid, subject, opts){
+    opts = opts || {};
+    const arr = getManualLessons(kid, subject);
+    const id = "m" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+    arr.push({ id, title:(opts.title||"").trim(), page: opts.page||"", date: opts.date||"" });
+    setManualLessons(kid, subject, arr);
+    return id;
+  }
+  function removeManualLesson(kid, subject, id){
+    setManualLessons(kid, subject, getManualLessons(kid,subject).filter(m=>m.id!==id));
+  }
+  function manualDoneKey(kid, subject, id){ return `lzManualDone|${kid}|${slug(subject)}|${id}`; }
+
+  // A saved custom ordering of a book subject's still-to-do queue (real lessons + manual
+  // insertions) — a list of item ids: "r|<page>|<slug title>" for real lessons, "m|<id>" for
+  // manual ones. Absent = natural book order, with any manual insertions appended at the end
+  // until dragged into place.
+  function orderKey(kid, subject){ return `lzOrder|${kid}|${slug(subject)}`; }
+  function getOrder(kid, subject){
+    try{ return JSON.parse(localStorage.getItem(orderKey(kid,subject))||"[]"); }catch(e){ return []; }
+  }
+  function setOrder(kid, subject, arr){
+    (arr&&arr.length) ? localStorage.setItem(orderKey(kid,subject), JSON.stringify(arr)) : localStorage.removeItem(orderKey(kid,subject));
+  }
+  function lessonItemId(les){ return `r|${les.p}|${slug(les.t)}`; }
+  // The still-to-do queue for a book subject — real undone lessons plus any undone manual
+  // insertions (the ones with no .date — those belong to an ongoing subject instead), in the
+  // teacher's saved custom order, or natural book order + manual items appended at the end if
+  // no custom order has been saved yet. This is what master.html and kidzone.html both render
+  // as "what's next" / "coming up", so an insertion or reorder shows up in both places.
+  function combinedQueue(kid, sub){
+    const realUndone = undoneLessons(kid, sub);
+    const manualUndone = getManualLessons(kid, sub.subject).filter(m=>!m.date && !isDone(manualDoneKey(kid,sub.subject,m.id)));
+    const byId = {};
+    realUndone.forEach(l=>{ byId[lessonItemId(l)] = {id:lessonItemId(l), kind:"real", lesson:l}; });
+    manualUndone.forEach(m=>{ byId["m|"+m.id] = {id:"m|"+m.id, kind:"manual", manual:m}; });
+    const order = getOrder(kid, sub.subject);
+    let list;
+    if(order.length){
+      list = order.map(id=>byId[id]).filter(Boolean);
+      const seen = new Set(list.map(x=>x.id));
+      Object.keys(byId).forEach(id=>{ if(!seen.has(id)) list.push(byId[id]); });
+    } else {
+      list = [...realUndone.map(l=>byId[lessonItemId(l)]), ...manualUndone.map(m=>byId["m|"+m.id])];
+    }
+    return list;
+  }
+
   // A weekly-recurring activity (karate, etc. — see LZ_CONFIG.recurring below), with
   // one-off overrides by exact date (skip a day, or change the time just for that day). This
   // computes WHICH dates it applies to; it doesn't store anything itself — callers turn a
@@ -140,7 +204,9 @@
 
   window.LZ = { slug, dkey, skey, dateKey, noteKey, habitKey, outingKey, journalKey, isDone, setDone, doneDate, getNote, setNote,
     getOutings, setOutings, getJournal, setJournal, scanKeys, todayISO, recurringForDate, ensureRecurringSeeded,
-    undoneLessons, nextLesson, upcomingLessons, subjProgress, doneLessons, doneDatesForSubject };
+    undoneLessons, nextLesson, upcomingLessons, subjProgress, doneLessons, doneDatesForSubject,
+    manualKey, getManualLessons, setManualLessons, addManualLesson, removeManualLesson, manualDoneKey,
+    orderKey, getOrder, setOrder, lessonItemId, combinedQueue };
 
   // Shared weekly config — the one place to pause a subject, tweak per-day overrides, edit
   // the daily habits checklist, or set up a recurring activity like karate. Edit this (or ask
