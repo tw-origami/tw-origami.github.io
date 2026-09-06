@@ -54,6 +54,8 @@
   .entry.lesson{ border-left-color:var(--green); }
   .entry.ongoing{ border-left-color:var(--accent); }
   .entry.note{ border-left-color:var(--amber); background:#fffbeb; border-radius:0 6px 6px 0; }
+  .entry.habit{ border-left-color:var(--amber); }
+  .entry.outing{ border-left-color:#16a34a; background:#f0fdf4; border-radius:0 6px 6px 0; }
   .entry b{ font-weight:800; }
   .empty{ color:var(--muted); font-size:13px; }
 </style>
@@ -91,7 +93,9 @@
 <script src="lz-common.js"></script>
 <script>
 const CUR = window.CURRICULUM || {};
-const { slug, dkey, dateKey, noteKey, isDone, setDone, doneDate, getNote, setNote, scanKeys } = window.LZ;
+const CFG = window.LZ_CONFIG || {paused:[], habits:[]};
+const { slug, dkey, dateKey, noteKey, isDone, setDone, doneDate, getNote, setNote, scanKeys,
+  getOutings, setOutings } = window.LZ;
 function escapeAttr(s){ return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
 const KIDS = { ryland:{name:"Ryland",cls:"ry"}, reid:{name:"Reid",cls:"reid"} };
 
@@ -143,6 +147,16 @@ function buildActivityIndex(){
     const text = getNote(k);
     if(sub && text) add(d, {kid, subject:sub.subject, type:"note", text, key:k});
   });
+  scanKeys("lzHabit|").forEach(k=>{
+    const parts = k.split("|"); const kid=parts[1], habitSlug=parts[2], d=parts[3];
+    if(!isDone(k)) return;
+    const habitName = (CFG.habits||[]).find(h=>slug(h)===habitSlug) || habitSlug;
+    add(d, {kid, subject:"Daily habit", type:"habit", title:habitName, key:k});
+  });
+  scanKeys("lzOuting|").forEach(k=>{
+    const parts = k.split("|"); const kid=parts[1], d=parts[2];
+    getOutings(k).forEach((text, idx)=> add(d, {kid, subject:"Day outing", type:"outing", text, key:k, idx}));
+  });
   return byDate;
 }
 
@@ -176,8 +190,8 @@ function renderGrid(){
     if(!d) return `<div class="day pad"></div>`;
     const dISO = iso(d);
     const entries = (idx[dISO]||[]).filter(e=>kidFilter==="both"||e.kid===kidFilter);
-    const kidsWithActivity = new Set(entries.filter(e=>e.type!=="note").map(e=>e.kid));
-    const kidsWithNotes = new Set(entries.filter(e=>e.type==="note").map(e=>e.kid));
+    const kidsWithActivity = new Set(entries.filter(e=>e.type!=="note"&&e.type!=="outing").map(e=>e.kid));
+    const kidsWithNotes = new Set(entries.filter(e=>e.type==="note"||e.type==="outing").map(e=>e.kid));
     let dots = "";
     ["ryland","reid"].forEach(k=>{ if(kidFilter!=="both"&&kidFilter!==k) return; if(kidsWithActivity.has(k)) dots+=`<span class="dot ${KIDS[k].cls}"></span>`; });
     if(kidsWithNotes.size) dots += `<span class="dot note"></span>`;
@@ -200,9 +214,12 @@ function renderDetail(){
       let inner, confirmMsg;
       if(e.type==="lesson"){ inner = `<b>${e.subject}:</b> ${e.title} — p.${e.page}`; confirmMsg = `Undo "${e.title}" for ${e.subject}? It'll go back to not-done.`; }
       else if(e.type==="ongoing"){ inner = `<b>${e.subject}</b> — done`; confirmMsg = `Remove this ${e.subject} check-off for this day?`; }
+      else if(e.type==="habit"){ inner = `<b>Habit:</b> ${e.title}`; confirmMsg = `Remove "${e.title}" as done for this day?`; }
+      else if(e.type==="outing"){ inner = `<b>Outing:</b> ${e.text}`; confirmMsg = `Remove this outing?`; }
       else { inner = `<b>${e.subject}:</b> ${e.text}`; confirmMsg = `Delete this note for ${e.subject}?`; }
+      const idxAttr = e.idx!==undefined ? ` data-idx="${e.idx}"` : "";
       return `<div class="entry ${e.type}">${inner}
-        <span class="undoBtn" data-key="${e.key}" data-type="${e.type}" data-confirm="${escapeAttr(confirmMsg)}" title="Undo">✕</span>
+        <span class="undoBtn" data-key="${e.key}" data-type="${e.type}"${idxAttr} data-confirm="${escapeAttr(confirmMsg)}" title="Undo">✕</span>
       </div>`;
     }).join("");
     body += `<div class="kidsec ${KIDS[kid].cls}"><div class="kn">${KIDS[kid].name}</div>${rows}</div>`;
@@ -218,6 +235,12 @@ document.addEventListener("click", e=>{
   if(undo){
     if(window.confirm(undo.dataset.confirm)){
       if(undo.dataset.type==="note") setNote(undo.dataset.key, "");
+      else if(undo.dataset.type==="outing"){
+        const arr = getOutings(undo.dataset.key);
+        const idx = parseInt(undo.dataset.idx,10);
+        if(!isNaN(idx)) arr.splice(idx,1);
+        setOutings(undo.dataset.key, arr);
+      }
       else setDone(undo.dataset.key, false);
       renderGrid();
     }

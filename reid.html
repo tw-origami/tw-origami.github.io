@@ -77,7 +77,7 @@
 const KID = "reid";
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[]};
-const { dkey, doneDate, doneDatesForSubject, noteKey, getNote, todayISO, isDone, habitKey } = window.LZ;
+const { dkey, doneDate, doneDatesForSubject, noteKey, getNote, todayISO, isDone, habitKey, outingKey, getOutings } = window.LZ;
 
 document.querySelectorAll(".tab").forEach(t=>{
   t.addEventListener("click", ()=>{
@@ -113,6 +113,9 @@ function buildDoneToday(){
   });
   (CFG.habits||[]).forEach(h=>{
     if(isDone(habitKey(KID, h, today))) items.push({subject:"Daily habit", icon:"✓", text:h});
+  });
+  getOutings(outingKey(KID, today)).forEach(o=>{
+    items.push({subject:"Day outing", icon:"🌳", text:o});
   });
   return items;
 }

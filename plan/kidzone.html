@@ -77,6 +77,18 @@
   .habits-card{ background:linear-gradient(160deg,#fffbeb,#fff); border:2px solid #fde68a; }
   .habits-card .ch .s{ color:var(--amber); }
   .lesson.habit .box.on,.lesson.habit.done .box{ background:var(--amber); border-color:var(--amber); }
+  .outing-card{ background:linear-gradient(160deg,#f0fdf4,#fff); border:2px solid #86efac; }
+  .outing-card .ch .s{ color:var(--green); }
+  .outing-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 4px;
+    border-bottom:1px solid #f1f5f9; font-size:14.5px; font-weight:600; }
+  .outing-row:last-of-type{ border-bottom:none; }
+  .rmOuting{ flex:none; width:20px; height:20px; border-radius:50%; background:#fee2e2; color:#b91c1c;
+    font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .addOuting{ font-size:13px; font-weight:700; color:var(--muted); cursor:pointer; padding:8px; text-align:center;
+    border:2px dashed #86efac; border-radius:10px; margin-top:4px; }
+  .addOuting:hover{ color:var(--green); border-color:var(--green); }
+  .outinginput{ width:100%; font-size:14px; padding:9px 11px; border:1px solid var(--line); border-radius:9px;
+    font-family:inherit; background:#f0fdf4; margin-top:4px; }
 </style>
 </head>
 <body>
@@ -101,8 +113,8 @@
 <script>
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[]};
-const { slug, dkey, skey, dateKey, habitKey, isDone, setDone, undoneLessons, upcomingLessons, subjProgress,
-  doneLessons, doneDate, todayISO, doneDatesForSubject, noteKey, getNote, setNote } = window.LZ;
+const { slug, dkey, skey, dateKey, habitKey, outingKey, isDone, setDone, undoneLessons, upcomingLessons, subjProgress,
+  doneLessons, doneDate, todayISO, doneDatesForSubject, noteKey, getNote, setNote, getOutings, setOutings } = window.LZ;
 const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th grade"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th grade"} };
 
 // ?kid=ryland (or reid) in the URL locks this page to just that kid — no switcher tabs, and
@@ -132,6 +144,8 @@ function expandFor(kidId, sub){
 }
 // Which subject's note is currently being typed into (in-memory only).
 let noteEditing = {};
+// Which day's outing input is currently open (in-memory only) — keyed by outingKey.
+let outingEditing = {};
 
 // A simple daily habits checklist (Go outside, Read a book, etc. — edit the list in
 // LZ_CONFIG.habits) shown above the subject cards. Reuses the same [data-k]/isDone/setDone
@@ -152,6 +166,26 @@ function habitsCard(kidId){
   return `<div class="card habits-card">
     <div class="ch"><span class="s">🌞 Daily Habits</span></div>
     ${rows}
+  </div>`;
+}
+
+// A green box for logging any outings that day (Zoo trip, Library, a hike — anything off
+// the usual routine). A day can have more than one, so this is a small list of free-text
+// entries (not a single note like the per-subject "+"), with a "+" to add another.
+function dayOutingCard(kidId){
+  const k = outingKey(kidId, todayISO());
+  const outings = getOutings(k);
+  const rows = outings.map((text,i)=>`<div class="outing-row">
+    <span class="t">${text}</span>
+    <span class="rmOuting" data-outingkey="${k}" data-idx="${i}" title="Remove">✕</span>
+  </div>`).join("");
+  const addRow = outingEditing[k]
+    ? `<input type="text" class="outinginput" data-outingkey="${k}" placeholder="Where did you go?">`
+    : `<div class="addOuting" data-outingkey="${k}">+ Add an outing</div>`;
+  return `<div class="card outing-card">
+    <div class="ch"><span class="s">🌳 Day Outing:</span></div>
+    ${rows}
+    ${addRow}
   </div>`;
 }
 
@@ -299,9 +333,10 @@ function render(){
   const pausedNote = (CFG.paused&&CFG.paused.length)? `<div class="paused">Paused for now: ${CFG.paused.join(", ")}</div>` : "";
 
   document.getElementById("body").innerHTML = `
+    ${habitsCard(kid)}
+    ${dayOutingCard(kid)}
     <div class="kidhead ${KIDS[kid].cls}"><h2 style="margin:0;font-size:19px;">${KIDS[kid].name}'s Studies</h2>
       <span class="stat">${d}/${t} lessons done<small>${pct}% of the way there</small></span></div>
-    ${habitsCard(kid)}
     ${cards}${pausedNote}`;
 }
 
@@ -320,6 +355,21 @@ document.addEventListener("click", e=>{
       setNote(undoNote.dataset.notekey, ""); noteEditing[undoNote.dataset.notekey] = false; render();
     }
     return;
+  }
+  const addOuting = e.target.closest(".addOuting");
+  if(addOuting){
+    outingEditing[addOuting.dataset.outingkey] = true; render();
+    const input = document.querySelector(`.outinginput[data-outingkey="${CSS.escape(addOuting.dataset.outingkey)}"]`);
+    if(input) input.focus();
+    return;
+  }
+  const rmOuting = e.target.closest(".rmOuting");
+  if(rmOuting){
+    const k = rmOuting.dataset.outingkey, idx = parseInt(rmOuting.dataset.idx,10);
+    const arr = getOutings(k);
+    arr.splice(idx,1);
+    setOutings(k, arr);
+    render(); return;
   }
   const exp = e.target.closest(".expandBtn");
   if(exp){
@@ -341,13 +391,25 @@ function saveNoteInput(input){
   noteEditing[k] = false;
   render();
 }
+function saveOutingInput(input){
+  const k = input.dataset.outingkey;
+  const text = input.value.trim();
+  if(text){ const arr = getOutings(k); arr.push(text); setOutings(k, arr); }
+  outingEditing[k] = false;
+  render();
+}
 document.addEventListener("focusout", e=>{
   const input = e.target.closest(".noteinput");
   if(input) saveNoteInput(input);
+  const outingInput = e.target.closest(".outinginput");
+  if(outingInput) saveOutingInput(outingInput);
 });
 document.addEventListener("keydown", e=>{
   if(e.key==="Enter" && e.target.classList && e.target.classList.contains("noteinput")){
     saveNoteInput(e.target);
+  }
+  if(e.key==="Enter" && e.target.classList && e.target.classList.contains("outinginput")){
+    saveOutingInput(e.target);
   }
 });
 

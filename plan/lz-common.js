@@ -70,6 +70,16 @@
   // key prefix so it stays separate from subject/lesson records.
   function habitKey(kid,habit,dateISO){ return `lzHabit|${kid}|${slug(habit)}|${dateISO}`; }
 
+  // One kid+day's list of "Day Outing" entries (Zoo trip, Library, etc.) — unlike a note,
+  // a day can have several, so this stores a JSON array under one key instead of one string
+  // per record.
+  function outingKey(kid,dateISO){ return `lzOuting|${kid}|${dateISO}`; }
+  function getOutings(k){ try{ return JSON.parse(localStorage.getItem(k)||"[]"); }catch(e){ return []; } }
+  function setOutings(k, arr){
+    arr = (arr||[]).map(s=>(s||"").trim()).filter(Boolean);
+    arr.length ? localStorage.setItem(k, JSON.stringify(arr)) : localStorage.removeItem(k);
+  }
+
   // All localStorage keys with a given prefix — used by calendar.html to enumerate every
   // recorded lesson-completion, day-checkbox, and note without needing its own storage scheme.
   function scanKeys(prefix){
@@ -78,7 +88,8 @@
     return out;
   }
 
-  window.LZ = { slug, dkey, skey, dateKey, noteKey, habitKey, isDone, setDone, doneDate, getNote, setNote, scanKeys, todayISO,
+  window.LZ = { slug, dkey, skey, dateKey, noteKey, habitKey, outingKey, isDone, setDone, doneDate, getNote, setNote,
+    getOutings, setOutings, scanKeys, todayISO,
     undoneLessons, nextLesson, upcomingLessons, subjProgress, doneLessons, doneDatesForSubject };
 
   // Shared weekly config — the one place to pause a subject, tweak per-day overrides, or
