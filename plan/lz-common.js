@@ -98,15 +98,61 @@
     return out;
   }
 
+  // A weekly-recurring activity (karate, etc. — see LZ_CONFIG.recurring below), with
+  // one-off overrides by exact date (skip a day, or change the time just for that day). This
+  // computes WHICH dates it applies to; it doesn't store anything itself — callers turn a
+  // match into a normal outing entry (see ensureRecurringSeeded) so it's checkable/removable
+  // exactly like anything typed in by hand.
+  function recurringForDate(dateISO){
+    const dow = new Date(dateISO+"T00:00:00").getDay(); // 0=Sun..6=Sat
+    const cfg = window.LZ_CONFIG || {};
+    const list = cfg.recurring || [];
+    const ex = (cfg.recurringExceptions || {})[dateISO];
+    if(ex && ex.skip) return [];
+    return list.filter(r=>(r.days||[]).includes(dow)).map(r=>({
+      name: r.name,
+      time: (ex && ex.time) ? ex.time : r.time,
+      kids: r.kids || ["ryland","reid"]
+    }));
+  }
+  // Makes sure this kid+date's outing list already contains today's recurring activities
+  // (e.g. "Karate 6:15 PM"), adding any that are missing (as unchecked/planned, done:false).
+  // Safe to call repeatedly — it only adds an entry whose exact text isn't already there, so
+  // it won't duplicate one a parent or kid has already interacted with.
+  function ensureRecurringSeeded(kid, dateISO){
+    const acts = recurringForDate(dateISO).filter(a=>(a.kids||[]).includes(kid));
+    if(!acts.length) return;
+    const k = outingKey(kid, dateISO);
+    const arr = getOutings(k);
+    let changed = false;
+    acts.forEach(a=>{
+      const text = `${a.name} ${a.time}`;
+      if(!arr.some(o=>o.text===text)){ arr.push({text, done:false}); changed = true; }
+    });
+    if(changed) setOutings(k, arr);
+  }
+
   window.LZ = { slug, dkey, skey, dateKey, noteKey, habitKey, outingKey, isDone, setDone, doneDate, getNote, setNote,
-    getOutings, setOutings, scanKeys, todayISO,
+    getOutings, setOutings, scanKeys, todayISO, recurringForDate, ensureRecurringSeeded,
     undoneLessons, nextLesson, upcomingLessons, subjProgress, doneLessons, doneDatesForSubject };
 
-  // Shared weekly config — the one place to pause a subject, tweak per-day overrides, or
-  // edit the daily habits checklist. Edit this (or ask Claude to) and kidzone.html + ry.html/
-  // reid.html both pick it up automatically.
+  // Shared weekly config — the one place to pause a subject, tweak per-day overrides, edit
+  // the daily habits checklist, or set up a recurring activity like karate. Edit this (or ask
+  // Claude to) and kidzone.html + calendar.html + ry.html/reid.html all pick it up
+  // automatically.
   window.LZ_CONFIG = {
     paused: ["Grammar / Word Study"],
-    habits: ["Go outside", "Brush teeth", "Read a book", "Draw a picture"]
+    habits: ["Go outside", "Brush teeth", "Read a book", "Draw a picture"],
+    // days: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+    recurring: [
+      { name: "Karate", days: [1,3], time: "6:15 PM" }, // Mon & Wed
+      { name: "Karate", days: [2,4], time: "6:30 PM" }  // Tue & Thu
+    ],
+    // One-off overrides by exact date — skip a day entirely, or change just that day's time.
+    recurringExceptions: {
+      "2026-09-07": { skip: true },
+      "2026-09-15": { time: "5:15 PM" },
+      "2026-09-23": { time: "5:15 PM" }
+    }
   };
 })();

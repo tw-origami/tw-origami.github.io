@@ -112,7 +112,8 @@
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[]};
 const { slug, dkey, skey, dateKey, habitKey, outingKey, isDone, setDone, undoneLessons, upcomingLessons, subjProgress,
-  doneLessons, doneDate, todayISO, doneDatesForSubject, noteKey, getNote, setNote, getOutings, setOutings } = window.LZ;
+  doneLessons, doneDate, todayISO, doneDatesForSubject, noteKey, getNote, setNote, getOutings, setOutings,
+  ensureRecurringSeeded } = window.LZ;
 const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th grade"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th grade"} };
 
 // ?kid=ryland (or reid) in the URL locks this page to just that kid — no switcher tabs, and
@@ -317,6 +318,10 @@ function subjectCard(kidId, sub){
 }
 
 function render(){
+  // Auto-add today's recurring activities (karate, etc.) as unchecked outing entries the
+  // first time this kid's page is opened today — safe to call every render, it only adds a
+  // missing entry, never duplicates one already there.
+  ensureRecurringSeeded(kid, todayISO());
   const kidtabsEl = document.getElementById("kidtabs");
   if(LOCKED){
     kidtabsEl.innerHTML = "";

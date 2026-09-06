@@ -107,7 +107,7 @@
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[], habits:[]};
 const { slug, dkey, dateKey, noteKey, outingKey, isDone, setDone, doneDate, getNote, setNote, scanKeys,
-  getOutings, setOutings } = window.LZ;
+  getOutings, setOutings, ensureRecurringSeeded } = window.LZ;
 function escapeAttr(s){ return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
 const KIDS = { ryland:{name:"Ryland",cls:"ry"}, reid:{name:"Reid",cls:"reid"} };
 // Which day's "+ Add outing" input is currently open (in-memory only) — keyed by outingKey.
@@ -196,9 +196,13 @@ function renderKidFilter(){
 }
 
 function renderGrid(){
-  const idx = buildActivityIndex();
   document.getElementById("monthLbl").textContent = viewDate.toLocaleDateString(undefined,{month:"long", year:"numeric"});
   const cells = monthMatrix(viewDate);
+  // Seed any recurring activities (karate, etc.) for every real day in the visible month, for
+  // both kids, before building the index — so opening a month shows them right away instead
+  // of waiting for that exact day to be visited on kidzone.html first.
+  cells.forEach(d=>{ if(!d) return; const dISO = iso(d); ["ryland","reid"].forEach(kid=>ensureRecurringSeeded(kid, dISO)); });
+  const idx = buildActivityIndex();
   const today = isoToday();
   document.getElementById("days").innerHTML = cells.map(d=>{
     if(!d) return `<div class="day pad"></div>`;
