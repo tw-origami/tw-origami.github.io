@@ -395,7 +395,7 @@
       `<span class="wc">${esc(w.country)}<span class="badge ${w.status}">${esc(w.status)}</span></span>` +
       `<span class="wn">${esc(w.note)}</span></div>`).join('');
     return {
-      prompt: 'Which amendment protects this right in the U.S.?',
+      prompt: 'Which amendment covers this in the U.S. Constitution?',
       subjectHTML:
         `<div class="subj-icon">${r.icon}</div>` +
         `<div class="subj-name">${esc(r.right)}</div>` +
@@ -408,7 +408,7 @@
         eli5Box(r.eli5) +
         `<div class="rev-label">🌍 How this right varies around the world</div>` +
         worldRows +
-        srcLink('bor') + ' ' + srcLink('freedom')
+        srcLink('archives') + ' ' + srcLink('freedom')
     };
   }
 

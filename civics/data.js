@@ -639,6 +639,168 @@ window.CIVICS = {
         { country: 'Norway', flag: '🇳🇴', status: 'strong', note: 'Prisons focus on rehabilitation; there is no death penalty.' },
         { country: 'Germany', flag: '🇩🇪', status: 'strong', note: 'Human dignity is the first line of its constitution.' },
         { country: 'Saudi Arabia', flag: '🇸🇦', status: 'restricted', note: 'Uses corporal and capital punishments under its legal code.' }
+      ] },
+    { right: 'Right to Keep and Bear Arms', icon: '🔫', amendment: '2nd Amendment',
+      us: 'Citizens can own firearms, though federal, state, and local laws can still add rules like background checks or age limits.',
+      eli5: 'People are allowed to own guns, but there are still rules about it.',
+      amendText: '“A well regulated Militia, being necessary to the security of a free State, the right of the people to keep and bear Arms, shall not be infringed.” — 2nd Amendment',
+      world: [
+        { country: 'Switzerland', flag: '🇨🇭', status: 'mixed', note: 'Gun ownership is common, tied to a militia-based defense tradition, alongside strict storage and licensing rules.' },
+        { country: 'United Kingdom', flag: '🇬🇧', status: 'restricted', note: 'Private ownership of most handguns is banned outright, and other firearms need strict licenses.' },
+        { country: 'Japan', flag: '🇯🇵', status: 'restricted', note: 'Among the strictest gun laws anywhere — very few citizens legally own a firearm.' }
+      ] },
+    { right: 'No Quartering of Soldiers', icon: '🏠', amendment: '3rd Amendment',
+      us: 'The government cannot force you to house soldiers in your home during peacetime without your consent.',
+      eli5: 'Soldiers can’t just move into your house without asking.',
+      amendText: '“No Soldier shall, in time of peace be quartered in any house, without the consent of the Owner.” — 3rd Amendment',
+      world: [
+        { country: 'United Kingdom', flag: '🇬🇧', status: 'strong', note: 'Forced quartering of British troops in colonial homes was a major complaint that helped inspire this amendment.' },
+        { country: 'Germany', flag: '🇩🇪', status: 'strong', note: 'Modern constitutions, including Germany’s, also protect the home from being taken over to house soldiers.' },
+        { country: 'Canada', flag: '🇨🇦', status: 'strong', note: 'Similar protections against forced military quartering are part of Canadian law and tradition today.' }
+      ] },
+    { right: 'Rights Not Listed Still Belong to You', icon: '🗝️', amendment: '9th Amendment',
+      us: 'Just because a right isn’t specifically written down in the Constitution doesn’t mean people don’t have it.',
+      eli5: 'The Constitution doesn’t list every single right you have — you still keep the ones it doesn’t mention.',
+      amendText: '“The enumeration in the Constitution, of certain rights, shall not be construed to deny or disparage others retained by the people.” — 9th Amendment',
+      world: [
+        { country: 'Germany', flag: '🇩🇪', status: 'strong', note: 'Its constitution likewise protects basic human dignity and freedoms beyond one exact listed set.' },
+        { country: 'United Kingdom', flag: '🇬🇧', status: 'mixed', note: 'With no single written constitution, unlisted rights rely instead on tradition, courts, and Parliament.' },
+        { country: 'China', flag: '🇨🇳', status: 'restricted', note: 'The government defines which rights citizens may exercise, leaving little room for unlisted freedoms.' }
+      ] },
+    { right: 'Powers Reserved to the States', icon: '🧩', amendment: '10th Amendment',
+      us: 'Any power the Constitution doesn’t hand to the federal government belongs to the states or to the people instead.',
+      eli5: 'If the Constitution doesn’t give a job to the national government, that job stays with the states or the people.',
+      amendText: '“The powers not delegated to the United States by the Constitution … are reserved to the States respectively, or to the people.” — 10th Amendment',
+      world: [
+        { country: 'Germany', flag: '🇩🇪', status: 'strong', note: 'A federal system like Germany’s also splits power between the national government and its states (Länder).' },
+        { country: 'Canada', flag: '🇨🇦', status: 'strong', note: 'Canada’s provinces hold major reserved powers, similar in spirit to U.S. states.' },
+        { country: 'France', flag: '🇫🇷', status: 'restricted', note: 'France is a unitary state, so most power is centralized in the national government rather than reserved to regions.' }
+      ] },
+    { right: 'States Can’t Always Be Sued', icon: '🛡️', amendment: '11th Amendment',
+      us: 'A private citizen generally cannot sue a state in federal court without that state agreeing to it.',
+      eli5: 'You usually can’t drag a state itself into federal court without its permission.',
+      amendText: '“The Judicial power of the United States shall not be construed to extend to any suit … commenced or prosecuted against one of the United States by Citizens of another State.” — 11th Amendment',
+      world: [
+        { country: 'United Kingdom', flag: '🇬🇧', status: 'strong', note: 'The old idea that “the Crown can do no wrong” historically gave government similar protection from being sued without consent.' },
+        { country: 'Germany', flag: '🇩🇪', status: 'mixed', note: 'Germany allows more lawsuits against government bodies, though some sovereign-immunity protections still apply.' },
+        { country: 'Canada', flag: '🇨🇦', status: 'mixed', note: 'Canadian provinces keep some immunity from lawsuits, though courts and laws have narrowed it over time.' }
+      ] },
+    { right: 'Electing the President & Vice President', icon: '📋', amendment: '12th Amendment',
+      us: 'It fixed how the Electoral College votes for President and Vice President — as two separate ballots, not one.',
+      eli5: 'It fixed a mix-up in how we vote for President and Vice President, so they’re counted separately.',
+      amendText: '“The Electors shall … name in their ballots the person voted for as President, and in distinct ballots the person voted for as Vice-President.” — 12th Amendment',
+      world: [
+        { country: 'United Kingdom', flag: '🇬🇧', status: 'mixed', note: 'The UK has no separate presidential election at all — the Prime Minister is chosen through Parliament.' },
+        { country: 'France', flag: '🇫🇷', status: 'strong', note: 'France elects its president directly by popular vote, with no Electoral College step in between.' },
+        { country: 'Mexico', flag: '🇲🇽', status: 'strong', note: 'Mexico also elects its president directly, without an Electoral College.' }
+      ] },
+    { right: 'Abolition of Slavery', icon: '⛓️', amendment: '13th Amendment',
+      us: 'Slavery and forced servitude are illegal everywhere in the United States, except as punishment for a crime.',
+      eli5: 'This amendment ended slavery in the United States for good.',
+      amendText: '“Neither slavery nor involuntary servitude, except as a punishment for crime … shall exist within the United States.” — 13th Amendment',
+      world: [
+        { country: 'United Kingdom', flag: '🇬🇧', status: 'strong', note: 'Britain abolished slavery across most of its empire in 1833, three decades before the 13th Amendment.' },
+        { country: 'Brazil', flag: '🇧🇷', status: 'mixed', note: 'Brazil was the last country in the Americas to abolish slavery, in 1888.' },
+        { country: 'Mauritania', flag: '🇲🇷', status: 'restricted', note: 'Mauritania didn’t formally criminalize slavery until 2007, and reports of forced labor persist there today.' }
+      ] },
+    { right: 'Citizenship & Equal Protection', icon: '🤝', amendment: '14th Amendment',
+      us: 'Anyone born or naturalized in the U.S. is a citizen, and states must give everyone equal protection under the law.',
+      eli5: 'If you’re born here, you’re a citizen — and the law has to treat everyone fairly.',
+      amendText: '“All persons born or naturalized in the United States … are citizens … nor shall any State … deny to any person … the equal protection of the laws.” — 14th Amendment',
+      world: [
+        { country: 'Canada', flag: '🇨🇦', status: 'strong', note: 'Canada also grants citizenship to almost anyone born on its soil.' },
+        { country: 'Germany', flag: '🇩🇪', status: 'mixed', note: 'Germany historically based citizenship mainly on ancestry, though reforms since 2000 expanded birthright citizenship.' },
+        { country: 'Saudi Arabia', flag: '🇸🇦', status: 'restricted', note: 'Citizenship passes down mainly through fathers, and equal legal protection isn’t guaranteed the same way for everyone.' }
+      ] },
+    { right: 'Congress Can Collect Income Tax', icon: '🧾', amendment: '16th Amendment',
+      us: 'Congress can collect an income tax directly from people’s earnings.',
+      eli5: 'This is the amendment that made a national income tax possible.',
+      amendText: '“The Congress shall have power to lay and collect taxes on incomes, from whatever source derived.” — 16th Amendment',
+      world: [
+        { country: 'Sweden', flag: '🇸🇪', status: 'strong', note: 'Sweden also relies on national income tax, among the highest rates in the world, to fund public services.' },
+        { country: 'Canada', flag: '🇨🇦', status: 'strong', note: 'Canada collects federal income tax directly from residents’ earnings, similar to the U.S. system.' },
+        { country: 'Japan', flag: '🇯🇵', status: 'strong', note: 'Japan also funds its government mainly through a national income tax.' }
+      ] },
+    { right: 'Direct Election of Senators', icon: '🗳️', amendment: '17th Amendment',
+      us: 'Senators are elected directly by the people of each state, instead of being chosen by state legislatures.',
+      eli5: 'You get to vote for your U.S. Senators yourself, instead of your state’s lawmakers picking them for you.',
+      amendText: '“The Senate of the United States shall be composed of two Senators from each State, elected by the people thereof.” — 17th Amendment',
+      world: [
+        { country: 'United Kingdom', flag: '🇬🇧', status: 'restricted', note: 'Members of the House of Lords are not directly elected by the public at all.' },
+        { country: 'Canada', flag: '🇨🇦', status: 'restricted', note: 'Canadian Senators are appointed, not elected, by the Governor General on the Prime Minister’s advice.' },
+        { country: 'Australia', flag: '🇦🇺', status: 'strong', note: 'Like U.S. Senators, Australia’s Senators are directly elected by voters in each state.' }
+      ] },
+    { right: 'Prohibition of Alcohol', icon: '🚫', amendment: '18th Amendment',
+      us: 'This amendment banned making, selling, and transporting alcohol nationwide. It was later canceled by the 21st Amendment.',
+      eli5: 'For a while, alcohol was completely illegal to make or sell in the whole country — until this amendment was undone.',
+      amendText: '“The manufacture, sale, or transportation of intoxicating liquors … for beverage purposes is hereby prohibited.” — 18th Amendment (repealed 1933)',
+      world: [
+        { country: 'Saudi Arabia', flag: '🇸🇦', status: 'restricted', note: 'Alcohol is still completely banned nationwide today, much like the U.S. was under this amendment.' },
+        { country: 'Iran', flag: '🇮🇷', status: 'restricted', note: 'Alcohol is illegal for most citizens under Iranian law.' },
+        { country: 'Germany', flag: '🇩🇪', status: 'strong', note: 'Germany has never had a nationwide alcohol ban, and has a long brewing tradition instead.' }
+      ] },
+    { right: 'New Terms Start Sooner', icon: '📅', amendment: '20th Amendment',
+      us: 'It moved the start of a new President’s and Congress’s term from March to January, shortening the wait after Election Day.',
+      eli5: 'It made new Presidents and Congress start their jobs sooner after they’re elected, instead of waiting months.',
+      amendText: '“The terms of the President and Vice President shall end at noon on the 20th day of January … and the terms of Senators and Representatives … on the 3d day of January.” — 20th Amendment',
+      world: [
+        { country: 'United Kingdom', flag: '🇬🇧', status: 'strong', note: 'A new Prime Minister typically takes office within days of an election — much faster than the U.S. transition.' },
+        { country: 'Canada', flag: '🇨🇦', status: 'strong', note: 'Canadian governments also usually transition within a couple of weeks of an election.' },
+        { country: 'Mexico', flag: '🇲🇽', status: 'mixed', note: 'Mexico’s president-elect still waits several months, until October 1, before taking office.' }
+      ] },
+    { right: 'Repeal of Prohibition', icon: '🍻', amendment: '21st Amendment',
+      us: 'It canceled the nationwide alcohol ban from the 18th Amendment, though it let states and towns set their own alcohol rules.',
+      eli5: 'This amendment un-did the alcohol ban from before.',
+      amendText: '“The eighteenth article of amendment to the Constitution of the United States is hereby repealed.” — 21st Amendment',
+      world: [
+        { country: 'Germany', flag: '🇩🇪', status: 'strong', note: 'Germany never had a similar nationwide ban to repeal in the first place.' },
+        { country: 'Saudi Arabia', flag: '🇸🇦', status: 'restricted', note: 'Unlike the U.S. after 1933, alcohol remains completely banned there nationwide.' },
+        { country: 'Canada', flag: '🇨🇦', status: 'strong', note: 'Canada ended its own brief nationwide prohibition even earlier, in the early 1900s, leaving alcohol rules mostly to the provinces.' }
+      ] },
+    { right: 'Presidential Term Limits', icon: '⏳', amendment: '22nd Amendment',
+      us: 'No one can be elected President more than twice.',
+      eli5: 'A President can only be voted in for two terms, max.',
+      amendText: '“No person shall be elected to the office of the President more than twice.” — 22nd Amendment',
+      world: [
+        { country: 'Mexico', flag: '🇲🇽', status: 'strong', note: 'Mexico’s president can serve only a single six-year term and can never run again.' },
+        { country: 'Russia', flag: '🇷🇺', status: 'restricted', note: 'Constitutional changes in 2020 reset term limits there, letting the sitting president potentially stay in power until 2036.' },
+        { country: 'United Kingdom', flag: '🇬🇧', status: 'mixed', note: 'There’s no term limit at all for Prime Minister — they can serve as long as their party keeps winning.' }
+      ] },
+    { right: 'Electoral Votes for Washington, D.C.', icon: '🏙️', amendment: '23rd Amendment',
+      us: 'It gave Washington, D.C. electoral votes in presidential elections, even though it isn’t a state.',
+      eli5: 'People living in the nation’s capital finally got to help pick the President too.',
+      amendText: '“The District constituting the seat of Government of the United States shall appoint … Electors of President and Vice President.” — 23rd Amendment',
+      world: [
+        { country: 'Canada', flag: '🇨🇦', status: 'strong', note: 'Ottawa, the capital, is fully part of a province (Ontario), so its residents vote just like anyone else.' },
+        { country: 'Australia', flag: '🇦🇺', status: 'strong', note: 'Canberra, Australia’s capital territory, elects its own representatives to the national parliament.' },
+        { country: 'Germany', flag: '🇩🇪', status: 'strong', note: 'Berlin is one of Germany’s states in its own right, so its residents have full representation.' }
+      ] },
+    { right: 'No Tax to Vote', icon: '🪙', amendment: '24th Amendment',
+      us: 'The government cannot make you pay a tax before you’re allowed to vote in federal elections.',
+      eli5: 'You can’t be charged money just to be allowed to vote.',
+      amendText: '“The right of citizens … to vote … shall not be denied or abridged … by reason of failure to pay any poll tax or other tax.” — 24th Amendment',
+      world: [
+        { country: 'United Kingdom', flag: '🇬🇧', status: 'strong', note: 'Voting is free for every eligible citizen, with no tax or fee required.' },
+        { country: 'India', flag: '🇮🇳', status: 'strong', note: 'India’s constitution also guarantees voting rights with no tax requirement.' },
+        { country: 'Germany', flag: '🇩🇪', status: 'strong', note: 'Voting is completely free in Germany too, with no charge to cast a ballot.' }
+      ] },
+    { right: 'Presidential Succession Rules', icon: '🩺', amendment: '25th Amendment',
+      us: 'It spells out what happens if a President dies, resigns, or can’t do the job — including how the Vice President can temporarily take over.',
+      eli5: 'It’s the rulebook for what happens if a President can’t do the job anymore, even just for a little while.',
+      amendText: '“In case of the removal of the President from office or of his death or resignation, the Vice President shall become President.” — 25th Amendment',
+      world: [
+        { country: 'United Kingdom', flag: '🇬🇧', status: 'mixed', note: 'If a Prime Minister can’t serve, their own party picks a replacement rather than following a fixed constitutional order.' },
+        { country: 'Mexico', flag: '🇲🇽', status: 'mixed', note: 'Mexico has no vice president — if a president can’t finish their term, Congress selects an interim replacement instead.' },
+        { country: 'France', flag: '🇫🇷', status: 'strong', note: 'France’s constitution also lays out a clear line of succession, with the Senate president temporarily stepping in.' }
+      ] },
+    { right: 'Congress Can’t Give Itself an Instant Raise', icon: '💵', amendment: '27th Amendment',
+      us: 'If Congress votes itself a pay raise, that raise can’t start until after the next election — so voters get a say first.',
+      eli5: 'If Congress wants a raise, they have to wait until after the next election to actually get it.',
+      amendText: '“No law, varying the compensation for the services of the Senators and Representatives, shall take effect, until an election of Representatives shall have intervened.” — 27th Amendment',
+      world: [
+        { country: 'United Kingdom', flag: '🇬🇧', status: 'mixed', note: 'An independent body, not Parliament itself, decides on and adjusts lawmakers’ pay there.' },
+        { country: 'Germany', flag: '🇩🇪', status: 'mixed', note: 'German lawmakers’ pay is tied by law to average wages, adjusted by formula rather than a direct vote.' },
+        { country: 'Canada', flag: '🇨🇦', status: 'mixed', note: 'Canadian MPs’ salaries adjust automatically each year by formula, not through a direct vote by sitting members.' }
       ] }
   ],
 
