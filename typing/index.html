@@ -40,7 +40,8 @@
   .stat small{ color:var(--muted); font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.5px; }
 
   .text{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:26px; line-height:1.7; letter-spacing:1px;
-    background:#f8fafc; border-radius:14px; padding:20px 22px; margin-bottom:18px; word-break:break-word; }
+    background:#f8fafc; border-radius:14px; padding:20px 22px; margin-bottom:18px; word-break:normal; overflow-wrap:normal; }
+  .text .word{ display:inline-block; white-space:nowrap; }
   .text .ch{ border-radius:3px; }
   .text .done{ color:var(--correct); }
   .text .cur{ background:var(--accent); color:#fff; border-radius:4px; animation:blink 1s step-start infinite; }
@@ -101,7 +102,7 @@
   <div class="menu" id="menu"></div>
   <div class="stage hidden" id="stage"></div>
 
-<script src="app.js?v=7"></script>
+<script src="app.js?v=9"></script>
 <script src="/stopwatch.js?v=2"></script>
 </body>
 </html>

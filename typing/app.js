@@ -111,8 +111,16 @@
         'The bakery smelled like warm bread every single morning.',
         'Our neighbors planted a garden full of ripe tomatoes.',
         'The train rumbled slowly through the quiet mountain town.'] },
-    { name:'The Constitution & You', keys:'A–Z . ,', desc:'Type your way through all 27 amendments.',
-      sentences:['The First Amendment protects freedom of speech, religion, the press, and peaceful assembly.',
+    { name:'The Constitution & You', keys:'A–Z . ,', desc:'Type through the 7 Articles and all 27 amendments.',
+      sentences:['The Preamble begins by declaring, We the People of the United States, in Order to form a more perfect Union.',
+        'Article One vests all legislative power in a Congress made up of a Senate and a House of Representatives.',
+        'Article Two vests the executive power in a single President of the United States of America.',
+        'Article Three vests the judicial power of the United States in one Supreme Court.',
+        'Article Four requires every state to give full faith and credit to the acts of every other state.',
+        'Article Five lets Congress and the states change the Constitution through the amendment process.',
+        'Article Six declares this Constitution to be the supreme law of the land.',
+        'Article Seven explains that ratification by nine states would establish this Constitution.',
+        'The First Amendment protects freedom of speech, religion, the press, and peaceful assembly.',
         'The Second Amendment protects the right of citizens to keep and bear arms.',
         'The Third Amendment says soldiers cannot be housed in your home without your consent.',
         'The Fourth Amendment protects you from unreasonable searches and seizures by police.',
@@ -281,10 +289,19 @@
 
     // text with per-char spans
     const textEl=el('div','text');
-    const chars=[...target].map((ch,k)=>{
+    const chars=[];
+    let wordWrap=null;
+    [...target].forEach(ch=>{
       const s=el('span','ch'+(ch===' '?' sp':''));
       s.textContent = ch===' ' ? ' ' : ch;
-      textEl.appendChild(s); return s;
+      chars.push(s);
+      if(ch===' '){
+        wordWrap=null; textEl.appendChild(s);
+        textEl.appendChild(document.createTextNode('\u200b'));   // a real, breakable wrap point after the space
+      } else {
+        if(!wordWrap){ wordWrap=el('span','word'); textEl.appendChild(wordWrap); }
+        wordWrap.appendChild(s);
+      }
     });
     card.appendChild(textEl);
 
