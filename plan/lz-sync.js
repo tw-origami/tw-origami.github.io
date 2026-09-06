@@ -62,6 +62,11 @@
   }
 
   // --- find everything changed locally since our last known-synced state ------------
+  // No timestamps are assigned here — the server stamps every write with its own clock
+  // when it lands (see AppsScript-Sync.gs), and we record whatever it assigns. Devices'
+  // clocks disagree, and comparing timestamps minted by two different clocks makes
+  // last-write-wins unreliable: the machine running ahead would always win, so the
+  // other machine's edits could be dropped silently and permanently.
   function collectLocalChanges(meta) {
     const changes = [];
     const seen = new Set();
@@ -70,13 +75,13 @@
       const val = localStorage.getItem(k);
       const known = meta[k];
       if (!known || known.deleted || known.value !== val) {
-        changes.push({ key: k, value: val, deleted: false, updated: Date.now() });
+        changes.push({ key: k, value: val, deleted: false });
       }
     });
     // anything we used to know about that's no longer in localStorage was deleted locally
     Object.keys(meta).forEach(k => {
       if (!seen.has(k) && !meta[k].deleted) {
-        changes.push({ key: k, value: null, deleted: true, updated: Date.now() });
+        changes.push({ key: k, value: null, deleted: true });
       }
     });
     return changes;
@@ -94,16 +99,26 @@
       "action=set" +
       "&key=" + encodeURIComponent(item.key) +
       "&value=" + encodeURIComponent(item.value == null ? "" : item.value) +
-      "&deleted=" + (item.deleted ? "1" : "0") +
-      "&updated=" + item.updated;
-    return fetch(url, { method: "GET" }).then(r => r.ok).catch(() => false);
+      "&deleted=" + (item.deleted ? "1" : "0");
+    return fetch(url, { method: "GET" })
+      .then(r => r.json())
+      .then(j => {
+        if (!j || !j.ok) return { ok: false };
+        // record the timestamp the SERVER assigned, so every device's bookkeeping is
+        // expressed in one shared clock rather than its own
+        return { ok: true, key: item.key, value: item.value, deleted: item.deleted, updated: Number(j.updated || 0) };
+      })
+      .catch(() => ({ ok: false }));
   }
   function pushChanges(changes) {
-    if (!changes.length) return Promise.resolve(true);
-    return Promise.all(changes.map(pushOne)).then(results => results.every(Boolean));
+    if (!changes.length) return Promise.resolve({ ok: true, applied: [] });
+    return Promise.all(changes.map(pushOne)).then(results => ({
+      ok: results.every(r => r.ok),
+      applied: results.filter(r => r.ok)
+    }));
   }
-  function commitPushedChanges(meta, changes) {
-    changes.forEach(c => { meta[c.key] = { value: c.value, updated: c.updated, deleted: c.deleted }; });
+  function commitPushedChanges(meta, applied) {
+    applied.forEach(c => { meta[c.key] = { value: c.value, updated: c.updated, deleted: c.deleted }; });
     saveMeta(meta);
   }
 
@@ -118,6 +133,10 @@
     Object.keys(items || {}).forEach(k => {
       const item = items[k];
       const known = meta[k];
+      // Advance the cursor past every item we were handed, including ones we skip —
+      // otherwise the cursor stalls at the last *applied* change and we re-download the
+      // same rows on every heartbeat forever.
+      if (item.updated > newCursor) newCursor = item.updated;
       if (known && known.updated >= item.updated) return; // we already have this exact state or something newer
       if (item.deleted || item.value === null) {
         try { localStorage.removeItem(k); } catch (e) {}
@@ -125,7 +144,6 @@
         try { localStorage.setItem(k, item.value); } catch (e) {}
       }
       meta[k] = { value: item.deleted ? null : item.value, updated: item.updated, deleted: !!item.deleted };
-      if (item.updated > newCursor) newCursor = item.updated;
     });
     return newCursor;
   }
@@ -144,9 +162,9 @@
     if (!changes.length) return;
     quickInFlight = true;
     setStatus("Syncing…");
-    pushChanges(changes).then(ok => {
-      if (ok) {
-        commitPushedChanges(meta, changes);
+    pushChanges(changes).then(res => {
+      commitPushedChanges(meta, res.applied); // commit whatever landed, even on partial failure
+      if (res.ok) {
         setStatus("Synced ✓ " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
       } else {
         setStatus("Sync error — will retry", true);
@@ -190,21 +208,19 @@
     const cursor = loadCursor();
     setStatus("Syncing…");
     pullChanges(cursor).then(res => {
-      let newCursor = cursor;
-      if (res && res.ok) {
-        newCursor = applyRemote(res.items, meta, cursor);
+      let pullOk = !!(res && res.ok);
+      if (pullOk) {
+        const newCursor = applyRemote(res.items, meta, cursor);
         saveMeta(meta);
         saveCursor(newCursor);
       }
       const changes = collectLocalChanges(meta);
-      return pushChanges(changes).then(ok => {
-        if (ok) {
-          commitPushedChanges(meta, changes);
+      return pushChanges(changes).then(pushRes => {
+        commitPushedChanges(meta, pushRes.applied);
+        if (pullOk && pushRes.ok) {
           setStatus("Synced ✓ " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-        } else if (changes.length) {
-          setStatus("Sync error — will retry", true);
         } else {
-          setStatus("Synced ✓ " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+          setStatus("Sync error — will retry", true);
         }
       });
     }).catch(() => {

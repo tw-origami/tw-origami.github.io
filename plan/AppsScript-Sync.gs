@@ -26,11 +26,18 @@ function handle(e) {
     var action = p.action || 'get';
 
     if (action === 'set') {
+      // The timestamp is assigned HERE, by the server's clock — never taken from the
+      // client. Devices' clocks routinely differ by seconds or minutes, and comparing
+      // timestamps written by two different clocks makes "last write wins" unreliable:
+      // the device whose clock runs ahead would always win, so the other device's edits
+      // could be silently discarded forever. One authoritative clock avoids that
+      // entirely. The assigned value is returned so the client can record it.
+      var stamp = Date.now();
       var items = readItems_(e);
       items.forEach(function (it) {
-        if (it && it.key) upsert_(sh, String(it.key), it.value, !!it.deleted, Number(it.updated || Date.now()));
+        if (it && it.key) upsert_(sh, String(it.key), it.value, !!it.deleted, stamp);
       });
-      return json_({ ok: true, count: items.length });
+      return json_({ ok: true, count: items.length, updated: stamp });
     }
 
     // default: return everything changed after ?since= (0 / omitted = everything)
@@ -54,10 +61,11 @@ function handle(e) {
   }
 }
 
-// Batch writes arrive as a JSON POST body ({items:[{key,value,deleted,updated}, ...]})
-// sent with a text/plain content-type so the browser skips a CORS preflight (Apps
-// Script doesn't implement doOptions). Fall back to single-item query params too,
-// in case something ever calls this via a plain GET.
+// Writes normally arrive one key at a time as GET query params (the client can't use
+// POST — Apps Script answers via a redirect, and browsers drop a POST body when they
+// follow one). A JSON POST body is still accepted as a fallback for any other caller.
+// Note the client-supplied `updated`, if any, is deliberately ignored — handle()
+// stamps every write with the server's own clock instead.
 function readItems_(e) {
   if (e && e.postData && e.postData.contents) {
     try {
@@ -66,7 +74,7 @@ function readItems_(e) {
     } catch (err) { /* fall through */ }
   }
   var p = (e && e.parameter) || {};
-  if (p.key) return [{ key: p.key, value: p.value || '', deleted: p.deleted === '1', updated: Number(p.updated || Date.now()) }];
+  if (p.key) return [{ key: p.key, value: p.value || '', deleted: p.deleted === '1' }];
   return [];
 }
 
@@ -78,9 +86,11 @@ function getSheet_() {
   return sh;
 }
 
-// Last-write-wins by timestamp: a write only takes effect if its `updated` is at
-// least as new as whatever's already stored for that key. This is what lets two
-// devices push at nearly the same time without the "wrong" one winning.
+// Last-write-wins, where "last" means the order writes actually arrived at this
+// script — since `updated` now always comes from the server's own clock (see
+// handle()), a later arrival always carries a later timestamp, so whichever device
+// wrote most recently genuinely wins. Requests are serialized by the LockService
+// lock in handle(), so two devices writing the same key can't interleave.
 function upsert_(sh, key, value, deleted, updated) {
   var last = sh.getLastRow();
   if (last > 1) {
@@ -88,8 +98,6 @@ function upsert_(sh, key, value, deleted, updated) {
     for (var r = 0; r < keys.length; r++) {
       if (String(keys[r][0]) === key) {
         var rowNum = r + 2;
-        var existingUpdated = Number(sh.getRange(rowNum, 4).getValue() || 0);
-        if (updated < existingUpdated) return; // a newer value is already stored — ignore this stale write
         sh.getRange(rowNum, 2, 1, 3).setValues([[value == null ? '' : value, !!deleted, updated]]);
         return;
       }
