@@ -68,6 +68,10 @@
   .addOutingBoth.addOutingRow{ border-left:none; }
   .calOutingInput{ width:100%; font-size:13px; padding:7px 9px; border:1px solid var(--line); border-radius:8px;
     font-family:inherit; background:#f0fdf4; }
+  .editOuting{ cursor:pointer; font-size:11px; color:var(--muted); margin-left:4px; }
+  .editOuting:hover{ color:var(--green); }
+  .outingEditInput{ font-size:13px; padding:4px 7px; border:1px solid var(--line); border-radius:7px;
+    font-family:inherit; background:#f0fdf4; flex:1; min-width:0; }
   .entry b{ font-weight:800; }
   .empty{ color:var(--muted); font-size:13px; }
 </style>
@@ -112,6 +116,8 @@ function escapeAttr(s){ return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot
 const KIDS = { ryland:{name:"Ryland",cls:"ry"}, reid:{name:"Reid",cls:"reid"} };
 // Which day's "+ Add outing" input is currently open (in-memory only) — keyed by outingKey.
 let calOutingEditing = {};
+// Which specific outing entry is being text-edited (in-memory only) — keyed by "key|idx".
+let calEditOuting = {};
 
 // ?kid=ryland (or reid) locks this calendar to just that kid — no filter buttons, and the
 // My Work link stays scoped to the same kid. Used by the per-kid hub pages (ry.html / reid.html).
@@ -250,7 +256,11 @@ function renderDetail(){
       else if(e.type==="ongoing"){ inner = `<b>${e.subject}</b> — done`; confirmMsg = `Remove this ${e.subject} check-off for this day?`; }
       else if(e.type==="habit"){ inner = `<b>Habit:</b> ${e.title}`; confirmMsg = `Remove "${e.title}" as done for this day?`; }
       else if(e.type==="outing"){
-        inner = `<span class="ochk${e.done?' on':''}" data-key="${e.key}" data-idx="${e.idx}">${e.done?'✓':''}</span> <b>Outing:</b> ${e.text}`;
+        const editKey = e.key+"|"+e.idx;
+        const chk = `<span class="ochk${e.done?' on':''}" data-key="${e.key}" data-idx="${e.idx}">${e.done?'✓':''}</span>`;
+        inner = calEditOuting[editKey]
+          ? `${chk} <input type="text" class="outingEditInput" data-key="${e.key}" data-idx="${e.idx}" value="${escapeAttr(e.text)}">`
+          : `${chk} <b>Outing:</b> ${e.text} <span class="editOuting" data-key="${e.key}" data-idx="${e.idx}" title="Edit">✎</span>`;
         confirmMsg = `Remove this outing?`;
       }
       else { inner = `<b>${e.subject}:</b> ${e.text}`; confirmMsg = `Delete this note for ${e.subject}?`; }
@@ -285,6 +295,14 @@ document.addEventListener("click", e=>{
     calOutingEditing[addOutingRow.dataset.outingkey] = true;
     renderDetail();
     const input = document.querySelector(`.calOutingInput[data-outingkey="${CSS.escape(addOutingRow.dataset.outingkey)}"]`);
+    if(input) input.focus();
+    return;
+  }
+  const editOuting = e.target.closest(".editOuting");
+  if(editOuting){
+    calEditOuting[editOuting.dataset.key+"|"+editOuting.dataset.idx] = true;
+    renderDetail();
+    const input = document.querySelector(`.outingEditInput[data-key="${CSS.escape(editOuting.dataset.key)}"][data-idx="${editOuting.dataset.idx}"]`);
     if(input) input.focus();
     return;
   }
@@ -331,13 +349,26 @@ function saveCalOuting(input){
   calOutingEditing[k] = false;
   renderGrid();
 }
+function saveOutingEdit(input){
+  const k = input.dataset.key, idx = parseInt(input.dataset.idx,10);
+  const arr = getOutings(k);
+  if(arr[idx]) arr[idx].text = input.value.trim(); // empty text is filtered out by setOutings
+  setOutings(k, arr);
+  delete calEditOuting[k+"|"+idx];
+  renderGrid();
+}
 document.addEventListener("focusout", e=>{
   const input = e.target.closest(".calOutingInput");
   if(input) saveCalOuting(input);
+  const editInput = e.target.closest(".outingEditInput");
+  if(editInput) saveOutingEdit(editInput);
 });
 document.addEventListener("keydown", e=>{
   if(e.key==="Enter" && e.target.classList && e.target.classList.contains("calOutingInput")){
     saveCalOuting(e.target);
+  }
+  if(e.key==="Enter" && e.target.classList && e.target.classList.contains("outingEditInput")){
+    saveOutingEdit(e.target);
   }
 });
 document.getElementById("prevM").onclick = ()=>{ viewDate.setMonth(viewDate.getMonth()-1); renderGrid(); };
