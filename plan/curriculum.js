@@ -16,6 +16,24 @@ window.CURRICULUM = {
    "note": "Tracked in Khan Academy — no workbook. Continue current unit."
   },
   {
+   "subject": "Learn Zone",
+   "book": "",
+   "goal": 3,
+   "options": [
+    "Civic Nation",
+    "Word Roots",
+    "Test Tactics",
+    "History Heroes",
+    "Money Smarts",
+    "Debate Dojo",
+    "Fact Checker",
+    "Nutrition Quest"
+   ],
+   "kind": "ongoing",
+   "lessons": [],
+   "note": "Pick a different one each session — mix it up so nothing gets stale."
+  },
+  {
    "subject": "Reading",
    "book": "Spectrum Reading 5",
    "goal": 3,
@@ -1443,6 +1461,24 @@ window.CURRICULUM = {
    "kind": "ongoing",
    "lessons": [],
    "note": "Tracked in Khan Academy — no workbook. Continue current unit."
+  },
+  {
+   "subject": "Learn Zone",
+   "book": "",
+   "goal": 3,
+   "options": [
+    "Civic Nation",
+    "Word Roots",
+    "Test Tactics",
+    "History Heroes",
+    "Money Smarts",
+    "Debate Dojo",
+    "Fact Checker",
+    "Nutrition Quest"
+   ],
+   "kind": "ongoing",
+   "lessons": [],
+   "note": "Pick a different one each session — mix it up so nothing gets stale."
   },
   {
    "subject": "Reading",
