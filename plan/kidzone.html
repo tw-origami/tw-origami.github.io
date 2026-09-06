@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
-<title>My Work · The Learn Zone</title>
+<title>Today's Adventure · The Learn Zone</title>
 <style>
   :root{ --ink:#1e293b; --muted:#64748b; --accent:#4f46e5; --line:#e2e8f0; --head:#1f3864;
     --ry:#4f46e5; --ry-soft:#eef2ff; --reid:#0f766e; --reid-soft:#ccfbf1; --amber:#b45309; --green:#166534; }
@@ -74,12 +74,15 @@
   .sessboxes .box.on{ background:var(--green); border-color:var(--green); }
   .empty{ font-size:15px; color:var(--green); font-weight:800; padding:6px 8px; }
   .paused{ background:#fff; border-radius:14px; box-shadow:0 6px 18px rgba(30,41,99,.06); padding:10px 15px; margin-top:18px; font-size:12.5px; color:var(--muted); }
+  .habits-card{ background:linear-gradient(160deg,#fffbeb,#fff); border:2px solid #fde68a; }
+  .habits-card .ch .s{ color:var(--amber); }
+  .lesson.habit .box.on,.lesson.habit.done .box{ background:var(--amber); border-color:var(--amber); }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="top">
-    <h1>✅ My Work</h1>
+    <h1>🧭 Today's Adventure</h1>
     <div style="display:flex;gap:8px;">
       <a class="back" id="navPrint" href="print.html">🖨️ Daily sheets</a>
       <a class="back" id="navMaster" href="master.html">📋 Master</a>
@@ -98,7 +101,7 @@
 <script>
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[]};
-const { slug, dkey, skey, dateKey, isDone, setDone, undoneLessons, upcomingLessons, subjProgress,
+const { slug, dkey, skey, dateKey, habitKey, isDone, setDone, undoneLessons, upcomingLessons, subjProgress,
   doneLessons, doneDate, todayISO, doneDatesForSubject, noteKey, getNote, setNote } = window.LZ;
 const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th grade"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th grade"} };
 
@@ -129,6 +132,28 @@ function expandFor(kidId, sub){
 }
 // Which subject's note is currently being typed into (in-memory only).
 let noteEditing = {};
+
+// A simple daily habits checklist (Go outside, Read a book, etc. — edit the list in
+// LZ_CONFIG.habits) shown above the subject cards. Reuses the same [data-k]/isDone/setDone
+// checkbox mechanism as everything else, just its own habitKey prefix, and always reflects
+// TODAY (no history/undo needed — it naturally resets fresh each new day).
+function habitsCard(kidId){
+  const habits = CFG.habits || [];
+  if(!habits.length) return "";
+  const today = todayISO();
+  const rows = habits.map(h=>{
+    const k = habitKey(kidId, h, today);
+    const done = isDone(k);
+    return `<div class="lesson habit${done?' done':''}" data-k="${k}">
+      <div class="box">${done?'✓':''}</div>
+      <div><span class="t">${h}</span></div>
+    </div>`;
+  }).join("");
+  return `<div class="card habits-card">
+    <div class="ch"><span class="s">🌞 Daily Habits</span></div>
+    ${rows}
+  </div>`;
+}
 
 function lessonRow(kidId, sub, les, isNow){
   const k = dkey(kidId, sub, les);
@@ -274,8 +299,9 @@ function render(){
   const pausedNote = (CFG.paused&&CFG.paused.length)? `<div class="paused">Paused for now: ${CFG.paused.join(", ")}</div>` : "";
 
   document.getElementById("body").innerHTML = `
-    <div class="kidhead ${KIDS[kid].cls}"><h2 style="margin:0;font-size:19px;">${KIDS[kid].name}'s work</h2>
+    <div class="kidhead ${KIDS[kid].cls}"><h2 style="margin:0;font-size:19px;">${KIDS[kid].name}'s Studies</h2>
       <span class="stat">${d}/${t} lessons done<small>${pct}% of the way there</small></span></div>
+    ${habitsCard(kid)}
     ${cards}${pausedNote}`;
 }
 

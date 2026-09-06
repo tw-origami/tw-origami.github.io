@@ -65,6 +65,11 @@
   function getNote(k){ return localStorage.getItem(k) || ""; }
   function setNote(k, text){ text=(text||"").trim(); text?localStorage.setItem(k,text):localStorage.removeItem(k); }
 
+  // A daily habit's checkbox for one kid+day (Go outside, Read a book, etc. — see
+  // LZ_CONFIG.habits below). Same isDone/setDone plumbing as everything else, just its own
+  // key prefix so it stays separate from subject/lesson records.
+  function habitKey(kid,habit,dateISO){ return `lzHabit|${kid}|${slug(habit)}|${dateISO}`; }
+
   // All localStorage keys with a given prefix — used by calendar.html to enumerate every
   // recorded lesson-completion, day-checkbox, and note without needing its own storage scheme.
   function scanKeys(prefix){
@@ -73,12 +78,14 @@
     return out;
   }
 
-  window.LZ = { slug, dkey, skey, dateKey, noteKey, isDone, setDone, doneDate, getNote, setNote, scanKeys, todayISO,
+  window.LZ = { slug, dkey, skey, dateKey, noteKey, habitKey, isDone, setDone, doneDate, getNote, setNote, scanKeys, todayISO,
     undoneLessons, nextLesson, upcomingLessons, subjProgress, doneLessons, doneDatesForSubject };
 
-  // Shared weekly config — the one place to pause a subject or tweak per-day overrides.
-  // Edit this (or ask Claude to) and kidzone.html + print.html both pick it up automatically.
+  // Shared weekly config — the one place to pause a subject, tweak per-day overrides, or
+  // edit the daily habits checklist. Edit this (or ask Claude to) and kidzone.html + ry.html/
+  // reid.html both pick it up automatically.
   window.LZ_CONFIG = {
-    paused: ["Grammar / Word Study"]
+    paused: ["Grammar / Word Study"],
+    habits: ["Go outside", "Brush teeth", "Read a book", "Draw a picture"]
   };
 })();
