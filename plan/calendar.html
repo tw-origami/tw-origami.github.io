@@ -208,7 +208,16 @@ function renderDetail(){
   let body = "";
   ["ryland","reid"].forEach(kid=>{
     if(kidFilter!=="both" && kidFilter!==kid) return;
-    const mine = entries.filter(e=>e.kid===kid);
+    // Outings first, then daily habits, then everything study-related (lessons, ongoing
+    // subjects, per-subject notes) — a stable sort keeps each group's own order intact.
+    const groupOrder = {outing:0, habit:1};
+    const mine = entries.filter(e=>e.kid===kid)
+      .map((e,i)=>({e,i}))
+      .sort((a,b)=>{
+        const pa = groupOrder[a.e.type] ?? 2, pb = groupOrder[b.e.type] ?? 2;
+        return pa!==pb ? pa-pb : a.i-b.i;
+      })
+      .map(x=>x.e);
     if(!mine.length) return;
     const rows = mine.map(e=>{
       let inner, confirmMsg;
