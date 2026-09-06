@@ -79,9 +79,7 @@
   .lesson.habit .box.on,.lesson.habit.done .box{ background:var(--amber); border-color:var(--amber); }
   .outing-card{ background:linear-gradient(160deg,#f0fdf4,#fff); border:2px solid #86efac; }
   .outing-card .ch .s{ color:var(--green); }
-  .outing-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 4px;
-    border-bottom:1px solid #f1f5f9; font-size:14.5px; font-weight:600; }
-  .outing-row:last-of-type{ border-bottom:none; }
+  .lesson.outing-item .box{ cursor:pointer; }
   .rmOuting{ flex:none; width:20px; height:20px; border-radius:50%; background:#fee2e2; color:#b91c1c;
     font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; }
   .addOuting{ font-size:13px; font-weight:700; color:var(--muted); cursor:pointer; padding:8px; text-align:center;
@@ -169,14 +167,18 @@ function habitsCard(kidId){
   </div>`;
 }
 
-// A green box for logging any outings that day (Zoo trip, Library, a hike — anything off
-// the usual routine). A day can have more than one, so this is a small list of free-text
-// entries (not a single note like the per-subject "+"), with a "+" to add another.
+// A green box for any outings that day (Zoo trip, Library, a hike — anything off the usual
+// routine). A day can have more than one, so this is a small list, with a "+" to add another.
+// Each entry has a checkbox: one a kid types here is already checked (done:true, since
+// they're describing something that already happened), but a parent can also pre-plan an
+// outing for today from calendar.html — that one shows up unchecked so the kid can tick it
+// off when it happens.
 function dayOutingCard(kidId){
   const k = outingKey(kidId, todayISO());
   const outings = getOutings(k);
-  const rows = outings.map((text,i)=>`<div class="outing-row">
-    <span class="t">${text}</span>
+  const rows = outings.map((o,i)=>`<div class="lesson outing-item${o.done?' done':''}">
+    <div class="box" data-outingtoggle="${k}" data-idx="${i}">${o.done?'✓':''}</div>
+    <div style="flex:1;"><span class="t">${o.text}</span></div>
     <span class="rmOuting" data-outingkey="${k}" data-idx="${i}" title="Remove">✕</span>
   </div>`).join("");
   const addRow = outingEditing[k]
@@ -371,6 +373,14 @@ document.addEventListener("click", e=>{
     setOutings(k, arr);
     render(); return;
   }
+  const outingToggle = e.target.closest("[data-outingtoggle]");
+  if(outingToggle){
+    const k = outingToggle.dataset.outingtoggle, idx = parseInt(outingToggle.dataset.idx,10);
+    const arr = getOutings(k);
+    if(arr[idx]) arr[idx].done = !arr[idx].done;
+    setOutings(k, arr);
+    render(); return;
+  }
   const exp = e.target.closest(".expandBtn");
   if(exp){
     const est = expand[exp.dataset.key] || (expand[exp.dataset.key] = {done:0, upcoming:3});
@@ -394,7 +404,8 @@ function saveNoteInput(input){
 function saveOutingInput(input){
   const k = input.dataset.outingkey;
   const text = input.value.trim();
-  if(text){ const arr = getOutings(k); arr.push(text); setOutings(k, arr); }
+  // Typed here, it's already happened — starts checked.
+  if(text){ const arr = getOutings(k); arr.push({text, done:true}); setOutings(k, arr); }
   outingEditing[k] = false;
   render();
 }

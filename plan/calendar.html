@@ -56,6 +56,15 @@
   .entry.note{ border-left-color:var(--amber); background:#fffbeb; border-radius:0 6px 6px 0; }
   .entry.habit{ border-left-color:var(--amber); }
   .entry.outing{ border-left-color:#16a34a; background:#f0fdf4; border-radius:0 6px 6px 0; }
+  .ochk{ display:inline-flex; align-items:center; justify-content:center; flex:none; width:16px; height:16px;
+    border:2px solid #86efac; border-radius:5px; font-size:10px; font-weight:900; color:#fff; margin-right:2px;
+    cursor:pointer; vertical-align:middle; }
+  .ochk.on{ background:var(--green); border-color:var(--green); }
+  .addOutingRow{ font-size:12.5px; font-weight:700; color:var(--muted); cursor:pointer; padding:5px 8px;
+    border-left:3px solid #86efac; margin-bottom:3px; }
+  .addOutingRow:hover{ color:var(--green); }
+  .calOutingInput{ width:100%; font-size:13px; padding:7px 9px; border:1px solid var(--line); border-radius:8px;
+    font-family:inherit; background:#f0fdf4; }
   .entry b{ font-weight:800; }
   .empty{ color:var(--muted); font-size:13px; }
 </style>
@@ -94,10 +103,12 @@
 <script>
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[], habits:[]};
-const { slug, dkey, dateKey, noteKey, isDone, setDone, doneDate, getNote, setNote, scanKeys,
+const { slug, dkey, dateKey, noteKey, outingKey, isDone, setDone, doneDate, getNote, setNote, scanKeys,
   getOutings, setOutings } = window.LZ;
 function escapeAttr(s){ return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
 const KIDS = { ryland:{name:"Ryland",cls:"ry"}, reid:{name:"Reid",cls:"reid"} };
+// Which day's "+ Add outing" input is currently open (in-memory only) — keyed by outingKey.
+let calOutingEditing = {};
 
 // ?kid=ryland (or reid) locks this calendar to just that kid — no filter buttons, and the
 // My Work link stays scoped to the same kid. Used by the per-kid hub pages (ry.html / reid.html).
@@ -155,7 +166,7 @@ function buildActivityIndex(){
   });
   scanKeys("lzOuting|").forEach(k=>{
     const parts = k.split("|"); const kid=parts[1], d=parts[2];
-    getOutings(k).forEach((text, idx)=> add(d, {kid, subject:"Day outing", type:"outing", text, key:k, idx}));
+    getOutings(k).forEach((o, idx)=> add(d, {kid, subject:"Day outing", type:"outing", text:o.text, done:o.done, key:k, idx}));
   });
   return byDate;
 }
@@ -218,28 +229,50 @@ function renderDetail(){
         return pa!==pb ? pa-pb : a.i-b.i;
       })
       .map(x=>x.e);
-    if(!mine.length) return;
     const rows = mine.map(e=>{
       let inner, confirmMsg;
       if(e.type==="lesson"){ inner = `<b>${e.subject}:</b> ${e.title} — p.${e.page}`; confirmMsg = `Undo "${e.title}" for ${e.subject}? It'll go back to not-done.`; }
       else if(e.type==="ongoing"){ inner = `<b>${e.subject}</b> — done`; confirmMsg = `Remove this ${e.subject} check-off for this day?`; }
       else if(e.type==="habit"){ inner = `<b>Habit:</b> ${e.title}`; confirmMsg = `Remove "${e.title}" as done for this day?`; }
-      else if(e.type==="outing"){ inner = `<b>Outing:</b> ${e.text}`; confirmMsg = `Remove this outing?`; }
+      else if(e.type==="outing"){
+        inner = `<span class="ochk${e.done?' on':''}" data-key="${e.key}" data-idx="${e.idx}">${e.done?'✓':''}</span> <b>Outing:</b> ${e.text}`;
+        confirmMsg = `Remove this outing?`;
+      }
       else { inner = `<b>${e.subject}:</b> ${e.text}`; confirmMsg = `Delete this note for ${e.subject}?`; }
       const idxAttr = e.idx!==undefined ? ` data-idx="${e.idx}"` : "";
       return `<div class="entry ${e.type}">${inner}
         <span class="undoBtn" data-key="${e.key}" data-type="${e.type}"${idxAttr} data-confirm="${escapeAttr(confirmMsg)}" title="Undo">✕</span>
       </div>`;
     }).join("");
-    body += `<div class="kidsec ${KIDS[kid].cls}"><div class="kn">${KIDS[kid].name}</div>${rows}</div>`;
+    // A "+ Add outing" prompt is always available for any day (past, today, or future) so a
+    // planned outing can be pre-placed ahead of time — it shows up unchecked until it happens.
+    const ok = outingKey(kid, selected);
+    const addOutingHtml = calOutingEditing[ok]
+      ? `<div class="entry"><input type="text" class="calOutingInput" data-outingkey="${ok}" placeholder="Plan an outing for this day..."></div>`
+      : `<div class="addOutingRow" data-outingkey="${ok}">+ Add outing</div>`;
+    body += `<div class="kidsec ${KIDS[kid].cls}"><div class="kn">${KIDS[kid].name}</div>${addOutingHtml}${rows}</div>`;
   });
-  if(!body) body = `<div class="empty">Nothing recorded for this day yet.</div>`;
   document.getElementById("detail").innerHTML = `<h2>${dateLabel}</h2>${body}`;
 }
 
 document.addEventListener("click", e=>{
   const kf = e.target.closest(".kf");
   if(kf){ kidFilter = kf.dataset.kid; renderKidFilter(); renderGrid(); return; }
+  const ochk = e.target.closest(".ochk");
+  if(ochk){
+    const k = ochk.dataset.key, idx = parseInt(ochk.dataset.idx,10);
+    const arr = getOutings(k);
+    if(arr[idx]){ arr[idx].done = !arr[idx].done; setOutings(k, arr); }
+    renderGrid(); return;
+  }
+  const addOutingRow = e.target.closest(".addOutingRow");
+  if(addOutingRow){
+    calOutingEditing[addOutingRow.dataset.outingkey] = true;
+    renderDetail();
+    const input = document.querySelector(`.calOutingInput[data-outingkey="${CSS.escape(addOutingRow.dataset.outingkey)}"]`);
+    if(input) input.focus();
+    return;
+  }
   const undo = e.target.closest(".undoBtn");
   if(undo){
     if(window.confirm(undo.dataset.confirm)){
@@ -257,6 +290,23 @@ document.addEventListener("click", e=>{
   }
   const day = e.target.closest(".day[data-date]");
   if(day){ selected = day.dataset.date; renderGrid(); return; }
+});
+function saveCalOuting(input){
+  const k = input.dataset.outingkey;
+  const text = input.value.trim();
+  // Planned from the calendar (not yet lived) — starts unchecked.
+  if(text){ const arr = getOutings(k); arr.push({text, done:false}); setOutings(k, arr); }
+  calOutingEditing[k] = false;
+  renderGrid();
+}
+document.addEventListener("focusout", e=>{
+  const input = e.target.closest(".calOutingInput");
+  if(input) saveCalOuting(input);
+});
+document.addEventListener("keydown", e=>{
+  if(e.key==="Enter" && e.target.classList && e.target.classList.contains("calOutingInput")){
+    saveCalOuting(e.target);
+  }
 });
 document.getElementById("prevM").onclick = ()=>{ viewDate.setMonth(viewDate.getMonth()-1); renderGrid(); };
 document.getElementById("nextM").onclick = ()=>{ viewDate.setMonth(viewDate.getMonth()+1); renderGrid(); };

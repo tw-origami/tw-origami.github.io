@@ -72,12 +72,22 @@
 
   // One kid+day's list of "Day Outing" entries (Zoo trip, Library, etc.) — unlike a note,
   // a day can have several, so this stores a JSON array under one key instead of one string
-  // per record.
+  // per record. Each entry is {text, done}: a kid logging something that already happened
+  // (via kidzone.html's "+ Add an outing") is saved done:true; a parent pre-planning one for
+  // a future (or today's) date via calendar.html saves done:false, so it shows up as an
+  // unchecked box the kid can tick off when it happens.
   function outingKey(kid,dateISO){ return `lzOuting|${kid}|${dateISO}`; }
-  function getOutings(k){ try{ return JSON.parse(localStorage.getItem(k)||"[]"); }catch(e){ return []; } }
+  function getOutings(k){
+    let arr;
+    try{ arr = JSON.parse(localStorage.getItem(k)||"[]"); }catch(e){ arr = []; }
+    // Normalize legacy data, which was a plain array of strings (always "already happened").
+    return (arr||[]).map(o => typeof o==="string" ? {text:o, done:true} : {text:o.text||"", done:!!o.done});
+  }
   function setOutings(k, arr){
-    arr = (arr||[]).map(s=>(s||"").trim()).filter(Boolean);
-    arr.length ? localStorage.setItem(k, JSON.stringify(arr)) : localStorage.removeItem(k);
+    const clean = (arr||[])
+      .map(o => typeof o==="string" ? {text:(o||"").trim(), done:true} : {text:(o.text||"").trim(), done:!!o.done})
+      .filter(o=>o.text);
+    clean.length ? localStorage.setItem(k, JSON.stringify(clean)) : localStorage.removeItem(k);
   }
 
   // All localStorage keys with a given prefix — used by calendar.html to enumerate every

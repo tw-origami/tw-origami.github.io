@@ -114,8 +114,8 @@ function buildDoneToday(){
   (CFG.habits||[]).forEach(h=>{
     if(isDone(habitKey(KID, h, today))) items.push({subject:"Daily habit", icon:"✓", text:h});
   });
-  getOutings(outingKey(KID, today)).forEach(o=>{
-    items.push({subject:"Day outing", icon:"🌳", text:o});
+  getOutings(outingKey(KID, today)).filter(o=>o.done).forEach(o=>{
+    items.push({subject:"Day outing", icon:"🌳", text:o.text});
   });
   return items;
 }
