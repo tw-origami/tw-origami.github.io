@@ -55,7 +55,7 @@ window.STUDENTS = [
         queue: [
           "Review + Apply: Book Character/Summary — pp.127–129",
           "Review Uppercase + Evaluate — pp.130–131",
-          "Practice + start Unit 4 — pp.132–136",
+          "Evaluate: Keys to Legibility + Practice: Manuscript Maintenance — pp.132, 134",
           "Unit 4: Cursive in the Real World — pp.136–139",
           "Apply: Narrative (Last Weekend, Story Retelling) — pp.140–142" ] },
       { subject: "Geography", book: "Spectrum Geography: World 6", pace: "1 topic", goal: 2, workbook: true, page: 28, last: 90,

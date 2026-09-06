@@ -861,7 +861,7 @@ window.CURRICULUM = {
     },
     {
      "t": "Practice: Manuscript Maintenance",
-     "p": "132",
+     "p": "134",
      "cur": false,
      "done": false
     },
