@@ -17,7 +17,7 @@
 // of data get added (a new habit, a new manual-lesson field, etc. all just start with
 // "lz" already and get swept up automatically).
 (function () {
-  const SYNC_URL = ""; // paste your Apps Script /exec URL here once deployed — see SETUP-Sync.md
+  const SYNC_URL = "https://script.google.com/macros/s/AKfycbzf5pHcdFd4Ed0Y4fQ1KXnHBnAAsRMINCLJwXt6duIxOlEkrYInGt2g8gQD0GIj1M6Ihg/exec";
   if (!SYNC_URL) return; // sync disabled — every page behaves exactly as it did before, all-local
 
   const META_KEY = "_lzSyncMeta";     // our own bookkeeping — deliberately NOT prefixed "lz" so it's never swept up as content
