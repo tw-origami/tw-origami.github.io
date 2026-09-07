@@ -168,6 +168,51 @@
     return list;
   }
 
+  // --- Supplement links (teacher-attached articles / videos) ---------------------------
+  // Any lesson can carry extra material the teacher wants alongside it — a YouTube video,
+  // a news article, a Khan Academy page. Stored per kid+subject+item so a link follows the
+  // specific lesson it belongs to, and each link gets its own check-off (the round "watched
+  // / read it" circle on the kid's checklist) separate from the lesson's own checkbox.
+  //
+  // itemId is the same stable id combinedQueue uses — `r|<page>|<slug>` for a real book
+  // lesson, `m|<id>` for a teacher-inserted one, or the literal "subject" for an ongoing
+  // subject (Math, Learn Zone) that has no per-lesson rows to hang a link on. Its pipes are
+  // swapped for `~` so they can't be confused with the key's own field separators.
+  function attachItemSlug(itemId){ return String(itemId).replace(/\|/g, "~"); }
+  function attachKey(kid, subject, itemId){ return `lzAttach|${kid}|${slug(subject)}|${attachItemSlug(itemId)}`; }
+  function getAttachments(kid, subject, itemId){
+    try{ return JSON.parse(localStorage.getItem(attachKey(kid,subject,itemId))||"[]"); }catch(e){ return []; }
+  }
+  function setAttachments(kid, subject, itemId, arr){
+    (arr&&arr.length) ? localStorage.setItem(attachKey(kid,subject,itemId), JSON.stringify(arr))
+                      : localStorage.removeItem(attachKey(kid,subject,itemId));
+  }
+  // opts: {title, url, kind:"video"|"article"}. Returns the new attachment's id.
+  function addAttachment(kid, subject, itemId, opts){
+    opts = opts || {};
+    const arr = getAttachments(kid, subject, itemId);
+    const id = "a" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+    arr.push({ id, title:(opts.title||"").trim(), url:(opts.url||"").trim(), kind: opts.kind==="article" ? "article" : "video" });
+    setAttachments(kid, subject, itemId, arr);
+    return id;
+  }
+  function removeAttachment(kid, subject, itemId, id){
+    setAttachments(kid, subject, itemId, getAttachments(kid,subject,itemId).filter(a=>a.id!==id));
+  }
+  function attachDoneKey(kid, subject, itemId, attachId){
+    return `lzAttachDone|${kid}|${slug(subject)}|${attachItemSlug(itemId)}|${attachId}`;
+  }
+  // Only ever produce a link the browser will treat as a normal web address — a pasted
+  // "javascript:" or "data:" URL would otherwise become a script that runs on click.
+  function safeUrl(u){
+    const s = String(u||"").trim();
+    return /^https?:\/\//i.test(s) ? s : "";
+  }
+  // A sensible default for the video/article toggle when the teacher pastes a link.
+  function guessAttachKind(u){
+    return /youtube\.com|youtu\.be|vimeo\.com|khanacademy\.org|\.mp4($|\?)/i.test(String(u||"")) ? "video" : "article";
+  }
+
   // A weekly-recurring activity (karate, etc. — see LZ_CONFIG.recurring below), with
   // one-off overrides by exact date (skip a day, or change the time just for that day). This
   // computes WHICH dates it applies to; it doesn't store anything itself — callers turn a
@@ -206,7 +251,9 @@
     getOutings, setOutings, getJournal, setJournal, scanKeys, todayISO, recurringForDate, ensureRecurringSeeded,
     undoneLessons, nextLesson, upcomingLessons, subjProgress, doneLessons, doneDatesForSubject,
     manualKey, getManualLessons, setManualLessons, addManualLesson, removeManualLesson, manualDoneKey,
-    orderKey, getOrder, setOrder, lessonItemId, combinedQueue };
+    orderKey, getOrder, setOrder, lessonItemId, combinedQueue,
+    attachKey, getAttachments, setAttachments, addAttachment, removeAttachment, attachDoneKey,
+    safeUrl, guessAttachKind };
 
   // Shared weekly config — the one place to pause a subject, tweak per-day overrides, edit
   // the daily habits checklist, or set up a recurring activity like karate. Edit this (or ask

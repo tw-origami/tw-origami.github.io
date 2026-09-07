@@ -88,6 +88,18 @@
     font-family:inherit; background:#f0fdf4; margin-top:4px; }
   .lesson.manual{ background:#fdf4ff; border:1px dashed #d8b4fe; }
   .lesson.manual.done .box{ background:#a855f7; border-color:#a855f7; }
+
+  /* supplement links (teacher-attached video / article) */
+  .lesson{ flex-wrap:wrap; }
+  .attachWrap{ flex-basis:100%; margin-top:2px; }
+  .attachRow{ display:flex; align-items:center; gap:9px; padding:5px 0 5px 40px; font-size:14px; }
+  .attachCheck{ flex:none; width:22px; height:22px; border:2.5px solid #94a3b8; border-radius:50%; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; font-weight:800; }
+  .attachCheck.on{ background:var(--green); border-color:var(--green); }
+  .attachIcon{ flex:none; font-size:15px; }
+  .attachLink{ color:var(--accent); text-decoration:none; font-weight:700; }
+  .attachLink:hover{ text-decoration:underline; }
+  .attachLink.bad{ color:#b91c1c; font-style:italic; }
 </style>
 </head>
 <body>
@@ -109,13 +121,14 @@
 
 <script src="curriculum.js"></script>
 <script src="lz-common.js"></script>
-<script src="lz-sync.js?v=6"></script>
+<script src="lz-sync.js?v=7"></script>
 <script>
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[]};
 const { slug, dkey, skey, dateKey, habitKey, outingKey, isDone, setDone, subjProgress,
   doneLessons, doneDate, todayISO, doneDatesForSubject, noteKey, getNote, setNote, getOutings, setOutings,
-  ensureRecurringSeeded, getManualLessons, manualDoneKey, combinedQueue } = window.LZ;
+  ensureRecurringSeeded, getManualLessons, manualDoneKey, combinedQueue, lessonItemId,
+  getAttachments, attachDoneKey, safeUrl } = window.LZ;
 const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th grade"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th grade"} };
 
 // ?kid=ryland (or reid) in the URL locks this page to just that kid — no switcher tabs, and
@@ -194,12 +207,37 @@ function dayOutingCard(kidId){
   </div>`;
 }
 
+// Supplement links the teacher attached to a lesson on the Master Tracker (a video to
+// watch, an article to read). Read-only here — the kid can open the link and tick its own
+// round "watched / read it" circle, but can't add or delete links. Rendered inside the
+// lesson row so it stays visually attached; the circle and the link itself are matched in
+// the click handler before the row's own [data-k] check, so using them never accidentally
+// checks off the whole lesson.
+function attachBlock(kidId, subject, itemId){
+  const list = getAttachments(kidId, subject, itemId);
+  if(!list.length) return "";
+  return `<div class="attachWrap">` + list.map(a=>{
+    const dk = attachDoneKey(kidId, subject, itemId, a.id);
+    const done = isDone(dk);
+    const href = safeUrl(a.url);
+    const label = a.title || a.url || "(link)";
+    const inner = href
+      ? `<a class="attachLink" href="${escapeAttr(href)}" target="_blank" rel="noopener noreferrer">${escapeAttr(label)}</a>`
+      : `<span class="attachLink bad">${escapeAttr(label)}</span>`;
+    return `<div class="attachRow">
+      <span class="attachCheck${done?' on':''}" data-attachdone="${escapeAttr(dk)}" title="${a.kind==="video"?"Mark as watched":"Mark as read"}">${done?'✓':''}</span>
+      <span class="attachIcon">${a.kind==="video"?"📺":"📄"}</span>${inner}
+    </div>`;
+  }).join("") + `</div>`;
+}
+
 function lessonRow(kidId, sub, les, isNow){
   const k = dkey(kidId, sub, les);
   const done = isDone(k) || les.done;
   return `<div class="lesson${done?' done':''}${isNow?' now':''}" data-k="${k}">
     <div class="box">${done?'✓':''}</div>
-    <div><span class="t">${les.t}${isNow?'<span class="nowpill">now</span>':''}</span><span class="pg">p.${les.p}</span></div>
+    <div style="flex:1;"><span class="t">${les.t}${isNow?'<span class="nowpill">now</span>':''}</span><span class="pg">p.${les.p}</span></div>
+    ${attachBlock(kidId, sub.subject, lessonItemId(les))}
   </div>`;
 }
 // Same visual language as lessonRow, but for an "ongoing" subject's day (Math, Typing) —
@@ -209,9 +247,12 @@ function dayRow(kidId, sub, dateISO, isNow){
   const k = dateKey(kidId, sub.subject, dateISO);
   const done = isDone(k);
   const label = dateISO===todayISO() ? "Today" : new Date(dateISO+"T00:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+  // An ongoing subject has no per-lesson rows, so its supplements attach to the subject
+  // itself and ride along on today's row (matching how master.html attaches them).
   return `<div class="lesson${done?' done':''}${isNow?' now':''}" data-k="${k}">
     <div class="box">${done?'✓':''}</div>
-    <div><span class="t">${sub.subject}${isNow?'<span class="nowpill">now</span>':''}</span><span class="pg">${label}</span></div>
+    <div style="flex:1;"><span class="t">${sub.subject}${isNow?'<span class="nowpill">now</span>':''}</span><span class="pg">${label}</span></div>
+    ${isNow ? attachBlock(kidId, sub.subject, "subject") : ""}
   </div>`;
 }
 // A teacher-inserted "extra" lesson slipped into a book subject's queue (e.g. reading a
@@ -225,7 +266,8 @@ function manualLessonRow(kidId, sub, manual, isNow){
   const pageLabel = manual.page ? `p.${manual.page}` : "extra";
   return `<div class="lesson manual${done?' done':''}${isNow?' now':''}" data-k="${k}">
     <div class="box">${done?'✓':''}</div>
-    <div><span class="t">${manual.title}${isNow?'<span class="nowpill">now</span>':''}</span><span class="pg">${pageLabel}</span></div>
+    <div style="flex:1;"><span class="t">${manual.title}${isNow?'<span class="nowpill">now</span>':''}</span><span class="pg">${pageLabel}</span></div>
+    ${attachBlock(kidId, sub.subject, "m|"+manual.id)}
   </div>`;
 }
 // Same idea for an ongoing subject's one-off dated task (e.g. "Khan Academy instead" on a
@@ -236,7 +278,8 @@ function manualDayRow(kidId, sub, manual, isNow){
   const label = new Date(manual.date+"T00:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
   return `<div class="lesson manual${done?' done':''}${isNow?' now':''}" data-k="${k}">
     <div class="box">${done?'✓':''}</div>
-    <div><span class="t">${manual.title}${isNow?'<span class="nowpill">now</span>':''}</span><span class="pg">${label}</span></div>
+    <div style="flex:1;"><span class="t">${manual.title}${isNow?'<span class="nowpill">now</span>':''}</span><span class="pg">${label}</span></div>
+    ${attachBlock(kidId, sub.subject, "m|"+manual.id)}
   </div>`;
 }
 
@@ -406,6 +449,16 @@ function render(){
 document.addEventListener("click", e=>{
   const tab = e.target.closest(".kidtab");
   if(tab){ kid = tab.dataset.kid; localStorage.setItem("lzKZkid", kid); render(); return; }
+  // Supplement links live inside a lesson row, so their circle and the link itself must be
+  // handled before the row's generic [data-k] toggle at the bottom — otherwise ticking
+  // "watched it" would also check off the whole lesson.
+  const attachCheck = e.target.closest("[data-attachdone]");
+  if(attachCheck){
+    const k = attachCheck.dataset.attachdone;
+    setDone(k, !isDone(k));
+    render(); return;
+  }
+  if(e.target.closest(".attachLink")) return; // let the browser open the link, nothing else
   const editBtn = e.target.closest("[data-editnote]");
   if(editBtn){ noteEditing[editBtn.dataset.editnote] = true; render();
     const input = document.querySelector(`.noteinput[data-notekey="${CSS.escape(editBtn.dataset.editnote)}"]`);

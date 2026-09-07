@@ -85,6 +85,31 @@
     font-weight:800; font-size:12.5px; cursor:pointer; }
   .addCancelBtn{ background:#fff; color:var(--muted); border:1px solid var(--line); border-radius:7px; padding:7px 14px;
     font-weight:700; font-size:12.5px; cursor:pointer; }
+
+  /* supplement links attached to a lesson */
+  .lesson{ flex-wrap:wrap; }
+  .attachWrap{ flex-basis:100%; }
+  .attachBtn{ flex:none; width:20px; height:20px; border-radius:50%; background:#eff6ff; font-size:11px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .attachBtn:hover{ background:#dbeafe; }
+  .attachRow{ display:flex; align-items:center; gap:7px; padding:3px 0 3px 27px; font-size:12.5px; }
+  .attachCheck{ flex:none; width:16px; height:16px; border:2px solid #94a3b8; border-radius:50%; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; color:#fff; font-size:10px; font-weight:800; }
+  .attachCheck.on{ background:var(--green); border-color:var(--green); }
+  .attachIcon{ flex:none; font-size:12px; }
+  .attachLink{ color:var(--accent); text-decoration:none; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .attachLink:hover{ text-decoration:underline; }
+  .attachLink.bad{ color:#b91c1c; font-style:italic; cursor:not-allowed; }
+  .rmAttach{ flex:none; width:16px; height:16px; border-radius:50%; background:#fee2e2; color:#b91c1c; font-size:10px;
+    font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; margin-left:auto; }
+  .attachForm{ margin:4px 0 4px 27px; padding:8px; border:1px solid var(--line); border-radius:9px; background:#f8fafc;
+    display:flex; flex-direction:column; gap:5px; cursor:default; }
+  .attachForm input, .attachForm select{ font-size:12.5px; padding:6px 8px; border:1px solid var(--line);
+    border-radius:6px; font-family:inherit; width:100%; box-sizing:border-box; }
+  .attachSaveBtn{ background:var(--accent); color:#fff; border:none; border-radius:6px; padding:6px 12px;
+    font-weight:800; font-size:12px; cursor:pointer; }
+  .attachCancelBtn{ background:#fff; color:var(--muted); border:1px solid var(--line); border-radius:6px;
+    padding:6px 12px; font-weight:700; font-size:12px; cursor:pointer; }
   .sessboxes{ display:flex; gap:8px; margin-top:8px; }
   .sessboxes .box{ width:20px; height:20px; border:2px solid #94a3b8; border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; }
   .sessboxes .box.on{ background:var(--green); border-color:var(--green); }
@@ -119,14 +144,15 @@
 
 <script src="curriculum.js"></script>
 <script src="lz-common.js"></script>
-<script src="lz-sync.js?v=5"></script>
+<script src="lz-sync.js?v=7"></script>
 <script>
 const CUR = window.CURRICULUM || {};
 const SUG = window.SUGGESTIONS || {};
 const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th · grade 5–6 books"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th · grade 3 books"} };
 
 const { slug, dkey, skey, dateKey, isDone, setDone, subjProgress, doneDate, getNote, setNote, scanKeys, doneDatesForSubject, todayISO,
-  getManualLessons, addManualLesson, removeManualLesson, manualDoneKey, getOrder, setOrder, combinedQueue, lessonItemId } = window.LZ;
+  getManualLessons, addManualLesson, removeManualLesson, manualDoneKey, getOrder, setOrder, combinedQueue, lessonItemId,
+  getAttachments, addAttachment, removeAttachment, attachDoneKey, safeUrl, guessAttachKind } = window.LZ;
 
 // populate subject filter
 (function(){
@@ -143,12 +169,58 @@ const state = { kid:"both", view:"week", subj:"all" };
   });
 });
 
+function escapeAttr(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+// --- Supplement links (articles / videos attached to a lesson) ----------------------
+// Which lesson's "add a link" form is currently open, in-memory only, keyed kid|subject|itemId.
+let attachOpen = {};
+// Renders any links attached to one lesson, plus (on this teacher page) the controls to add
+// or remove them. Rendered INSIDE the lesson row so it drags along with the lesson and stays
+// visually attached to it; every interactive piece is matched in the click handler before the
+// row's own [data-k] check, so clicking a link or its circle never toggles the lesson itself.
+function attachBlock(kid, subject, itemId){
+  const key = kid+"|"+subject+"|"+itemId;
+  const list = getAttachments(kid, subject, itemId);
+  let html = list.map(a=>{
+    const dk = attachDoneKey(kid, subject, itemId, a.id);
+    const done = isDone(dk);
+    const href = safeUrl(a.url);
+    const label = a.title || a.url || "(link)";
+    const inner = href
+      ? `<a class="attachLink" href="${escapeAttr(href)}" target="_blank" rel="noopener noreferrer">${escapeAttr(label)}</a>`
+      : `<span class="attachLink bad" title="Not a valid http(s) link">${escapeAttr(label)}</span>`;
+    return `<div class="attachRow">
+      <span class="attachCheck${done?' on':''}" data-attachdone="${escapeAttr(dk)}" title="Mark as watched / read">${done?'✓':''}</span>
+      <span class="attachIcon">${a.kind==="video"?"📺":"📄"}</span>${inner}
+      <span class="rmAttach" data-kid="${kid}" data-subj="${escapeAttr(subject)}" data-item="${escapeAttr(itemId)}" data-id="${a.id}" data-confirm="Remove this link?" title="Remove">✕</span>
+    </div>`;
+  }).join("");
+  if(attachOpen[key]){
+    html += `<div class="attachForm" data-attachkey="${escapeAttr(key)}">
+      <input type="text" class="attachTitle" placeholder="Label (e.g. Bill of Rights video)">
+      <input type="url" class="attachUrl" placeholder="https://...">
+      <select class="attachKind"><option value="video">📺 Video</option><option value="article">📄 Article</option></select>
+      <div style="display:flex;gap:6px;">
+        <button type="button" class="attachSaveBtn" data-kid="${kid}" data-subj="${escapeAttr(subject)}" data-item="${escapeAttr(itemId)}">Add link</button>
+        <button type="button" class="attachCancelBtn" data-attachkey="${escapeAttr(key)}">Cancel</button>
+      </div>
+    </div>`;
+  }
+  return `<div class="attachWrap">${html}</div>`;
+}
+function attachBtn(kid, subject, itemId){
+  return `<span class="attachBtn" data-kid="${kid}" data-subj="${escapeAttr(subject)}" data-item="${escapeAttr(itemId)}" title="Attach an article or video">🔗</span>`;
+}
+
 function lessonRow(kid,sub,les,isNext,draggableFlag){
   const k=dkey(kid,sub,les); const done=isDone(k)||les.done;
-  const dragAttrs = draggableFlag ? ` draggable="true" data-itemid="${lessonItemId(les)}"` : "";
+  const itemId = lessonItemId(les);
+  const dragAttrs = draggableFlag ? ` draggable="true" data-itemid="${itemId}"` : "";
   return `<div class="lesson${done?' done':''}${isNext?' next':''}" data-k="${k}"${dragAttrs}>
     <div class="box">${done?'✓':''}</div>
-    <div><span class="t">${les.t}${isNext?'<span class="nextpill">next</span>':''}</span> <span class="pg">p.${les.p}</span></div>
+    <div style="flex:1;"><span class="t">${les.t}${isNext?'<span class="nextpill">next</span>':''}</span> <span class="pg">p.${les.p}</span></div>
+    ${attachBtn(kid, sub.subject, itemId)}
+    ${attachBlock(kid, sub.subject, itemId)}
   </div>`;
 }
 // A teacher-inserted lesson, slipped into a book subject's queue (see LZ.combinedQueue) —
@@ -162,7 +234,9 @@ function manualRow(kid,sub,manual,isNext,draggableFlag){
   return `<div class="lesson manual${done?' done':''}${isNext?' next':''}" data-k="${k}"${dragAttrs}>
     <div class="box">${done?'✓':''}</div>
     <div style="flex:1;"><span class="t">${manual.title}${isNext?'<span class="nextpill">next</span>':''}</span> <span class="pg">${pageLabel}</span></div>
+    ${attachBtn(kid, sub.subject, "m|"+manual.id)}
     <span class="rmManual" data-kid="${kid}" data-subj="${sub.subject}" data-id="${manual.id}" data-confirm="Remove this inserted lesson?" title="Remove">✕</span>
+    ${attachBlock(kid, sub.subject, "m|"+manual.id)}
   </div>`;
 }
 // Same idea for an "ongoing" subject's one-off task (e.g. "Khan Academy instead" for a
@@ -174,7 +248,9 @@ function manualDayRow(kid,sub,manual,isNext){
   return `<div class="lesson manual${done?' done':''}${isNext?' next':''}" data-k="${k}">
     <div class="box">${done?'✓':''}</div>
     <div style="flex:1;"><span class="t">${manual.title}${isNext?'<span class="nextpill">today</span>':''}</span> <span class="pg">${label}</span></div>
+    ${attachBtn(kid, sub.subject, "m|"+manual.id)}
     <span class="rmManual" data-kid="${kid}" data-subj="${sub.subject}" data-id="${manual.id}" data-confirm="Remove this one-off task?" title="Remove">✕</span>
+    ${attachBlock(kid, sub.subject, "m|"+manual.id)}
   </div>`;
 }
 // Which subject's "+ Add lesson" / "+ Add one-off task" form is open (in-memory only),
@@ -249,9 +325,13 @@ function dayRow(kid, sub, dateISO, isNext){
   const k = dateKey(kid, sub.subject, dateISO);
   const done = isDone(k);
   const label = new Date(dateISO+"T00:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+  // An ongoing subject has no per-lesson rows to hang a link on, so its supplements attach
+  // to the subject itself ("subject") and ride along on the current day's row.
+  const attach = isNext ? attachBtn(kid, sub.subject, "subject") + attachBlock(kid, sub.subject, "subject") : "";
   return `<div class="lesson${done?' done':''}${isNext?' next':''}" data-k="${k}">
     <div class="box">${done?'✓':''}</div>
-    <div><span class="t">${sub.subject}${isNext?'<span class="nextpill">today</span>':''}</span> <span class="pg">${label}</span></div>
+    <div style="flex:1;"><span class="t">${sub.subject}${isNext?'<span class="nextpill">today</span>':''}</span> <span class="pg">${label}</span></div>
+    ${attach}
   </div>`;
 }
 function ongoingHistory(kid, sub){
@@ -406,6 +486,51 @@ document.addEventListener("click", e=>{
     }
     return;
   }
+  // --- supplement links. All of these must be matched BEFORE the [data-k] check at the
+  // bottom, since they live inside the lesson row and would otherwise toggle the lesson.
+  const attachToggle = e.target.closest(".attachBtn");
+  if(attachToggle){
+    const { kid, subj, item } = attachToggle.dataset;
+    const key = kid+"|"+subj+"|"+item;
+    attachOpen[key] = !attachOpen[key];
+    render();
+    return;
+  }
+  const attachCancel = e.target.closest(".attachCancelBtn");
+  if(attachCancel){ attachOpen[attachCancel.dataset.attachkey] = false; render(); return; }
+  const attachSave = e.target.closest(".attachSaveBtn");
+  if(attachSave){
+    const { kid, subj, item } = attachSave.dataset;
+    const form = attachSave.closest(".attachForm");
+    const url = form.querySelector(".attachUrl").value.trim();
+    const title = form.querySelector(".attachTitle").value.trim();
+    const kind = form.querySelector(".attachKind").value;
+    if(!safeUrl(url)){ window.alert("Please paste a full link starting with http:// or https://"); return; }
+    addAttachment(kid, subj, item, { title, url, kind });
+    attachOpen[kid+"|"+subj+"|"+item] = false;
+    render();
+    return;
+  }
+  const rmAttach = e.target.closest(".rmAttach");
+  if(rmAttach){
+    if(window.confirm(rmAttach.dataset.confirm)){
+      const { kid, subj, item, id } = rmAttach.dataset;
+      removeAttachment(kid, subj, item, id);
+      render();
+    }
+    return;
+  }
+  const attachCheck = e.target.closest("[data-attachdone]");
+  if(attachCheck){
+    const k = attachCheck.dataset.attachdone;
+    setDone(k, !isDone(k));
+    render();
+    return;
+  }
+  // Let a click on the actual link fall through to the browser without also toggling the
+  // lesson's checkbox.
+  if(e.target.closest(".attachLink") || e.target.closest(".attachForm")) return;
+
   const addRow = e.target.closest(".addLessonRow");
   if(addRow){ addLessonOpen[addRow.dataset.addkey] = true; render(); return; }
   const cancelBtn = e.target.closest(".addCancelBtn");
