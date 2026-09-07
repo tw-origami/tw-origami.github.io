@@ -63,7 +63,6 @@
   .lesson.now .t{ font-weight:800; font-size:16.5px; }
   .lesson .pg{ font-size:11.5px; color:var(--muted); display:block; margin-top:1px; font-weight:500; }
   .nowpill{ display:inline-block; font-size:9.5px; font-weight:800; background:var(--accent); color:#fff; padding:2px 8px; border-radius:999px; margin-left:8px; vertical-align:middle; }
-  .upnext-lbl{ font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin:6px 0 2px 8px; }
   .today-lbl{ font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--green); margin:6px 0 2px 8px; }
   .expandBtn{ font-size:12.5px; font-weight:800; color:var(--accent); cursor:pointer; padding:6px 8px; text-align:center; }
   .expandBtn:hover{ text-decoration:underline; }
@@ -110,11 +109,11 @@
 
 <script src="curriculum.js"></script>
 <script src="lz-common.js"></script>
-<script src="lz-sync.js?v=5"></script>
+<script src="lz-sync.js?v=6"></script>
 <script>
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[]};
-const { slug, dkey, skey, dateKey, habitKey, outingKey, isDone, setDone, undoneLessons, upcomingLessons, subjProgress,
+const { slug, dkey, skey, dateKey, habitKey, outingKey, isDone, setDone, subjProgress,
   doneLessons, doneDate, todayISO, doneDatesForSubject, noteKey, getNote, setNote, getOutings, setOutings,
   ensureRecurringSeeded, getManualLessons, manualDoneKey, combinedQueue } = window.LZ;
 const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th grade"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th grade"} };
@@ -136,12 +135,12 @@ if(LOCKED){
   if(printNav) printNav.remove();
   if(masterNav) masterNav.remove();
 }
-// How many "recently done" / "coming up" items are expanded per subject, in-memory only
-// (resets on reload). Lets a kid undo an accidental or rapid-fire check-off.
+// How many "recently done" items are expanded per subject, in-memory only (resets on
+// reload). Lets a kid scroll back and undo an accidental or rapid-fire check-off.
 let expand = {};
 function expandFor(kidId, sub){
   const k = kidId+"|"+sub.subject;
-  if(!expand[k]) expand[k] = { done:0, upcoming:3 };
+  if(!expand[k]) expand[k] = { done:0 };
   return expand[k];
 }
 // Which subject's note is currently being typed into (in-memory only).
@@ -357,20 +356,15 @@ function subjectCard(kidId, sub){
 
   function queueRow(item, isNow){ return item.kind==="real" ? lessonRow(kidId,sub,item.lesson,isNow) : manualLessonRow(kidId,sub,item.manual,isNow); }
 
+  // Only today's single lesson is shown — no "Coming up" preview of what's next. The
+  // full queue still exists (and the teacher can see/reorder it on the Master Tracker);
+  // the kid just sees the one thing they're meant to do right now, so the card stays a
+  // short, finishable list rather than a long scroll of future work.
   let body;
   if(queue.length===0){
     body = doneSection + todaySection + note + `<div class="empty">🎉 All caught up in ${sub.book||sub.subject}!</div>`;
   } else {
-    const now = queue[0];
-    const upcoming = queue.slice(1, 1+est.upcoming);
-    const moreUpcoming = queue.length - 1 - upcoming.length;
-    body = doneSection + todaySection + note + queueRow(now, true);
-    if(upcoming.length){
-      body += `<div class="upnext-lbl">Coming up</div>` + upcoming.map(item=>queueRow(item,false)).join("");
-    }
-    if(moreUpcoming>0){
-      body += `<div class="expandBtn" data-expand="upcoming" data-key="${kidId}|${sub.subject}">▼ Show ${Math.min(10,moreUpcoming)} more</div>`;
-    }
+    body = doneSection + todaySection + note + queueRow(queue[0], true);
   }
   return `<div class="card">
     <div class="ch"><span class="s">${sub.subject}</span> <span class="bk">${sub.book||""}</span>
@@ -450,12 +444,8 @@ document.addEventListener("click", e=>{
   }
   const exp = e.target.closest(".expandBtn");
   if(exp){
-    const est = expand[exp.dataset.key] || (expand[exp.dataset.key] = {done:0, upcoming:3});
-    if(exp.dataset.expand==="done"){
-      est.done = exp.dataset.mode==="collapse" ? 0 : est.done + 5;
-    } else {
-      est.upcoming += 10;
-    }
+    const est = expand[exp.dataset.key] || (expand[exp.dataset.key] = {done:0});
+    est.done = exp.dataset.mode==="collapse" ? 0 : est.done + 5;
     render(); return;
   }
   const box = e.target.closest("[data-k]");
