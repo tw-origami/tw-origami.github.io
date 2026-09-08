@@ -2110,55 +2110,55 @@ window.CURRICULUM = {
     },
     {
      "t": "Ch.2 L2 Dear Friend",
-     "p": "62",
-     "cur": false,
-     "done": true
-    },
-    {
-     "t": "Ch.2 L3 Dear Teacher",
      "p": "63",
      "cur": false,
      "done": true
     },
     {
-     "t": "Ch.2 L4 How to Do It",
+     "t": "Ch.2 L3 Dear Teacher",
      "p": "65",
+     "cur": false,
+     "done": true
+    },
+    {
+     "t": "Ch.2 L4 How to Do It",
+     "p": "67",
      "cur": true,
      "done": false
     },
     {
      "t": "Ch.2 L5 Special Instructions",
-     "p": "67",
-     "cur": false,
-     "done": false
-    },
-    {
-     "t": "Ch.2 L6 Who Will Read It?",
      "p": "69",
      "cur": false,
      "done": false
     },
     {
-     "t": "Ch.2 L7 How to Compare",
+     "t": "Ch.2 L6 Who Will Read It?",
      "p": "71",
      "cur": false,
      "done": false
     },
     {
-     "t": "Ch.2 L8 Compare It With a Venn",
+     "t": "Ch.2 L7 How to Compare",
      "p": "73",
      "cur": false,
      "done": false
     },
     {
+     "t": "Ch.2 L8 Compare It With a Venn",
+     "p": "74",
+     "cur": false,
+     "done": false
+    },
+    {
      "t": "Ch.2 L9 Use Spatial Order",
-     "p": "75",
+     "p": "76",
      "cur": false,
      "done": false
     },
     {
      "t": "Ch.2 L10 Use Linking Words",
-     "p": "77",
+     "p": "78",
      "cur": false,
      "done": false
     },
