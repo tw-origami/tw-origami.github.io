@@ -220,7 +220,7 @@
     <div class="sheet" id="helpSheet"></div>
   </div>
 
-<script src="data.js?v=3"></script>
+<script src="data.js?v=4"></script>
 <script>
 (function(){
   const $ = id => document.getElementById(id);
@@ -353,6 +353,7 @@
     const rev = $('reveal');
     if (mode === 'match'){
       rev.innerHTML = `<div class="rev-country">${info.flag} ${correctCountry}</div><div class="why">${cur.fact}</div>`;
+      showCountryShape(rev, correctCountry);   // draws the country's outline with the answer
     } else {
       rev.innerHTML = `<div class="rev-country">${info.flag} ${correctCountry}</div>` +
         `<div class="why">Capital: <b>${info.capital}</b> · Continent: <b>${info.continent}</b></div>` +
@@ -475,6 +476,34 @@
     cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
     const wrap = document.createElement('div'); wrap.className = 'locator';
     wrap.innerHTML = '<div class="locator-label">📍 Where in the world</div>';
+    wrap.appendChild(cv);
+    container.appendChild(wrap);
+  }
+
+  // A flat silhouette of just the country, so the shape itself becomes recognisable —
+  // "Italy is the boot", "Chile is the long skinny one". Rotating the projection to the
+  // country's own centroid before fitting keeps places that straddle the date line
+  // (Russia, Fiji, New Zealand) from collapsing into a speck, which is what a plain
+  // Mercator fit does to them.
+  async function showCountryShape(container, countryName){
+    const g = G.GLOBE.find(x => x.name === countryName);
+    if (!g) return;
+    const ok = await ensureGlobe();
+    if (!ok || !container.isConnected) return;      // offline, or the reveal was replaced
+    const feat = globe.world.find(f => String(f.id) === g.id);
+    if (!feat) return;
+    const w = 200, h = 150, dpr = window.devicePixelRatio || 1;
+    const cv = document.createElement('canvas');
+    cv.width = w*dpr; cv.height = h*dpr; cv.style.width = w+'px'; cv.style.height = h+'px';
+    const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+    const c = d3.geoCentroid(feat);
+    const proj = d3.geoAzimuthalEqualArea().rotate([-c[0], -c[1]]).fitExtent([[10,10],[w-10,h-10]], feat);
+    const path = d3.geoPath(proj, ctx);
+    ctx.beginPath(); path(feat);
+    ctx.fillStyle = '#2563eb'; ctx.fill();
+    ctx.lineWidth = 1.4; ctx.strokeStyle = '#1e3a8a'; ctx.lineJoin = 'round'; ctx.stroke();
+    const wrap = document.createElement('div'); wrap.className = 'locator';
+    wrap.innerHTML = '<div class="locator-label">🗺️ Its shape</div>';
     wrap.appendChild(cv);
     container.appendChild(wrap);
   }
