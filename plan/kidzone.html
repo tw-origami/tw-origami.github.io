@@ -66,6 +66,13 @@
   .today-lbl{ font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--green); margin:6px 0 2px 8px; }
   .expandBtn{ font-size:12.5px; font-weight:800; color:var(--accent); cursor:pointer; padding:6px 8px; text-align:center; }
   .expandBtn:hover{ text-decoration:underline; }
+  .doneForDay{ font-size:15px; font-weight:800; color:var(--green); background:#f0fdf4; border:2px solid #86efac;
+    border-radius:12px; padding:12px; text-align:center; margin-top:4px; }
+  .peekBtn{ font-size:13px; font-weight:800; color:var(--muted); cursor:pointer; padding:9px; text-align:center;
+    border:2px dashed var(--line); border-radius:10px; margin-top:10px; }
+  .peekBtn:hover{ color:var(--accent); border-color:var(--accent); }
+  .peek-lbl{ font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin:10px 0 2px 8px; }
+  .peekList .lesson{ opacity:.72; }
   .opts{ margin-top:6px; font-size:12.5px; color:var(--amber); }
   .opts b{ color:var(--muted); }
   .sessboxes{ display:flex; gap:9px; margin-top:9px; }
@@ -153,7 +160,7 @@ if(LOCKED){
 let expand = {};
 function expandFor(kidId, sub){
   const k = kidId+"|"+sub.subject;
-  if(!expand[k]) expand[k] = { done:0 };
+  if(!expand[k]) expand[k] = { done:0, peek:false };
   return expand[k];
 }
 // Which subject's note is currently being typed into (in-memory only).
@@ -399,15 +406,35 @@ function subjectCard(kidId, sub){
 
   function queueRow(item, isNow){ return item.kind==="real" ? lessonRow(kidId,sub,item.lesson,isNow) : manualLessonRow(kidId,sub,item.manual,isNow); }
 
-  // Only today's single lesson is shown — no "Coming up" preview of what's next. The
-  // full queue still exists (and the teacher can see/reorder it on the Master Tracker);
-  // the kid just sees the one thing they're meant to do right now, so the card stays a
-  // short, finishable list rather than a long scroll of future work.
+  // One lesson at a time, and once it's checked off the NEXT one deliberately doesn't take
+  // its place — otherwise finishing a lesson instantly replaces it with more work, which
+  // makes it hard to see what was actually accomplished today. So after a lesson is done
+  // the card just shows what got done, and the next one waits until tomorrow. A kid who
+  // wants to look ahead (or work ahead) can open "Next three" on demand.
+  const didSomethingToday = combinedToday.length > 0;
   let body;
   if(queue.length===0){
     body = doneSection + todaySection + note + `<div class="empty">🎉 All caught up in ${sub.book||sub.subject}!</div>`;
+  } else if(didSomethingToday){
+    body = doneSection + todaySection + note + `<div class="doneForDay">✅ ${sub.subject} is done for today!</div>`;
   } else {
     body = doneSection + todaySection + note + queueRow(queue[0], true);
+  }
+
+  // "Next three" peek — starts after whatever is already on screen, so it never repeats the
+  // current lesson. Rows stay checkable, so working ahead is still possible on purpose.
+  if(queue.length){
+    const offset = didSomethingToday ? 0 : 1;
+    const peekList = queue.slice(offset, offset + 3);
+    if(peekList.length){
+      if(est.peek){
+        body += `<div class="peek-lbl">Coming up next</div>`
+              + `<div class="peekList">` + peekList.map(item=>queueRow(item,false)).join("") + `</div>`
+              + `<div class="peekBtn" data-peek="${kidId}|${sub.subject}">▲ Hide</div>`;
+      } else {
+        body += `<div class="peekBtn" data-peek="${kidId}|${sub.subject}">👀 Next three</div>`;
+      }
+    }
   }
   return `<div class="card">
     <div class="ch"><span class="s">${sub.subject}</span> <span class="bk">${sub.book||""}</span>
@@ -495,9 +522,15 @@ document.addEventListener("click", e=>{
     setOutings(k, arr);
     render(); return;
   }
+  const peekBtn = e.target.closest(".peekBtn");
+  if(peekBtn){
+    const st = expand[peekBtn.dataset.peek] || (expand[peekBtn.dataset.peek] = {done:0, peek:false});
+    st.peek = !st.peek;
+    render(); return;
+  }
   const exp = e.target.closest(".expandBtn");
   if(exp){
-    const est = expand[exp.dataset.key] || (expand[exp.dataset.key] = {done:0});
+    const est = expand[exp.dataset.key] || (expand[exp.dataset.key] = {done:0, peek:false});
     est.done = exp.dataset.mode==="collapse" ? 0 : est.done + 5;
     render(); return;
   }
