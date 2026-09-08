@@ -213,6 +213,50 @@
     return /youtube\.com|youtu\.be|vimeo\.com|khanacademy\.org|\.mp4($|\?)/i.test(String(u||"")) ? "video" : "article";
   }
 
+  // --- Reverse lookups, for pages that scan raw keys and need to name what they found ----
+  // (the calendar and the "Done today" panels walk localStorage directly, so they need to
+  // turn a key like lzManualDone|ryland|reading|m123 back into "Reading — Read a library book")
+  function subjectBySlug(kid, subjSlug){
+    const cur = window.CURRICULUM || {};
+    return (cur[kid] || []).find(s => slug(s.subject) === subjSlug) || null;
+  }
+  function manualById(kid, subject, id){
+    return getManualLessons(kid, subject).find(m => m.id === id) || null;
+  }
+  // lzAttachDone|<kid>|<subjectSlug>|<itemId with | swapped for ~>|<attachmentId>
+  function parseAttachDoneKey(k){
+    const p = String(k).split("|");
+    if(p.length < 5) return null;
+    return { kid:p[1], subjSlug:p[2], itemId:p[3].replace(/~/g,"|"), attachId:p[4] };
+  }
+  // Every supplement link a kid ticked as watched/read on a given date.
+  function attachmentsDoneOn(kid, dateISO){
+    const out = [];
+    scanKeys(`lzAttachDone|${kid}|`).forEach(k=>{
+      if(doneDate(k) !== dateISO) return;
+      const info = parseAttachDoneKey(k);
+      if(!info) return;
+      const sub = subjectBySlug(kid, info.subjSlug);
+      if(!sub) return;
+      const a = getAttachments(kid, sub.subject, info.itemId).find(x=>x.id===info.attachId);
+      out.push({ key:k, subject:sub.subject, title:(a && (a.title||a.url)) || "Link", kind:(a && a.kind) || "article" });
+    });
+    return out;
+  }
+  // Every teacher-inserted lesson a kid completed on a given date.
+  function manualDoneOn(kid, dateISO){
+    const out = [];
+    scanKeys(`lzManualDone|${kid}|`).forEach(k=>{
+      if(doneDate(k) !== dateISO) return;
+      const p = k.split("|");
+      const sub = subjectBySlug(kid, p[2]);
+      if(!sub) return;
+      const m = manualById(kid, sub.subject, p[3]);
+      out.push({ key:k, subject:sub.subject, title:(m && m.title) || "Extra lesson", page:(m && m.page) || "" });
+    });
+    return out;
+  }
+
   // --- Daily rotation for "pick one" subjects -------------------------------------------
   // A subject flagged `pick:"daily"` in curriculum.js (Learn Zone) doesn't list all its
   // options as choices — it just assigns one for the day. Deliberately computed rather than
@@ -276,7 +320,8 @@
     manualKey, getManualLessons, setManualLessons, addManualLesson, removeManualLesson, manualDoneKey,
     orderKey, getOrder, setOrder, lessonItemId, combinedQueue,
     attachKey, getAttachments, setAttachments, addAttachment, removeAttachment, attachDoneKey,
-    safeUrl, guessAttachKind, dailyPick, appLink };
+    safeUrl, guessAttachKind, dailyPick, appLink,
+    subjectBySlug, manualById, parseAttachDoneKey, attachmentsDoneOn, manualDoneOn };
 
   // Shared weekly config — the one place to pause a subject, tweak per-day overrides, edit
   // the daily habits checklist, or set up a recurring activity like karate. Edit this (or ask

@@ -90,7 +90,7 @@ const KID = "ryland";
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[]};
 const { dkey, doneDate, doneDatesForSubject, noteKey, getNote, todayISO, isDone, habitKey, outingKey, getOutings,
-  journalKey, getJournal, setJournal } = window.LZ;
+  journalKey, getJournal, setJournal, manualDoneOn, attachmentsDoneOn } = window.LZ;
 
 document.querySelectorAll(".tab").forEach(t=>{
   t.addEventListener("click", ()=>{
@@ -123,6 +123,15 @@ function buildDoneToday(){
     }
     const note = getNote(noteKey(KID, sub.subject, today));
     if(note) items.push({subject:sub.subject, icon:"✎", text:note, isNote:true});
+  });
+  // Teacher-inserted lessons live under their own key prefix, not in sub.lessons, so they
+  // need their own pass — otherwise finishing one wouldn't show up here at all.
+  manualDoneOn(KID, today).forEach(m=>{
+    items.push({subject:m.subject, icon:"✓", text:m.title+(m.page?` (p.${m.page})`:"")});
+  });
+  // Supplement videos/articles the kid ticked as watched or read.
+  attachmentsDoneOn(KID, today).forEach(a=>{
+    items.push({subject:a.subject, icon:a.kind==="video"?"📺":"📄", text:a.title});
   });
   (CFG.habits||[]).forEach(h=>{
     if(isDone(habitKey(KID, h, today))) items.push({subject:"Daily habit", icon:"✓", text:h});

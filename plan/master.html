@@ -144,7 +144,7 @@
 
 <script src="curriculum.js"></script>
 <script src="lz-common.js"></script>
-<script src="lz-sync.js?v=7"></script>
+<script src="lz-sync.js?v=8"></script>
 <script>
 const CUR = window.CURRICULUM || {};
 const SUG = window.SUGGESTIONS || {};
@@ -307,6 +307,12 @@ function subjectHistory(kid, sub){
     const k = dkey(kid,sub,l);
     if(isDone(k)||l.done) items.push({type:"lesson", date: doneDate(k)||"", page: parseInt(l.p,10)||0, lesson:l});
   });
+  // Completed teacher-inserted lessons. They drop out of combinedQueue once done, so
+  // without this they'd disappear from the card entirely instead of moving into history.
+  getManualLessons(kid, sub.subject).filter(m=>!m.date).forEach(m=>{
+    const k = manualDoneKey(kid, sub.subject, m.id);
+    if(isDone(k)) items.push({type:"manual", date: doneDate(k)||"", page: parseInt(m.page,10)||0, manual:m});
+  });
   scanKeys(`lzNote|${kid}|${slug(sub.subject)}|`).forEach(k=>{
     const d = k.split("|")[3];
     const text = getNote(k);
@@ -314,7 +320,9 @@ function subjectHistory(kid, sub){
   });
   items.sort((a,b)=>{
     if(a.date!==b.date) return a.date.localeCompare(b.date);
-    if(a.type!==b.type) return a.type==="lesson" ? -1 : 1;
+    // notes sort last within a day; lessons and inserted lessons interleave by page
+    const rank = t => t==="note" ? 1 : 0;
+    if(rank(a.type)!==rank(b.type)) return rank(a.type)-rank(b.type);
     return a.page - b.page;
   });
   return items;
@@ -400,9 +408,11 @@ function subjectCard(kid, sub){
   const nextId = queue.length ? queue[0].id : null;
   if(sub.lessons.length===0 && queue.length===0) list=`<div class="empty">✓ All caught up for now!</div>`;
   else{
-    const histHtml = history.map(item=> item.type==="lesson"
-      ? lessonRow(kid,sub,item.lesson,false)
-      : noteRow(kid,sub,item.key,item.text,item.dateStr)).join("");
+    const histHtml = history.map(item=>{
+      if(item.type==="lesson") return lessonRow(kid,sub,item.lesson,false);
+      if(item.type==="manual") return manualRow(kid,sub,item.manual,false);
+      return noteRow(kid,sub,item.key,item.text,item.dateStr);
+    }).join("");
     const queueHtml = queue.map(item=> item.kind==="real"
       ? lessonRow(kid,sub,item.lesson, item.id===nextId, true)
       : manualRow(kid,sub,item.manual, item.id===nextId, true)).join("");

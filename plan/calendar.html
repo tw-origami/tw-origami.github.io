@@ -107,12 +107,12 @@
 
 <script src="curriculum.js"></script>
 <script src="lz-common.js"></script>
-<script src="lz-sync.js?v=7"></script>
+<script src="lz-sync.js?v=8"></script>
 <script>
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[], habits:[]};
 const { slug, dkey, dateKey, noteKey, outingKey, isDone, setDone, doneDate, getNote, setNote, scanKeys,
-  getOutings, setOutings, ensureRecurringSeeded } = window.LZ;
+  getOutings, setOutings, ensureRecurringSeeded, manualById, parseAttachDoneKey, getAttachments } = window.LZ;
 function escapeAttr(s){ return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
 const KIDS = { ryland:{name:"Ryland",cls:"ry"}, reid:{name:"Reid",cls:"reid"} };
 // Which day's "+ Add outing" input is currently open (in-memory only) — keyed by outingKey.
@@ -177,6 +177,30 @@ function buildActivityIndex(){
   scanKeys("lzOuting|").forEach(k=>{
     const parts = k.split("|"); const kid=parts[1], d=parts[2];
     getOutings(k).forEach((o, idx)=> add(d, {kid, subject:"Day outing", type:"outing", text:o.text, done:o.done, key:k, idx}));
+  });
+  // Teacher-inserted lessons (Master Tracker "+ Add lesson"). These live under their own
+  // key prefix rather than in sub.lessons, so without this scan a completed one would
+  // vanish from the calendar entirely once it dropped out of the upcoming queue.
+  scanKeys("lzManualDone|").forEach(k=>{
+    const parts = k.split("|"); const kid=parts[1], subjSlug=parts[2], id=parts[3];
+    const d = doneDate(k);
+    if(!d) return;
+    const sub = findSubjectBySlug(kid, subjSlug);
+    if(!sub) return;
+    const m = manualById(kid, sub.subject, id);
+    add(d, {kid, subject:sub.subject, type:"lesson", title:(m&&m.title)||"Extra lesson", page:(m&&m.page)||"", key:k});
+  });
+  // Supplement links the kid ticked as watched/read.
+  scanKeys("lzAttachDone|").forEach(k=>{
+    const d = doneDate(k);
+    if(!d) return;
+    const info = parseAttachDoneKey(k);
+    if(!info) return;
+    const sub = findSubjectBySlug(info.kid, info.subjSlug);
+    if(!sub) return;
+    const a = getAttachments(info.kid, sub.subject, info.itemId).find(x=>x.id===info.attachId);
+    add(d, {kid:info.kid, subject:sub.subject, type:"link", title:(a&&(a.title||a.url))||"Link",
+      kind:(a&&a.kind)||"article", key:k});
   });
   return byDate;
 }
@@ -253,7 +277,15 @@ function renderDetail(){
       .map(x=>x.e);
     const rows = mine.map(e=>{
       let inner, confirmMsg;
-      if(e.type==="lesson"){ inner = `<b>${e.subject}:</b> ${e.title} — p.${e.page}`; confirmMsg = `Undo "${e.title}" for ${e.subject}? It'll go back to not-done.`; }
+      if(e.type==="lesson"){
+        // a teacher-inserted lesson has no book page, so don't render a bare "p."
+        inner = `<b>${e.subject}:</b> ${e.title}${e.page?` — p.${e.page}`:""}`;
+        confirmMsg = `Undo "${e.title}" for ${e.subject}? It'll go back to not-done.`;
+      }
+      else if(e.type==="link"){
+        inner = `<b>${e.subject}:</b> ${e.kind==="video"?"📺 Watched":"📄 Read"} ${e.title}`;
+        confirmMsg = `Mark "${e.title}" as not ${e.kind==="video"?"watched":"read"} again?`;
+      }
       else if(e.type==="ongoing"){ inner = `<b>${e.subject}</b> — done`; confirmMsg = `Remove this ${e.subject} check-off for this day?`; }
       else if(e.type==="habit"){ inner = `<b>Habit:</b> ${e.title}`; confirmMsg = `Remove "${e.title}" as done for this day?`; }
       else if(e.type==="outing"){
