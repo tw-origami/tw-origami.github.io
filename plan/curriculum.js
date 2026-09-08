@@ -30,8 +30,9 @@ window.CURRICULUM = {
     "Nutrition Quest"
    ],
    "kind": "ongoing",
+   "pick": "daily",
    "lessons": [],
-   "note": "Pick a different one each session — mix it up so nothing gets stale."
+   "note": "One is chosen automatically each day — it rotates through all eight."
   },
   {
    "subject": "Reading",
@@ -1477,8 +1478,9 @@ window.CURRICULUM = {
     "Nutrition Quest"
    ],
    "kind": "ongoing",
+   "pick": "daily",
    "lessons": [],
-   "note": "Pick a different one each session — mix it up so nothing gets stale."
+   "note": "One is chosen automatically each day — it rotates through all eight."
   },
   {
    "subject": "Reading",

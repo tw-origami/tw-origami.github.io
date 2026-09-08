@@ -152,7 +152,8 @@ const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th · grade 5–6 books"},
 
 const { slug, dkey, skey, dateKey, isDone, setDone, subjProgress, doneDate, getNote, setNote, scanKeys, doneDatesForSubject, todayISO,
   getManualLessons, addManualLesson, removeManualLesson, manualDoneKey, getOrder, setOrder, combinedQueue, lessonItemId,
-  getAttachments, addAttachment, removeAttachment, attachDoneKey, safeUrl, guessAttachKind } = window.LZ;
+  getAttachments, addAttachment, removeAttachment, attachDoneKey, safeUrl, guessAttachKind,
+  dailyPick } = window.LZ;
 
 // populate subject filter
 (function(){
@@ -374,7 +375,18 @@ function subjectCard(kid, sub){
     }).join("");
     const todayManualHtml = todayManual.map(m=>manualDayRow(kid,sub,m,true)).join("");
     const scroller = `<div class="lesson-scroll" data-scroll="${kid}|${sub.subject}">` + histHtml + todayManualHtml + dayRow(kid,sub,today,true) + `</div>`;
-    list = `<div class="opts"><b>Do:</b> ${(sub.options||[]).join(" · ")}${sub.note?`<br><span style="color:var(--muted)">${sub.note}</span>`:""}</div>
+    // A `pick:"daily"` subject (Learn Zone) assigns one option per kid per day rather than
+    // offering the whole list — show which one this kid got today, plus the full rotation
+    // in smaller text so it's clear what the pool is.
+    let optsHtml;
+    if(sub.pick === "daily"){
+      const choice = dailyPick(kid, sub.subject, today, sub.options);
+      optsHtml = `<div class="opts"><b>Today:</b> <span style="color:var(--accent);font-weight:800;">${choice||""}</span>
+        <br><span style="color:var(--muted)">Rotates through: ${(sub.options||[]).join(" · ")}</span></div>`;
+    } else {
+      optsHtml = `<div class="opts"><b>Do:</b> ${(sub.options||[]).join(" · ")}${sub.note?`<br><span style="color:var(--muted)">${sub.note}</span>`:""}</div>`;
+    }
+    list = `${optsHtml}
       ${scroller}${addOneOffForm(kid,sub)}`;
     return `<div class="card"><div class="ch"><span class="s">${sub.subject}</span>
        <span class="goal">${doneCount} day${doneCount===1?'':'s'} done</span></div>${list}</div>`;

@@ -213,6 +213,29 @@
     return /youtube\.com|youtu\.be|vimeo\.com|khanacademy\.org|\.mp4($|\?)/i.test(String(u||"")) ? "video" : "article";
   }
 
+  // --- Daily rotation for "pick one" subjects -------------------------------------------
+  // A subject flagged `pick:"daily"` in curriculum.js (Learn Zone) doesn't list all its
+  // options as choices — it just assigns one for the day. Deliberately computed rather than
+  // stored: the same kid + subject + date always yields the same answer, so every device
+  // agrees without needing to sync anything, and it can't drift or get "re-rolled" by a
+  // refresh. Stepping one position per day cycles evenly through the whole list instead of
+  // randomly repeating, and the per-kid offset keeps the two boys on different apps.
+  function dailyPick(kid, subject, dateISO, options){
+    const list = options || [];
+    if(!list.length) return null;
+    const day = Math.floor(Date.parse(dateISO + "T00:00:00Z") / 86400000);
+    let off = 0;
+    const seed = `${kid}|${subject}`;
+    for(let i=0;i<seed.length;i++) off = (off*31 + seed.charCodeAt(i)) >>> 0;
+    return list[(((day + off) % list.length) + list.length) % list.length];
+  }
+  // Where a Learn Zone option actually lives, so the day's pick can be a real link.
+  // Paths are relative to /plan/, which is where every page that renders them sits.
+  function appLink(name){
+    const map = window.LZ_CONFIG && window.LZ_CONFIG.appLinks;
+    return (map && map[name]) || "";
+  }
+
   // A weekly-recurring activity (karate, etc. — see LZ_CONFIG.recurring below), with
   // one-off overrides by exact date (skip a day, or change the time just for that day). This
   // computes WHICH dates it applies to; it doesn't store anything itself — callers turn a
@@ -253,7 +276,7 @@
     manualKey, getManualLessons, setManualLessons, addManualLesson, removeManualLesson, manualDoneKey,
     orderKey, getOrder, setOrder, lessonItemId, combinedQueue,
     attachKey, getAttachments, setAttachments, addAttachment, removeAttachment, attachDoneKey,
-    safeUrl, guessAttachKind };
+    safeUrl, guessAttachKind, dailyPick, appLink };
 
   // Shared weekly config — the one place to pause a subject, tweak per-day overrides, edit
   // the daily habits checklist, or set up a recurring activity like karate. Edit this (or ask
@@ -262,6 +285,17 @@
   window.LZ_CONFIG = {
     paused: ["Grammar / Word Study"],
     habits: ["Go outside", "Brush teeth", "Read a book", "Draw a picture"],
+    // Learn Zone options → the app that option actually opens (relative to /plan/).
+    appLinks: {
+      "Civic Nation":    "../civics/index.html",
+      "Word Roots":      "../vocab/index.html",
+      "Test Tactics":    "../testtactics/index.html",
+      "History Heroes":  "../history/index.html",
+      "Money Smarts":    "../money/index.html",
+      "Debate Dojo":     "../debate/index.html",
+      "Fact Checker":    "../factcheck/index.html",
+      "Nutrition Quest": "../nutrition/index.html"
+    },
     // days: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
     recurring: [
       { name: "Karate", days: [1,3], time: "6:15 PM" }, // Mon & Wed

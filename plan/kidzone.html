@@ -75,6 +75,11 @@
   .peekList .lesson{ opacity:.72; }
   .opts{ margin-top:6px; font-size:12.5px; color:var(--amber); }
   .opts b{ color:var(--muted); }
+  .todaypick{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:2px 0 8px;
+    background:linear-gradient(160deg,#eef2ff,#fff); border:2px solid #c7d2fe; border-radius:12px; padding:11px 14px; }
+  .tp-lbl{ font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); }
+  .tp-name{ font-size:17px; font-weight:800; color:var(--accent); text-decoration:none; }
+  a.tp-name:hover{ text-decoration:underline; }
   .sessboxes{ display:flex; gap:9px; margin-top:9px; }
   .sessboxes .box{ width:26px; height:26px; border:2.5px solid #94a3b8; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; }
   .sessboxes .box.on{ background:var(--green); border-color:var(--green); }
@@ -135,7 +140,7 @@ const CFG = window.LZ_CONFIG || {paused:[]};
 const { slug, dkey, skey, dateKey, habitKey, outingKey, isDone, setDone, subjProgress,
   doneLessons, doneDate, todayISO, doneDatesForSubject, noteKey, getNote, setNote, getOutings, setOutings,
   ensureRecurringSeeded, getManualLessons, manualDoneKey, combinedQueue, lessonItemId,
-  getAttachments, attachDoneKey, safeUrl } = window.LZ;
+  getAttachments, attachDoneKey, safeUrl, dailyPick, appLink } = window.LZ;
 const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th grade"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th grade"} };
 
 // ?kid=ryland (or reid) in the URL locks this page to just that kid — no switcher tabs, and
@@ -341,10 +346,25 @@ function subjectCard(kidId, sub){
     // today's regular day-checkbox, both tagged "now".
     const todayManual = getManualLessons(kidId, sub.subject).filter(m=>m.date===today);
     const todayManualHtml = todayManual.map(m=>manualDayRow(kidId,sub,m,true)).join("");
+    // A `pick:"daily"` subject (Learn Zone) isn't a menu — one option is assigned for the
+    // day, shown as a single tappable card that opens straight into that app, rather than
+    // listing all eight under "Do:" and leaving the choice open every time.
+    let optsHtml;
+    if(sub.pick === "daily"){
+      const choice = dailyPick(kidId, sub.subject, today, sub.options);
+      const href = appLink(choice);
+      const inner = href
+        ? `<a class="tp-name" href="${href}" target="_blank" rel="noopener">${choice} →</a>`
+        : `<span class="tp-name">${choice||""}</span>`;
+      optsHtml = `<div class="todaypick"><span class="tp-lbl">Today's pick</span>${inner}</div>`
+        + (sub.note ? `<div class="opts">${sub.note}</div>` : "");
+    } else {
+      optsHtml = `<div class="opts"><b>Do:</b> ${(sub.options||[]).join(" or ")}${sub.note?`<br>${sub.note}`:""}</div>`;
+    }
     return `<div class="card">
       <div class="ch"><span class="s">${sub.subject}</span>
         <span class="prog">${allDates.length} day${allDates.length===1?'':'s'} done</span></div>
-      <div class="opts"><b>Do:</b> ${(sub.options||[]).join(" or ")}${sub.note?`<br>${sub.note}`:""}</div>
+      ${optsHtml}
       ${doneSection}
       ${noteSlot(kidId, sub)}
       ${todayManualHtml}
