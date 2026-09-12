@@ -10,7 +10,7 @@
 // was last selected, etc.) and compares each one to what was last successfully pushed or
 // pulled. Anything changed locally gets pushed up to the shared Google Sheet as soon as
 // it happens; anything changed elsewhere gets pulled down and written into localStorage
-// on a steady ~5s heartbeat. Each key carries its own "last updated" timestamp, so if two
+// on a steady ~1s heartbeat. Each key carries its own "last updated" timestamp, so if two
 // devices ever touch the same key, whichever wrote most recently wins.
 //
 // This file intentionally has no dependency on lz-common.js's internals — it works
@@ -23,7 +23,7 @@
 
   const META_KEY = "_lzSyncMeta";     // our own bookkeeping — deliberately NOT prefixed "lz" so it's never swept up as content
   const CURSOR_KEY = "_lzSyncCursor";
-  const HEARTBEAT_MS = 3000;   // background pull, catches changes made on OTHER devices — safe to
+  const HEARTBEAT_MS = 1000;   // background pull, catches changes made on OTHER devices — safe to
                                 // run this often now that only one frame per tab does it (see below)
   const QUICK_PUSH_MS = 250;   // debounce for pushing a change made right here, right now
 
