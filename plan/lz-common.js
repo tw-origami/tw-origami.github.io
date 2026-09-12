@@ -262,14 +262,18 @@
   function removeCustomSubject(id){
     setCustomSubjectsRaw(getCustomSubjectsRaw().filter(s=>s.customId!==id));
   }
-  // Appends one or more {title, page} rows to a custom category's own lessons array, in the
-  // order given — used by the Teacher Dashboard's bulk "add rows" form so several lessons
-  // land in a predictable order (at the end) instead of each one jumping to the front.
-  function addCustomLessons(customId, rows){
+  // Inserts one or more {title, page} rows into a custom category's own lessons array, in
+  // the order given, at atIndex (defaults to the end when omitted/out of range) — used by the
+  // Teacher Dashboard's "insert a lesson here" gaps so rows land exactly where clicked instead
+  // of always at the end.
+  function addCustomLessons(customId, rows, atIndex){
     const arr = getCustomSubjectsRaw();
     const sub = arr.find(s=>s.customId===customId);
     if(!sub) return;
-    sub.lessons = (sub.lessons||[]).concat((rows||[]).map(r=>({p:(r.page||"").toString(), t:(r.title||"").trim()})));
+    const lessons = sub.lessons||[];
+    const idx = (atIndex===undefined || atIndex===null || atIndex<0 || atIndex>lessons.length) ? lessons.length : atIndex;
+    const newOnes = (rows||[]).map(r=>({p:(r.page||"").toString(), t:(r.title||"").trim()}));
+    sub.lessons = lessons.slice(0,idx).concat(newOnes, lessons.slice(idx));
     setCustomSubjectsRaw(arr);
   }
 

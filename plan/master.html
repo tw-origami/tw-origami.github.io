@@ -71,15 +71,17 @@
   .lesson[draggable="true"]{ cursor:grab; }
   .lesson[draggable="true"]:active{ cursor:grabbing; }
   .lesson.dragover{ background:#eef2ff; outline:2px dashed var(--accent); outline-offset:-2px; }
+  .dragHandle{ flex:none; color:#cbd5e1; font-size:13px; cursor:grab; padding:0 1px; align-self:center; }
+  .lesson:hover .dragHandle{ color:var(--muted); }
   .lesson.manual{ background:#fdf4ff; border:1px dashed #d8b4fe; }
   .lesson.manual.done .box{ background:#a855f7; border-color:#a855f7; }
   .rmManual{ flex:none; width:18px; height:18px; border-radius:50%; background:#fee2e2; color:#b91c1c; font-size:11px;
     font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; margin-left:auto; }
   .addLessonRow{ margin-top:8px; font-size:12.5px; font-weight:700; color:var(--accent); cursor:pointer; padding:4px 2px; }
   .addLessonRow:hover{ text-decoration:underline; }
-  .addLessonForm{ margin-top:8px; padding:10px; border:1px solid var(--line); border-radius:10px; background:#f8fafc;
+  .addLessonForm, .insertForm{ margin-top:8px; padding:10px; border:1px solid var(--line); border-radius:10px; background:#f8fafc;
     display:flex; flex-direction:column; gap:6px; }
-  .addLessonForm input, .addLessonForm select{ font-size:13px; padding:7px 9px; border:1px solid var(--line); border-radius:7px;
+  .addLessonForm input, .addLessonForm select, .insertForm input{ font-size:13px; padding:7px 9px; border:1px solid var(--line); border-radius:7px;
     font-family:inherit; width:100%; box-sizing:border-box; }
   .addRowLine{ display:flex; gap:6px; align-items:center; }
   .addRowLine .addRowTitle{ flex:2; }
@@ -88,10 +90,20 @@
     font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; }
   .addRowMore{ font-size:12px; font-weight:700; color:var(--accent); cursor:pointer; padding:2px; }
   .addRowMore:hover{ text-decoration:underline; }
-  .addSaveBtn, .addOneOffSaveBtn{ background:var(--accent); color:#fff; border:none; border-radius:7px; padding:7px 14px;
+  .addSaveBtn, .addOneOffSaveBtn, .gapSaveBtn{ background:var(--accent); color:#fff; border:none; border-radius:7px; padding:7px 14px;
     font-weight:800; font-size:12.5px; cursor:pointer; }
-  .addCancelBtn{ background:#fff; color:var(--muted); border:1px solid var(--line); border-radius:7px; padding:7px 14px;
+  .addCancelBtn, .gapCancelBtn{ background:#fff; color:var(--muted); border:1px solid var(--line); border-radius:7px; padding:7px 14px;
     font-weight:700; font-size:12.5px; cursor:pointer; }
+
+  /* "+" gap between lesson rows, for inserting exactly where a lesson belongs */
+  .insertGap{ display:flex; align-items:center; gap:6px; height:14px; margin:0 2px; cursor:pointer; }
+  .insertGap .gapLine{ flex:1; height:1px; background:var(--line); opacity:0; transition:opacity .1s; }
+  .insertGap .gapPlus{ flex:none; width:17px; height:17px; border-radius:50%; background:#fff; border:1.5px solid var(--line);
+    color:var(--muted); font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center;
+    opacity:0; transition:opacity .1s, background .1s, border-color .1s, color .1s; }
+  .insertGap:hover .gapLine{ opacity:1; }
+  .insertGap:hover .gapPlus{ opacity:1; background:var(--accent); border-color:var(--accent); color:#fff; }
+  .insertForm{ border:1px dashed var(--accent); background:#eff6ff; }
 
   /* supplement links attached to a lesson */
   .lesson{ flex-wrap:wrap; }
@@ -256,11 +268,16 @@ function attachBtn(kid, subject, itemId){
   return `<span class="attachBtn" data-kid="${kid}" data-subj="${escapeAttr(subject)}" data-item="${escapeAttr(itemId)}" title="Attach an article or video">🔗</span>`;
 }
 
+// A small "⠿" grip shown on rows that can be dragged to reorder — makes the drag-and-drop
+// affordance visible instead of relying on people discovering a plain row happens to be
+// draggable.
+function dragHandle(draggableFlag){ return draggableFlag ? `<span class="dragHandle" title="Drag to reorder">⠿</span>` : ""; }
 function lessonRow(kid,sub,les,isNext,draggableFlag){
   const k=dkey(kid,sub,les); const done=isDone(k)||les.done;
   const itemId = lessonItemId(les);
   const dragAttrs = draggableFlag ? ` draggable="true" data-itemid="${itemId}"` : "";
   return `<div class="lesson${done?' done':''}${isNext?' next':''}" data-k="${k}"${dragAttrs}>
+    ${dragHandle(draggableFlag)}
     <div class="box">${done?'✓':''}</div>
     <div style="flex:1;"><span class="t">${les.t}${isNext?'<span class="nextpill">next</span>':''}</span> <span class="pg">p.${les.p}</span></div>
     ${attachBtn(kid, sub.subject, itemId)}
@@ -276,6 +293,7 @@ function manualRow(kid,sub,manual,isNext,draggableFlag){
   const pageLabel = manual.page ? `p.${manual.page}` : "extra";
   const dragAttrs = draggableFlag ? ` draggable="true" data-itemid="m|${manual.id}"` : "";
   return `<div class="lesson manual${done?' done':''}${isNext?' next':''}" data-k="${k}"${dragAttrs}>
+    ${dragHandle(draggableFlag)}
     <div class="box">${done?'✓':''}</div>
     <div style="flex:1;"><span class="t">${manual.title}${isNext?'<span class="nextpill">next</span>':''}</span> <span class="pg">${pageLabel}</span></div>
     ${attachBtn(kid, sub.subject, "m|"+manual.id)}
@@ -297,47 +315,40 @@ function manualDayRow(kid,sub,manual,isNext){
     ${attachBlock(kid, sub.subject, "m|"+manual.id)}
   </div>`;
 }
-// Which subject's "+ Add lesson(s)" / "+ Add one-off task" form is open (in-memory only),
-// keyed by kid|subject.
+// Which subject's "+ Add one-off task" form is open (in-memory only), keyed by kid|subject.
 let addLessonOpen = {};
-// The in-progress rows for an open bulk "add lessons" form, keyed by kid|subject — an array
-// of {title, page}. Only touched (read from / written to the live inputs) right before a
-// re-render, via syncAddRows — typing itself doesn't trigger a render, so focus is never lost.
-let addRowsState = {};
-function syncAddRows(key){
-  const form = document.querySelector(`.addLessonForm[data-addkey="${CSS.escape(key)}"]`);
+
+// --- Insert-a-lesson gaps ---------------------------------------------------------------
+// A thin "+" that sits BETWEEN every pair of rows in a subject's upcoming queue (and one
+// before the first row, one after the last) — click the exact gap where a lesson belongs and
+// it opens a small inline form right there, instead of a form at the bottom of a possibly-long
+// scrollable list that then has to be scrolled down to. Keyed by kid|subject|gapIndex, where
+// gapIndex is the position in the CURRENT queue order (0 = before the first item).
+let gapOpen = {};
+let gapRows = {}; // same key -> [{title,page}], synced from the live inputs right before a re-render
+function syncGapRows(key){
+  const form = document.querySelector(`.insertForm[data-gapkey="${CSS.escape(key)}"]`);
   if(!form) return;
   const titles = [...form.querySelectorAll(".addRowTitle")];
   const pages = [...form.querySelectorAll(".addRowPage")];
-  addRowsState[key] = titles.map((t,i)=>({title:t.value, page:(pages[i]&&pages[i].value)||""}));
+  gapRows[key] = titles.map((t,i)=>({title:t.value, page:(pages[i]&&pages[i].value)||""}));
 }
-// A small spreadsheet-like row table — type a title (and optional page) per row, "+ Add
-// another row" for more, then save them all at once, in the order typed. New rows land at
-// the END of the queue by default (an explicit "Insert as next" choice is still offered for
-// curriculum subjects) instead of each one jumping to the front, and a brand-new custom
-// category (see addCustomSubject) has nowhere else lessons could come from, so this is its
-// only "add content" control too.
-function addLessonForm(kid, sub){
-  const key = kid+"|"+sub.subject;
-  if(!addLessonOpen[key]) return `<div class="addLessonRow" data-addkey="${key}">+ Add lesson(s)</div>`;
-  const rows = addRowsState[key] || (addRowsState[key] = [{title:"", page:""}]);
+function insertGap(kid, sub, index){
+  const key = kid+"|"+sub.subject+"|"+index;
+  if(!gapOpen[key]) return `<div class="insertGap" data-gapkey="${key}"><span class="gapLine"></span><span class="gapPlus" title="Insert a lesson here">+</span><span class="gapLine"></span></div>`;
+  const rows = gapRows[key] || (gapRows[key] = [{title:"", page:""}]);
   const rowsHtml = rows.map((r,i)=>`
     <div class="addRowLine">
       <input type="text" class="addRowTitle" placeholder="Lesson title" value="${escapeAttr(r.title)}">
       <input type="text" class="addRowPage" placeholder="Page" value="${escapeAttr(r.page)}">
-      ${rows.length>1?`<span class="rmRow" data-key="${key}" data-idx="${i}" title="Remove this row">✕</span>`:""}
+      ${rows.length>1?`<span class="rmRow" data-gapkey="${key}" data-idx="${i}" title="Remove this row">✕</span>`:""}
     </div>`).join("");
-  const posControl = sub.customId ? "" : `<select class="addPos">
-      <option value="end" selected>Add to the end of the queue</option>
-      <option value="next">Insert as next</option>
-    </select>`;
-  return `<div class="addLessonForm" data-addkey="${key}">
+  return `<div class="insertForm" data-gapkey="${key}" data-kid="${kid}" data-subj="${escapeAttr(sub.subject)}" data-idx="${index}">
     ${rowsHtml}
-    <div class="addRowMore" data-addrowkey="${key}">+ Add another row</div>
-    ${posControl}
+    <div class="addRowMore" data-gaprowkey="${key}">+ Add another row</div>
     <div style="display:flex;gap:8px;margin-top:2px;">
-      <button type="button" class="addSaveBtn" data-kid="${kid}" data-subj="${escapeAttr(sub.subject)}">Save lesson(s)</button>
-      <button type="button" class="addCancelBtn" data-addkey="${key}">Cancel</button>
+      <button type="button" class="gapSaveBtn" data-gapkey="${key}">Insert here</button>
+      <button type="button" class="gapCancelBtn" data-gapkey="${key}">Cancel</button>
     </div>
   </div>`;
 }
@@ -474,17 +485,22 @@ function subjectCard(kid, sub){
   // otherwise a freshly created empty category, or a subject that's finished its book, would
   // have no way to add more rows.
   if(sub.lessons.length===0 && queue.length===0){
-    list = `<div class="empty">✓ All caught up for now!</div>${addLessonForm(kid,sub)}`;
+    list = `<div class="empty">✓ All caught up for now!</div>${insertGap(kid,sub,0)}`;
   } else {
     const histHtml = history.map(item=>{
       if(item.type==="lesson") return lessonRow(kid,sub,item.lesson,false);
       if(item.type==="manual") return manualRow(kid,sub,item.manual,false);
       return noteRow(kid,sub,item.key,item.text,item.dateStr);
     }).join("");
-    const queueHtml = queue.map(item=> item.kind==="real"
-      ? lessonRow(kid,sub,item.lesson, item.id===nextId, true)
-      : manualRow(kid,sub,item.manual, item.id===nextId, true)).join("");
-    list = `<div class="lesson-scroll" data-scroll="${kid}|${sub.subject}">` + histHtml + queueHtml + `</div>${addLessonForm(kid,sub)}`;
+    // A "+" gap before every row (and one trailing the last) — click the exact spot a new
+    // lesson belongs instead of always adding at a fixed position.
+    const queueHtml = queue.map((item,i)=>
+      insertGap(kid,sub,i) +
+      (item.kind==="real"
+        ? lessonRow(kid,sub,item.lesson, item.id===nextId, true)
+        : manualRow(kid,sub,item.manual, item.id===nextId, true))
+    ).join("") + insertGap(kid,sub,queue.length);
+    list = `<div class="lesson-scroll" data-scroll="${kid}|${sub.subject}">` + histHtml + queueHtml + `</div>`;
   }
   const opts = (sub.options&&sub.options.length)? `<div class="opts"><b>or instead:</b> ${sub.options.join(" · ")}</div>`:"";
   // Only a teacher-created custom category can be removed outright — a built-in curriculum
@@ -729,66 +745,77 @@ document.addEventListener("click", e=>{
   // lesson's checkbox.
   if(e.target.closest(".attachLink") || e.target.closest(".attachForm")) return;
 
-  const addRow = e.target.closest(".addLessonRow");
-  if(addRow){
-    addLessonOpen[addRow.dataset.addkey] = true;
-    addRowsState[addRow.dataset.addkey] = [{title:"", page:""}];
+  const gapPlus = e.target.closest(".insertGap");
+  if(gapPlus){
+    gapOpen[gapPlus.dataset.gapkey] = true;
+    gapRows[gapPlus.dataset.gapkey] = [{title:"", page:""}];
     render();
-    const inp = document.querySelector(`.addLessonForm[data-addkey="${CSS.escape(addRow.dataset.addkey)}"] .addRowTitle`);
+    const inp = document.querySelector(`.insertForm[data-gapkey="${CSS.escape(gapPlus.dataset.gapkey)}"] .addRowTitle`);
     if(inp) inp.focus();
     return;
   }
-  const addRowMore = e.target.closest(".addRowMore");
-  if(addRowMore){
-    const key = addRowMore.dataset.addrowkey;
-    syncAddRows(key);
-    addRowsState[key].push({title:"", page:""});
+  const gapRowMore = e.target.closest(".addRowMore");
+  if(gapRowMore){
+    const key = gapRowMore.dataset.gaprowkey;
+    syncGapRows(key);
+    gapRows[key].push({title:"", page:""});
     render();
-    const inputs = document.querySelectorAll(`.addLessonForm[data-addkey="${CSS.escape(key)}"] .addRowTitle`);
+    const inputs = document.querySelectorAll(`.insertForm[data-gapkey="${CSS.escape(key)}"] .addRowTitle`);
     const last = inputs[inputs.length-1];
     if(last) last.focus();
     return;
   }
-  const rmRow = e.target.closest(".rmRow");
-  if(rmRow){
-    const key = rmRow.dataset.key, idx = parseInt(rmRow.dataset.idx,10);
-    syncAddRows(key);
-    addRowsState[key].splice(idx,1);
-    if(!addRowsState[key].length) addRowsState[key].push({title:"",page:""});
+  const gapRmRow = e.target.closest(".rmRow");
+  if(gapRmRow){
+    const key = gapRmRow.dataset.gapkey, idx = parseInt(gapRmRow.dataset.idx,10);
+    syncGapRows(key);
+    gapRows[key].splice(idx,1);
+    if(!gapRows[key].length) gapRows[key].push({title:"",page:""});
     render();
     return;
   }
-  const cancelBtn = e.target.closest(".addCancelBtn");
-  if(cancelBtn){
-    addLessonOpen[cancelBtn.dataset.addkey] = false;
-    delete addRowsState[cancelBtn.dataset.addkey];
+  const gapCancel = e.target.closest(".gapCancelBtn");
+  if(gapCancel){
+    gapOpen[gapCancel.dataset.gapkey] = false;
+    delete gapRows[gapCancel.dataset.gapkey];
     render();
     return;
   }
-  const saveBtn = e.target.closest(".addSaveBtn");
-  if(saveBtn){
-    const { kid, subj } = saveBtn.dataset;
-    const key = kid+"|"+subj;
-    syncAddRows(key);
-    const rows = (addRowsState[key]||[]).filter(r=>r.title.trim());
-    if(!rows.length) return;
-    const sub = findSub(kid, subj);
-    if(sub.customId){
-      // A custom category owns its lessons directly — no manual-insertion overlay needed,
-      // so rows just land at the end of its own lessons array, in the order typed.
-      addCustomLessons(sub.customId, rows);
-    } else {
-      const form = saveBtn.closest(".addLessonForm");
-      const posSel = form.querySelector(".addPos");
-      const beforeIds = combinedQueue(kid, sub).map(x=>x.id);
-      const pos = (posSel && posSel.value==="next") ? 0 : beforeIds.length;
-      const newIds = rows.map(r => "m|" + addManualLesson(kid, subj, {title:r.title, page:r.page}));
-      const ids = beforeIds.slice();
-      ids.splice(pos, 0, ...newIds);
-      setOrder(kid, subj, ids);
+  const gapSave = e.target.closest(".gapSaveBtn");
+  if(gapSave){
+    const key = gapSave.dataset.gapkey;
+    syncGapRows(key);
+    const rows = (gapRows[key]||[]).filter(r=>r.title.trim());
+    const form = document.querySelector(`.insertForm[data-gapkey="${CSS.escape(key)}"]`);
+    const { kid, subj, idx } = form.dataset;
+    const gapIndex = parseInt(idx, 10) || 0;
+    if(rows.length){
+      const sub = findSub(kid, subj);
+      if(sub.customId){
+        // A custom category owns its lessons directly — splice the new rows into its own
+        // lessons array at the exact raw position the clicked gap corresponds to (found by
+        // matching the queue item currently sitting there back to sub.lessons), rather than
+        // always appending — so "insert here" really means here, not just "at the end."
+        const queue = combinedQueue(kid, sub);
+        let rawIdx = sub.lessons.length;
+        if(gapIndex < queue.length && queue[gapIndex].kind==="real"){
+          const found = sub.lessons.indexOf(queue[gapIndex].lesson);
+          if(found>=0) rawIdx = found;
+        }
+        addCustomLessons(sub.customId, rows, rawIdx);
+      } else {
+        // A curriculum subject's own lessons are fixed (real book pages) — new rows go
+        // through the manual-insertion overlay, spliced into the saved queue order at the
+        // exact gap position clicked.
+        const beforeIds = combinedQueue(kid, sub).map(x=>x.id);
+        const newIds = rows.map(r => "m|" + addManualLesson(kid, subj, {title:r.title, page:r.page}));
+        const ids = beforeIds.slice();
+        ids.splice(gapIndex, 0, ...newIds);
+        setOrder(kid, subj, ids);
+      }
     }
-    addLessonOpen[key] = false;
-    delete addRowsState[key];
+    gapOpen[key] = false;
+    delete gapRows[key];
     render();
     return;
   }

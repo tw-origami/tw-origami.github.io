@@ -37,20 +37,6 @@
   .bar{ height:8px; border-radius:999px; background:var(--line); overflow:hidden; margin-top:3px; }
   .bar>i{ display:block; height:100%; border-radius:999px; background:var(--accent); }
 
-  .notewrap{ margin:4px 0; }
-  .noteinput{ width:100%; font-size:14px; padding:9px 11px; border:1px solid var(--line); border-radius:9px;
-    font-family:inherit; background:#fffbeb; }
-  .note-row{ background:#fffbeb; cursor:default; }
-  .note-row .t{ font-style:italic; font-weight:600; }
-  .note-box{ background:var(--amber); border-color:var(--amber); font-size:14px; }
-  .editNote,.undoNote{ flex:none; width:22px; height:22px; border-radius:50%; font-size:12px; font-weight:800;
-    display:flex; align-items:center; justify-content:center; cursor:pointer; margin-left:4px; }
-  .editNote{ background:#eef2ff; color:var(--accent); }
-  .undoNote{ background:#fee2e2; color:#b91c1c; }
-  .addNoteRow{ font-size:13px; font-weight:700; color:var(--muted); cursor:pointer; padding:8px; text-align:center;
-    border:2px dashed var(--line); border-radius:10px; margin:4px 0; }
-  .addNoteRow:hover{ color:var(--accent); border-color:var(--accent); }
-
   .lesson{ display:flex; align-items:center; gap:12px; padding:10px 8px; border-radius:12px; cursor:pointer; }
   .lesson.now{ background:#f5f6ff; }
   .lesson:hover{ background:#f8fafc; }
@@ -118,12 +104,12 @@
 <div class="wrap">
   <div class="top">
     <h1>🧭 Today's Adventure</h1>
-    <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:8px;" id="kzTopNav">
       <a class="back" id="navPrint" href="print.html">🖨️ Daily sheets</a>
       <a class="back" id="navMaster" href="master.html">📋 Master</a>
       <a class="back" id="navCalendar" href="calendar.html">🗓️ Calendar</a>
       <a class="back" id="navWeek" href="week.html">🗂️ Week</a>
-      <a class="back" href="../index.html">← The Learn Zone</a>
+      <a class="back" id="navHome" href="../index.html">← The Learn Zone</a>
     </div>
   </div>
   <div class="sub">Tap a box to check it off — it saves right away and shows up on the Master Tracker too.</div>
@@ -139,7 +125,7 @@
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[]};
 const { slug, dkey, skey, dateKey, habitKey, outingKey, isDone, setDone, subjProgress,
-  doneLessons, doneDate, todayISO, doneDatesForSubject, noteKey, getNote, setNote, getOutings, setOutings,
+  doneLessons, doneDate, todayISO, doneDatesForSubject, getOutings, setOutings,
   ensureRecurringSeeded, getManualLessons, manualDoneKey, combinedQueue, lessonItemId,
   getAttachments, attachDoneKey, safeUrl, dailyPick, appLink, getAllSubjects } = window.LZ;
 const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th grade"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th grade"} };
@@ -152,16 +138,12 @@ const LOCKED = KIDS[LOCK_PARAMS.get("kid")] ? LOCK_PARAMS.get("kid") : null;
 
 let kid = LOCKED || localStorage.getItem("lzKZkid") || "ryland";
 if(LOCKED){
-  const calNav = document.getElementById("navCalendar");
-  if(calNav) calNav.href = "calendar.html?kid=" + LOCKED;
-  const weekNav = document.getElementById("navWeek");
-  if(weekNav) weekNav.href = "week.html?kid=" + LOCKED;
-  // Kids' own view only needs Calendar + Week + back to the Learn Zone — Daily Sheets and the
-  // cross-kid Master Tracker are teacher-only tools (reached from teacher.html instead).
-  const printNav = document.getElementById("navPrint");
-  const masterNav = document.getElementById("navMaster");
-  if(printNav) printNav.remove();
-  if(masterNav) masterNav.remove();
+  // Embedded inside ry.html/reid.html, which already has its own tab bar for Today's
+  // Adventure / Week Preview / Calendar / Journal / back to the Learn Zone up top — this
+  // page's own nav row would just be the same links duplicated again right underneath, so
+  // drop it entirely rather than only trimming the teacher-only Print/Master links.
+  const topNav = document.getElementById("kzTopNav");
+  if(topNav) topNav.remove();
 }
 // How many "recently done" items are expanded per subject, in-memory only (resets on
 // reload). Lets a kid scroll back and undo an accidental or rapid-fire check-off.
@@ -171,8 +153,6 @@ function expandFor(kidId, sub){
   if(!expand[k]) expand[k] = { done:0, peek:false };
   return expand[k];
 }
-// Which subject's note is currently being typed into (in-memory only).
-let noteEditing = {};
 // Which day's outing input is currently open (in-memory only) — keyed by outingKey.
 let outingEditing = {};
 
@@ -299,26 +279,6 @@ function manualDayRow(kidId, sub, manual, isNow){
 }
 
 function escapeAttr(s){ return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
-// Renders whatever belongs in the "note slot" for today: the saved note (with edit/delete),
-// an open input (while editing), or a quiet prompt to add one. Always placed right before
-// the still-to-do row, so it reads as "here's what actually happened today."
-function noteSlot(kidId, sub){
-  const nkey = noteKey(kidId, sub.subject, todayISO());
-  const note = getNote(nkey);
-  if(noteEditing[nkey]){
-    return `<div class="notewrap" data-notewrap="${nkey}">
-      <input type="text" class="noteinput" data-notekey="${nkey}" value="${escapeAttr(note)}" placeholder="What did you do today?"></div>`;
-  }
-  if(note){
-    return `<div class="lesson note-row">
-      <div class="box note-box">✎</div>
-      <div style="flex:1;"><span class="t">${note}</span></div>
-      <span class="editNote" data-editnote="${nkey}" title="Edit note">✎</span>
-      <span class="undoNote" data-notekey="${nkey}" data-confirm="Delete this note?" title="Delete note">✕</span>
-    </div>`;
-  }
-  return `<div class="addNoteRow" data-editnote="${nkey}">+ Add a note about today</div>`;
-}
 
 function subjectCard(kidId, sub){
   if(sub.kind==="ongoing"){
@@ -369,7 +329,6 @@ function subjectCard(kidId, sub){
         <span class="prog">${allDates.length} day${allDates.length===1?'':'s'} done</span></div>
       ${optsHtml}
       ${doneSection}
-      ${noteSlot(kidId, sub)}
       ${todayManualHtml}
       ${dayRow(kidId, sub, today, true)}
     </div>`;
@@ -423,10 +382,6 @@ function subjectCard(kidId, sub){
     ? `<div class="today-lbl">Done today</div>` + combinedToday.map(item=>histRow(item,false)).join("")
     : "";
 
-  // The note slot always sits right before the still-unchecked "now" lesson (or the
-  // all-caught-up message), so a note about today reads in context, not detached at the end.
-  const note = noteSlot(kidId, sub);
-
   function queueRow(item, isNow){ return item.kind==="real" ? lessonRow(kidId,sub,item.lesson,isNow) : manualLessonRow(kidId,sub,item.manual,isNow); }
 
   // One lesson at a time, and once it's checked off the NEXT one deliberately doesn't take
@@ -437,11 +392,11 @@ function subjectCard(kidId, sub){
   const didSomethingToday = combinedToday.length > 0;
   let body;
   if(queue.length===0){
-    body = doneSection + todaySection + note + `<div class="empty">🎉 All caught up in ${sub.book||sub.subject}!</div>`;
+    body = doneSection + todaySection + `<div class="empty">🎉 All caught up in ${sub.book||sub.subject}!</div>`;
   } else if(didSomethingToday){
-    body = doneSection + todaySection + note + `<div class="doneForDay">✅ ${sub.subject} is done for today!</div>`;
+    body = doneSection + todaySection + `<div class="doneForDay">✅ ${sub.subject} is done for today!</div>`;
   } else {
-    body = doneSection + todaySection + note + queueRow(queue[0], true);
+    body = doneSection + todaySection + queueRow(queue[0], true);
   }
 
   // "Next three" peek — starts after whatever is already on screen, so it never repeats the
@@ -509,19 +464,6 @@ document.addEventListener("click", e=>{
     render(); return;
   }
   if(e.target.closest(".attachLink")) return; // let the browser open the link, nothing else
-  const editBtn = e.target.closest("[data-editnote]");
-  if(editBtn){ noteEditing[editBtn.dataset.editnote] = true; render();
-    const input = document.querySelector(`.noteinput[data-notekey="${CSS.escape(editBtn.dataset.editnote)}"]`);
-    if(input) input.focus();
-    return;
-  }
-  const undoNote = e.target.closest(".undoNote");
-  if(undoNote){
-    if(window.confirm(undoNote.dataset.confirm)){
-      setNote(undoNote.dataset.notekey, ""); noteEditing[undoNote.dataset.notekey] = false; render();
-    }
-    return;
-  }
   const addOuting = e.target.closest(".addOuting");
   if(addOuting){
     outingEditing[addOuting.dataset.outingkey] = true; render();
@@ -561,12 +503,6 @@ document.addEventListener("click", e=>{
   if(box){ const k=box.dataset.k; setDone(k, !isDone(k)); render(); return; }
 });
 
-function saveNoteInput(input){
-  const k = input.dataset.notekey;
-  setNote(k, input.value);
-  noteEditing[k] = false;
-  render();
-}
 function saveOutingInput(input){
   const k = input.dataset.outingkey;
   const text = input.value.trim();
@@ -576,15 +512,10 @@ function saveOutingInput(input){
   render();
 }
 document.addEventListener("focusout", e=>{
-  const input = e.target.closest(".noteinput");
-  if(input) saveNoteInput(input);
   const outingInput = e.target.closest(".outinginput");
   if(outingInput) saveOutingInput(outingInput);
 });
 document.addEventListener("keydown", e=>{
-  if(e.key==="Enter" && e.target.classList && e.target.classList.contains("noteinput")){
-    saveNoteInput(e.target);
-  }
   if(e.key==="Enter" && e.target.classList && e.target.classList.contains("outinginput")){
     saveOutingInput(e.target);
   }
@@ -595,12 +526,12 @@ render();
 // Undoing something on the calendar (a sibling iframe on the same page, e.g. ry.html's
 // mini calendar or the My Calendar tab) writes to this same localStorage — a same-origin
 // 'storage' event fires here when that happens, so this page picks up the uncheck/delete
-// live instead of only on the next click. Skip refreshing while a note/outing input is being
+// live instead of only on the next click. Skip refreshing while an outing input is being
 // typed into, so we don't yank it out from under the kid mid-sentence; a light poll is kept
 // as a fallback since 'storage' event timing/support can vary by browser.
 function safeRender(){
   const ae = document.activeElement;
-  if(ae && ae.classList && (ae.classList.contains("noteinput") || ae.classList.contains("outinginput"))) return;
+  if(ae && ae.classList && ae.classList.contains("outinginput")) return;
   render();
 }
 window.addEventListener("storage", safeRender);

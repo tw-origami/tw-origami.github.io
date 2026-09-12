@@ -66,10 +66,10 @@
 <div class="wrap">
   <div class="top">
     <h1>🗂️ Week Preview</h1>
-    <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:8px;" id="wkTopNav">
       <a class="back" id="navWork" href="kidzone.html">🧭 Today's Adventure</a>
       <a class="back" id="navCal" href="calendar.html">🗓️ Calendar</a>
-      <a class="back" href="../index.html">← The Learn Zone</a>
+      <a class="back" id="navHome" href="../index.html">← The Learn Zone</a>
     </div>
   </div>
   <div class="sub">What the week looks like — some subjects run certain days, and a day can just be empty. Tap a box to check something off; it's the same record as Today's Adventure either way.</div>
@@ -104,10 +104,11 @@ const LOCK_PARAMS = new URLSearchParams(location.search);
 const LOCKED = KIDS[LOCK_PARAMS.get("kid")] ? LOCK_PARAMS.get("kid") : null;
 let kid = LOCKED || localStorage.getItem("lzKZkid") || "ryland";
 if(LOCKED){
-  const workNav = document.getElementById("navWork");
-  const calNav = document.getElementById("navCal");
-  if(workNav) workNav.href = "kidzone.html?kid=" + LOCKED;
-  if(calNav) calNav.href = "calendar.html?kid=" + LOCKED;
+  // Embedded inside ry.html/reid.html, which already has its own tab bar (including a Week
+  // Preview tab) and a back-to-the-Learn-Zone link up top — this page's own nav row would
+  // just repeat those same links, so drop it entirely.
+  const topNav = document.getElementById("wkTopNav");
+  if(topNav) topNav.remove();
 }
 
 function iso(d){ return d.toISOString().slice(0,10); }
