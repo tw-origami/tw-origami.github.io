@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<title>Week Preview · The Learn Zone</title>
+<style>
+  :root{ --ink:#1e293b; --muted:#64748b; --accent:#4f46e5; --line:#e2e8f0; --head:#1f3864;
+    --ry:#4f46e5; --ry-soft:#eef2ff; --reid:#0f766e; --reid-soft:#ccfbf1; --amber:#b45309; --green:#166534; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,#eef2ff,#f8fafc); min-height:100vh; padding:22px 16px 70px; }
+  .wrap{ max-width:720px; margin:0 auto; }
+  .top{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px; flex-wrap:wrap; }
+  h1{ font-size:24px; margin:0; }
+  .back{ text-decoration:none; color:var(--accent); font-weight:800; font-size:13.5px; background:#fff; padding:8px 14px; border-radius:999px; box-shadow:0 6px 18px rgba(30,41,99,.12); }
+  .sub{ color:var(--muted); font-size:13px; margin:2px 0 14px; }
+
+  .kidtabs{ display:flex; gap:10px; margin-bottom:14px; }
+  .kidtab{ flex:1; text-align:center; padding:11px 10px; border-radius:14px; font-weight:800; font-size:15px; cursor:pointer;
+    background:#fff; box-shadow:0 6px 18px rgba(30,41,99,.08); border:3px solid transparent; color:var(--muted); }
+  .kidtab.active.ry{ border-color:var(--ry); color:var(--ry); background:var(--ry-soft); }
+  .kidtab.active.reid{ border-color:var(--reid); color:var(--reid); background:var(--reid-soft); }
+
+  .weeknav{ display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:16px; }
+  .weeknav button{ border:none; background:#fff; box-shadow:0 6px 18px rgba(30,41,99,.1); border-radius:999px; width:34px; height:34px; font-size:16px; font-weight:800; cursor:pointer; color:var(--accent); }
+  .weeknav .lbl{ font-weight:800; font-size:15px; min-width:150px; text-align:center; }
+  .today-btn{ border:none; background:var(--accent); color:#fff; border-radius:999px; padding:8px 14px; font-weight:800; font-size:12.5px; cursor:pointer; }
+
+  .daycard{ background:#fff; border-radius:16px; box-shadow:0 8px 24px rgba(30,41,99,.08); padding:14px 16px; margin-bottom:12px; }
+  .daycard.today{ border:2px solid var(--accent); }
+  .daycard.weekend{ opacity:.88; }
+  .dh{ display:flex; align-items:center; gap:8px; margin-bottom:9px; }
+  .dname{ font-weight:800; font-size:15px; }
+  .todaytag{ font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; background:var(--accent); color:#fff; padding:3px 9px; border-radius:999px; }
+
+  .entry{ font-size:13.5px; padding:6px 8px 6px 10px; border-left:3px solid var(--line); margin-bottom:4px;
+    display:flex; align-items:center; justify-content:space-between; gap:8px; border-radius:0 6px 6px 0; background:#f8fafc; }
+  .entry.lesson{ border-left-color:var(--green); }
+  .entry.ongoing{ border-left-color:var(--accent); }
+  .entry.link{ border-left-color:#0369a1; background:#f0f9ff; }
+  .entry b{ font-weight:800; }
+  .undoBtn{ flex:none; width:20px; height:20px; border-radius:50%; background:#fee2e2; color:#b91c1c; font-size:12px;
+    font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .undoBtn:hover{ background:#fecaca; }
+
+  .lesson{ display:flex; align-items:center; gap:11px; padding:9px 10px; border-radius:10px; cursor:pointer; margin-bottom:4px; background:#f5f6ff; }
+  .lesson:hover{ background:#eef2ff; }
+  .lesson .box{ flex:none; width:22px; height:22px; border:2.5px solid var(--accent); border-radius:6px; }
+  .lesson .t{ font-size:14px; font-weight:700; }
+  .lesson .pg{ font-size:11px; color:var(--muted); display:block; margin-top:1px; }
+  .lesson a{ color:var(--accent); font-weight:800; text-decoration:none; }
+  .lesson a:hover{ text-decoration:underline; }
+  .catchtag{ font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:.3px; background:var(--amber);
+    color:#fff; padding:2px 7px; border-radius:999px; margin-left:8px; vertical-align:middle; }
+
+  .doneline{ font-size:12.5px; color:var(--green); font-weight:700; padding:5px 2px; }
+  .futureList{ display:flex; gap:6px; flex-wrap:wrap; }
+  .futChip{ font-size:12px; font-weight:700; color:var(--muted); background:#f1f5f9; padding:6px 11px; border-radius:999px; }
+  .empty{ font-size:13px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>🗂️ Week Preview</h1>
+    <div style="display:flex;gap:8px;">
+      <a class="back" id="navWork" href="kidzone.html">🧭 Today's Adventure</a>
+      <a class="back" id="navCal" href="calendar.html">🗓️ Calendar</a>
+      <a class="back" href="../index.html">← The Learn Zone</a>
+    </div>
+  </div>
+  <div class="sub">What the week looks like — some subjects run certain days, and a day can just be empty. Tap a box to check something off; it's the same record as Today's Adventure either way.</div>
+
+  <div class="kidtabs" id="kidtabs"></div>
+  <div class="weeknav">
+    <button id="prevW">‹</button>
+    <span class="lbl" id="weekLbl"></span>
+    <button id="nextW">›</button>
+    <button class="today-btn" id="thisWeekBtn">This week</button>
+  </div>
+  <div id="days"></div>
+</div>
+
+<script src="curriculum.js"></script>
+<script src="lz-common.js"></script>
+<script src="lz-sync.js?v=8"></script>
+<script>
+const CUR = window.CURRICULUM || {};
+const CFG = window.LZ_CONFIG || {paused:[]};
+const { dkey, dateKey, doneDate, isDone, setDone, todayISO, manualDoneOn, attachmentsDoneOn,
+  combinedQueue, manualDoneKey, dailyPick, appLink, isScheduledOn, getCarryOver } = window.LZ;
+// How many scheduled days back to look for a missed, uncaught-up lesson, and the most a
+// catch-up list will ever show at once (so a long absence doesn't dump a wall of lessons).
+const LOOKBACK_DAYS = 14, MAX_CATCHUP = 4;
+const KIDS = { ryland:{name:"Ryland",cls:"ry"}, reid:{name:"Reid",cls:"reid"} };
+function escapeAttr(s){ return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
+
+// ?kid=ryland (or reid) locks this page to just that kid — same pattern as kidzone.html /
+// calendar.html, used when embedded in ry.html / reid.html.
+const LOCK_PARAMS = new URLSearchParams(location.search);
+const LOCKED = KIDS[LOCK_PARAMS.get("kid")] ? LOCK_PARAMS.get("kid") : null;
+let kid = LOCKED || localStorage.getItem("lzKZkid") || "ryland";
+if(LOCKED){
+  const workNav = document.getElementById("navWork");
+  const calNav = document.getElementById("navCal");
+  if(workNav) workNav.href = "kidzone.html?kid=" + LOCKED;
+  if(calNav) calNav.href = "calendar.html?kid=" + LOCKED;
+}
+
+function iso(d){ return d.toISOString().slice(0,10); }
+function isoToday(){ return iso(new Date()); }
+// The Monday that starts the week containing d (school-week convention — Mon first).
+function mondayOf(d){
+  const dt = new Date(d); dt.setHours(0,0,0,0);
+  const dow = dt.getDay(); // 0=Sun..6=Sat
+  const diff = dow===0 ? -6 : 1-dow;
+  dt.setDate(dt.getDate()+diff);
+  return dt;
+}
+let weekStart = mondayOf(new Date());
+
+function renderKidTabs(){
+  const el = document.getElementById("kidtabs");
+  if(LOCKED){ el.innerHTML = ""; el.style.display = "none"; return; }
+  el.innerHTML = Object.keys(KIDS).map(id=>{
+    const k = KIDS[id];
+    return `<div class="kidtab ${k.cls}${kid===id?' active':''}" data-kid="${id}">${k.name}</div>`;
+  }).join("");
+}
+
+// Every completed thing recorded for this kid on one date — lessons, an "ongoing" subject's
+// day checkbox, teacher-inserted lessons, and watched/read supplement links. Same records
+// kidzone.html and calendar.html read, so a check-off shows up in all three places.
+function dayEntries(kidId, dateISO){
+  const subs = CUR[kidId] || [];
+  const out = [];
+  subs.forEach(sub=>{
+    if((CFG.paused||[]).includes(sub.subject)) return;
+    if(sub.kind==="ongoing"){
+      const k = dateKey(kidId, sub.subject, dateISO);
+      if(isDone(k)) out.push({subject:sub.subject, type:"ongoing", key:k});
+    } else {
+      (sub.lessons||[]).forEach(l=>{
+        const k = dkey(kidId, sub, l);
+        if(doneDate(k)===dateISO) out.push({subject:sub.subject, type:"lesson", title:l.t, page:l.p, key:k});
+      });
+    }
+  });
+  manualDoneOn(kidId, dateISO).forEach(m=> out.push({subject:m.subject, type:"lesson", title:m.title, page:m.page, key:m.key}));
+  attachmentsDoneOn(kidId, dateISO).forEach(a=> out.push({subject:a.subject, type:"link", title:a.title, kind:a.kind, key:a.key}));
+  return out;
+}
+
+function doneEntriesHtml(kidId, dateISO){
+  return dayEntries(kidId, dateISO).map(e=>{
+    let inner, confirmMsg;
+    if(e.type==="lesson"){
+      inner = `<b>${e.subject}:</b> ${e.title}${e.page?` — p.${e.page}`:""}`;
+      confirmMsg = `Undo "${e.title}" for ${e.subject}? It'll go back to not-done.`;
+    } else if(e.type==="link"){
+      inner = `<b>${e.subject}:</b> ${e.kind==="video"?"📺 Watched":"📄 Read"} ${e.title}`;
+      confirmMsg = `Mark "${e.title}" as not ${e.kind==="video"?"watched":"read"} again?`;
+    } else {
+      inner = `<b>${e.subject}</b> — done`;
+      confirmMsg = `Remove this ${e.subject} check-off for this day?`;
+    }
+    return `<div class="entry ${e.type}">${inner}
+      <span class="undoBtn" data-key="${e.key}" data-confirm="${escapeAttr(confirmMsg)}" title="Undo">✕</span>
+    </div>`;
+  }).join("");
+}
+
+// Did this subject have any real lesson (book page or teacher-inserted) completed on the
+// given date? Reuses dayEntries rather than re-scanning, since it already answers exactly
+// this question per date.
+function subjectDoneOn(kidId, sub, dateISO){
+  return dayEntries(kidId, dateISO).some(e=>e.subject===sub.subject && e.type==="lesson");
+}
+// How many of this book subject's queue items are "owed" today. A subject with carry-over
+// on (the default) catches up: walk backwards through its own scheduled days, and every
+// consecutive one with nothing completed adds one more lesson to today's list — skip a
+// scheduled Reading day and the next scheduled day shows two. A subject with carry-over off
+// never owes more than today's own single assignment, so a missed day just moves on.
+function owedCount(kidId, sub){
+  const today = todayISO();
+  if(!getCarryOver(kidId, sub.subject)) return 1;
+  let count = 1;
+  const cursor = new Date(today+"T00:00:00");
+  for(let i=0;i<LOOKBACK_DAYS && count<MAX_CATCHUP;i++){
+    cursor.setDate(cursor.getDate()-1);
+    const d = iso(cursor);
+    if(!isScheduledOn(kidId, sub.subject, d)) continue;
+    if(subjectDoneOn(kidId, sub, d)) break;
+    count++;
+  }
+  return Math.min(count, MAX_CATCHUP);
+}
+
+// For today only: a checkable row for every scheduled subject that doesn't already have
+// something done today — same keys/mechanics as kidzone.html's "now" lesson, so ticking it
+// here is exactly the same as ticking it on Today's Adventure. A carry-over book subject can
+// show more than one row here (see owedCount) — the extras are tagged "catch-up."
+function todoRowsForToday(kidId){
+  const today = todayISO();
+  const doneSubs = new Set(dayEntries(kidId, today).filter(e=>e.type==="lesson"||e.type==="ongoing").map(e=>e.subject));
+  const subs = (CUR[kidId]||[]).filter(s=>!(CFG.paused||[]).includes(s.subject));
+  const rows = [];
+  subs.forEach(sub=>{
+    if(!isScheduledOn(kidId, sub.subject, today)) return;
+    if(doneSubs.has(sub.subject)) return;
+    if(sub.kind==="ongoing"){
+      const k = dateKey(kidId, sub.subject, today);
+      let extra = "";
+      if(sub.pick==="daily"){
+        const choice = dailyPick(kidId, sub.subject, today, sub.options);
+        const href = appLink(choice);
+        if(choice) extra = href ? ` — <a href="${href}" target="_blank" rel="noopener">${choice} →</a>` : ` — ${choice}`;
+      }
+      rows.push(`<div class="lesson" data-k="${k}"><div class="box"></div><div style="flex:1;"><span class="t">${sub.subject}${extra}</span></div></div>`);
+      return;
+    }
+    const queue = combinedQueue(kidId, sub);
+    if(!queue.length){ rows.push(`<div class="doneline">🎉 ${sub.subject} — all caught up</div>`); return; }
+    const n = Math.min(owedCount(kidId, sub), queue.length);
+    for(let idx=0; idx<n; idx++){
+      const item = queue[idx];
+      const isReal = item.kind==="real";
+      const k = isReal ? dkey(kidId, sub, item.lesson) : manualDoneKey(kidId, sub.subject, item.manual.id);
+      const title = isReal ? item.lesson.t : item.manual.title;
+      const page = isReal ? item.lesson.p : item.manual.page;
+      const catchup = idx>0 ? `<span class="catchtag">catch-up</span>` : "";
+      rows.push(`<div class="lesson" data-k="${k}"><div class="box"></div>
+        <div style="flex:1;"><span class="t">${sub.subject}: ${title}${catchup}</span>${page?`<span class="pg">p.${page}</span>`:""}</div>
+      </div>`);
+    }
+  });
+  return rows.join("");
+}
+
+function dayCard(kidId, dateObj){
+  const dateISO = iso(dateObj);
+  const today = isoToday();
+  const isToday = dateISO===today;
+  const isPast = dateISO < today;
+  const dow = dateObj.getDay();
+  const isWeekend = dow===0 || dow===6;
+  const label = dateObj.toLocaleDateString(undefined,{weekday:"long", month:"short", day:"numeric"});
+  let body;
+  if(isPast){
+    const html = doneEntriesHtml(kidId, dateISO);
+    body = html || `<div class="empty">Nothing logged.</div>`;
+  } else if(isToday){
+    const doneHtml = doneEntriesHtml(kidId, dateISO);
+    const todoHtml = todoRowsForToday(kidId);
+    body = (doneHtml + todoHtml) || `<div class="empty">Nothing scheduled today.</div>`;
+  } else {
+    const scheduled = (CUR[kidId]||[]).filter(s=>!(CFG.paused||[]).includes(s.subject) && isScheduledOn(kidId, s.subject, dateISO));
+    body = scheduled.length
+      ? `<div class="futureList">${scheduled.map(s=>`<span class="futChip">${s.subject}</span>`).join("")}</div>`
+      : `<div class="empty">Nothing scheduled.</div>`;
+  }
+  return `<div class="daycard${isToday?' today':''}${isWeekend?' weekend':''}">
+    <div class="dh"><span class="dname">${label}</span>${isToday?'<span class="todaytag">Today</span>':''}</div>
+    <div class="dbody">${body}</div>
+  </div>`;
+}
+
+function weekLabel(){
+  const end = new Date(weekStart); end.setDate(end.getDate()+6);
+  const opts = {month:"short", day:"numeric"};
+  return `${weekStart.toLocaleDateString(undefined,opts)} – ${end.toLocaleDateString(undefined,opts)}`;
+}
+
+function render(){
+  renderKidTabs();
+  document.getElementById("weekLbl").textContent = weekLabel();
+  const cards = [];
+  for(let i=0;i<7;i++){
+    const d = new Date(weekStart); d.setDate(d.getDate()+i);
+    cards.push(dayCard(kid, d));
+  }
+  document.getElementById("days").innerHTML = cards.join("");
+}
+
+document.addEventListener("click", e=>{
+  const tab = e.target.closest(".kidtab");
+  if(tab){ kid = tab.dataset.kid; localStorage.setItem("lzKZkid", kid); render(); return; }
+  const box = e.target.closest("[data-k]");
+  if(box){ const k = box.dataset.k; setDone(k, !isDone(k)); render(); return; }
+  const undo = e.target.closest(".undoBtn");
+  if(undo){
+    if(window.confirm(undo.dataset.confirm)){ setDone(undo.dataset.key, false); render(); }
+    return;
+  }
+});
+document.getElementById("prevW").onclick = ()=>{ weekStart.setDate(weekStart.getDate()-7); render(); };
+document.getElementById("nextW").onclick = ()=>{ weekStart.setDate(weekStart.getDate()+7); render(); };
+document.getElementById("thisWeekBtn").onclick = ()=>{ weekStart = mondayOf(new Date()); render(); };
+
+render();
+
+// A same-origin edit elsewhere (kidzone.html, calendar.html, master.html) writes to the same
+// localStorage and fires a 'storage' event here — refresh so a check-off made elsewhere shows
+// up without needing a manual reload. A light poll is kept as a fallback.
+window.addEventListener("storage", render);
+setInterval(render, 4000);
+</script>
+</body>
+</html>

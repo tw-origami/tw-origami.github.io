@@ -57,6 +57,7 @@
   </div>
   <div class="tabs">
     <div class="tab active" data-tab="work">🧭 Today's Adventure</div>
+    <div class="tab" data-tab="week">🗂️ Week Preview</div>
     <div class="tab" data-tab="cal">🗓️ My Calendar</div>
     <div class="tab" data-tab="journal">📔 Daily Journal</div>
   </div>
@@ -74,6 +75,9 @@
           <div class="savedNote" id="journalSaved"></div>
         </div>
       </div>
+    </div>
+    <div id="viewWeek" class="hide" style="height:100%;">
+      <iframe id="fWeek" src="plan/week.html?kid=ryland"></iframe>
     </div>
     <div id="viewCal" class="hide" style="height:100%;">
       <iframe id="fCalFull" src="plan/calendar.html?kid=ryland"></iframe>
@@ -97,6 +101,7 @@ document.querySelectorAll(".tab").forEach(t=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
     t.classList.add("active");
     document.getElementById("viewWork").classList.toggle("hide", t.dataset.tab!=="work");
+    document.getElementById("viewWeek").classList.toggle("hide", t.dataset.tab!=="week");
     document.getElementById("viewCal").classList.toggle("hide", t.dataset.tab!=="cal");
     document.getElementById("viewJournal").classList.toggle("hide", t.dataset.tab!=="journal");
   });

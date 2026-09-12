@@ -83,6 +83,7 @@
     <div style="display:flex;gap:8px;">
       <a class="back" id="navWork" href="kidzone.html">🧭 Today's Adventure</a>
       <a class="back" id="navMaster" href="master.html">📋 Master</a>
+      <a class="back" id="navWeek" href="week.html">🗂️ Week</a>
       <a class="back" href="../index.html">← The Learn Zone</a>
     </div>
   </div>
@@ -127,6 +128,8 @@ const LOCKED = KIDS[LOCK_PARAMS.get("kid")] ? LOCK_PARAMS.get("kid") : null;
 if(LOCKED){
   const workNav = document.getElementById("navWork");
   if(workNav) workNav.href = "kidzone.html?kid=" + LOCKED;
+  const weekNav = document.getElementById("navWeek");
+  if(weekNav) weekNav.href = "week.html?kid=" + LOCKED;
   // The cross-kid Master Tracker is a teacher-only tool (reached from teacher.html instead).
   const masterNav = document.getElementById("navMaster");
   if(masterNav) masterNav.remove();

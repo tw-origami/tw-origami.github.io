@@ -314,6 +314,47 @@
     if(changed) setOutings(k, arr);
   }
 
+  // --- Weekly schedule pattern (which weekdays a subject is worked on) -----------------
+  // A per-subject forecast of which days of the week it's meant to happen — e.g. Math on
+  // Mon/Wed/Fri, Piano only Tue/Thu. This is deliberately a PREVIEW, not an enforced rule:
+  // kidzone.html still shows every active subject's next lesson every day regardless of
+  // this setting. Only week.html reads it, to answer "what's the plan for this day" —
+  // including showing a day as empty for a subject that just isn't scheduled on it.
+  // Defaults to weekdays (Mon-Fri) for any subject the teacher hasn't customized, so nothing
+  // needs to be set up for the Week Preview to work right away.
+  const DOW_CODES = ["sun","mon","tue","wed","thu","fri","sat"];
+  const DEFAULT_SCHEDULE_DAYS = ["mon","tue","wed","thu","fri"];
+  function scheduleKey(kid, subject){ return `lzSchedule|${kid}|${slug(subject)}`; }
+  function getScheduleDays(kid, subject){
+    const raw = localStorage.getItem(scheduleKey(kid, subject));
+    if(raw===null) return DEFAULT_SCHEDULE_DAYS.slice();
+    try{ const arr = JSON.parse(raw); return Array.isArray(arr) ? arr : DEFAULT_SCHEDULE_DAYS.slice(); }
+    catch(e){ return DEFAULT_SCHEDULE_DAYS.slice(); }
+  }
+  function setScheduleDays(kid, subject, days){
+    localStorage.setItem(scheduleKey(kid, subject), JSON.stringify(days||[]));
+  }
+  function dowCode(dateISO){ return DOW_CODES[new Date(dateISO+"T00:00:00").getDay()]; }
+  function isScheduledOn(kid, subject, dateISO){
+    return getScheduleDays(kid, subject).includes(dowCode(dateISO));
+  }
+
+  // Whether a missed scheduled day "carries over" (the next scheduled day owes extra lessons
+  // to catch up — e.g. skip Monday's Reading and Tuesday shows two) or just resets (today's
+  // single assignment, never piling up). Only meaningful for book-kind subjects, which have
+  // an actual queue of lessons to catch up on — an "ongoing" subject (Math, Learn Zone) is a
+  // single per-day checkbox with nothing to accumulate, so it's always effectively "daily."
+  // Defaults to true: a book's unfinished lessons naturally wait for you, so catching up is
+  // the expected behavior unless a teacher explicitly turns it off for a given subject.
+  function carryKey(kid, subject){ return `lzCarry|${kid}|${slug(subject)}`; }
+  function getCarryOver(kid, subject){
+    const raw = localStorage.getItem(carryKey(kid, subject));
+    return raw === null ? true : raw !== "0";
+  }
+  function setCarryOver(kid, subject, on){
+    localStorage.setItem(carryKey(kid, subject), on ? "1" : "0");
+  }
+
   window.LZ = { slug, dkey, skey, dateKey, noteKey, habitKey, outingKey, journalKey, isDone, setDone, doneDate, getNote, setNote,
     getOutings, setOutings, getJournal, setJournal, scanKeys, todayISO, recurringForDate, ensureRecurringSeeded,
     undoneLessons, nextLesson, upcomingLessons, subjProgress, doneLessons, doneDatesForSubject,
@@ -321,7 +362,9 @@
     orderKey, getOrder, setOrder, lessonItemId, combinedQueue,
     attachKey, getAttachments, setAttachments, addAttachment, removeAttachment, attachDoneKey,
     safeUrl, guessAttachKind, dailyPick, appLink,
-    subjectBySlug, manualById, parseAttachDoneKey, attachmentsDoneOn, manualDoneOn };
+    subjectBySlug, manualById, parseAttachDoneKey, attachmentsDoneOn, manualDoneOn,
+    DOW_CODES, DEFAULT_SCHEDULE_DAYS, scheduleKey, getScheduleDays, setScheduleDays, dowCode, isScheduledOn,
+    carryKey, getCarryOver, setCarryOver };
 
   // Shared weekly config — the one place to pause a subject, tweak per-day overrides, edit
   // the daily habits checklist, or set up a recurring activity like karate. Edit this (or ask

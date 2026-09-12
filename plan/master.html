@@ -115,6 +115,20 @@
   .sessboxes .box.on{ background:var(--green); border-color:var(--green); }
   .more{ font-size:12px; color:var(--accent); font-weight:700; cursor:pointer; margin-top:6px; display:inline-block; }
   .empty{ font-size:13px; color:var(--green); font-weight:700; padding:4px; }
+
+  .schedCard{ border-left:4px solid var(--accent); }
+  .schRow{ display:flex; align-items:center; gap:10px; padding:5px 2px; flex-wrap:wrap; }
+  .schSubj{ flex:1 1 160px; font-size:13px; font-weight:700; min-width:140px; }
+  .schDays{ display:flex; gap:5px; flex-wrap:wrap; }
+  .schDay{ font-size:11px; font-weight:800; color:var(--muted); background:#f1f5f9; border:2px solid transparent;
+    border-radius:7px; padding:5px 8px; cursor:pointer; }
+  .schDay:hover{ border-color:var(--line); }
+  .schDay.on{ background:var(--ry-soft); color:var(--accent); border-color:var(--accent); }
+  .carryTag{ font-size:10.5px; font-weight:800; color:var(--muted); background:#f1f5f9; border:2px solid transparent;
+    border-radius:999px; padding:5px 10px; cursor:pointer; white-space:nowrap; }
+  .carryTag:hover{ border-color:var(--line); }
+  .carryTag.on{ background:#fff7ed; color:var(--amber); border-color:var(--amber); }
+  .carryTag.daily{ cursor:default; }
 </style>
 </head>
 <body>
@@ -125,6 +139,7 @@
       <a class="back" href="kidzone.html">🧭 Today's Adventure</a>
       <a class="back" href="print.html">🖨️ Daily sheets</a>
       <a class="back" href="calendar.html">🗓️ Calendar</a>
+      <a class="back" href="week.html">🗂️ Week</a>
       <a class="back" href="../index.html">← The Learn Zone</a>
     </div>
   </div>
@@ -153,7 +168,10 @@ const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th · grade 5–6 books"},
 const { slug, dkey, skey, dateKey, isDone, setDone, subjProgress, doneDate, getNote, setNote, scanKeys, doneDatesForSubject, todayISO,
   getManualLessons, addManualLesson, removeManualLesson, manualDoneKey, getOrder, setOrder, combinedQueue, lessonItemId,
   getAttachments, addAttachment, removeAttachment, attachDoneKey, safeUrl, guessAttachKind,
-  dailyPick } = window.LZ;
+  dailyPick, getScheduleDays, setScheduleDays, getCarryOver, setCarryOver } = window.LZ;
+// Mon-Sun display order for the Weekly Schedule editor (DOW_CODES elsewhere is Sun-first,
+// to match JS's Date.getDay(), but a school-week table reads better starting on Monday).
+const WEEK_UI = [["mon","Mon"],["tue","Tue"],["wed","Wed"],["thu","Thu"],["fri","Fri"],["sat","Sat"],["sun","Sun"]];
 
 // populate subject filter
 (function(){
@@ -428,6 +446,37 @@ function subjectCard(kid, sub){
   </div>`;
 }
 
+// Which days of the week each subject is meant to run — a forecast the Week Preview reads
+// (plan/week.html); it does NOT change what shows up on Today's Adventure, which still surfaces
+// every active subject's next lesson every day regardless of this setting. Tap a day pill to
+// turn a subject on/off for it; unset subjects default to weekdays (Mon-Fri).
+function scheduleTable(kid){
+  const subs = CUR[kid]||[];
+  const rows = subs.map(sub=>{
+    const days = getScheduleDays(kid, sub.subject);
+    const cells = WEEK_UI.map(([code,label])=>{
+      const on = days.includes(code);
+      return `<span class="schDay${on?' on':''}" data-schedtoggle="${kid}|${escapeAttr(sub.subject)}|${code}">${label}</span>`;
+    }).join("");
+    // "Ongoing" subjects (Math, Learn Zone) are a single per-day checkbox with nothing to
+    // accumulate, so carry-over doesn't apply — always just "today's assignment."  A book
+    // subject has an actual queue of lessons, so it can choose to catch up on a missed day
+    // (the next scheduled day shows the missed lesson plus the new one) or just move on.
+    let carryHtml;
+    if(sub.kind==="ongoing"){
+      carryHtml = `<span class="carryTag daily">Daily · resets each day</span>`;
+    } else {
+      const carry = getCarryOver(kid, sub.subject);
+      carryHtml = `<span class="carryTag${carry?' on':''}" data-carrytoggle="${kid}|${escapeAttr(sub.subject)}" title="Click to switch">${carry ? "🔁 Carries over if missed" : "1/day · doesn't pile up"}</span>`;
+    }
+    return `<div class="schRow"><span class="schSubj">${sub.subject}</span><span class="schDays">${cells}</span>${carryHtml}</div>`;
+  }).join("");
+  return `<div class="card schedCard">
+    <div class="ch"><span class="s">🗓️ Weekly Schedule</span></div>
+    <div class="sub" style="margin:0 0 8px;">Tap a day to turn a subject on or off for it, and tap the catch-up tag to choose whether missed work carries to the next scheduled day (e.g. skip Monday's Reading and Tuesday shows two) or just resets. This drives the Week Preview only — Today's Adventure still shows every subject's next lesson every day.</div>
+    ${rows}
+  </div>`;
+}
 function suggestCard(kid){
   const s=SUG[kid]||{}; const books=(s.books&&s.books.length)? s.books.join(" · ") : `<span class="add">none added yet — tell Claude your reading list</span>`;
   const ideas=(s.ideas||[]).map(i=>`<li>${i}</li>`).join("");
@@ -448,6 +497,7 @@ function kidBlock(kid){
   return `<div class="kidwrap ${KIDS[kid].cls}">
     <div class="kidhead ${KIDS[kid].cls}"><h2>${KIDS[kid].name}</h2>
       <span class="stat">${d}/${t} lessons done<small>${pct}% of remaining work</small></span></div>
+    ${state.subj==="all"?scheduleTable(kid):""}
     ${state.subj==="all"?suggestCard(kid):""}
     ${cards}
   </div>`;
@@ -493,6 +543,23 @@ function cleanFromOrder(kid, subject, itemId){
 }
 
 document.addEventListener("click", e=>{
+  const schedToggle = e.target.closest("[data-schedtoggle]");
+  if(schedToggle){
+    const [kid, subj, code] = schedToggle.dataset.schedtoggle.split("|");
+    const days = getScheduleDays(kid, subj);
+    const idx = days.indexOf(code);
+    if(idx>=0) days.splice(idx,1); else days.push(code);
+    setScheduleDays(kid, subj, days);
+    render();
+    return;
+  }
+  const carryToggle = e.target.closest("[data-carrytoggle]");
+  if(carryToggle){
+    const [kid, subj] = carryToggle.dataset.carrytoggle.split("|");
+    setCarryOver(kid, subj, !getCarryOver(kid, subj));
+    render();
+    return;
+  }
   const undo = e.target.closest(".undoNote");
   if(undo){
     if(window.confirm(undo.dataset.confirm)){ setNote(undo.dataset.notekey, ""); render(); }
