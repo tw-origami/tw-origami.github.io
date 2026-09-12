@@ -113,15 +113,17 @@ if(LOCKED){
 
 function iso(d){ return d.toISOString().slice(0,10); }
 function isoToday(){ return iso(new Date()); }
-// The Monday that starts the week containing d (school-week convention — Mon first).
-function mondayOf(d){
+// The Saturday that starts the week containing d — the week runs Sat through Fri, so a
+// weekend that's just getting going and the school week that follows it stay together in one
+// view instead of splitting across two.
+function weekStartOf(d){
   const dt = new Date(d); dt.setHours(0,0,0,0);
   const dow = dt.getDay(); // 0=Sun..6=Sat
-  const diff = dow===0 ? -6 : 1-dow;
+  const diff = -((dow + 1) % 7);
   dt.setDate(dt.getDate()+diff);
   return dt;
 }
-let weekStart = mondayOf(new Date());
+let weekStart = weekStartOf(new Date());
 
 function renderKidTabs(){
   const el = document.getElementById("kidtabs");
@@ -299,7 +301,7 @@ document.addEventListener("click", e=>{
 });
 document.getElementById("prevW").onclick = ()=>{ weekStart.setDate(weekStart.getDate()-7); render(); };
 document.getElementById("nextW").onclick = ()=>{ weekStart.setDate(weekStart.getDate()+7); render(); };
-document.getElementById("thisWeekBtn").onclick = ()=>{ weekStart = mondayOf(new Date()); render(); };
+document.getElementById("thisWeekBtn").onclick = ()=>{ weekStart = weekStartOf(new Date()); render(); };
 
 render();
 
