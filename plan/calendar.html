@@ -113,7 +113,7 @@
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[], habits:[]};
 const { slug, dkey, dateKey, noteKey, outingKey, isDone, setDone, doneDate, getNote, setNote, scanKeys,
-  getOutings, setOutings, ensureRecurringSeeded, manualById, parseAttachDoneKey, getAttachments } = window.LZ;
+  getOutings, setOutings, ensureRecurringSeeded, manualById, parseAttachDoneKey, getAttachments, getAllSubjects } = window.LZ;
 function escapeAttr(s){ return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
 const KIDS = { ryland:{name:"Ryland",cls:"ry"}, reid:{name:"Reid",cls:"reid"} };
 // Which day's "+ Add outing" input is currently open (in-memory only) — keyed by outingKey.
@@ -142,7 +142,7 @@ let selected = isoToday();
 function isoToday(){ const d=new Date(); return d.toISOString().slice(0,10); }
 function iso(d){ return d.toISOString().slice(0,10); }
 
-function findSubjectBySlug(kid, subjSlug){ return (CUR[kid]||[]).find(s=>slug(s.subject)===subjSlug); }
+function findSubjectBySlug(kid, subjSlug){ return getAllSubjects(kid).find(s=>slug(s.subject)===subjSlug); }
 
 // Build a map of iso-date -> [{kid, subject, type, title, page, text}] from everything recorded.
 function buildActivityIndex(){
@@ -150,7 +150,7 @@ function buildActivityIndex(){
   function add(d, entry){ if(!d) return; (byDate[d] = byDate[d]||[]).push(entry); }
 
   Object.keys(CUR).forEach(kid=>{
-    (CUR[kid]||[]).forEach(sub=>{
+    getAllSubjects(kid).forEach(sub=>{
       if(sub.kind==="book"){
         (sub.lessons||[]).forEach(l=>{
           const k = dkey(kid, sub, l);

@@ -81,6 +81,13 @@
     display:flex; flex-direction:column; gap:6px; }
   .addLessonForm input, .addLessonForm select{ font-size:13px; padding:7px 9px; border:1px solid var(--line); border-radius:7px;
     font-family:inherit; width:100%; box-sizing:border-box; }
+  .addRowLine{ display:flex; gap:6px; align-items:center; }
+  .addRowLine .addRowTitle{ flex:2; }
+  .addRowLine .addRowPage{ flex:1; }
+  .rmRow{ flex:none; width:18px; height:18px; border-radius:50%; background:#fee2e2; color:#b91c1c; font-size:11px;
+    font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .addRowMore{ font-size:12px; font-weight:700; color:var(--accent); cursor:pointer; padding:2px; }
+  .addRowMore:hover{ text-decoration:underline; }
   .addSaveBtn, .addOneOffSaveBtn{ background:var(--accent); color:#fff; border:none; border-radius:7px; padding:7px 14px;
     font-weight:800; font-size:12.5px; cursor:pointer; }
   .addCancelBtn{ background:#fff; color:var(--muted); border:1px solid var(--line); border-radius:7px; padding:7px 14px;
@@ -129,6 +136,17 @@
   .carryTag:hover{ border-color:var(--line); }
   .carryTag.on{ background:#fff7ed; color:var(--amber); border-color:var(--amber); }
   .carryTag.daily{ cursor:default; }
+
+  .newCatBtn{ display:inline-block; font-size:13px; font-weight:800; color:var(--accent); cursor:pointer;
+    padding:9px 16px; border:2px dashed var(--accent); border-radius:11px; margin-bottom:14px; background:#fff; }
+  .newCatBtn:hover{ background:#eff6ff; }
+  .newCatForm{ background:#fff; border-radius:12px; padding:12px 14px; margin-bottom:14px; border:1px solid var(--line);
+    display:flex; flex-direction:column; gap:8px; max-width:420px; }
+  .newCatForm input[type="text"]{ font-size:14px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; font-family:inherit; }
+  .newCatKids{ display:flex; gap:16px; font-size:13px; font-weight:600; }
+  .newCatKids label{ display:flex; align-items:center; gap:5px; cursor:pointer; }
+  .rmCategory{ flex:none; width:20px; height:20px; border-radius:50%; background:#fee2e2; color:#b91c1c; font-size:11px;
+    font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; margin-left:6px; }
 </style>
 </head>
 <body>
@@ -154,6 +172,7 @@
       <select id="fSubj"><option value="all">All subjects</option></select></div>
   </div>
 
+  <div id="newCatArea"></div>
   <div id="body"></div>
 </div>
 
@@ -168,18 +187,24 @@ const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th · grade 5–6 books"},
 const { slug, dkey, skey, dateKey, isDone, setDone, subjProgress, doneDate, getNote, setNote, scanKeys, doneDatesForSubject, todayISO,
   getManualLessons, addManualLesson, removeManualLesson, manualDoneKey, getOrder, setOrder, combinedQueue, lessonItemId,
   getAttachments, addAttachment, removeAttachment, attachDoneKey, safeUrl, guessAttachKind,
-  dailyPick, getScheduleDays, setScheduleDays, getCarryOver, setCarryOver } = window.LZ;
+  dailyPick, getScheduleDays, setScheduleDays, getCarryOver, setCarryOver,
+  getAllSubjects, addCustomSubject, removeCustomSubject, addCustomLessons } = window.LZ;
 // Mon-Sun display order for the Weekly Schedule editor (DOW_CODES elsewhere is Sun-first,
 // to match JS's Date.getDay(), but a school-week table reads better starting on Monday).
 const WEEK_UI = [["mon","Mon"],["tue","Tue"],["wed","Wed"],["thu","Thu"],["fri","Fri"],["sat","Sat"],["sun","Sun"]];
 
-// populate subject filter
-(function(){
+// Populate the subject filter dropdown — re-run after creating/removing a custom category so
+// a brand-new one is selectable right away, not just after a reload.
+function refreshSubjectFilter(){
+  const prevVal = document.getElementById("fSubj").value;
   const set=new Set();
-  Object.values(CUR).forEach(subs=>subs.forEach(s=>set.add(s.subject)));
+  Object.keys(KIDS).forEach(kid=>getAllSubjects(kid).forEach(s=>set.add(s.subject)));
   const sel=document.getElementById("fSubj");
+  sel.innerHTML = `<option value="all">All subjects</option>`;
   [...set].forEach(s=>{ const o=document.createElement("option"); o.value=s; o.textContent=s; sel.appendChild(o); });
-})();
+  if([...set].includes(prevVal)) sel.value = prevVal;
+}
+refreshSubjectFilter();
 
 const state = { kid:"both", view:"week", subj:"all" };
 ["fKid","fView","fSubj"].forEach(id=>{
@@ -272,25 +297,46 @@ function manualDayRow(kid,sub,manual,isNext){
     ${attachBlock(kid, sub.subject, "m|"+manual.id)}
   </div>`;
 }
-// Which subject's "+ Add lesson" / "+ Add one-off task" form is open (in-memory only),
+// Which subject's "+ Add lesson(s)" / "+ Add one-off task" form is open (in-memory only),
 // keyed by kid|subject.
 let addLessonOpen = {};
+// The in-progress rows for an open bulk "add lessons" form, keyed by kid|subject — an array
+// of {title, page}. Only touched (read from / written to the live inputs) right before a
+// re-render, via syncAddRows — typing itself doesn't trigger a render, so focus is never lost.
+let addRowsState = {};
+function syncAddRows(key){
+  const form = document.querySelector(`.addLessonForm[data-addkey="${CSS.escape(key)}"]`);
+  if(!form) return;
+  const titles = [...form.querySelectorAll(".addRowTitle")];
+  const pages = [...form.querySelectorAll(".addRowPage")];
+  addRowsState[key] = titles.map((t,i)=>({title:t.value, page:(pages[i]&&pages[i].value)||""}));
+}
+// A small spreadsheet-like row table — type a title (and optional page) per row, "+ Add
+// another row" for more, then save them all at once, in the order typed. New rows land at
+// the END of the queue by default (an explicit "Insert as next" choice is still offered for
+// curriculum subjects) instead of each one jumping to the front, and a brand-new custom
+// category (see addCustomSubject) has nowhere else lessons could come from, so this is its
+// only "add content" control too.
 function addLessonForm(kid, sub){
   const key = kid+"|"+sub.subject;
-  if(!addLessonOpen[key]) return `<div class="addLessonRow" data-addkey="${key}">+ Add lesson</div>`;
-  const queue = combinedQueue(kid, sub);
-  const posOptions = [`<option value="0">Insert as next</option>`].concat(
-    queue.map((item,i)=>{
-      const label = item.kind==="real" ? item.lesson.t : item.manual.title;
-      return `<option value="${i+1}">After: ${label}</option>`;
-    })
-  );
+  if(!addLessonOpen[key]) return `<div class="addLessonRow" data-addkey="${key}">+ Add lesson(s)</div>`;
+  const rows = addRowsState[key] || (addRowsState[key] = [{title:"", page:""}]);
+  const rowsHtml = rows.map((r,i)=>`
+    <div class="addRowLine">
+      <input type="text" class="addRowTitle" placeholder="Lesson title" value="${escapeAttr(r.title)}">
+      <input type="text" class="addRowPage" placeholder="Page" value="${escapeAttr(r.page)}">
+      ${rows.length>1?`<span class="rmRow" data-key="${key}" data-idx="${i}" title="Remove this row">✕</span>`:""}
+    </div>`).join("");
+  const posControl = sub.customId ? "" : `<select class="addPos">
+      <option value="end" selected>Add to the end of the queue</option>
+      <option value="next">Insert as next</option>
+    </select>`;
   return `<div class="addLessonForm" data-addkey="${key}">
-    <input type="text" class="addTitle" placeholder="Lesson title (e.g. Read a library book)">
-    <input type="text" class="addPage" placeholder="Page (optional)">
-    <select class="addPos">${posOptions.join("")}</select>
+    ${rowsHtml}
+    <div class="addRowMore" data-addrowkey="${key}">+ Add another row</div>
+    ${posControl}
     <div style="display:flex;gap:8px;margin-top:2px;">
-      <button type="button" class="addSaveBtn" data-kid="${kid}" data-subj="${sub.subject}">Add</button>
+      <button type="button" class="addSaveBtn" data-kid="${kid}" data-subj="${escapeAttr(sub.subject)}">Save lesson(s)</button>
       <button type="button" class="addCancelBtn" data-addkey="${key}">Cancel</button>
     </div>
   </div>`;
@@ -424,8 +470,12 @@ function subjectCard(kid, sub){
   const history = subjectHistory(kid, sub);
   const queue = combinedQueue(kid, sub);
   const nextId = queue.length ? queue[0].id : null;
-  if(sub.lessons.length===0 && queue.length===0) list=`<div class="empty">✓ All caught up for now!</div>`;
-  else{
+  // A brand-new (or fully caught-up) subject still needs the "+ Add lessons" control visible —
+  // otherwise a freshly created empty category, or a subject that's finished its book, would
+  // have no way to add more rows.
+  if(sub.lessons.length===0 && queue.length===0){
+    list = `<div class="empty">✓ All caught up for now!</div>${addLessonForm(kid,sub)}`;
+  } else {
     const histHtml = history.map(item=>{
       if(item.type==="lesson") return lessonRow(kid,sub,item.lesson,false);
       if(item.type==="manual") return manualRow(kid,sub,item.manual,false);
@@ -437,10 +487,16 @@ function subjectCard(kid, sub){
     list = `<div class="lesson-scroll" data-scroll="${kid}|${sub.subject}">` + histHtml + queueHtml + `</div>${addLessonForm(kid,sub)}`;
   }
   const opts = (sub.options&&sub.options.length)? `<div class="opts"><b>or instead:</b> ${sub.options.join(" · ")}</div>`:"";
+  // Only a teacher-created custom category can be removed outright — a built-in curriculum
+  // subject (Math, Reading...) isn't governed by localStorage, so there's nothing to delete.
+  const rmCatBtn = sub.customId
+    ? `<span class="rmCategory" data-customid="${sub.customId}" data-confirm="Remove the &quot;${escapeAttr(sub.subject)}&quot; category? This deletes all ${sub.lessons.length} of its lesson(s) too." title="Remove category">✕</span>`
+    : "";
 
   return `<div class="card">
     <div class="ch"><span class="s">${sub.subject}</span> <span class="bk">${sub.book||""}</span> <span class="goal">≥${sub.goal}/wk</span>
       <span class="prog"><div class="pmeta">${p.done}/${p.total} done · ${p.left} left</div><div class="bar"><i style="width:${p.pct}%"></i></div></span>
+      ${rmCatBtn}
     </div>
     ${list}${opts}
   </div>`;
@@ -451,7 +507,7 @@ function subjectCard(kid, sub){
 // every active subject's next lesson every day regardless of this setting. Tap a day pill to
 // turn a subject on/off for it; unset subjects default to weekdays (Mon-Fri).
 function scheduleTable(kid){
-  const subs = CUR[kid]||[];
+  const subs = getAllSubjects(kid);
   const rows = subs.map(sub=>{
     const days = getScheduleDays(kid, sub.subject);
     const cells = WEEK_UI.map(([code,label])=>{
@@ -488,7 +544,7 @@ function suggestCard(kid){
 }
 
 function kidBlock(kid){
-  const subs = CUR[kid]||[];
+  const subs = getAllSubjects(kid);
   const filt = state.subj==="all"? subs : subs.filter(s=>s.subject===state.subj);
   // overall progress across book subjects
   let d=0,t=0; subs.forEach(s=>{ if(s.kind!=="ongoing"){ const p=subjProgress(kid,s); d+=p.done; t+=p.total; } });
@@ -523,6 +579,29 @@ function restoreScrollPositions(){
   });
 }
 
+// --- New categories (custom subjects, not baked into curriculum.js) -------------------
+// A brand-new subject the teacher adds right from this page (e.g. "Piano", "Coding") — once
+// created it renders as a normal subject card via getAllSubjects, with the exact same
+// progress bar / checklist / drag-reorder / attachments as any built-in subject.
+let newCatOpen = false;
+function newCatCard(){
+  if(!newCatOpen) return `<div class="newCatBtn" id="newCatBtn">+ New category</div>`;
+  return `<div class="newCatForm">
+    <input type="text" id="newCatName" placeholder="Category name (e.g. Piano, Coding, Chores)">
+    <div class="newCatKids">
+      <label><input type="checkbox" class="newCatKid" value="ryland" checked> Ryland</label>
+      <label><input type="checkbox" class="newCatKid" value="reid" checked> Reid</label>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px;">
+      <button type="button" class="addSaveBtn" id="newCatSaveBtn">Create category</button>
+      <button type="button" class="addCancelBtn" id="newCatCancelBtn">Cancel</button>
+    </div>
+  </div>`;
+}
+function renderNewCat(){
+  document.getElementById("newCatArea").innerHTML = newCatCard();
+}
+
 function render(){
   const winY = window.scrollY;
   saveScrollPositions();
@@ -532,7 +611,7 @@ function render(){
   window.scrollTo(0, winY);
 }
 
-function findSub(kid, subject){ return (CUR[kid]||[]).find(s=>s.subject===subject); }
+function findSub(kid, subject){ return getAllSubjects(kid).find(s=>s.subject===subject); }
 
 // Removes an item id from a subject's saved custom order, if present — used when a manual
 // lesson is deleted so a stale id never lingers in order[].
@@ -543,6 +622,36 @@ function cleanFromOrder(kid, subject, itemId){
 }
 
 document.addEventListener("click", e=>{
+  const newCatBtn = e.target.closest("#newCatBtn");
+  if(newCatBtn){
+    newCatOpen = true; renderNewCat();
+    const inp = document.getElementById("newCatName"); if(inp) inp.focus();
+    return;
+  }
+  const newCatCancel = e.target.closest("#newCatCancelBtn");
+  if(newCatCancel){ newCatOpen = false; renderNewCat(); return; }
+  const newCatSave = e.target.closest("#newCatSaveBtn");
+  if(newCatSave){
+    const name = document.getElementById("newCatName").value.trim();
+    const kids = [...document.querySelectorAll(".newCatKid:checked")].map(c=>c.value);
+    if(!name){ window.alert("Give the category a name first."); return; }
+    if(!kids.length){ window.alert("Pick at least one kid for this category."); return; }
+    addCustomSubject(kids, name);
+    newCatOpen = false;
+    renderNewCat();
+    refreshSubjectFilter();
+    render();
+    return;
+  }
+  const rmCat = e.target.closest(".rmCategory");
+  if(rmCat){
+    if(window.confirm(rmCat.dataset.confirm)){
+      removeCustomSubject(rmCat.dataset.customid);
+      refreshSubjectFilter();
+      render();
+    }
+    return;
+  }
   const schedToggle = e.target.closest("[data-schedtoggle]");
   if(schedToggle){
     const [kid, subj, code] = schedToggle.dataset.schedtoggle.split("|");
@@ -621,24 +730,65 @@ document.addEventListener("click", e=>{
   if(e.target.closest(".attachLink") || e.target.closest(".attachForm")) return;
 
   const addRow = e.target.closest(".addLessonRow");
-  if(addRow){ addLessonOpen[addRow.dataset.addkey] = true; render(); return; }
+  if(addRow){
+    addLessonOpen[addRow.dataset.addkey] = true;
+    addRowsState[addRow.dataset.addkey] = [{title:"", page:""}];
+    render();
+    const inp = document.querySelector(`.addLessonForm[data-addkey="${CSS.escape(addRow.dataset.addkey)}"] .addRowTitle`);
+    if(inp) inp.focus();
+    return;
+  }
+  const addRowMore = e.target.closest(".addRowMore");
+  if(addRowMore){
+    const key = addRowMore.dataset.addrowkey;
+    syncAddRows(key);
+    addRowsState[key].push({title:"", page:""});
+    render();
+    const inputs = document.querySelectorAll(`.addLessonForm[data-addkey="${CSS.escape(key)}"] .addRowTitle`);
+    const last = inputs[inputs.length-1];
+    if(last) last.focus();
+    return;
+  }
+  const rmRow = e.target.closest(".rmRow");
+  if(rmRow){
+    const key = rmRow.dataset.key, idx = parseInt(rmRow.dataset.idx,10);
+    syncAddRows(key);
+    addRowsState[key].splice(idx,1);
+    if(!addRowsState[key].length) addRowsState[key].push({title:"",page:""});
+    render();
+    return;
+  }
   const cancelBtn = e.target.closest(".addCancelBtn");
-  if(cancelBtn){ addLessonOpen[cancelBtn.dataset.addkey] = false; render(); return; }
+  if(cancelBtn){
+    addLessonOpen[cancelBtn.dataset.addkey] = false;
+    delete addRowsState[cancelBtn.dataset.addkey];
+    render();
+    return;
+  }
   const saveBtn = e.target.closest(".addSaveBtn");
   if(saveBtn){
     const { kid, subj } = saveBtn.dataset;
-    const form = saveBtn.closest(".addLessonForm");
-    const title = form.querySelector(".addTitle").value.trim();
-    const page = form.querySelector(".addPage").value.trim();
-    const pos = parseInt(form.querySelector(".addPos").value, 10) || 0;
-    if(!title) return;
+    const key = kid+"|"+subj;
+    syncAddRows(key);
+    const rows = (addRowsState[key]||[]).filter(r=>r.title.trim());
+    if(!rows.length) return;
     const sub = findSub(kid, subj);
-    const beforeIds = combinedQueue(kid, sub).map(x=>x.id);
-    const newId = "m|" + addManualLesson(kid, subj, {title, page});
-    const ids = beforeIds.slice();
-    ids.splice(pos, 0, newId);
-    setOrder(kid, subj, ids);
-    addLessonOpen[kid+"|"+subj] = false;
+    if(sub.customId){
+      // A custom category owns its lessons directly — no manual-insertion overlay needed,
+      // so rows just land at the end of its own lessons array, in the order typed.
+      addCustomLessons(sub.customId, rows);
+    } else {
+      const form = saveBtn.closest(".addLessonForm");
+      const posSel = form.querySelector(".addPos");
+      const beforeIds = combinedQueue(kid, sub).map(x=>x.id);
+      const pos = (posSel && posSel.value==="next") ? 0 : beforeIds.length;
+      const newIds = rows.map(r => "m|" + addManualLesson(kid, subj, {title:r.title, page:r.page}));
+      const ids = beforeIds.slice();
+      ids.splice(pos, 0, ...newIds);
+      setOrder(kid, subj, ids);
+    }
+    addLessonOpen[key] = false;
+    delete addRowsState[key];
     render();
     return;
   }
@@ -704,6 +854,7 @@ document.addEventListener("drop", e=>{
   render();
 });
 
+renderNewCat();
 render();
 </script>
 <script src="/stopwatch.js?v=1"></script>

@@ -97,7 +97,7 @@
 <script>
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[]};
-const { slug, dkey, dateKey, noteKey, getNote, setNote, isDone, setDone, undoneLessons } = window.LZ;
+const { slug, dkey, dateKey, noteKey, getNote, setNote, isDone, setDone, undoneLessons, getAllSubjects } = window.LZ;
 const STUDENTS = window.STUDENTS || []; // ryland/reid meta (name, grade) — books.js
 const KIDMETA = {}; STUDENTS.forEach(s=>KIDMETA[s.id]={name:s.name, grade:s.grade});
 
@@ -173,7 +173,7 @@ let PLAN = null;
 function ensurePlan(){
   if(PLAN) return;
   PLAN = {};
-  Object.keys(CUR).forEach(kid => (CUR[kid]||[]).forEach(sub => {
+  Object.keys(CUR).forEach(kid => getAllSubjects(kid).forEach(sub => {
     if(sub.kind==="book") PLAN[kid+"|"+sub.subject] = undoneLessons(kid, sub);
   }));
 }
@@ -204,7 +204,7 @@ function taskCell(kid, sub, dayIdx, dateIso){
 function escapeAttr(s){ return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
 const PAUSED = CFG.paused || [];
 function sheet(kid, day){
-  const subs = (CUR[kid]||[]).filter(s=>!PAUSED.includes(s.subject));
+  const subs = getAllSubjects(kid).filter(s=>!PAUSED.includes(s.subject));
   const rows = subs.map(sub=>{
     const nkey = noteKey(kid, sub.subject, day.iso);
     const note = getNote(nkey);

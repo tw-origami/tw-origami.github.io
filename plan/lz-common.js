@@ -213,12 +213,71 @@
     return /youtube\.com|youtu\.be|vimeo\.com|khanacademy\.org|\.mp4($|\?)/i.test(String(u||"")) ? "video" : "article";
   }
 
+  // --- Custom categories (teacher-created subjects, not baked into curriculum.js) ----------
+  // Lets the Teacher Dashboard add a whole new subject on the fly (e.g. "Piano", "Coding")
+  // without editing curriculum.js. Stored as one JSON array so a category can belong to one
+  // or both kids without duplicating records. Each entry has the exact same shape a
+  // curriculum.js subject does ({subject, kind, lessons:[{p,t}], ...}), so every existing
+  // helper (combinedQueue, subjProgress, dkey, drag-reorder, manual insertion, attachments...)
+  // treats it identically to a built-in subject with zero special-casing. The only thing that
+  // marks one as custom is its own `customId`, which the dashboard uses to know it can add
+  // lessons directly to `.lessons` (and offer a "remove category" control) instead of going
+  // through the manual-lesson overlay that built-in subjects use for one-off insertions.
+  const CUSTOM_SUBJECTS_KEY = "lzCustomSubjects";
+  function getCustomSubjectsRaw(){
+    try{ return JSON.parse(localStorage.getItem(CUSTOM_SUBJECTS_KEY)||"[]"); }catch(e){ return []; }
+  }
+  function setCustomSubjectsRaw(arr){
+    (arr&&arr.length) ? localStorage.setItem(CUSTOM_SUBJECTS_KEY, JSON.stringify(arr)) : localStorage.removeItem(CUSTOM_SUBJECTS_KEY);
+  }
+  function getCustomSubjects(kid){
+    return getCustomSubjectsRaw().filter(s=>(s.kids||[]).includes(kid));
+  }
+  // Every subject for a kid — curriculum.js's built-in list plus any custom categories
+  // assigned to them. Every page that enumerates a kid's subjects should read this instead of
+  // window.CURRICULUM[kid] directly, so a newly created category shows up everywhere at once
+  // (kidzone.html, master.html, week.html, calendar.html, print.html).
+  function getAllSubjects(kid){
+    const cur = window.CURRICULUM || {};
+    return (cur[kid]||[]).concat(getCustomSubjects(kid));
+  }
+  // kids: an array like ["ryland"], ["reid"], or ["ryland","reid"]. Returns the new
+  // category's id.
+  function addCustomSubject(kids, name, opts){
+    opts = opts || {};
+    const arr = getCustomSubjectsRaw();
+    const id = "cs" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+    arr.push({
+      customId: id,
+      subject: (name||"").trim(),
+      kind: "book",
+      book: opts.book || "",
+      goal: opts.goal || 3,
+      kids: (kids||[]).slice(),
+      lessons: []
+    });
+    setCustomSubjectsRaw(arr);
+    return id;
+  }
+  function removeCustomSubject(id){
+    setCustomSubjectsRaw(getCustomSubjectsRaw().filter(s=>s.customId!==id));
+  }
+  // Appends one or more {title, page} rows to a custom category's own lessons array, in the
+  // order given — used by the Teacher Dashboard's bulk "add rows" form so several lessons
+  // land in a predictable order (at the end) instead of each one jumping to the front.
+  function addCustomLessons(customId, rows){
+    const arr = getCustomSubjectsRaw();
+    const sub = arr.find(s=>s.customId===customId);
+    if(!sub) return;
+    sub.lessons = (sub.lessons||[]).concat((rows||[]).map(r=>({p:(r.page||"").toString(), t:(r.title||"").trim()})));
+    setCustomSubjectsRaw(arr);
+  }
+
   // --- Reverse lookups, for pages that scan raw keys and need to name what they found ----
   // (the calendar and the "Done today" panels walk localStorage directly, so they need to
   // turn a key like lzManualDone|ryland|reading|m123 back into "Reading — Read a library book")
   function subjectBySlug(kid, subjSlug){
-    const cur = window.CURRICULUM || {};
-    return (cur[kid] || []).find(s => slug(s.subject) === subjSlug) || null;
+    return getAllSubjects(kid).find(s => slug(s.subject) === subjSlug) || null;
   }
   function manualById(kid, subject, id){
     return getManualLessons(kid, subject).find(m => m.id === id) || null;
@@ -364,7 +423,8 @@
     safeUrl, guessAttachKind, dailyPick, appLink,
     subjectBySlug, manualById, parseAttachDoneKey, attachmentsDoneOn, manualDoneOn,
     DOW_CODES, DEFAULT_SCHEDULE_DAYS, scheduleKey, getScheduleDays, setScheduleDays, dowCode, isScheduledOn,
-    carryKey, getCarryOver, setCarryOver };
+    carryKey, getCarryOver, setCarryOver,
+    getAllSubjects, getCustomSubjects, addCustomSubject, removeCustomSubject, addCustomLessons };
 
   // Shared weekly config — the one place to pause a subject, tweak per-day overrides, edit
   // the daily habits checklist, or set up a recurring activity like karate. Edit this (or ask

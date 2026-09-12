@@ -94,7 +94,7 @@ const KID = "reid";
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[]};
 const { dkey, doneDate, doneDatesForSubject, noteKey, getNote, todayISO, isDone, habitKey, outingKey, getOutings,
-  journalKey, getJournal, setJournal, manualDoneOn, attachmentsDoneOn } = window.LZ;
+  journalKey, getJournal, setJournal, manualDoneOn, attachmentsDoneOn, getAllSubjects } = window.LZ;
 
 document.querySelectorAll(".tab").forEach(t=>{
   t.addEventListener("click", ()=>{
@@ -111,7 +111,7 @@ document.querySelectorAll(".tab").forEach(t=>{
 // kidzone.html (in the left iframe) writes to — so checking something off there updates
 // this panel without needing its own copy of the checklist UI.
 function buildDoneToday(){
-  const subs = (CUR[KID]||[]).filter(s=>!(CFG.paused||[]).includes(s.subject));
+  const subs = (getAllSubjects(KID)||[]).filter(s=>!(CFG.paused||[]).includes(s.subject));
   const today = todayISO();
   const items = [];
   subs.forEach(sub=>{

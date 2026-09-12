@@ -141,7 +141,7 @@ const CFG = window.LZ_CONFIG || {paused:[]};
 const { slug, dkey, skey, dateKey, habitKey, outingKey, isDone, setDone, subjProgress,
   doneLessons, doneDate, todayISO, doneDatesForSubject, noteKey, getNote, setNote, getOutings, setOutings,
   ensureRecurringSeeded, getManualLessons, manualDoneKey, combinedQueue, lessonItemId,
-  getAttachments, attachDoneKey, safeUrl, dailyPick, appLink } = window.LZ;
+  getAttachments, attachDoneKey, safeUrl, dailyPick, appLink, getAllSubjects } = window.LZ;
 const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th grade"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th grade"} };
 
 // ?kid=ryland (or reid) in the URL locks this page to just that kid — no switcher tabs, and
@@ -482,7 +482,7 @@ function render(){
     }).join("");
   }
 
-  const subs = (CUR[kid]||[]).filter(s=>!(CFG.paused||[]).includes(s.subject));
+  const subs = (getAllSubjects(kid)||[]).filter(s=>!(CFG.paused||[]).includes(s.subject));
   let d=0,t=0; subs.forEach(s=>{ if(s.kind!=="ongoing"){ const p=subjProgress(kid,s); d+=p.done; t+=p.total; } });
   const pct = t? Math.round(d/t*100) : 0;
   const cards = subs.map(s=>subjectCard(kid,s)).join("");

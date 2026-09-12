@@ -91,7 +91,7 @@
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[]};
 const { dkey, dateKey, doneDate, isDone, setDone, todayISO, manualDoneOn, attachmentsDoneOn,
-  combinedQueue, manualDoneKey, dailyPick, appLink, isScheduledOn, getCarryOver } = window.LZ;
+  combinedQueue, manualDoneKey, dailyPick, appLink, isScheduledOn, getCarryOver, getAllSubjects } = window.LZ;
 // How many scheduled days back to look for a missed, uncaught-up lesson, and the most a
 // catch-up list will ever show at once (so a long absence doesn't dump a wall of lessons).
 const LOOKBACK_DAYS = 14, MAX_CATCHUP = 4;
@@ -135,7 +135,7 @@ function renderKidTabs(){
 // day checkbox, teacher-inserted lessons, and watched/read supplement links. Same records
 // kidzone.html and calendar.html read, so a check-off shows up in all three places.
 function dayEntries(kidId, dateISO){
-  const subs = CUR[kidId] || [];
+  const subs = getAllSubjects(kidId) || [];
   const out = [];
   subs.forEach(sub=>{
     if((CFG.paused||[]).includes(sub.subject)) return;
@@ -206,7 +206,7 @@ function owedCount(kidId, sub){
 function todoRowsForToday(kidId){
   const today = todayISO();
   const doneSubs = new Set(dayEntries(kidId, today).filter(e=>e.type==="lesson"||e.type==="ongoing").map(e=>e.subject));
-  const subs = (CUR[kidId]||[]).filter(s=>!(CFG.paused||[]).includes(s.subject));
+  const subs = (getAllSubjects(kidId)||[]).filter(s=>!(CFG.paused||[]).includes(s.subject));
   const rows = [];
   subs.forEach(sub=>{
     if(!isScheduledOn(kidId, sub.subject, today)) return;
@@ -257,7 +257,7 @@ function dayCard(kidId, dateObj){
     const todoHtml = todoRowsForToday(kidId);
     body = (doneHtml + todoHtml) || `<div class="empty">Nothing scheduled today.</div>`;
   } else {
-    const scheduled = (CUR[kidId]||[]).filter(s=>!(CFG.paused||[]).includes(s.subject) && isScheduledOn(kidId, s.subject, dateISO));
+    const scheduled = (getAllSubjects(kidId)||[]).filter(s=>!(CFG.paused||[]).includes(s.subject) && isScheduledOn(kidId, s.subject, dateISO));
     body = scheduled.length
       ? `<div class="futureList">${scheduled.map(s=>`<span class="futChip">${s.subject}</span>`).join("")}</div>`
       : `<div class="empty">Nothing scheduled.</div>`;
