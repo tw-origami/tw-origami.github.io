@@ -57,8 +57,9 @@
     color:#fff; padding:2px 7px; border-radius:999px; margin-left:8px; vertical-align:middle; }
 
   .doneline{ font-size:12.5px; color:var(--green); font-weight:700; padding:5px 2px; }
-  .futureList{ display:flex; gap:6px; flex-wrap:wrap; }
-  .futChip{ font-size:12px; font-weight:700; color:var(--muted); background:#f1f5f9; padding:6px 11px; border-radius:999px; }
+  .futureList{ display:flex; flex-direction:column; gap:5px; }
+  .futChip{ font-size:12.5px; font-weight:600; color:var(--ink); background:#f1f5f9; padding:6px 11px; border-radius:8px; }
+  .futChip b{ font-weight:800; }
   .empty{ font-size:13px; color:var(--muted); }
 </style>
 </head>
@@ -243,6 +244,21 @@ function todoRowsForToday(kidId){
   return rows.join("");
 }
 
+// A future day only ever shows a preview, never a checkable box — but the preview is more
+// useful with the actual next-up lesson, not just the subject name. Ongoing subjects (Math,
+// Book Report) have no queue, so those still just show the subject. Book subjects show what's
+// currently first in the queue; since this keeps re-rendering, it stays accurate as work gets
+// checked off between now and then.
+function futureChip(kidId, sub){
+  if(sub.kind==="ongoing") return `<span class="futChip">${sub.subject}</span>`;
+  const queue = combinedQueue(kidId, sub);
+  if(!queue.length) return `<span class="futChip">🎉 ${sub.subject} — all caught up</span>`;
+  const item = queue[0];
+  const title = item.kind==="real" ? item.lesson.t : item.manual.title;
+  const page = item.kind==="real" ? item.lesson.p : item.manual.page;
+  return `<span class="futChip"><b>${sub.subject}:</b> ${title}${page?` — p.${page}`:""}</span>`;
+}
+
 function dayCard(kidId, dateObj){
   const dateISO = iso(dateObj);
   const today = isoToday();
@@ -262,7 +278,7 @@ function dayCard(kidId, dateObj){
   } else {
     const scheduled = (getAllSubjects(kidId)||[]).filter(s=>!(CFG.paused||[]).includes(s.subject) && isScheduledOn(kidId, s.subject, dateISO));
     body = scheduled.length
-      ? `<div class="futureList">${scheduled.map(s=>`<span class="futChip">${s.subject}</span>`).join("")}</div>`
+      ? `<div class="futureList">${scheduled.map(s=>futureChip(kidId, s)).join("")}</div>`
       : `<div class="empty">Nothing scheduled.</div>`;
   }
   return `<div class="daycard${isToday?' today':''}${isWeekend?' weekend':''}">
