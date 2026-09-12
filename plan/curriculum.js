@@ -1671,6 +1671,15 @@ window.CURRICULUM = {
    ]
   },
   {
+   "subject": "Book Report",
+   "book": "",
+   "goal": 5,
+   "options": [],
+   "kind": "ongoing",
+   "lessons": [],
+   "note": "Read a chapter each day — no fixed book, just keep reading."
+  },
+  {
    "subject": "Grammar / Word Study",
    "book": "Word Study & Phonics 3",
    "goal": 3,
@@ -2132,19 +2141,19 @@ window.CURRICULUM = {
     {
      "t": "Ch.2 L4 How to Do It",
      "p": "67",
-     "cur": true,
-     "done": false
+     "cur": false,
+     "done": true
     },
     {
      "t": "Ch.2 L5 Special Instructions",
      "p": "69",
      "cur": false,
-     "done": false
+     "done": true
     },
     {
      "t": "Ch.2 L6 Who Will Read It?",
      "p": "71",
-     "cur": false,
+     "cur": true,
      "done": false
     },
     {
