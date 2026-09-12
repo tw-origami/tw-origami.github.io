@@ -26,6 +26,8 @@
   const HEARTBEAT_MS = 1000;   // background pull, catches changes made on OTHER devices — safe to
                                 // run this often now that only one frame per tab does it (see below)
   const QUICK_PUSH_MS = 250;   // debounce for pushing a change made right here, right now
+  let REAL_SET, REAL_REMOVE;   // unpatched Storage methods — assigned below, used by applyRemote()
+                                // so pulled-in values never loop back around as a "local edit"
 
   function loadMeta() { try { return JSON.parse(localStorage.getItem(META_KEY) || "{}"); } catch (e) { return {}; } }
   function saveMeta(m) { try { localStorage.setItem(META_KEY, JSON.stringify(m)); } catch (e) {} }
@@ -138,10 +140,32 @@
       // same rows on every heartbeat forever.
       if (item.updated > newCursor) newCursor = item.updated;
       if (known && known.updated >= item.updated) return; // we already have this exact state or something newer
+
+      // Guard against clobbering a local edit that hasn't been confirmed pushed yet. Each
+      // iframe on this page (kidzone.html, calendar.html, week.html, ...) runs its own
+      // separate copy of this script with its own in-memory state, but they all read and
+      // write the same localStorage and the same persisted meta — so comparing what's
+      // ACTUALLY in localStorage right now against what we last confirmed synced catches
+      // an in-flight edit no matter which frame made it, without needing any shared
+      // in-memory flag. Previously a key with no prior meta entry (the common case for a
+      // lesson's very first check-off) had no protection at all here: `known` was
+      // undefined, so a pulled answer got applied unconditionally, even if this exact
+      // check-off was sitting in localStorage not yet pushed — that's what "check off a
+      // lesson and it goes away" turned out to be.
+      let localCur;
+      try { localCur = localStorage.getItem(k); } catch (e) { localCur = undefined; }
+      const localMatchesKnown = known ? (known.deleted ? localCur === null : localCur === known.value) : localCur === null;
+      if (!localMatchesKnown) return;
+
+      // Write via the REAL storage methods, not the patched ones below — applying a pulled
+      // value is not a local edit, so it must not schedule a redundant push of the same
+      // data right back up. Falls back to the plain localStorage methods if the prototype
+      // patch below never installed (in which case those already are the real, unpatched
+      // methods).
       if (item.deleted || item.value === null) {
-        try { localStorage.removeItem(k); } catch (e) {}
+        try { (REAL_REMOVE ? REAL_REMOVE.call(localStorage, k) : localStorage.removeItem(k)); } catch (e) {}
       } else {
-        try { localStorage.setItem(k, item.value); } catch (e) {}
+        try { (REAL_SET ? REAL_SET.call(localStorage, k, item.value) : localStorage.setItem(k, item.value)); } catch (e) {}
       }
       meta[k] = { value: item.deleted ? null : item.value, updated: item.updated, deleted: !!item.deleted };
     });
@@ -186,9 +210,10 @@
     // object" with its own property-interception behavior, so assigning directly to
     // localStorage.setItem doesn't consistently stick across environments. Guarded by
     // `this === localStorage` so a hypothetical sessionStorage write (this app never
-    // makes one) can't trigger a sync push.
-    const REAL_SET = Storage.prototype.setItem;
-    const REAL_REMOVE = Storage.prototype.removeItem;
+    // makes one) can't trigger a sync push. REAL_SET/REAL_REMOVE are also used directly
+    // by applyRemote() above, so a pulled value never loops back around as a "local edit."
+    REAL_SET = Storage.prototype.setItem;
+    REAL_REMOVE = Storage.prototype.removeItem;
     Storage.prototype.setItem = function (k, v) {
       REAL_SET.call(this, k, v);
       if (this === localStorage && isContentKey(k)) scheduleQuickPush();
