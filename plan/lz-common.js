@@ -213,6 +213,33 @@
     return /youtube\.com|youtu\.be|vimeo\.com|khanacademy\.org|\.mp4($|\?)/i.test(String(u||"")) ? "video" : "article";
   }
 
+  // --- Assign a lesson to a specific day (Master Tracker's 📅 button) -----------------------
+  // Two different jobs share one control, depending on whether the lesson is already done:
+  //  - NOT done: pins which day it's due. A book subject only ever surfaces its front-of-queue
+  //    lesson (see combinedQueue) as "now"/"today" on kidzone.html and week.html — this makes
+  //    that gate explicit. Nothing later in the queue can become "now" before this one is
+  //    reached anyway (the queue is strictly in order), so assigning a future date to the
+  //    front lesson effectively pauses the whole subject until that date, then it resumes
+  //    normally — no separate handling needed for "everything after."
+  //  - Already done: this isn't a gate (nothing left to gate), it directly corrects which day
+  //    the calendar shows the completion under — same idea as calendar.html's own date-fix,
+  //    just reachable from the lesson's own row on the dashboard too. Since a real/manual
+  //    lesson's done-record already stores its date as the key's VALUE (see dkey/doneDate),
+  //    correcting it is just overwriting that value — callers do this directly via setDone's
+  //    underlying storage, not through this helper.
+  function assignKey(kid, subject, itemId){ return `lzAssign|${kid}|${slug(subject)}|${attachItemSlug(itemId)}`; }
+  function getAssignedDate(kid, subject, itemId){ return localStorage.getItem(assignKey(kid,subject,itemId)) || null; }
+  function setAssignedDate(kid, subject, itemId, dateISO){
+    dateISO ? localStorage.setItem(assignKey(kid,subject,itemId), dateISO) : localStorage.removeItem(assignKey(kid,subject,itemId));
+  }
+  // The date a book subject is paused until, or null if it's free to surface its next lesson
+  // right now. Only ever looks at the front of the queue — see the note above.
+  function subjectResumesOn(kid, sub){
+    const q = combinedQueue(kid, sub);
+    if(!q.length) return null;
+    return getAssignedDate(kid, sub.subject, q[0].id);
+  }
+
   // --- Custom categories (teacher-created subjects, not baked into curriculum.js) ----------
   // Lets the Teacher Dashboard add a whole new subject on the fly (e.g. "Piano", "Coding")
   // without editing curriculum.js. Stored as one JSON array so a category can belong to one
@@ -428,7 +455,8 @@
     subjectBySlug, manualById, parseAttachDoneKey, attachmentsDoneOn, manualDoneOn,
     DOW_CODES, DEFAULT_SCHEDULE_DAYS, scheduleKey, getScheduleDays, setScheduleDays, dowCode, isScheduledOn,
     carryKey, getCarryOver, setCarryOver,
-    getAllSubjects, getCustomSubjects, addCustomSubject, removeCustomSubject, addCustomLessons };
+    getAllSubjects, getCustomSubjects, addCustomSubject, removeCustomSubject, addCustomLessons,
+    assignKey, getAssignedDate, setAssignedDate, subjectResumesOn };
 
   // Shared weekly config — the one place to pause a subject, tweak per-day overrides, edit
   // the daily habits checklist, or set up a recurring activity like karate. Edit this (or ask

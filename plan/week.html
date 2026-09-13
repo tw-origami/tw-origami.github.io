@@ -92,7 +92,7 @@
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[]};
 const { dkey, dateKey, doneDate, isDone, setDone, todayISO, manualDoneOn, attachmentsDoneOn,
-  combinedQueue, manualDoneKey, dailyPick, appLink, isScheduledOn, getCarryOver, getAllSubjects } = window.LZ;
+  combinedQueue, manualDoneKey, dailyPick, appLink, isScheduledOn, getCarryOver, getAllSubjects, getAssignedDate } = window.LZ;
 // How many scheduled days back to look for a missed, uncaught-up lesson, and the most a
 // catch-up list will ever show at once (so a long absence doesn't dump a wall of lessons).
 const LOOKBACK_DAYS = 14, MAX_CATCHUP = 4;
@@ -228,6 +228,10 @@ function todoRowsForToday(kidId){
     }
     const queue = combinedQueue(kidId, sub);
     if(!queue.length){ rows.push(`<div class="doneline">🎉 ${sub.subject} — all caught up</div>`); return; }
+    // The teacher can pin the front-of-queue lesson to a future day (Master Tracker's 📅
+    // button) — until then, nothing in this subject is due, same as an unscheduled day.
+    const resumeDate = getAssignedDate(kidId, sub.subject, queue[0].id);
+    if(resumeDate && resumeDate > today) return;
     const n = Math.min(owedCount(kidId, sub), queue.length);
     for(let idx=0; idx<n; idx++){
       const item = queue[idx];
@@ -249,11 +253,19 @@ function todoRowsForToday(kidId){
 // Book Report) have no queue, so those still just show the subject. Book subjects show what's
 // currently first in the queue; since this keeps re-rendering, it stays accurate as work gets
 // checked off between now and then.
-function futureChip(kidId, sub){
+function futureChip(kidId, sub, dateISO){
   if(sub.kind==="ongoing") return `<span class="futChip">${sub.subject}</span>`;
   const queue = combinedQueue(kidId, sub);
   if(!queue.length) return `<span class="futChip">🎉 ${sub.subject} — all caught up</span>`;
   const item = queue[0];
+  // Pinned to a later day than the one being previewed (Master Tracker's 📅 button) — show
+  // that instead of the lesson itself, so the preview doesn't imply it's coming up sooner
+  // than it actually will.
+  const resumeDate = getAssignedDate(kidId, sub.subject, item.id);
+  if(resumeDate && resumeDate > dateISO){
+    const label = new Date(resumeDate+"T00:00:00").toLocaleDateString(undefined,{month:"short", day:"numeric"});
+    return `<span class="futChip">${sub.subject} — resumes ${label}</span>`;
+  }
   const title = item.kind==="real" ? item.lesson.t : item.manual.title;
   const page = item.kind==="real" ? item.lesson.p : item.manual.page;
   return `<span class="futChip"><b>${sub.subject}:</b> ${title}${page?` — p.${page}`:""}</span>`;
@@ -278,7 +290,7 @@ function dayCard(kidId, dateObj){
   } else {
     const scheduled = (getAllSubjects(kidId)||[]).filter(s=>!(CFG.paused||[]).includes(s.subject) && isScheduledOn(kidId, s.subject, dateISO));
     body = scheduled.length
-      ? `<div class="futureList">${scheduled.map(s=>futureChip(kidId, s)).join("")}</div>`
+      ? `<div class="futureList">${scheduled.map(s=>futureChip(kidId, s, dateISO)).join("")}</div>`
       : `<div class="empty">Nothing scheduled.</div>`;
   }
   return `<div class="daycard${isToday?' today':''}${isWeekend?' weekend':''}">

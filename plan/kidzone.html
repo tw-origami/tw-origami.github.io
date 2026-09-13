@@ -127,7 +127,7 @@ const CFG = window.LZ_CONFIG || {paused:[]};
 const { slug, dkey, skey, dateKey, habitKey, outingKey, isDone, setDone, subjProgress,
   doneLessons, doneDate, todayISO, doneDatesForSubject, getOutings, setOutings,
   ensureRecurringSeeded, getManualLessons, manualDoneKey, combinedQueue, lessonItemId,
-  getAttachments, attachDoneKey, safeUrl, dailyPick, appLink, getAllSubjects } = window.LZ;
+  getAttachments, attachDoneKey, safeUrl, dailyPick, appLink, getAllSubjects, subjectResumesOn } = window.LZ;
 const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th grade"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th grade"} };
 
 // ?kid=ryland (or reid) in the URL locks this page to just that kid — no switcher tabs, and
@@ -390,11 +390,19 @@ function subjectCard(kidId, sub){
   // the card just shows what got done, and the next one waits until tomorrow. A kid who
   // wants to look ahead (or work ahead) can open "Next three" on demand.
   const didSomethingToday = combinedToday.length > 0;
+  // The teacher can pin the front-of-queue lesson to a specific future day (Master Tracker's
+  // 📅 button) — until that day arrives, this subject has nothing new to do, same as a day
+  // it's just not scheduled on.
+  const resumeDate = (!didSomethingToday && queue.length) ? subjectResumesOn(kidId, sub) : null;
+  const isPaused = resumeDate && resumeDate > today;
   let body;
   if(queue.length===0){
     body = doneSection + todaySection + `<div class="empty">🎉 All caught up in ${sub.book||sub.subject}!</div>`;
   } else if(didSomethingToday){
     body = doneSection + todaySection + `<div class="doneForDay">✅ ${sub.subject} is done for today!</div>`;
+  } else if(isPaused){
+    const label = new Date(resumeDate+"T00:00:00").toLocaleDateString(undefined,{month:"short", day:"numeric"});
+    body = doneSection + todaySection + `<div class="empty">📅 Resumes ${label}</div>`;
   } else {
     body = doneSection + todaySection + queueRow(queue[0], true);
   }

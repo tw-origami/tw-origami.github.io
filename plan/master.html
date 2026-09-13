@@ -129,6 +129,21 @@
     font-weight:800; font-size:12px; cursor:pointer; }
   .attachCancelBtn{ background:#fff; color:var(--muted); border:1px solid var(--line); border-radius:6px;
     padding:6px 12px; font-weight:700; font-size:12px; cursor:pointer; }
+
+  /* set/correct which day a lesson falls on — due date if not done, completion date if it is */
+  .dateBtn{ flex:none; width:20px; height:20px; border-radius:50%; background:#fef3c7; font-size:11px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .dateBtn:hover{ background:#fde68a; }
+  .dateBtn.set{ background:var(--amber); }
+  .assignedTag{ font-size:10.5px; font-weight:800; color:var(--amber); background:#fef3c7; padding:2px 7px;
+    border-radius:999px; margin-left:6px; white-space:nowrap; }
+  .dateForm{ flex-basis:100%; margin:4px 0 4px 27px; padding:8px; border:1px solid var(--line); border-radius:9px;
+    background:#f8fafc; display:flex; align-items:center; gap:6px; flex-wrap:wrap; cursor:default; }
+  .dateForm input[type="date"]{ font-size:12.5px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-family:inherit; }
+  .dateSaveBtn{ background:var(--amber); color:#fff; border:none; border-radius:6px; padding:6px 12px;
+    font-weight:800; font-size:12px; cursor:pointer; }
+  .dateClearBtn, .dateCancelBtn{ background:#fff; color:var(--muted); border:1px solid var(--line); border-radius:6px;
+    padding:6px 12px; font-weight:700; font-size:12px; cursor:pointer; }
   .sessboxes{ display:flex; gap:8px; margin-top:8px; }
   .sessboxes .box{ width:20px; height:20px; border:2px solid #94a3b8; border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; }
   .sessboxes .box.on{ background:var(--green); border-color:var(--green); }
@@ -200,7 +215,8 @@ const { slug, dkey, skey, dateKey, isDone, setDone, subjProgress, doneDate, getN
   getManualLessons, addManualLesson, removeManualLesson, manualDoneKey, getOrder, setOrder, combinedQueue, lessonItemId,
   getAttachments, addAttachment, removeAttachment, attachDoneKey, safeUrl, guessAttachKind,
   dailyPick, getScheduleDays, setScheduleDays, getCarryOver, setCarryOver,
-  getAllSubjects, addCustomSubject, removeCustomSubject, addCustomLessons } = window.LZ;
+  getAllSubjects, addCustomSubject, removeCustomSubject, addCustomLessons,
+  getAssignedDate, setAssignedDate } = window.LZ;
 // Mon-Sun display order for the Weekly Schedule editor (DOW_CODES elsewhere is Sun-first,
 // to match JS's Date.getDay(), but a school-week table reads better starting on Monday).
 const WEEK_UI = [["mon","Mon"],["tue","Tue"],["wed","Wed"],["thu","Thu"],["fri","Fri"],["sat","Sat"],["sun","Sun"]];
@@ -268,6 +284,46 @@ function attachBtn(kid, subject, itemId){
   return `<span class="attachBtn" data-kid="${kid}" data-subj="${escapeAttr(subject)}" data-item="${escapeAttr(itemId)}" title="Attach an article or video">🔗</span>`;
 }
 
+// --- Set which day a lesson falls on (📅) ---------------------------------------------
+// One button, two jobs depending on whether the lesson is done yet:
+//  - not done: pins a due date. Only the front of a subject's queue is ever surfaced as
+//    "now" (see subjectResumesOn), so assigning a future date to it pauses that subject
+//    until then — everything behind it in the queue naturally waits its turn regardless.
+//  - already done: corrects which day the calendar shows the completion under.
+// Which lesson's date-editor is open, in-memory only, keyed kid|subject|itemId (same scheme
+// as attachOpen above).
+let dateOpen = {};
+function niceDate(dISO){
+  return dISO ? new Date(dISO+"T00:00:00").toLocaleDateString(undefined,{month:"short", day:"numeric"}) : "";
+}
+// A visible tag next to the lesson's title so the assignment is obvious without opening the
+// editor — "due" for a not-yet-done lesson, "done" (with its actual completion date) once it is.
+function dateTag(kid, subject, itemId, done, doneKeyStr){
+  if(done){
+    const d = doneDate(doneKeyStr);
+    return d ? `<span class="assignedTag">✓ ${niceDate(d)}</span>` : "";
+  }
+  const d = getAssignedDate(kid, subject, itemId);
+  return d ? `<span class="assignedTag">📅 due ${niceDate(d)}</span>` : "";
+}
+function dateBtn(kid, subject, itemId, hasDate){
+  return `<span class="dateBtn${hasDate?' set':''}" data-kid="${kid}" data-subj="${escapeAttr(subject)}" data-item="${escapeAttr(itemId)}" title="Set which day this falls on">📅</span>`;
+}
+function dateBlock(kid, subject, itemId, done, doneKeyStr){
+  const key = kid+"|"+subject+"|"+itemId;
+  if(!dateOpen[key]) return "";
+  const current = done ? (doneDate(doneKeyStr) || todayISO()) : (getAssignedDate(kid, subject, itemId) || "");
+  const clearBtn = (!done && getAssignedDate(kid, subject, itemId))
+    ? `<button type="button" class="dateClearBtn" data-kid="${kid}" data-subj="${escapeAttr(subject)}" data-item="${escapeAttr(itemId)}">Clear</button>` : "";
+  return `<div class="dateForm" data-datekey="${escapeAttr(key)}">
+    <input type="date" class="dateInput" value="${current}">
+    <button type="button" class="dateSaveBtn" data-kid="${kid}" data-subj="${escapeAttr(subject)}" data-item="${escapeAttr(itemId)}"
+      data-done="${done?'1':'0'}" data-donekey="${escapeAttr(doneKeyStr||"")}">${done ? "Correct date" : "Set due date"}</button>
+    ${clearBtn}
+    <button type="button" class="dateCancelBtn" data-datekey="${escapeAttr(key)}">Cancel</button>
+  </div>`;
+}
+
 // A small "⠿" grip shown on rows that can be dragged to reorder — makes the drag-and-drop
 // affordance visible instead of relying on people discovering a plain row happens to be
 // draggable.
@@ -276,12 +332,15 @@ function lessonRow(kid,sub,les,isNext,draggableFlag){
   const k=dkey(kid,sub,les); const done=isDone(k)||les.done;
   const itemId = lessonItemId(les);
   const dragAttrs = draggableFlag ? ` draggable="true" data-itemid="${itemId}"` : "";
+  const hasDate = done ? !!doneDate(k) : !!getAssignedDate(kid, sub.subject, itemId);
   return `<div class="lesson${done?' done':''}${isNext?' next':''}" data-k="${k}"${dragAttrs}>
     ${dragHandle(draggableFlag)}
     <div class="box">${done?'✓':''}</div>
-    <div style="flex:1;"><span class="t">${les.t}${isNext?'<span class="nextpill">next</span>':''}</span> <span class="pg">p.${les.p}</span></div>
+    <div style="flex:1;"><span class="t">${les.t}${isNext?'<span class="nextpill">next</span>':''}</span> <span class="pg">p.${les.p}</span>${dateTag(kid, sub.subject, itemId, done, k)}</div>
     ${attachBtn(kid, sub.subject, itemId)}
     ${attachBlock(kid, sub.subject, itemId)}
+    ${dateBtn(kid, sub.subject, itemId, hasDate)}
+    ${dateBlock(kid, sub.subject, itemId, done, k)}
   </div>`;
 }
 // A teacher-inserted lesson, slipped into a book subject's queue (see LZ.combinedQueue) —
@@ -290,15 +349,19 @@ function lessonRow(kid,sub,les,isNext,draggableFlag){
 function manualRow(kid,sub,manual,isNext,draggableFlag){
   const k = manualDoneKey(kid, sub.subject, manual.id);
   const done = isDone(k);
+  const itemId = "m|"+manual.id;
   const pageLabel = manual.page ? `p.${manual.page}` : "extra";
-  const dragAttrs = draggableFlag ? ` draggable="true" data-itemid="m|${manual.id}"` : "";
+  const dragAttrs = draggableFlag ? ` draggable="true" data-itemid="${itemId}"` : "";
+  const hasDate = done ? !!doneDate(k) : !!getAssignedDate(kid, sub.subject, itemId);
   return `<div class="lesson manual${done?' done':''}${isNext?' next':''}" data-k="${k}"${dragAttrs}>
     ${dragHandle(draggableFlag)}
     <div class="box">${done?'✓':''}</div>
-    <div style="flex:1;"><span class="t">${manual.title}${isNext?'<span class="nextpill">next</span>':''}</span> <span class="pg">${pageLabel}</span></div>
-    ${attachBtn(kid, sub.subject, "m|"+manual.id)}
+    <div style="flex:1;"><span class="t">${manual.title}${isNext?'<span class="nextpill">next</span>':''}</span> <span class="pg">${pageLabel}</span>${dateTag(kid, sub.subject, itemId, done, k)}</div>
+    ${attachBtn(kid, sub.subject, itemId)}
     <span class="rmManual" data-kid="${kid}" data-subj="${sub.subject}" data-id="${manual.id}" data-confirm="Remove this inserted lesson?" title="Remove">✕</span>
-    ${attachBlock(kid, sub.subject, "m|"+manual.id)}
+    ${dateBtn(kid, sub.subject, itemId, hasDate)}
+    ${attachBlock(kid, sub.subject, itemId)}
+    ${dateBlock(kid, sub.subject, itemId, done, k)}
   </div>`;
 }
 // Same idea for an "ongoing" subject's one-off task (e.g. "Khan Academy instead" for a
@@ -741,9 +804,45 @@ document.addEventListener("click", e=>{
     render();
     return;
   }
+  // --- set/correct which day a lesson falls on. Also matched before the [data-k] check.
+  const dateToggle = e.target.closest(".dateBtn");
+  if(dateToggle){
+    const { kid, subj, item } = dateToggle.dataset;
+    const key = kid+"|"+subj+"|"+item;
+    dateOpen[key] = !dateOpen[key];
+    render();
+    return;
+  }
+  const dateCancel = e.target.closest(".dateCancelBtn");
+  if(dateCancel){ dateOpen[dateCancel.dataset.datekey] = false; render(); return; }
+  const dateSave = e.target.closest(".dateSaveBtn");
+  if(dateSave){
+    const { kid, subj, item, done, donekey } = dateSave.dataset;
+    const form = dateSave.closest(".dateForm");
+    const newDate = form.querySelector(".dateInput").value;
+    if(!newDate) return;
+    if(done==="1"){
+      // Already done — the record's value IS its date (see dkey/manualDoneKey), so
+      // correcting it is just overwriting that value in place, same as calendar.html's fix.
+      localStorage.setItem(donekey, newDate);
+    } else {
+      setAssignedDate(kid, subj, item, newDate);
+    }
+    dateOpen[kid+"|"+subj+"|"+item] = false;
+    render();
+    return;
+  }
+  const dateClear = e.target.closest(".dateClearBtn");
+  if(dateClear){
+    const { kid, subj, item } = dateClear.dataset;
+    setAssignedDate(kid, subj, item, null);
+    dateOpen[kid+"|"+subj+"|"+item] = false;
+    render();
+    return;
+  }
   // Let a click on the actual link fall through to the browser without also toggling the
   // lesson's checkbox.
-  if(e.target.closest(".attachLink") || e.target.closest(".attachForm")) return;
+  if(e.target.closest(".attachLink") || e.target.closest(".attachForm") || e.target.closest(".dateForm")) return;
 
   const gapPlus = e.target.closest(".insertGap");
   if(gapPlus){

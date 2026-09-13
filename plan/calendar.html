@@ -59,6 +59,7 @@
   .entry.ongoing{ border-left-color:var(--accent); }
   .entry.note{ border-left-color:var(--amber); background:#fffbeb; border-radius:0 6px 6px 0; }
   .entry.habit{ border-left-color:var(--amber); }
+  .entry.planned{ border-left-color:var(--amber); border-left-style:dashed; background:#fffbeb; }
   .entry.outing{ border-left-color:#16a34a; background:#f0fdf4; border-radius:0 6px 6px 0; }
   .ochk{ display:inline-flex; align-items:center; justify-content:center; flex:none; width:16px; height:16px;
     border:2px solid #86efac; border-radius:5px; font-size:10px; font-weight:900; color:#fff; margin-right:2px;
@@ -117,7 +118,7 @@
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[], habits:[]};
 const { slug, dkey, dateKey, habitKey, noteKey, outingKey, isDone, setDone, doneDate, getNote, setNote, scanKeys,
-  getOutings, setOutings, ensureRecurringSeeded, manualById, parseAttachDoneKey, getAttachments, getAllSubjects } = window.LZ;
+  getOutings, setOutings, ensureRecurringSeeded, manualById, manualDoneKey, parseAttachDoneKey, getAttachments, getAllSubjects } = window.LZ;
 function escapeAttr(s){ return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
 const KIDS = { ryland:{name:"Ryland",cls:"ry"}, reid:{name:"Reid",cls:"reid"} };
 // Which day's "+ Add outing" input is currently open (in-memory only) — keyed by outingKey.
@@ -134,7 +135,7 @@ let calDateEditing = {};
 // supplement links aren't covered here yet (outings hold a whole day's list in one key,
 // which needs its own move-one-entry-between-two-lists logic — undo still works for those).
 function dateEditKeyFor(e){ return e.key + (e.idx!==undefined ? "|"+e.idx : ""); }
-function canFixDate(type){ return type==="lesson" || type==="ongoing" || type==="habit"; }
+function canFixDate(type){ return type==="lesson" || type==="ongoing" || type==="habit" || type==="planned"; }
 function applyDateFix(e, newDate){
   if(!newDate) return;
   if(e.type==="ongoing"){
@@ -203,6 +204,31 @@ function buildActivityIndex(){
     if(!isDone(k)) return;
     const habitName = (CFG.habits||[]).find(h=>slug(h)===habitSlug) || habitSlug;
     add(d, {kid, subject:"Daily habit", type:"habit", title:habitName, key:k});
+  });
+  // A lesson the teacher pinned to a specific day (Master Tracker's 📅 button) but hasn't
+  // done yet — shown on the day it's due so it's visible ahead of time, not just once it's
+  // actually completed. The key's own value IS the assigned date (not part of the key), and
+  // the item id has its pipes swapped for "~" (see attachItemSlug) to survive splitting on "|".
+  scanKeys("lzAssign|").forEach(k=>{
+    const parts = k.split("|"); const kid=parts[1], subjSlug=parts[2], itemId=(parts[3]||"").replace(/~/g,"|");
+    const d = localStorage.getItem(k);
+    if(!d) return;
+    const sub = findSubjectBySlug(kid, subjSlug);
+    if(!sub) return;
+    let title, page, doneK;
+    if(itemId.indexOf("r|")===0){
+      const bits = itemId.split("|"); const p = bits[1], tslug = bits[2];
+      const l = (sub.lessons||[]).find(x=>String(x.p)===p && slug(x.t)===tslug);
+      if(!l) return;
+      title = l.t; page = l.p; doneK = dkey(kid, sub, l);
+    } else if(itemId.indexOf("m|")===0){
+      const id = itemId.slice(2);
+      const m = manualById(kid, sub.subject, id);
+      if(!m) return;
+      title = m.title; page = m.page; doneK = manualDoneKey(kid, sub.subject, id);
+    } else return;
+    if(isDone(doneK)) return; // already done — it'll show up as a normal "lesson" entry via its real done-date instead
+    add(d, {kid, subject:sub.subject, type:"planned", title, page, key:k});
   });
   scanKeys("lzOuting|").forEach(k=>{
     const parts = k.split("|"); const kid=parts[1], d=parts[2];
@@ -317,6 +343,10 @@ function renderDetail(){
         confirmMsg = `Mark "${e.title}" as not ${e.kind==="video"?"watched":"read"} again?`;
       }
       else if(e.type==="ongoing"){ inner = `<b>${e.subject}</b> — done`; confirmMsg = `Remove this ${e.subject} check-off for this day?`; }
+      else if(e.type==="planned"){
+        inner = `<b>${e.subject}:</b> 📌 ${e.title}${e.page?` — p.${e.page}`:""} <span style="color:var(--muted);font-weight:600;">(planned)</span>`;
+        confirmMsg = `Remove the planned date for "${e.title}"? It'll just go back to being next in the queue whenever it's reached.`;
+      }
       else if(e.type==="habit"){ inner = `<b>Habit:</b> ${e.title}`; confirmMsg = `Remove "${e.title}" as done for this day?`; }
       else if(e.type==="outing"){
         const editKey = e.key+"|"+e.idx;
