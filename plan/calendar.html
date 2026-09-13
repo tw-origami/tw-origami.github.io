@@ -51,6 +51,10 @@
   .undoBtn{ flex:none; width:20px; height:20px; border-radius:50%; background:#fee2e2; color:#b91c1c; font-size:12px;
     font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; }
   .undoBtn:hover{ background:#fecaca; }
+  .entryTools{ flex:none; display:flex; align-items:center; gap:6px; }
+  .fixDate{ flex:none; font-size:13px; cursor:pointer; opacity:.6; }
+  .fixDate:hover{ opacity:1; }
+  .dateFixInput{ flex:none; font-size:12px; padding:3px 5px; border:1px solid var(--line); border-radius:6px; font-family:inherit; }
   .entry.lesson{ border-left-color:var(--green); }
   .entry.ongoing{ border-left-color:var(--accent); }
   .entry.note{ border-left-color:var(--amber); background:#fffbeb; border-radius:0 6px 6px 0; }
@@ -112,7 +116,7 @@
 <script>
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[], habits:[]};
-const { slug, dkey, dateKey, noteKey, outingKey, isDone, setDone, doneDate, getNote, setNote, scanKeys,
+const { slug, dkey, dateKey, habitKey, noteKey, outingKey, isDone, setDone, doneDate, getNote, setNote, scanKeys,
   getOutings, setOutings, ensureRecurringSeeded, manualById, parseAttachDoneKey, getAttachments, getAllSubjects } = window.LZ;
 function escapeAttr(s){ return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
 const KIDS = { ryland:{name:"Ryland",cls:"ry"}, reid:{name:"Reid",cls:"reid"} };
@@ -120,6 +124,29 @@ const KIDS = { ryland:{name:"Ryland",cls:"ry"}, reid:{name:"Reid",cls:"reid"} };
 let calOutingEditing = {};
 // Which specific outing entry is being text-edited (in-memory only) — keyed by "key|idx".
 let calEditOuting = {};
+// Which entry's "fix the date" input is currently open (in-memory only) — keyed the same way
+// as the entry row itself (see dateEditKeyFor below).
+let calDateEditing = {};
+// A completion is stored one of two ways: the KEY already encodes the date (an "ongoing"
+// subject's dateKey, or a habit's habitKey) — correcting it means moving the record from the
+// old date's key to the new one — or the VALUE is the date (a book/manual lesson's dkey /
+// manualDoneKey) — correcting it just rewrites the value in place. Outings, notes, and
+// supplement links aren't covered here yet (outings hold a whole day's list in one key,
+// which needs its own move-one-entry-between-two-lists logic — undo still works for those).
+function dateEditKeyFor(e){ return e.key + (e.idx!==undefined ? "|"+e.idx : ""); }
+function canFixDate(type){ return type==="lesson" || type==="ongoing" || type==="habit"; }
+function applyDateFix(e, newDate){
+  if(!newDate) return;
+  if(e.type==="ongoing"){
+    const newKey = dateKey(e.kid, e.subject, newDate);
+    if(newKey!==e.key){ localStorage.removeItem(e.key); localStorage.setItem(newKey, newDate); }
+  } else if(e.type==="habit"){
+    const newKey = habitKey(e.kid, e.title, newDate);
+    if(newKey!==e.key){ localStorage.removeItem(e.key); localStorage.setItem(newKey, newDate); }
+  } else { // "lesson" — dkey or manualDoneKey, value-is-the-date either way
+    localStorage.setItem(e.key, newDate);
+  }
+}
 
 // ?kid=ryland (or reid) locks this calendar to just that kid — no filter buttons, and the
 // My Work link stays scoped to the same kid. Used by the per-kid hub pages (ry.html / reid.html).
@@ -301,8 +328,17 @@ function renderDetail(){
       }
       else { inner = `<b>${e.subject}:</b> ${e.text}`; confirmMsg = `Delete this note for ${e.subject}?`; }
       const idxAttr = e.idx!==undefined ? ` data-idx="${e.idx}"` : "";
+      // Correcting which day a completion is recorded under — e.g. it actually happened
+      // yesterday, or the sync glitch dated it wrong. Not offered for outings/notes/links yet.
+      const dek = dateEditKeyFor(e);
+      const fixHtml = canFixDate(e.type)
+        ? (calDateEditing[dek]
+            ? `<input type="date" class="dateFixInput" data-entrykey="${dek}" data-key="${e.key}" data-type="${e.type}"
+                data-kid="${e.kid}" data-subject="${escapeAttr(e.subject||'')}" data-title="${escapeAttr(e.title||'')}" value="${selected}">`
+            : `<span class="fixDate" data-entrykey="${dek}" title="Fix the date this was recorded under">📅</span>`)
+        : "";
       return `<div class="entry ${e.type}">${inner}
-        <span class="undoBtn" data-key="${e.key}" data-type="${e.type}"${idxAttr} data-confirm="${escapeAttr(confirmMsg)}" title="Undo">✕</span>
+        <span class="entryTools">${fixHtml}<span class="undoBtn" data-key="${e.key}" data-type="${e.type}"${idxAttr} data-confirm="${escapeAttr(confirmMsg)}" title="Undo">✕</span></span>
       </div>`;
     }).join("");
     // A "+ Add outing" prompt is always available for any day (past, today, or future) so a
@@ -340,6 +376,14 @@ document.addEventListener("click", e=>{
     renderDetail();
     const input = document.querySelector(`.outingEditInput[data-key="${CSS.escape(editOuting.dataset.key)}"][data-idx="${editOuting.dataset.idx}"]`);
     if(input) input.focus();
+    return;
+  }
+  const fixDate = e.target.closest(".fixDate");
+  if(fixDate){
+    calDateEditing[fixDate.dataset.entrykey] = true;
+    renderDetail();
+    const input = document.querySelector(`.dateFixInput[data-entrykey="${CSS.escape(fixDate.dataset.entrykey)}"]`);
+    if(input){ input.focus(); if(input.showPicker) try{ input.showPicker(); }catch(err){} }
     return;
   }
   const undo = e.target.closest(".undoBtn");
@@ -393,11 +437,27 @@ function saveOutingEdit(input){
   delete calEditOuting[k+"|"+idx];
   renderGrid();
 }
+function saveDateFix(input){
+  const e = { key: input.dataset.key, type: input.dataset.type, kid: input.dataset.kid,
+    subject: input.dataset.subject, title: input.dataset.title };
+  applyDateFix(e, input.value);
+  delete calDateEditing[input.dataset.entrykey];
+  renderGrid();
+}
 document.addEventListener("focusout", e=>{
   const input = e.target.closest(".calOutingInput");
   if(input) saveCalOuting(input);
   const editInput = e.target.closest(".outingEditInput");
   if(editInput) saveOutingEdit(editInput);
+  // Also closes the date-fix editor if the user clicks away without changing anything —
+  // applyDateFix is a no-op when the date didn't actually change, so re-running it here
+  // (on top of the "change" listener below) is harmless.
+  const dateInput = e.target.closest(".dateFixInput");
+  if(dateInput) saveDateFix(dateInput);
+});
+document.addEventListener("change", e=>{
+  const dateInput = e.target.closest(".dateFixInput");
+  if(dateInput) saveDateFix(dateInput);
 });
 document.addEventListener("keydown", e=>{
   if(e.key==="Enter" && e.target.classList && e.target.classList.contains("calOutingInput")){
