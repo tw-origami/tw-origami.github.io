@@ -93,7 +93,7 @@ const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[]};
 const { dkey, dateKey, doneDate, isDone, setDone, todayISO, manualDoneOn, attachmentsDoneOn,
   combinedQueue, manualDoneKey, dailyPick, appLink, isScheduledOn, getCarryOver, getAllSubjects, getAssignedDate,
-  isSkipped } = window.LZ;
+  isSkipped, getCatchupReset } = window.LZ;
 // How many scheduled days back to look for a missed, uncaught-up lesson, and the most a
 // catch-up list will ever show at once (so a long absence doesn't dump a wall of lessons).
 const LOOKBACK_DAYS = 14, MAX_CATCHUP = 4;
@@ -192,11 +192,16 @@ function subjectDoneOn(kidId, sub, dateISO){
 function owedCount(kidId, sub){
   const today = todayISO();
   if(!getCarryOver(kidId, sub.subject)) return 1;
+  // A teacher can forgive whatever's already piled up (Master Tracker's "Reset catch-up")
+  // without turning carry-over off — the backward walk just stops at the reset date instead
+  // of continuing into the forgiven backlog, so a NEW miss after that date can still catch up.
+  const resetDate = getCatchupReset(kidId, sub.subject);
   let count = 1;
   const cursor = new Date(today+"T00:00:00");
   for(let i=0;i<LOOKBACK_DAYS && count<MAX_CATCHUP;i++){
     cursor.setDate(cursor.getDate()-1);
     const d = iso(cursor);
+    if(resetDate && d <= resetDate) break;
     if(!isScheduledOn(kidId, sub.subject, d)) continue;
     if(subjectDoneOn(kidId, sub, d)) break;
     count++;

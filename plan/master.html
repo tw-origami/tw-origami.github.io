@@ -176,6 +176,9 @@
   .newCatBtn{ display:inline-block; font-size:13px; font-weight:800; color:var(--accent); cursor:pointer;
     padding:9px 16px; border:2px dashed var(--accent); border-radius:11px; margin-bottom:14px; background:#fff; }
   .newCatBtn:hover{ background:#eff6ff; }
+  .resetCatchupBtn{ display:inline-block; font-size:12.5px; font-weight:800; color:var(--amber); cursor:pointer;
+    padding:7px 14px; border:2px solid #fde68a; border-radius:999px; background:#fffbeb; }
+  .resetCatchupBtn:hover{ background:#fef3c7; }
   .newCatForm{ background:#fff; border-radius:12px; padding:12px 14px; margin-bottom:14px; border:1px solid var(--line);
     display:flex; flex-direction:column; gap:8px; max-width:420px; }
   .newCatForm input[type="text"]{ font-size:14px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; font-family:inherit; }
@@ -198,6 +201,9 @@
     </div>
   </div>
   <div class="sub" id="sub">Everything both boys are working on. Check items off as they’re done — it saves automatically.</div>
+  <div id="resetCatchupRow" style="margin-bottom:10px;">
+    <span class="resetCatchupBtn" id="resetCatchupBtn" title="Wipe any pending catch-up backlog on the Week Preview so today starts clean for both kids. Carry-over stays on, so a new missed day can still pile up again after this.">🔄 Reset catch-up backlog (both kids)</span>
+  </div>
 
   <div class="controls">
     <div class="ctl"><label>Child</label>
@@ -225,7 +231,7 @@ const { slug, dkey, skey, dateKey, isDone, setDone, subjProgress, doneDate, getN
   getAttachments, addAttachment, removeAttachment, attachDoneKey, safeUrl, guessAttachKind,
   dailyPick, getScheduleDays, setScheduleDays, getCarryOver, setCarryOver,
   getAllSubjects, addCustomSubject, removeCustomSubject, addCustomLessons,
-  getAssignedDate, setAssignedDate, isSkipped, setSkipped } = window.LZ;
+  getAssignedDate, setAssignedDate, isSkipped, setSkipped, setCatchupReset } = window.LZ;
 // Mon-Sun display order for the Weekly Schedule editor (DOW_CODES elsewhere is Sun-first,
 // to match JS's Date.getDay(), but a school-week table reads better starting on Monday).
 const WEEK_UI = [["mon","Mon"],["tue","Tue"],["wed","Wed"],["thu","Thu"],["fri","Fri"],["sat","Sat"],["sun","Sun"]];
@@ -723,6 +729,17 @@ function cleanFromOrder(kid, subject, itemId){
 }
 
 document.addEventListener("click", e=>{
+  const resetCatchupBtn = e.target.closest("#resetCatchupBtn");
+  if(resetCatchupBtn){
+    if(window.confirm("Forgive any pending catch-up backlog for both kids, starting today? Carry-over stays on, so a new missed day can still pile up again after this.")){
+      const today = todayISO();
+      ["ryland","reid"].forEach(k=>{
+        getAllSubjects(k).filter(s=>s.kind!=="ongoing").forEach(s=> setCatchupReset(k, s.subject, today));
+      });
+      render();
+    }
+    return;
+  }
   const newCatBtn = e.target.closest("#newCatBtn");
   if(newCatBtn){
     newCatOpen = true; renderNewCat();

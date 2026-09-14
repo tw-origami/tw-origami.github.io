@@ -456,6 +456,18 @@
     localStorage.setItem(carryKey(kid, subject), on ? "1" : "0");
   }
 
+  // A one-time "forgive the backlog" marker per kid+subject — week.html's owedCount (which
+  // walks backward through scheduled days to tally catch-up lessons) stops looking past this
+  // date, even if carry-over is on and an earlier scheduled day went undone. Carry-over itself
+  // stays on: a day missed AFTER the reset date can still pile up catch-up again — this only
+  // wipes whatever was already owed through the reset date, it's not a way to turn catch-up
+  // off going forward (see setCarryOver for that).
+  function catchupResetKey(kid, subject){ return `lzCatchupReset|${kid}|${slug(subject)}`; }
+  function getCatchupReset(kid, subject){ return localStorage.getItem(catchupResetKey(kid, subject)) || null; }
+  function setCatchupReset(kid, subject, dateISO){
+    dateISO ? localStorage.setItem(catchupResetKey(kid, subject), dateISO) : localStorage.removeItem(catchupResetKey(kid, subject));
+  }
+
   window.LZ = { slug, dkey, skey, dateKey, noteKey, habitKey, skipKey, isSkipped, setSkipped, outingKey, journalKey, isDone, setDone, doneDate, getNote, setNote,
     getOutings, setOutings, getJournal, setJournal, scanKeys, todayISO, recurringForDate, ensureRecurringSeeded,
     undoneLessons, nextLesson, upcomingLessons, subjProgress, doneLessons, doneDatesForSubject,
@@ -465,7 +477,7 @@
     safeUrl, guessAttachKind, dailyPick, appLink,
     subjectBySlug, manualById, parseAttachDoneKey, attachmentsDoneOn, manualDoneOn,
     DOW_CODES, DEFAULT_SCHEDULE_DAYS, scheduleKey, getScheduleDays, setScheduleDays, dowCode, isScheduledOn,
-    carryKey, getCarryOver, setCarryOver,
+    carryKey, getCarryOver, setCarryOver, catchupResetKey, getCatchupReset, setCatchupReset,
     getAllSubjects, getCustomSubjects, addCustomSubject, removeCustomSubject, addCustomLessons,
     assignKey, getAssignedDate, setAssignedDate, subjectResumesOn };
 
