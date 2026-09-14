@@ -92,7 +92,8 @@
 const CUR = window.CURRICULUM || {};
 const CFG = window.LZ_CONFIG || {paused:[]};
 const { dkey, dateKey, doneDate, isDone, setDone, todayISO, manualDoneOn, attachmentsDoneOn,
-  combinedQueue, manualDoneKey, dailyPick, appLink, isScheduledOn, getCarryOver, getAllSubjects, getAssignedDate } = window.LZ;
+  combinedQueue, manualDoneKey, dailyPick, appLink, isScheduledOn, getCarryOver, getAllSubjects, getAssignedDate,
+  isSkipped } = window.LZ;
 // How many scheduled days back to look for a missed, uncaught-up lesson, and the most a
 // catch-up list will ever show at once (so a long absence doesn't dump a wall of lessons).
 const LOOKBACK_DAYS = 14, MAX_CATCHUP = 4;
@@ -216,6 +217,12 @@ function todoRowsForToday(kidId){
     if(!isScheduledOn(kidId, sub.subject, today)) return;
     if(doneSubs.has(sub.subject)) return;
     if(sub.kind==="ongoing"){
+      // A parent can excuse today entirely from the Master Tracker (Skip today) — show why
+      // it's absent from the to-do list instead of just silently dropping it.
+      if(isSkipped(kidId, sub.subject, today)){
+        rows.push(`<div class="doneline">⏭️ ${sub.subject} — not required today</div>`);
+        return;
+      }
       const k = dateKey(kidId, sub.subject, today);
       let extra = "";
       if(sub.pick==="daily"){

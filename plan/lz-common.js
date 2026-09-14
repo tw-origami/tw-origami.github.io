@@ -70,6 +70,17 @@
   // key prefix so it stays separate from subject/lesson records.
   function habitKey(kid,habit,dateISO){ return `lzHabit|${kid}|${slug(habit)}|${dateISO}`; }
 
+  // A parent's "not required today" flag for an "ongoing" subject (Math, Typing) on one
+  // specific date — separate from dateKey/isDone so excusing a day doesn't get confused with
+  // actually doing it: a skipped day shows on the calendar as excused, and it counts as
+  // neither missed nor completed. Same key-encodes-its-own-date shape as dateKey/habitKey, so
+  // it's a plain on/off flag (the date's already in the key, nothing else to store).
+  function skipKey(kid,subject,dateISO){ return `lzSkip|${kid}|${slug(subject)}|${dateISO}`; }
+  function isSkipped(kid,subject,dateISO){ return !!localStorage.getItem(skipKey(kid,subject,dateISO)); }
+  function setSkipped(kid,subject,dateISO,on){
+    on ? localStorage.setItem(skipKey(kid,subject,dateISO), "1") : localStorage.removeItem(skipKey(kid,subject,dateISO));
+  }
+
   // One kid's free-form diary entry for one day (the "Daily Journal") — separate from the
   // per-subject "+" notes and the Day Outing log; just one open-ended block of text per day.
   function journalKey(kid,dateISO){ return `lzJournal|${kid}|${dateISO}`; }
@@ -445,7 +456,7 @@
     localStorage.setItem(carryKey(kid, subject), on ? "1" : "0");
   }
 
-  window.LZ = { slug, dkey, skey, dateKey, noteKey, habitKey, outingKey, journalKey, isDone, setDone, doneDate, getNote, setNote,
+  window.LZ = { slug, dkey, skey, dateKey, noteKey, habitKey, skipKey, isSkipped, setSkipped, outingKey, journalKey, isDone, setDone, doneDate, getNote, setNote,
     getOutings, setOutings, getJournal, setJournal, scanKeys, todayISO, recurringForDate, ensureRecurringSeeded,
     undoneLessons, nextLesson, upcomingLessons, subjProgress, doneLessons, doneDatesForSubject,
     manualKey, getManualLessons, setManualLessons, addManualLesson, removeManualLesson, manualDoneKey,

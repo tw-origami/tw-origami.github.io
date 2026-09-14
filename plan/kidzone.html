@@ -127,7 +127,8 @@ const CFG = window.LZ_CONFIG || {paused:[]};
 const { slug, dkey, skey, dateKey, habitKey, outingKey, isDone, setDone, subjProgress,
   doneLessons, doneDate, todayISO, doneDatesForSubject, getOutings, setOutings,
   ensureRecurringSeeded, getManualLessons, manualDoneKey, combinedQueue, lessonItemId,
-  getAttachments, attachDoneKey, safeUrl, dailyPick, appLink, getAllSubjects, subjectResumesOn } = window.LZ;
+  getAttachments, attachDoneKey, safeUrl, dailyPick, appLink, getAllSubjects, subjectResumesOn,
+  isSkipped } = window.LZ;
 const KIDS = { ryland:{name:"Ryland",cls:"ry",grade:"6th grade"}, reid:{name:"Reid",cls:"reid",grade:"3rd/4th grade"} };
 
 // ?kid=ryland (or reid) in the URL locks this page to just that kid — no switcher tabs, and
@@ -324,13 +325,20 @@ function subjectCard(kidId, sub){
     } else {
       optsHtml = `<div class="opts"><b>Do:</b> ${(sub.options||[]).join(" or ")}${sub.note?`<br>${sub.note}`:""}</div>`;
     }
+    // A parent can excuse today entirely from the Master Tracker (Skip today) — shows a
+    // plain message here instead of a checkbox, same spirit as a paused book subject's
+    // "Resumes <date>" message below.
+    const skippedToday = !isDone(dateKey(kidId, sub.subject, today)) && isSkipped(kidId, sub.subject, today);
+    const todayHtml = skippedToday
+      ? `<div class="empty">⏭️ Not required today</div>`
+      : dayRow(kidId, sub, today, true);
     return `<div class="card">
       <div class="ch"><span class="s">${sub.subject}</span>
         <span class="prog">${allDates.length} day${allDates.length===1?'':'s'} done</span></div>
       ${optsHtml}
       ${doneSection}
       ${todayManualHtml}
-      ${dayRow(kidId, sub, today, true)}
+      ${todayHtml}
     </div>`;
   }
   // The upcoming queue mixes real book lessons with any teacher-inserted "extra" lessons

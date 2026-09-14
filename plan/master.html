@@ -144,6 +144,15 @@
     font-weight:800; font-size:12px; cursor:pointer; }
   .dateClearBtn, .dateCancelBtn{ background:#fff; color:var(--muted); border:1px solid var(--line); border-radius:6px;
     padding:6px 12px; font-weight:700; font-size:12px; cursor:pointer; }
+  /* excuse an ongoing subject's "today" row without marking it done */
+  .skipBtn{ flex:none; font-size:11px; font-weight:800; color:var(--muted); background:#f1f5f9; border-radius:999px;
+    padding:4px 10px; cursor:pointer; margin-left:auto; white-space:nowrap; }
+  .skipBtn:hover{ background:#e2e8f0; }
+  .skipBtn.on{ background:#fef3c7; color:var(--amber); }
+  .lesson.skipped{ cursor:default; opacity:.75; background:#f8fafc; }
+  .lesson.skipped .box{ border-color:var(--muted); color:var(--muted); font-weight:800; }
+  .skipPill{ display:inline-block; font-size:9.5px; font-weight:800; background:#f1f5f9; color:var(--muted);
+    padding:1px 7px; border-radius:999px; margin-left:6px; vertical-align:middle; }
   .sessboxes{ display:flex; gap:8px; margin-top:8px; }
   .sessboxes .box{ width:20px; height:20px; border:2px solid #94a3b8; border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; }
   .sessboxes .box.on{ background:var(--green); border-color:var(--green); }
@@ -216,7 +225,7 @@ const { slug, dkey, skey, dateKey, isDone, setDone, subjProgress, doneDate, getN
   getAttachments, addAttachment, removeAttachment, attachDoneKey, safeUrl, guessAttachKind,
   dailyPick, getScheduleDays, setScheduleDays, getCarryOver, setCarryOver,
   getAllSubjects, addCustomSubject, removeCustomSubject, addCustomLessons,
-  getAssignedDate, setAssignedDate } = window.LZ;
+  getAssignedDate, setAssignedDate, isSkipped, setSkipped } = window.LZ;
 // Mon-Sun display order for the Weekly Schedule editor (DOW_CODES elsewhere is Sun-first,
 // to match JS's Date.getDay(), but a school-week table reads better starting on Monday).
 const WEEK_UI = [["mon","Mon"],["tue","Tue"],["wed","Wed"],["thu","Thu"],["fri","Fri"],["sat","Sat"],["sun","Sun"]];
@@ -337,9 +346,9 @@ function lessonRow(kid,sub,les,isNext,draggableFlag){
     ${dragHandle(draggableFlag)}
     <div class="box">${done?'✓':''}</div>
     <div style="flex:1;"><span class="t">${les.t}${isNext?'<span class="nextpill">next</span>':''}</span> <span class="pg">p.${les.p}</span>${dateTag(kid, sub.subject, itemId, done, k)}</div>
+    ${dateBtn(kid, sub.subject, itemId, hasDate)}
     ${attachBtn(kid, sub.subject, itemId)}
     ${attachBlock(kid, sub.subject, itemId)}
-    ${dateBtn(kid, sub.subject, itemId, hasDate)}
     ${dateBlock(kid, sub.subject, itemId, done, k)}
   </div>`;
 }
@@ -357,9 +366,9 @@ function manualRow(kid,sub,manual,isNext,draggableFlag){
     ${dragHandle(draggableFlag)}
     <div class="box">${done?'✓':''}</div>
     <div style="flex:1;"><span class="t">${manual.title}${isNext?'<span class="nextpill">next</span>':''}</span> <span class="pg">${pageLabel}</span>${dateTag(kid, sub.subject, itemId, done, k)}</div>
+    ${dateBtn(kid, sub.subject, itemId, hasDate)}
     ${attachBtn(kid, sub.subject, itemId)}
     <span class="rmManual" data-kid="${kid}" data-subj="${sub.subject}" data-id="${manual.id}" data-confirm="Remove this inserted lesson?" title="Remove">✕</span>
-    ${dateBtn(kid, sub.subject, itemId, hasDate)}
     ${attachBlock(kid, sub.subject, itemId)}
     ${dateBlock(kid, sub.subject, itemId, done, k)}
   </div>`;
@@ -468,17 +477,30 @@ function subjectHistory(kid, sub){
 
 // Same idea for an "ongoing" subject (Math, Typing) — no fixed book, so the "lesson" is just
 // the calendar date itself. Same dateKey record print.html/kidzone.html/the calendar use.
+// "Skip today" (isNext only, and only while not done) marks the day as excused rather than
+// done or missed — see isSkipped/setSkipped in lz-common.js. While skipped, the box itself
+// isn't clickable (no data-k), so an accidental tap can't mark it done out from under the
+// skip; un-skip first, then check it off normally if it turns out it did happen after all.
 function dayRow(kid, sub, dateISO, isNext){
   const k = dateKey(kid, sub.subject, dateISO);
   const done = isDone(k);
+  const skipped = isNext && !done && isSkipped(kid, sub.subject, dateISO);
   const label = new Date(dateISO+"T00:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
   // An ongoing subject has no per-lesson rows to hang a link on, so its supplements attach
   // to the subject itself ("subject") and ride along on the current day's row.
-  const attach = isNext ? attachBtn(kid, sub.subject, "subject") + attachBlock(kid, sub.subject, "subject") : "";
-  return `<div class="lesson${done?' done':''}${isNext?' next':''}" data-k="${k}">
-    <div class="box">${done?'✓':''}</div>
-    <div style="flex:1;"><span class="t">${sub.subject}${isNext?'<span class="nextpill">today</span>':''}</span> <span class="pg">${label}</span></div>
-    ${attach}
+  const attachBtnHtml = isNext ? attachBtn(kid, sub.subject, "subject") : "";
+  const attachBlockHtml = isNext ? attachBlock(kid, sub.subject, "subject") : "";
+  const skipBtn = (isNext && !done)
+    ? `<span class="skipBtn${skipped?' on':''}" data-kid="${kid}" data-subj="${escapeAttr(sub.subject)}" data-date="${dateISO}"
+        title="${skipped?'Undo — this is due again today':'Not required today'}">${skipped?'↩︎ Unskip':'⏭ Skip today'}</span>`
+    : "";
+  const dataK = skipped ? "" : ` data-k="${k}"`;
+  return `<div class="lesson${done?' done':''}${isNext?' next':''}${skipped?' skipped':''}"${dataK}>
+    <div class="box">${done?'✓':skipped?'—':''}</div>
+    <div style="flex:1;"><span class="t">${sub.subject}${isNext?(skipped?'<span class="skipPill">skipped</span>':'<span class="nextpill">today</span>'):''}</span> <span class="pg">${label}</span></div>
+    ${attachBtnHtml}
+    ${skipBtn}
+    ${attachBlockHtml}
   </div>`;
 }
 function ongoingHistory(kid, sub){
@@ -837,6 +859,15 @@ document.addEventListener("click", e=>{
     const { kid, subj, item } = dateClear.dataset;
     setAssignedDate(kid, subj, item, null);
     dateOpen[kid+"|"+subj+"|"+item] = false;
+    render();
+    return;
+  }
+  // --- excuse an ongoing subject's "today" row (📅's counterpart for subjects with no
+  // per-lesson rows to pin a date on) — also matched before the [data-k] check.
+  const skipToggle = e.target.closest(".skipBtn");
+  if(skipToggle){
+    const { kid, subj, date } = skipToggle.dataset;
+    setSkipped(kid, subj, date, !isSkipped(kid, subj, date));
     render();
     return;
   }

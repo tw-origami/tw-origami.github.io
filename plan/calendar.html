@@ -60,6 +60,7 @@
   .entry.note{ border-left-color:var(--amber); background:#fffbeb; border-radius:0 6px 6px 0; }
   .entry.habit{ border-left-color:var(--amber); }
   .entry.planned{ border-left-color:var(--amber); border-left-style:dashed; background:#fffbeb; }
+  .entry.skipped{ border-left-color:var(--muted); border-left-style:dashed; background:#f8fafc; opacity:.85; }
   .entry.outing{ border-left-color:#16a34a; background:#f0fdf4; border-radius:0 6px 6px 0; }
   .ochk{ display:inline-flex; align-items:center; justify-content:center; flex:none; width:16px; height:16px;
     border:2px solid #86efac; border-radius:5px; font-size:10px; font-weight:900; color:#fff; margin-right:2px;
@@ -192,6 +193,14 @@ function buildActivityIndex(){
     const parts = k.split("|"); const kid=parts[1], subjSlug=parts[2], d=parts[3];
     const sub = findSubjectBySlug(kid, subjSlug);
     if(sub && isDone(k)) add(d, {kid, subject:sub.subject, type:"ongoing", key:k});
+  });
+  // A day a parent explicitly excused for an "ongoing" subject (Master Tracker's Skip today)
+  // — shown so the calendar makes clear it was excused, not just forgotten. isDone doubles as
+  // a generic "does this key have a truthy value" check, which works fine for a plain flag too.
+  scanKeys("lzSkip|").forEach(k=>{
+    const parts = k.split("|"); const kid=parts[1], subjSlug=parts[2], d=parts[3];
+    const sub = findSubjectBySlug(kid, subjSlug);
+    if(sub && isDone(k)) add(d, {kid, subject:sub.subject, type:"skipped", key:k});
   });
   scanKeys("lzNote|").forEach(k=>{
     const parts = k.split("|"); const kid=parts[1], subjSlug=parts[2], d=parts[3];
@@ -343,6 +352,10 @@ function renderDetail(){
         confirmMsg = `Mark "${e.title}" as not ${e.kind==="video"?"watched":"read"} again?`;
       }
       else if(e.type==="ongoing"){ inner = `<b>${e.subject}</b> — done`; confirmMsg = `Remove this ${e.subject} check-off for this day?`; }
+      else if(e.type==="skipped"){
+        inner = `<b>${e.subject}</b> — ⏭️ not required <span style="color:var(--muted);font-weight:600;">(skipped)</span>`;
+        confirmMsg = `Un-skip ${e.subject} for this day? It'll go back to being a normal to-do.`;
+      }
       else if(e.type==="planned"){
         inner = `<b>${e.subject}:</b> 📌 ${e.title}${e.page?` — p.${e.page}`:""} <span style="color:var(--muted);font-weight:600;">(planned)</span>`;
         confirmMsg = `Remove the planned date for "${e.title}"? It'll just go back to being next in the queue whenever it's reached.`;
