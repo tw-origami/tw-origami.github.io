@@ -232,15 +232,6 @@ window.CURRICULUM = {
    ]
   },
   {
-   "subject": "Book Report",
-   "book": "",
-   "goal": 5,
-   "options": [],
-   "kind": "ongoing",
-   "lessons": [],
-   "note": "Read a chapter each day — no fixed book, just keep reading."
-  },
-  {
    "subject": "Grammar / Word Study",
    "book": "Word Study & Phonics 6",
    "goal": 3,
@@ -1669,15 +1660,6 @@ window.CURRICULUM = {
      "done": false
     }
    ]
-  },
-  {
-   "subject": "Book Report",
-   "book": "",
-   "goal": 5,
-   "options": [],
-   "kind": "ongoing",
-   "lessons": [],
-   "note": "Read a chapter each day — no fixed book, just keep reading."
   },
   {
    "subject": "Grammar / Word Study",
