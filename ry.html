@@ -4,189 +4,434 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
 <title>Ryland's Zone · The Learn Zone</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-  :root{ --ink:#1e293b; --muted:#64748b; --ry:#4f46e5; --ry-soft:#eef2ff; --green:#166534; --amber:#b45309;
-    --shadow:0 10px 30px rgba(30,41,99,.12); --line:#e2e8f0; }
+  :root{ --ink:#231f3d; --meta:#6b6885; --ry:#2563eb; --ry-deep:#1d4ed8; --cream:#fffdf8;
+    --green:#16a34a; --amber:#f59e0b; --line:#e5e1f2; --display:'Baloo 2',system-ui,sans-serif; }
   *{ box-sizing:border-box; }
   html,body{ height:100%; }
-  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
-    background:linear-gradient(160deg,#eef2ff,#f8fafc); display:flex; flex-direction:column; }
-  .top{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 18px; flex-wrap:wrap; }
-  h1{ font-size:24px; margin:0; color:var(--ry); }
-  .back{ text-decoration:none; color:var(--ry); font-weight:800; font-size:13.5px; background:#fff; padding:8px 14px; border-radius:999px; box-shadow:var(--shadow); }
-  .tabs{ display:flex; gap:8px; padding:0 18px 12px; }
-  .tab{ border:2px solid var(--ry-soft); background:#fff; border-radius:999px; padding:9px 20px; font-weight:800; cursor:pointer; font-size:14.5px; color:var(--muted); }
-  .tab.active{ background:var(--ry); border-color:var(--ry); color:#fff; }
-  .view-wrap{ flex:1; min-height:0; padding:0 12px 12px; }
+  body{ margin:0; font-family:Nunito,-apple-system,BlinkMacSystemFont,system-ui,sans-serif; color:var(--ink);
+    background:var(--cream); display:flex; }
+  a{ color:var(--ry); }
+  a:hover{ color:var(--ry-deep); }
+
+  /* ---------- left rail ---------- */
+  .rail{ flex:none; width:312px; background:var(--ry); color:#fff; padding:26px 24px; display:flex;
+    flex-direction:column; gap:18px; overflow:auto; }
+  .rail h1{ font-family:var(--display); font-size:24px; font-weight:700; line-height:1.05; margin:0; }
+  .rail .date{ font-size:13px; font-weight:700; color:#bfdbfe; }
+  .dialbox{ display:flex; align-items:center; gap:16px; background:rgba(255,255,255,.12); border-radius:20px; padding:16px; }
+  .dial{ flex:none; width:86px; height:86px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+  .dial i{ width:64px; height:64px; border-radius:50%; background:var(--ry); display:flex; align-items:center;
+    justify-content:center; font-family:var(--display); font-size:23px; font-weight:700; font-style:normal; }
+  .dialbox .left{ font-family:var(--display); font-size:20px; font-weight:700; line-height:1.1; }
+  .dialbox .streak{ font-size:12.5px; font-weight:700; color:#bfdbfe; }
+  .rail .lbl{ font-size:11px; font-weight:900; letter-spacing:1.3px; text-transform:uppercase; color:#bfdbfe; margin-bottom:9px; }
+  .rrow{ display:flex; align-items:center; gap:11px; white-space:nowrap; font-size:14.5px; font-weight:800; padding:3px 0; cursor:pointer; }
+  .rbox{ flex:none; width:23px; height:23px; border-radius:8px; border:3px solid rgba(255,255,255,.45);
+    display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:900; color:var(--ry); }
+  .rrow.on .rbox{ background:#fbbf24; border-color:#fbbf24; }
+  .rrow.on span{ text-decoration:line-through; color:#bfdbfe; }
+  .rrow .rm{ margin-left:auto; font-size:12px; font-weight:900; color:#bfdbfe; opacity:.7; }
+  .rrow .rm:hover{ opacity:1; }
+  .addOuting{ font-size:13px; font-weight:800; color:#bfdbfe; cursor:pointer; padding:7px; text-align:center;
+    border:2px dashed rgba(255,255,255,.35); border-radius:10px; margin-top:6px; }
+  .addOuting:hover{ color:#fff; border-color:#fff; }
+  .outinginput{ width:100%; font-size:14px; font-weight:700; padding:9px 11px; border:none; border-radius:10px;
+    font-family:inherit; margin-top:6px; }
+  .jwrap{ flex:1; min-height:120px; display:flex; flex-direction:column; }
+  .jwrap textarea{ flex:1; width:100%; min-height:90px; background:rgba(255,255,255,.12); border:none; border-radius:16px;
+    padding:12px; color:#fff; font-family:inherit; font-size:13.5px; font-weight:600; resize:none; }
+  .jwrap textarea::placeholder{ color:#bfdbfe; }
+  .jsaved{ font-size:11px; font-weight:800; color:#bfdbfe; height:14px; margin-top:5px; }
+  .railnav{ display:flex; flex-wrap:wrap; gap:8px; }
+  .railnav a, .railnav .pill{ text-decoration:none; font-size:12.5px; font-weight:800; color:#dbeafe;
+    background:rgba(255,255,255,.14); padding:8px 12px; border-radius:999px; cursor:pointer; }
+  .railnav .pill.active{ background:#fff; color:var(--ry); }
+
+  /* ---------- main ---------- */
+  .main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .mainhead{ display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; padding:26px 34px 14px; }
+  .mainhead h2{ font-family:var(--display); font-size:27px; font-weight:700; margin:0; }
+  .mainhead .hint{ font-size:13.5px; font-weight:700; color:var(--meta); }
+  .route{ flex:1; min-height:0; overflow:auto; padding:0 34px 26px; display:flex; flex-direction:column; gap:10px; }
+
+  .stop{ display:flex; align-items:center; gap:16px; }
+  .sbox{ flex:none; width:34px; height:34px; border-radius:50%; border:3px solid #d7d3ea; background:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:900; color:#fff; cursor:pointer; }
+  .stop.done{ opacity:.55; }
+  .stop.done .sbox{ background:var(--green); border-color:var(--green); }
+  .stop .t{ font-size:16.5px; font-weight:800; flex:1; min-width:0; }
+  .stop.done .t{ text-decoration:line-through; font-size:16px; }
+  .stop .pg{ flex:none; font-size:13px; font-weight:700; color:var(--meta); white-space:nowrap; }
+  .stop .go{ font-size:13px; font-weight:800; text-decoration:none; }
+
+  .nowstop{ display:flex; gap:16px; align-items:stretch; }
+  .nowstop .sbox{ border:4px solid var(--ry); cursor:default; }
+  .nowcard{ flex:1; min-width:0; background:var(--ry); color:#fff; border-radius:22px; padding:22px 26px;
+    display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+  .nowcard .kick{ font-size:11.5px; font-weight:900; letter-spacing:1.4px; text-transform:uppercase; color:#bfdbfe; }
+  .nowcard .title{ font-family:var(--display); font-size:34px; font-weight:700; line-height:1.1; margin:5px 0 4px; text-wrap:pretty; }
+  .nowcard .meta{ font-size:14.5px; font-weight:700; color:#dbeafe; }
+  .nowcard .meta a{ color:#fff; font-weight:800; }
+  .finish{ flex:none; background:#fff; color:var(--ry); font-weight:900; font-size:16px; padding:14px 24px;
+    border:none; border-radius:14px; font-family:inherit; cursor:pointer; }
+  .finish:hover{ background:#eff6ff; }
+
+  .attachRow{ display:flex; align-items:center; gap:9px; font-size:14px; font-weight:700; padding:3px 0 3px 50px; }
+  .nowcard .attachWrap{ flex-basis:100%; margin-top:12px; }
+  .nowcard .attachRow{ padding-left:0; color:#dbeafe; }
+  .attachCheck{ flex:none; width:22px; height:22px; border-radius:50%; border:3px solid #cfcbe6; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900; color:#fff; }
+  .nowcard .attachCheck{ border-color:rgba(255,255,255,.55); }
+  .attachCheck.on{ background:var(--green); border-color:var(--green); }
+  .nowcard .attachCheck.on{ background:#fbbf24; border-color:#fbbf24; color:var(--ry); }
+  .attachLink{ font-weight:800; text-decoration:none; }
+  .nowcard .attachLink{ color:#fff; }
+  .attachLink.bad{ color:#b91c1c; font-style:italic; }
+
+  .endflag{ display:flex; align-items:center; gap:16px; margin-top:6px; }
+  .endflag .ic{ flex:none; width:34px; height:34px; border-radius:50%; background:#fef3c7; display:flex;
+    align-items:center; justify-content:center; font-size:17px; }
+  .endflag .msg{ flex:1; background:#fef3c7; border-radius:16px; padding:14px 20px; font-family:var(--display);
+    font-size:19px; font-weight:700; color:#92400e; }
+  .endflag.done .ic, .endflag.done .msg{ background:#dcfce7; color:#166534; }
+  .pausednote{ font-size:12.5px; font-weight:700; color:var(--meta); padding:4px 0 0 50px; }
+
+  .frame{ flex:1; min-height:0; padding:0 18px 18px; }
+  .frame iframe{ width:100%; height:100%; border:none; border-radius:18px; background:#fff;
+    box-shadow:0 10px 30px rgba(30,41,99,.10); display:block; }
   .hide{ display:none !important; }
-  iframe{ width:100%; height:100%; border:none; border-radius:18px; box-shadow:var(--shadow); background:#fff; display:block; }
 
-  .split{ display:flex; gap:12px; height:100%; }
-  .split-left{ flex:1.3; min-width:0; }
-  .split-right{ flex:1; min-width:0; display:flex; flex-direction:column; gap:12px; }
-  .donetoday{ background:#fff; border-radius:18px; box-shadow:var(--shadow); padding:14px 16px; max-height:48%; overflow:auto; flex:none; }
-  .donetoday h3{ margin:0 0 8px; font-size:15px; color:var(--green); }
-  .dt-row{ display:flex; align-items:flex-start; gap:9px; padding:6px 2px; border-bottom:1px solid #f1f5f9; font-size:13px; }
-  .dt-row:last-child{ border-bottom:none; }
-  .dt-ic{ flex:none; width:20px; height:20px; border-radius:6px; background:var(--green); color:#fff; font-size:12px;
-    font-weight:800; display:flex; align-items:center; justify-content:center; }
-  .dt-row.dt-note .dt-ic{ background:var(--amber); }
-  .dt-subj{ display:block; font-weight:800; font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; }
-  .dt-txt{ display:block; font-weight:600; }
-  .dt-row.dt-note .dt-txt{ font-style:italic; }
-  .donetoday .empty{ color:var(--muted); font-size:13px; padding:6px 2px; }
-  .journalbox{ background:#fff; border-radius:18px; box-shadow:var(--shadow); padding:14px 16px; flex:1; min-height:0; display:flex; flex-direction:column; }
-  .journalbox h3{ margin:0 0 8px; font-size:15px; color:var(--ry); flex:none; }
-  .journalbox textarea{ flex:1; width:100%; min-height:60px; font-size:14px; padding:10px; border:1px solid var(--line);
-    border-radius:10px; font-family:inherit; resize:none; }
-  .journalbox .savedNote{ font-size:11px; color:var(--muted); margin-top:4px; height:14px; flex:none; }
-
-  @media (max-width:760px){
-    .split{ flex-direction:column; height:auto; }
-    .split-left{ height:55vh; }
-    .split-right{ height:55vh; }
-    .donetoday{ max-height:200px; }
+  @media (max-width:900px){
+    body{ flex-direction:column; height:auto; }
+    .rail{ width:100%; }
+    .route{ overflow:visible; }
+    .frame{ height:80vh; }
   }
 </style>
 </head>
 <body>
-  <div class="top">
-    <h1>🧑‍🎓 Ryland's Zone</h1>
-    <a class="back" href="index.html">← The Learn Zone</a>
+
+<div class="rail">
+  <div>
+    <h1>Ryland's day</h1>
+    <div class="date" id="todayLabel"></div>
   </div>
-  <div class="tabs">
-    <div class="tab active" data-tab="work">🧭 Today's Adventure</div>
-    <div class="tab" data-tab="week">🗂️ Week Preview</div>
-    <div class="tab" data-tab="cal">🗓️ My Calendar</div>
-    <div class="tab" data-tab="journal">📔 Daily Journal</div>
-  </div>
-  <div class="view-wrap">
-    <div id="viewWork" class="split">
-      <div class="split-left"><iframe id="fWork" src="plan/kidzone.html?kid=ryland"></iframe></div>
-      <div class="split-right">
-        <div class="donetoday">
-          <h3>✅ Done today</h3>
-          <div id="doneTodayList"></div>
-        </div>
-        <div class="journalbox">
-          <h3>📔 Daily Journal</h3>
-          <textarea id="journalInput" placeholder="Write about your day..."></textarea>
-          <div class="savedNote" id="journalSaved"></div>
-        </div>
-      </div>
-    </div>
-    <div id="viewWeek" class="hide" style="height:100%;">
-      <iframe id="fWeek" src="plan/week.html?kid=ryland"></iframe>
-    </div>
-    <div id="viewCal" class="hide" style="height:100%;">
-      <iframe id="fCalFull" src="plan/calendar.html?kid=ryland"></iframe>
-    </div>
-    <div id="viewJournal" class="hide" style="height:100%;">
-      <iframe id="fJournal" src="plan/journal.html?kid=ryland"></iframe>
+
+  <div class="dialbox">
+    <div class="dial" id="dial"><i id="dialText">0/0</i></div>
+    <div>
+      <div class="left" id="stopsLeft">—</div>
+      <div class="streak" id="streak"></div>
     </div>
   </div>
+
+  <div>
+    <div class="lbl">Every day</div>
+    <div id="habitList"></div>
+    <div id="outingList"></div>
+  </div>
+
+  <div class="jwrap">
+    <div class="lbl">Journal</div>
+    <textarea id="journalInput" placeholder="One line about today..."></textarea>
+    <div class="jsaved" id="journalSaved"></div>
+  </div>
+
+  <div class="railnav">
+    <span class="pill active" data-tab="work">Today</span>
+    <span class="pill" data-tab="week">Week</span>
+    <span class="pill" data-tab="cal">Calendar</span>
+    <span class="pill" data-tab="journal">Journal</span>
+    <a href="index.html">← Learn Zone</a>
+  </div>
+</div>
+
+<div class="main">
+  <div id="viewWork" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+    <div class="mainhead">
+      <h2>Today's route</h2>
+      <div class="hint" id="routeHint"></div>
+    </div>
+    <div class="route" id="routeList"></div>
+  </div>
+  <div id="viewWeek" class="frame hide"><iframe id="fWeek" data-src="plan/week.html?kid=ryland"></iframe></div>
+  <div id="viewCal" class="frame hide"><iframe id="fCal" data-src="plan/calendar.html?kid=ryland"></iframe></div>
+  <div id="viewJournal" class="frame hide"><iframe id="fJournal" data-src="plan/journal.html?kid=ryland"></iframe></div>
+</div>
 
 <script src="plan/curriculum.js"></script>
 <script src="plan/lz-common.js"></script>
 <script>
 const KID = "ryland";
-const CUR = window.CURRICULUM || {};
-const CFG = window.LZ_CONFIG || {paused:[]};
-const { dkey, doneDate, doneDatesForSubject, noteKey, getNote, todayISO, isDone, habitKey, outingKey, getOutings,
-  journalKey, getJournal, setJournal, manualDoneOn, attachmentsDoneOn, getAllSubjects } = window.LZ;
+const CFG = window.LZ_CONFIG || {paused:[], habits:[]};
+const { dkey, dateKey, doneDate, doneDatesForSubject, todayISO, isDone, setDone, habitKey, outingKey,
+  getOutings, setOutings, journalKey, getJournal, setJournal, getAllSubjects, combinedQueue, lessonItemId,
+  getManualLessons, manualDoneKey, getAttachments, attachDoneKey, safeUrl, dailyPick, appLink,
+  ensureRecurringSeeded, isSkipped, subjectResumesOn, scanKeys } = window.LZ;
 
-document.querySelectorAll(".tab").forEach(t=>{
-  t.addEventListener("click", ()=>{
-    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
-    t.classList.add("active");
-    document.getElementById("viewWork").classList.toggle("hide", t.dataset.tab!=="work");
-    document.getElementById("viewWeek").classList.toggle("hide", t.dataset.tab!=="week");
-    document.getElementById("viewCal").classList.toggle("hide", t.dataset.tab!=="cal");
-    document.getElementById("viewJournal").classList.toggle("hide", t.dataset.tab!=="journal");
+function stopLabel(s){ return s.title===s.subject ? esc(s.subject) : esc(s.subject)+" — "+esc(s.title); }
+function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;"); }
+
+/* ---------- tabs: Today is rendered natively; the other three stay iframes ---------- */
+document.querySelectorAll(".railnav .pill").forEach(p=>{
+  p.addEventListener("click", ()=>{
+    document.querySelectorAll(".railnav .pill").forEach(x=>x.classList.remove("active"));
+    p.classList.add("active");
+    const t = p.dataset.tab;
+    document.getElementById("viewWork").classList.toggle("hide", t!=="work");
+    document.getElementById("viewWeek").classList.toggle("hide", t!=="week");
+    document.getElementById("viewCal").classList.toggle("hide", t!=="cal");
+    document.getElementById("viewJournal").classList.toggle("hide", t!=="journal");
+    // Loaded on first visit only, so opening this page doesn't boot three extra pages.
+    const frame = {week:"fWeek", cal:"fCal", journal:"fJournal"}[t];
+    if(frame){ const f = document.getElementById(frame); if(!f.src && f.dataset.src) f.src = f.dataset.src; }
   });
 });
 
-// A flat "what happened today" list, pulled straight from the same localStorage records
-// kidzone.html (in the left iframe) writes to — so checking something off there updates
-// this panel without needing its own copy of the checklist UI.
-function buildDoneToday(){
-  const subs = (getAllSubjects(KID)||[]).filter(s=>!(CFG.paused||[]).includes(s.subject));
+/* ---------- the route: one stop per active subject, in curriculum order ----------
+   Same records as before (dkey / dateKey / manualDoneKey), so checking a stop off here
+   still shows up on the Master Tracker, calendar and daily sheets. */
+function buildRoute(){
   const today = todayISO();
-  const items = [];
+  const subs = (getAllSubjects(KID)||[]).filter(s=>!(CFG.paused||[]).includes(s.subject));
+  const stops = [];
   subs.forEach(sub=>{
     if(sub.kind==="ongoing"){
-      if(doneDatesForSubject(KID, sub.subject).includes(today)){
-        items.push({subject:sub.subject, icon:"✓", text:"Done today"});
+      const k = dateKey(KID, sub.subject, today);
+      const done = isDone(k);
+      if(!done && isSkipped(KID, sub.subject, today)) return; // parent excused it today
+      // A subject with a short options list shows it ("Khan Academy or Learn Zone (15 min)");
+      // one with none (Book Report) falls back to its own descriptive note instead of a
+      // blank line.
+      let title = sub.subject, note = (sub.options||[]).length ? (sub.options||[]).join(" or ") : (sub.note||""), link = "";
+      if(sub.pick === "daily"){
+        const choice = dailyPick(KID, sub.subject, today, sub.options);
+        title = choice || sub.subject;
+        note = sub.subject + " · today's pick";
+        link = appLink(choice);
       }
-    } else {
-      (sub.lessons||[]).forEach(l=>{
-        if(doneDate(dkey(KID,sub,l))===today){
-          items.push({subject:sub.subject, icon:"✓", text:l.t+(l.p?` (p.${l.p})`:"")});
-        }
+      stops.push({key:k, subject:sub.subject, title, note, link, done, itemId:"subject"});
+      // A teacher-inserted one-off task for today (Master Tracker's "+ Add one-off task" on
+      // an ongoing subject, e.g. "Khan Academy instead") — its own stop, same manualDoneKey
+      // record everywhere else reads/writes.
+      getManualLessons(KID, sub.subject).filter(m=>m.date===today).forEach(m=>{
+        const mk = manualDoneKey(KID, sub.subject, m.id);
+        stops.push({key:mk, subject:sub.subject, title:m.title, note:"extra for today", done:isDone(mk), itemId:"m|"+m.id});
       });
+      return;
     }
-    const note = getNote(noteKey(KID, sub.subject, today));
-    if(note) items.push({subject:sub.subject, icon:"✎", text:note, isNote:true});
+    // Book subject: anything finished today stays visible as a done stop; otherwise the
+    // front of the queue is the one thing to do.
+    const doneToday = (sub.lessons||[]).filter(l=>doneDate(dkey(KID,sub,l))===today);
+    const manualDoneToday = getManualLessons(KID, sub.subject)
+      .filter(m=>!m.date && doneDate(manualDoneKey(KID,sub.subject,m.id))===today);
+    if(doneToday.length || manualDoneToday.length){
+      doneToday.forEach(l=>stops.push({key:dkey(KID,sub,l), subject:sub.subject, title:l.t,
+        note:(sub.book||sub.subject)+(l.p?" · p."+l.p:""), done:true, itemId:lessonItemId(l)}));
+      manualDoneToday.forEach(m=>stops.push({key:manualDoneKey(KID,sub.subject,m.id), subject:sub.subject,
+        title:m.title, note:(m.page?"p."+m.page:"extra"), done:true, itemId:"m|"+m.id}));
+      return;
+    }
+    const queue = combinedQueue(KID, sub);
+    if(!queue.length) return;                                   // caught up in the book
+    const resume = subjectResumesOn(KID, sub);
+    if(resume && resume > today) return;                         // pinned to a later day
+    const item = queue[0];
+    if(item.kind === "real"){
+      stops.push({key:dkey(KID,sub,item.lesson), subject:sub.subject, title:item.lesson.t,
+        note:(sub.book||sub.subject)+(item.lesson.p?" · p."+item.lesson.p:""), done:false, itemId:item.id});
+    } else {
+      stops.push({key:manualDoneKey(KID,sub.subject,item.manual.id), subject:sub.subject,
+        title:item.manual.title, note:(item.manual.page?"p."+item.manual.page:"extra"), done:false, itemId:item.id});
+    }
   });
-  // Teacher-inserted lessons live under their own key prefix, not in sub.lessons, so they
-  // need their own pass — otherwise finishing one wouldn't show up here at all.
-  manualDoneOn(KID, today).forEach(m=>{
-    items.push({subject:m.subject, icon:"✓", text:m.title+(m.page?` (p.${m.page})`:"")});
-  });
-  // Supplement videos/articles the kid ticked as watched or read.
-  attachmentsDoneOn(KID, today).forEach(a=>{
-    items.push({subject:a.subject, icon:a.kind==="video"?"📺":"📄", text:a.title});
-  });
-  (CFG.habits||[]).forEach(h=>{
-    if(isDone(habitKey(KID, h, today))) items.push({subject:"Daily habit", icon:"✓", text:h});
-  });
-  getOutings(outingKey(KID, today)).filter(o=>o.done).forEach(o=>{
-    items.push({subject:"Day outing", icon:"🌳", text:o.text});
-  });
-  return items;
-}
-function renderDoneToday(){
-  const items = buildDoneToday();
-  const el = document.getElementById("doneTodayList");
-  el.innerHTML = items.length
-    ? items.map(it=>`<div class="dt-row${it.isNote?' dt-note':''}"><span class="dt-ic">${it.icon}</span>
-        <div><span class="dt-subj">${it.subject}</span><span class="dt-txt">${it.text}</span></div></div>`).join("")
-    : `<div class="empty">Nothing checked off yet today.</div>`;
+  return stops;
 }
 
-// Compact quick-write box, right on the main tab — saves to the exact same lzJournal record
-// the full Daily Journal tab (journal.html) reads/writes, so either one always shows the
-// latest text.
-const journalInputEl = document.getElementById("journalInput");
-function loadJournalInput(){
-  if(document.activeElement === journalInputEl) return; // don't yank focus while typing
-  journalInputEl.value = getJournal(journalKey(KID, todayISO()));
+function attachBlock(stop){
+  const list = getAttachments(KID, stop.subject, stop.itemId);
+  if(!list.length) return "";
+  return `<div class="attachWrap">` + list.map(a=>{
+    const dk = attachDoneKey(KID, stop.subject, stop.itemId, a.id);
+    const done = isDone(dk);
+    const href = safeUrl(a.url);
+    const label = a.title || a.url || "(link)";
+    const inner = href
+      ? `<a class="attachLink" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>`
+      : `<span class="attachLink bad">${esc(label)}</span>`;
+    return `<div class="attachRow"><span class="attachCheck${done?' on':''}" data-attachdone="${esc(dk)}"
+      title="${a.kind==="video"?"Mark as watched":"Mark as read"}">${done?'✓':''}</span>
+      <span>${a.kind==="video"?'📺':'📄'}</span>${inner}</div>`;
+  }).join("") + `</div>`;
 }
-let journalSaveTimer = null;
-journalInputEl.addEventListener("input", e=>{
-  clearTimeout(journalSaveTimer);
+
+function doneStopHtml(s){
+  return `<div class="stop done">
+    <div class="sbox" data-toggle="${esc(s.key)}" title="Undo">✓</div>
+    <div class="t">${stopLabel(s)}</div>
+    <div class="pg">done</div>
+  </div>` + attachBlock(s);
+}
+function nextStopHtml(s){
+  return `<div class="stop">
+    <div class="sbox" data-toggle="${esc(s.key)}" title="Check it off"></div>
+    <div class="t">${stopLabel(s)}</div>
+    <div class="pg">${esc(s.note)}</div>
+    ${s.link?`<a class="go" href="${esc(s.link)}" target="_blank" rel="noopener">Open →</a>`:""}
+  </div>` + attachBlock(s);
+}
+function nowStopHtml(s, position){
+  return `<div class="nowstop">
+    <div class="sbox"></div>
+    <div class="nowcard">
+      <div style="flex:1;min-width:0;">
+        <div class="kick">You are here · stop ${position} · ${esc(s.subject)}</div>
+        <div class="title">${esc(s.title)}</div>
+        <div class="meta">${esc(s.note)}${s.link?` · <a href="${esc(s.link)}" target="_blank" rel="noopener">Open it →</a>`:""}</div>
+      </div>
+      <button class="finish" data-toggle="${esc(s.key)}">✓ Finished</button>
+      ${attachBlock(s)}
+    </div>
+  </div>`;
+}
+
+function renderRoute(){
+  const stops = buildRoute();
+  const done = stops.filter(s=>s.done);
+  const left = stops.filter(s=>!s.done);
+  const total = stops.length;
+
+  const pct = total ? Math.round(done.length/total*100) : 0;
+  document.getElementById("dial").style.background =
+    `conic-gradient(#fbbf24 0 ${pct}%, rgba(255,255,255,.2) ${pct}% 100%)`;
+  document.getElementById("dialText").textContent = `${done.length}/${total}`;
+  document.getElementById("stopsLeft").textContent = left.length
+    ? `${left.length} stop${left.length===1?'':'s'} left` : "All done!";
+  document.getElementById("routeHint").textContent = left.length
+    ? `Work down the line — you're at stop ${done.length+1} of ${total}`
+    : "Every stop is checked off. Nice work.";
+
+  let html = done.map(doneStopHtml).join("");
+  if(left.length){
+    html += nowStopHtml(left[0], done.length+1);
+    html += left.slice(1).map(nextStopHtml).join("");
+    html += `<div class="endflag"><div class="ic">🎉</div><div class="msg">Finish all ${total} and today's adventure is complete</div></div>`;
+  } else if(total){
+    html += `<div class="endflag done"><div class="ic">🎉</div><div class="msg">Today's adventure is complete!</div></div>`;
+  } else {
+    html += `<div class="endflag done"><div class="ic">🌞</div><div class="msg">Nothing scheduled today — go outside.</div></div>`;
+  }
+  if((CFG.paused||[]).length) html += `<div class="pausednote">Paused for now: ${esc(CFG.paused.join(", "))}</div>`;
+  document.getElementById("routeList").innerHTML = html;
+}
+
+/* ---------- habits + outings, same keys as kidzone.html ---------- */
+let outingEditing = false;
+function renderRail(){
+  const today = todayISO();
+  document.getElementById("habitList").innerHTML = (CFG.habits||[]).map(h=>{
+    const k = habitKey(KID, h, today);
+    const on = isDone(k);
+    return `<div class="rrow${on?' on':''}" data-toggle="${esc(k)}"><div class="rbox">${on?'✓':''}</div><span>${esc(h)}</span></div>`;
+  }).join("");
+
+  const ok = outingKey(KID, today);
+  const outings = getOutings(ok);
+  document.getElementById("outingList").innerHTML = outings.map((o,i)=>
+    `<div class="rrow${o.done?' on':''}"><div class="rbox" data-outingtoggle="${esc(ok)}" data-idx="${i}">${o.done?'✓':''}</div>
+      <span>${esc(o.text)} 🌳</span><span class="rm" data-outingrm="${esc(ok)}" data-idx="${i}" title="Remove">✕</span></div>`
+  ).join("") + (outingEditing
+    ? `<input type="text" class="outinginput" id="outingInput" placeholder="Where did you go?">`
+    : `<div class="addOuting" data-addouting="1">+ Add an outing</div>`);
+}
+
+/* A day counts toward the streak if anything at all got checked off on it. */
+function renderStreak(){
+  const dates = new Set();
+  ["lzm|"+KID+"|", "lzDay|"+KID+"|", "lzManualDone|"+KID+"|"].forEach(pre=>{
+    scanKeys(pre).forEach(k=>{ const d = doneDate(k); if(d) dates.add(d); });
+  });
+  let n = 0;
+  const cur = new Date(todayISO()+"T00:00:00");
+  if(!dates.has(todayISO())) cur.setDate(cur.getDate()-1); // today still counts as "not broken yet"
+  while(dates.has(cur.toISOString().slice(0,10))){ n++; cur.setDate(cur.getDate()-1); }
+  document.getElementById("streak").textContent = n>1 ? `🔥 ${n}-day streak` : (n===1 ? "🔥 1 day going" : "Start a streak today");
+}
+
+/* ---------- journal: same lzJournal record the Journal tab reads ---------- */
+const jEl = document.getElementById("journalInput");
+let jTimer = null;
+function loadJournal(){
+  if(document.activeElement === jEl) return;
+  jEl.value = getJournal(journalKey(KID, todayISO()));
+}
+jEl.addEventListener("input", e=>{
+  clearTimeout(jTimer);
   const val = e.target.value;
-  journalSaveTimer = setTimeout(()=>{
+  jTimer = setTimeout(()=>{
     setJournal(journalKey(KID, todayISO()), val);
     document.getElementById("journalSaved").textContent = "Saved";
   }, 500);
 });
-journalInputEl.addEventListener("focusout", e=>{
+jEl.addEventListener("focusout", e=>{
   setJournal(journalKey(KID, todayISO()), e.target.value);
   document.getElementById("journalSaved").textContent = "Saved";
 });
 
-function refreshAll(){
-  renderDoneToday();
-  loadJournalInput();
+document.addEventListener("click", e=>{
+  const attach = e.target.closest("[data-attachdone]");
+  if(attach){ const k = attach.dataset.attachdone; setDone(k, !isDone(k)); refresh(); return; }
+  if(e.target.closest(".attachLink")) return;
+  const add = e.target.closest("[data-addouting]");
+  if(add){ outingEditing = true; renderRail(); const i = document.getElementById("outingInput"); if(i) i.focus(); return; }
+  const rm = e.target.closest("[data-outingrm]");
+  if(rm){ const k = rm.dataset.outingrm, arr = getOutings(k); arr.splice(parseInt(rm.dataset.idx,10),1); setOutings(k,arr); refresh(); return; }
+  const ot = e.target.closest("[data-outingtoggle]");
+  if(ot){ const k = ot.dataset.outingtoggle, i = parseInt(ot.dataset.idx,10), arr = getOutings(k);
+    if(arr[i]) arr[i].done = !arr[i].done; setOutings(k,arr); refresh(); return; }
+  const tog = e.target.closest("[data-toggle]");
+  if(tog){ const k = tog.dataset.toggle; setDone(k, !isDone(k)); refresh(); return; }
+});
+
+function saveOutingInput(input){
+  const k = outingKey(KID, todayISO());
+  const text = input.value.trim();
+  if(text){ const arr = getOutings(k); arr.push({text, done:true}); setOutings(k, arr); }
+  outingEditing = false;
+  refresh();
 }
-refreshAll();
-// Same-origin localStorage writes made inside an iframe fire a 'storage' event on this
-// parent document — that's the main way we notice a new check-off or journal edit. A light
-// poll is kept as a fallback since 'storage' event timing/support can vary by browser.
-window.addEventListener("storage", refreshAll);
-setInterval(refreshAll, 4000);
+document.addEventListener("focusout", e=>{
+  const i = e.target.closest(".outinginput"); if(i) saveOutingInput(i);
+});
+document.addEventListener("keydown", e=>{
+  if(e.key==="Enter" && e.target.classList && e.target.classList.contains("outinginput")) saveOutingInput(e.target);
+});
+
+function refresh(){
+  ensureRecurringSeeded(KID, todayISO());
+  renderRoute();
+  renderRail();
+  renderStreak();
+  loadJournal();
+}
+document.getElementById("todayLabel").textContent =
+  new Date(todayISO()+"T00:00:00").toLocaleDateString(undefined,{weekday:"long", month:"long", day:"numeric"});
+refresh();
+
+// A sibling iframe (Calendar / Journal tab) writing to the same localStorage fires a
+// 'storage' event here, so an undo made over there shows up without a reload. Light poll as
+// a fallback, skipped while the outing box or journal is being typed into.
+function safeRefresh(){
+  const ae = document.activeElement;
+  if(ae && (ae.id==="outingInput" || ae.id==="journalInput")) return;
+  refresh();
+}
+window.addEventListener("storage", safeRefresh);
+setInterval(safeRefresh, 4000);
 </script>
 </body>
 </html>
