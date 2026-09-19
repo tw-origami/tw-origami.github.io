@@ -54,7 +54,7 @@ function handle(e) {
       if (updated > maxUpdated) maxUpdated = updated;
       if (updated <= since) continue;
       var deleted = row[2] === true || row[2] === 'TRUE';
-      out[key] = { value: deleted ? null : String(row[1]), deleted: deleted, updated: updated };
+      out[key] = { value: deleted ? null : cellToString_(row[1]), deleted: deleted, updated: updated };
     }
     return json_({ ok: true, items: out, serverTime: Date.now(), maxUpdated: maxUpdated });
   } finally {
@@ -77,6 +77,27 @@ function readItems_(e) {
   var p = (e && e.parameter) || {};
   if (p.key) return [{ key: p.key, value: p.value || '', deleted: p.deleted === '1' }];
   return [];
+}
+
+/**
+ * Give back exactly the text the client stored.
+ *
+ * The client writes plain strings, but a Sheet does not necessarily keep them that way: a
+ * value like "2026-09-19" gets auto-parsed into a real date cell, and getValues() then hands
+ * back a Date object whose String() form is "Sat Sep 19 2026 00:00:00 GMT-0400 (Eastern
+ * Daylight Time)". Every completion date that round-tripped through sync came back in that
+ * shape, so the app's `doneDate(key) === todayISO()` check quietly failed and a lesson checked
+ * off today stopped counting as done today. Numbers get the same treatment (a value of "5"
+ * coming back as 5 is harmless, but "5.0" would not be).
+ *
+ * upsert_ now writes the value column as plain text so this stops happening going forward;
+ * this function repairs the cells that were already coerced before that change.
+ */
+function cellToString_(v) {
+  if (v instanceof Date) {
+    return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  return String(v);
 }
 
 function getSheet_() {
@@ -114,11 +135,19 @@ function upsert_(sh, key, value, deleted, updated) {
           // Deleting an already-deleted key must not overwrite the saved value with ''.
           prev = wasDeleted ? existing[3] : existing[0];
         }
+        // Plain-text format on the value columns, so a date-shaped or number-shaped string
+        // is stored as the literal text the client sent rather than being coerced into a
+        // Date or a number (see cellToString_).
+        sh.getRange(rowNum, 2).setNumberFormat('@');
+        sh.getRange(rowNum, 5).setNumberFormat('@');
         sh.getRange(rowNum, 2, 1, 4).setValues([[deleted ? '' : (value == null ? '' : value), !!deleted, updated, prev]]);
         return;
       }
     }
   }
+  var newRow = sh.getLastRow() + 1;
+  sh.getRange(newRow, 2).setNumberFormat('@');
+  sh.getRange(newRow, 5).setNumberFormat('@');
   sh.appendRow([key, deleted ? '' : (value == null ? '' : value), !!deleted, updated, '']);
 }
 

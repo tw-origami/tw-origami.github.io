@@ -19,9 +19,24 @@
   // completion date, e.g. "2026-09-07", so the calendar can show WHEN things got done).
   const isDone = k => !!localStorage.getItem(k);
   const setDone = (k,v) => v?localStorage.setItem(k, todayISO()):localStorage.removeItem(k);
-  // The date a lesson/box was actually checked off, or null. Old "1"-only records return null
-  // (no date info available) rather than a fake date.
-  function doneDate(k){ const v=localStorage.getItem(k); return (v && v!=="1") ? v : null; }
+  // The date a lesson/box was actually checked off as YYYY-MM-DD, or null. Old "1"-only
+  // records return null (no date info available) rather than a fake date.
+  //
+  // Values don't always come back in the format we wrote. We store "2026-09-19", but Google
+  // Sheets auto-parses that into a real date cell, and Apps Script's String() on the way out
+  // turns it into "Sat Sep 19 2026 00:00:00 GMT-0400 (Eastern Daylight Time)". So anything
+  // that has round-tripped through sync comes back long-form. Comparing that to todayISO()
+  // silently fails, which made a lesson checked off today stop counting as done-today — the
+  // route would advance the moment sync echoed the value back. Normalize on read so both
+  // shapes mean the same day, rather than trying to migrate every existing record.
+  function normalizeDate(v){
+    if(!v || v==="1") return null;
+    if(/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+    const d = new Date(v);
+    if(isNaN(d.getTime())) return null;
+    return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  }
+  function doneDate(k){ return normalizeDate(localStorage.getItem(k)); }
 
   // Ordered list of not-yet-done lessons for a subject (checkbox state OR a baked-in done:true).
   function undoneLessons(kid, sub){
@@ -528,7 +543,7 @@
     dateISO ? localStorage.setItem(catchupResetKey(kid, subject), dateISO) : localStorage.removeItem(catchupResetKey(kid, subject));
   }
 
-  window.LZ = { slug, dkey, skey, dateKey, noteKey, habitKey, skipKey, isSkipped, setSkipped, outingKey, journalKey, isDone, setDone, doneDate, getNote, setNote,
+  window.LZ = { slug, dkey, skey, dateKey, noteKey, habitKey, skipKey, isSkipped, setSkipped, outingKey, journalKey, isDone, setDone, doneDate, normalizeDate, getNote, setNote,
     getOutings, setOutings, getJournal, setJournal, scanKeys, todayISO, recurringForDate, ensureRecurringSeeded,
     undoneLessons, nextLesson, upcomingLessons, subjProgress, doneLessons, doneDatesForSubject,
     manualKey, getManualLessons, setManualLessons, addManualLesson, removeManualLesson, manualDoneKey,
