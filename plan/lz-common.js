@@ -300,6 +300,59 @@
   function removeCustomSubject(id){
     setCustomSubjectsRaw(getCustomSubjectsRaw().filter(s=>s.customId!==id));
   }
+  // Renames a custom category (fixing a typo, or just changing it) WITHOUT losing its
+  // progress. Every derived record — completions (dkey), the weekly schedule, assigned-date
+  // pins, manual insertions, attachments, notes, skip flags, carry-over/catch-up prefs — is
+  // keyed off `slug(subject)`, computed fresh from the current name every time it's read. A
+  // rename that only changed the `.subject` field would silently orphan all of that: the app
+  // would compute new keys under the new slug and find nothing there, while the real data sat
+  // under the old slug looking like it had vanished (this is exactly what happened once
+  // already, discovered as a "Book Reoprt" custom category with real lesson progress attached
+  // to the misspelled slug). So this walks every kid the category belongs to and physically
+  // moves each old-slug-keyed record to its new-slug equivalent, preserving the stored value,
+  // via the normal localStorage API — so it picks up lz-sync.js's push-on-write and syncs the
+  // move like any other edit. Returns true on success, false if the category wasn't found.
+  function renameCustomSubject(customId, newName){
+    newName = (newName||"").trim();
+    if(!newName) return false;
+    const arr = getCustomSubjectsRaw();
+    const sub = arr.find(s=>s.customId===customId);
+    if(!sub) return false;
+    const oldName = sub.subject;
+    const oldSlug = slug(oldName);
+    const newSlug = slug(newName);
+    sub.subject = newName;
+    setCustomSubjectsRaw(arr);
+    if(oldSlug === newSlug || !newSlug) return true; // display-only tweak — no key migration needed
+
+    const kids = sub.kids || [];
+    // One value per kid+subject, no further suffix — rename the key outright.
+    const exactKeyFns = [manualKey, orderKey, scheduleKey, carryKey, catchupResetKey];
+    // A further per-lesson/per-date/per-item suffix follows the slug — scan and move every match.
+    const scanPrefixes = ["lzm", "lzDay", "lzNote", "lzSkip", "lzManualDone", "lzAttach", "lzAttachDone", "lzAssign"];
+
+    kids.forEach(kid=>{
+      exactKeyFns.forEach(fn=>{
+        const oldKey = fn(kid, oldName);
+        const v = localStorage.getItem(oldKey);
+        if(v!==null){
+          localStorage.setItem(fn(kid, newName), v);
+          localStorage.removeItem(oldKey);
+        }
+      });
+      scanPrefixes.forEach(p=>{
+        const oldPrefix = `${p}|${kid}|${oldSlug}|`;
+        const newPrefix = `${p}|${kid}|${newSlug}|`;
+        scanKeys(oldPrefix).forEach(oldKey=>{
+          const v = localStorage.getItem(oldKey);
+          if(v===null) return;
+          localStorage.setItem(newPrefix + oldKey.slice(oldPrefix.length), v);
+          localStorage.removeItem(oldKey);
+        });
+      });
+    });
+    return true;
+  }
   // Inserts one or more {title, page} rows into a custom category's own lessons array, in
   // the order given, at atIndex (defaults to the end when omitted/out of range) — used by the
   // Teacher Dashboard's "insert a lesson here" gaps so rows land exactly where clicked instead
@@ -478,7 +531,7 @@
     subjectBySlug, manualById, parseAttachDoneKey, attachmentsDoneOn, manualDoneOn,
     DOW_CODES, DEFAULT_SCHEDULE_DAYS, scheduleKey, getScheduleDays, setScheduleDays, dowCode, isScheduledOn,
     carryKey, getCarryOver, setCarryOver, catchupResetKey, getCatchupReset, setCatchupReset,
-    getAllSubjects, getCustomSubjects, addCustomSubject, removeCustomSubject, addCustomLessons,
+    getAllSubjects, getCustomSubjects, addCustomSubject, removeCustomSubject, renameCustomSubject, addCustomLessons,
     assignKey, getAssignedDate, setAssignedDate, subjectResumesOn };
 
   // Shared weekly config — the one place to pause a subject, tweak per-day overrides, edit
