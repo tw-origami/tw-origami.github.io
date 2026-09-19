@@ -68,6 +68,13 @@
   let REAL_SET, REAL_REMOVE;   // unpatched Storage methods, so applying a pulled value never
                                // loops back around as a "local edit"
 
+  // When each key was last written by app code in THIS document. A pull takes a second or
+  // two, and anything the user does in that window is newer than the answer coming back —
+  // without this, a reconcile can roll back an edit made while it was in flight. That looks
+  // exactly like "I checked off Reading and it jumped to the next lesson." In-memory only:
+  // after a reload there is by definition no in-flight edit to protect.
+  const touchedAt = Object.create(null);
+
   // --- storage plumbing, all of it verified ----------------------------------------
   let storageHealthy = true;   // flips false the first time a write doesn't land
 
@@ -185,6 +192,10 @@
     if (inFlight) return Promise.resolve();
     inFlight = true;
     setStatus("Syncing…");
+    const pullStarted = Date.now();
+    // A key the user touched after this moment is newer than anything this pull can be
+    // carrying, no matter what the server says.
+    const editedDuringPull = k => touchedAt[k] !== undefined && touchedAt[k] >= pullStarted;
     return pullAll().then(res => {
       if (!res || !res.ok || !res.items) { setStatus("Sync error — will retry", true); return; }
 
@@ -198,7 +209,7 @@
       // somehow been mass-tombstoned again must not be able to empty this device.
       const localNow = contentKeys();
       const toRemove = Object.keys(items).filter(k =>
-        items[k].deleted && isContentKey(k) && rawGet(k) !== null);
+        items[k].deleted && isContentKey(k) && rawGet(k) !== null && !editedDuringPull(k));
       const removeAllowance = deletionAllowance(localNow.length);
       if (toRemove.length > removeAllowance) {
         refusedRemote = toRemove.length;
@@ -229,8 +240,15 @@
 
         // Genuine disagreement. If local still matches what we last agreed on, the server
         // is the one that moved — take it. Otherwise this device has an unsent edit.
+        // An edit made while this pull was in flight always wins — the pull's answer was
+        // already out of date when it was sent. Checking this BEFORE the seen[] comparison
+        // matters: a quick push can update seen[] to the new value first, which would
+        // otherwise make a stale pull look like a legitimate server-side change and roll
+        // the edit back.
         const agreed = seen[k];
-        if (agreed && agreed.v === localCur) {
+        if (editedDuringPull(k)) {
+          pushes.push(pushValue(k, localCur));
+        } else if (agreed && agreed.v === localCur) {
           if (safeSet(k, item.value)) { seen[k] = { v: item.value, u: item.updated }; applied++; }
         } else {
           pushes.push(pushValue(k, localCur));
@@ -326,6 +344,7 @@
     Storage.prototype.setItem = function (k, v) {
       REAL_SET.call(this, k, v);
       if (this === localStorage && isContentKey(k)) {
+        touchedAt[k] = Date.now();
         const p = loadPendingDel();
         if (p[k]) { delete p[k]; savePendingDel(p); } // re-created before we got around to deleting it
         scheduleQuickPush();
@@ -334,6 +353,7 @@
     Storage.prototype.removeItem = function (k) {
       REAL_REMOVE.call(this, k);
       if (this === localStorage && isContentKey(k)) {
+        touchedAt[k] = Date.now();
         const p = loadPendingDel();
         p[k] = Date.now();
         savePendingDel(p);

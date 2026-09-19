@@ -6,7 +6,14 @@
   function slug(x){ return (x||"").replace(/[^a-z0-9]+/gi,"-").toLowerCase(); }
   function dkey(kid,sub,les){ return `lzm|${kid}|${slug(sub.subject)}|${les.p}|${slug(les.t)}`; }
   function skey(kid,sub,view,i){ return `lzmS|${kid}|${slug(sub.subject)}|${view}|${i}`; }
-  function todayISO(){ return new Date().toISOString().slice(0,10); }
+  // The LOCAL calendar date, not the UTC one. toISOString() is UTC, so east of Greenwich
+  // this used to roll over to "tomorrow" at 8pm Eastern — the Today page would swap in the
+  // next day's lessons mid-evening, and anything checked off after 8pm was filed under the
+  // wrong day on the calendar. "Today" here has to mean the day the family is living in.
+  function todayISO(){
+    const d = new Date();
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  }
 
   // isDone accepts any stored value as "done" (old data just says "1"; new data stores the
   // completion date, e.g. "2026-09-07", so the calendar can show WHEN things got done).
