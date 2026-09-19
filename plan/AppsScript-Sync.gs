@@ -6,9 +6,10 @@
  * walkthrough. Once deployed, send the /exec URL back so it can be wired into
  * plan/lz-sync.js.
  *
- * Unlike the older dashboard/AppsScript-Code.gs (which only tracked a single
- * boolean per lesson id), this stores ANY localStorage key/value pair this app
- * uses — lesson check-offs, notes, daily habits, day outings, journal entries,
+ * This is the one and only sync backend. (An older dashboard/ view with its own
+ * backend and its own storage format was retired on 2026-09-19 — it only tracked a
+ * single boolean per lesson id, and having two formats in one key namespace was a
+ * standing hazard.) This stores ANY localStorage key/value pair this app uses — lesson check-offs, notes, daily habits, day outings, journal entries,
  * teacher-inserted manual lessons, custom lesson order, etc. Every key carries
  * its own "updated" timestamp; whichever device wrote a key most recently wins
  * if two devices ever touch the same key.
@@ -82,7 +83,10 @@ function getSheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = ss.getSheetByName('sync');
   if (!sh) sh = ss.insertSheet('sync');
-  if (sh.getLastRow() === 0) sh.appendRow(['key', 'value', 'deleted', 'updated']);
+  if (sh.getLastRow() === 0) sh.appendRow(['key', 'value', 'deleted', 'updated', 'prevValue']);
+  // Existing sheets predate the 5th column — add the header in place, without touching
+  // any data rows. Column E stays blank on those rows until the next delete populates it.
+  if (sh.getLastColumn() < 5) sh.getRange(1, 5).setValue('prevValue');
   return sh;
 }
 
@@ -91,6 +95,11 @@ function getSheet_() {
 // handle()), a later arrival always carries a later timestamp, so whichever device
 // wrote most recently genuinely wins. Requests are serialized by the LockService
 // lock in handle(), so two devices writing the same key can't interleave.
+// Column E ("prevValue") is a server-side undo buffer for deletes. A delete blanks
+// column B, so without this the value is simply gone and only the Sheet's own version
+// history can bring it back. On every delete we copy the value being destroyed into E
+// first; a non-delete write clears E, so E only ever holds "what this key was when it
+// was deleted." Restoring a bad tombstone is then: copy E back to B, set C to FALSE.
 function upsert_(sh, key, value, deleted, updated) {
   var last = sh.getLastRow();
   if (last > 1) {
@@ -98,12 +107,41 @@ function upsert_(sh, key, value, deleted, updated) {
     for (var r = 0; r < keys.length; r++) {
       if (String(keys[r][0]) === key) {
         var rowNum = r + 2;
-        sh.getRange(rowNum, 2, 1, 3).setValues([[value == null ? '' : value, !!deleted, updated]]);
+        var prev = '';
+        if (deleted) {
+          var existing = sh.getRange(rowNum, 2, 1, 4).getValues()[0];
+          var wasDeleted = existing[1] === true || existing[1] === 'TRUE';
+          // Deleting an already-deleted key must not overwrite the saved value with ''.
+          prev = wasDeleted ? existing[3] : existing[0];
+        }
+        sh.getRange(rowNum, 2, 1, 4).setValues([[deleted ? '' : (value == null ? '' : value), !!deleted, updated, prev]]);
         return;
       }
     }
   }
-  sh.appendRow([key, value == null ? '' : value, !!deleted, updated]);
+  sh.appendRow([key, deleted ? '' : (value == null ? '' : value), !!deleted, updated, '']);
+}
+
+/**
+ * Manual recovery helper — run from the Apps Script editor if a bad batch of deletions
+ * ever lands again. Restores every tombstoned row that still has a saved prevValue,
+ * and stamps them so every device pulls the restored values down.
+ */
+function restoreDeleted_() {
+  var sh = getSheet_();
+  var last = sh.getLastRow();
+  if (last < 2) return 'nothing to restore';
+  var rows = sh.getRange(2, 1, last - 1, 5).getValues();
+  var stamp = Date.now();
+  var n = 0;
+  for (var i = 0; i < rows.length; i++) {
+    var isDeleted = rows[i][2] === true || rows[i][2] === 'TRUE';
+    var prev = rows[i][4];
+    if (!isDeleted || prev === '' || prev == null) continue;
+    sh.getRange(i + 2, 2, 1, 4).setValues([[prev, false, stamp, '']]);
+    n++;
+  }
+  return 'restored ' + n + ' keys';
 }
 
 function json_(obj) {

@@ -26,6 +26,18 @@
   const HEARTBEAT_MS = 1000;   // background pull, catches changes made on OTHER devices — safe to
                                 // run this often now that only one frame per tab does it (see below)
   const QUICK_PUSH_MS = 250;   // debounce for pushing a change made right here, right now
+
+  // --- deletion circuit breaker -----------------------------------------------------
+  // On 2026-09-19 one device's browser storage was wiped from outside this app (Safari
+  // eviction / clear-browsing-data / profile reset). This script read "231 keys I used to
+  // know about are gone from localStorage" as "the user deleted 231 things" and pushed
+  // 219 tombstones to the shared sheet in 34 seconds, which every other device then
+  // faithfully applied. Nothing in this app ever deletes in bulk, so a large deletion
+  // batch is always a storage accident, never a real edit — refuse to push it.
+  const MAX_DELETIONS = 10;          // never push more than this many deletions at once
+  const MAX_DELETION_FRACTION = 0.25; // ...nor more than this share of the keys we know about
+  const MIN_DELETION_ALLOWANCE = 3;   // ...but always allow at least this many, so a small store
+                                      // (a fresh device with 4 keys) isn't locked out of deleting
   let REAL_SET, REAL_REMOVE;   // unpatched Storage methods — assigned below, used by applyRemote()
                                 // so pulled-in values never loop back around as a "local edit"
 
@@ -87,6 +99,42 @@
       }
     });
     return changes;
+  }
+
+  // Split a change set into what's safe to push and deletions we're refusing to push.
+  // The allowance is the smaller of MAX_DELETIONS and MAX_DELETION_FRACTION of the keys
+  // we currently believe exist, floored at MIN_DELETION_ALLOWANCE.
+  function screenDeletions(changes, meta) {
+    const deletions = changes.filter(c => c.deleted);
+    if (!deletions.length) return { safe: changes, refused: [] };
+    let knownLive = 0;
+    Object.keys(meta).forEach(k => { if (!meta[k].deleted) knownLive++; });
+    const allowance = Math.max(
+      MIN_DELETION_ALLOWANCE,
+      Math.min(MAX_DELETIONS, Math.floor(knownLive * MAX_DELETION_FRACTION))
+    );
+    if (deletions.length <= allowance) return { safe: changes, refused: [] };
+    return { safe: changes.filter(c => !c.deleted), refused: deletions, allowance: allowance, knownLive: knownLive };
+  }
+
+  // When the breaker trips, this device's localStorage is the corrupted copy and the
+  // server still holds the good data — so heal in the safe direction: forget our
+  // bookkeeping for the vanished keys and rewind the cursor to 0. The next pull then
+  // sees no local value and no prior meta for those keys, which is exactly the case
+  // applyRemote() treats as "safe to write," so the server's copy comes back down.
+  // If a deletion really was intentional, this resurrects it — that's the deliberate
+  // trade: losing a deliberate delete costs one repeat, losing 219 check-offs doesn't.
+  function tripBreaker(refused, meta, detail) {
+    refused.forEach(c => { delete meta[c.key]; });
+    saveMeta(meta);
+    saveCursor(0);
+    try {
+      console.error("[lz-sync] Deletion circuit breaker: refused to push " + refused.length +
+        " deletions (allowance " + detail.allowance + " of " + detail.knownLive + " known keys). " +
+        "This device's storage was probably cleared externally; re-pulling from the server.",
+        refused.map(c => c.key));
+    } catch (e) {}
+    setStatus("Blocked " + refused.length + " deletions — restoring", true);
   }
 
   // Apps Script web apps respond to every request with a redirect to the URL that
@@ -182,7 +230,11 @@
   function quickPush() {
     if (quickInFlight) { quickTimer = setTimeout(quickPush, QUICK_PUSH_MS); return; }
     const meta = loadMeta();
-    const changes = collectLocalChanges(meta);
+    // Values only on the fast path. quickPush() pushes without pulling first, so it has
+    // no way to tell "the user deleted this" from "this device never received it / lost
+    // it" — and that guess is what caused the 2026-09-19 wipe. Deletions are left for
+    // tick(), which pulls first and runs them past the circuit breaker.
+    const changes = collectLocalChanges(meta).filter(c => !c.deleted);
     if (!changes.length) return;
     quickInFlight = true;
     setStatus("Syncing…");
@@ -239,8 +291,16 @@
         saveMeta(meta);
         saveCursor(newCursor);
       }
-      const changes = collectLocalChanges(meta);
-      return pushChanges(changes).then(pushRes => {
+      const screened = screenDeletions(collectLocalChanges(meta), meta);
+      if (screened.refused.length) {
+        tripBreaker(screened.refused, meta, screened);
+        // Push the non-deletion changes anyway — those are real local edits — but skip
+        // the success status so the breaker's warning stays on screen.
+        return pushChanges(screened.safe).then(pushRes => {
+          commitPushedChanges(meta, pushRes.applied);
+        });
+      }
+      return pushChanges(screened.safe).then(pushRes => {
         commitPushedChanges(meta, pushRes.applied);
         if (pullOk && pushRes.ok) {
           setStatus("Synced ✓ " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
@@ -279,5 +339,14 @@
   }
 
   // exposed for debugging from the browser console: LZSYNC.forceSync()
-  window.LZSYNC = { forceSync: tick, quickPush: quickPush, isHeartbeatOwner: () => isHeartbeatOwner };
+  window.LZSYNC = {
+    forceSync: tick,
+    quickPush: quickPush,
+    isHeartbeatOwner: () => isHeartbeatOwner,
+    // LZSYNC.pendingDeletions() — what the breaker would be asked to push right now
+    pendingDeletions: () => {
+      const meta = loadMeta();
+      return screenDeletions(collectLocalChanges(meta), meta);
+    }
+  };
 })();
