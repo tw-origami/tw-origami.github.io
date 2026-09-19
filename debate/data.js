@@ -112,91 +112,91 @@ window.DEBATE = {
   CER: [
     { claim:'Schools should give students longer lunch periods.',
       evidences:[
-        { text:'A study found students with 30+ minutes to eat were more focused in afternoon classes.', good:true },
-        { text:'Most students say lunch is their favorite part of the day.', good:false, note:'popular opinion, but it doesn’t prove longer lunch helps' },
+        { text:'A study found students with over thirty minutes to eat were noticeably more focused in afternoon classes.', good:true },
+        { text:'Most students say lunch is honestly their favorite part of the entire school day, every single time.', good:false, note:'popular opinion, but it doesn’t prove longer lunch helps' },
         { text:'The cafeteria serves pizza every Friday.', good:false, note:'true, but totally unrelated to the claim' }
       ],
       reasonings:[
-        { text:'This shows that when students aren’t rushed, they eat better and come back ready to learn.', good:true },
-        { text:'So lunch should be longer, because longer lunches are just better.', good:false, note:'circular — it repeats the claim instead of explaining it' },
-        { text:'Besides, everybody enjoys a nice break.', good:false, note:'vague — it never links the evidence to the claim' }
+        { text:'This shows that when students aren’t rushed, they eat better.', good:true },
+        { text:'So lunch should be longer, because longer lunches are just better for absolutely everyone involved, no matter what.', good:false, note:'circular — it repeats the claim instead of explaining it' },
+        { text:'Besides, everybody enjoys a nice long break in the middle of a busy and tiring school day.', good:false, note:'vague — it never links the evidence to the claim' }
       ] },
     { claim:'Cities should build more bike lanes.',
       evidences:[
         { text:'Streets that added protected bike lanes saw crashes drop by nearly a third.', good:true },
-        { text:'Bikes come in many bright colors.', good:false, note:'irrelevant — color has nothing to do with the claim' },
+        { text:'Bikes come in many bright and cheerful colors that people really seem to love picking out.', good:false, note:'irrelevant — color has nothing to do with the claim' },
         { text:'Some people think biking is fun.', good:false, note:'an opinion, not evidence that lanes help' }
       ],
       reasonings:[
-        { text:'This shows bike lanes make streets measurably safer for everyone who uses them.', good:true },
-        { text:'Therefore we need bike lanes, because bike lanes are needed.', good:false, note:'circular reasoning' },
-        { text:'And bikes are cheaper than cars anyway.', good:false, note:'a new point, not reasoning that connects the evidence' }
+        { text:'This shows bike lanes make streets measurably safer.', good:true },
+        { text:'Therefore we need bike lanes, because bike lanes are needed by cities and by the people who live in them.', good:false, note:'circular reasoning' },
+        { text:'And bikes are cheaper than cars anyway, which is a whole separate point worth mentioning here too.', good:false, note:'a new point, not reasoning that connects the evidence' }
       ] },
     { claim:'Students should learn a second language early.',
       evidences:[
-        { text:'Research shows younger children pick up new languages faster than teens or adults.', good:true },
-        { text:'There are thousands of languages in the world.', good:false, note:'a fact, but it doesn’t support starting early' },
+        { text:'Research shows younger children pick up new languages faster than teens or adults do.', good:true },
+        { text:'There are thousands of languages spoken by people all across the entire world today.', good:false, note:'a fact, but it doesn’t support starting early' },
         { text:'Language class can be really fun.', good:false, note:'opinion, not proof' }
       ],
       reasonings:[
-        { text:'This means starting young gives students a real head start that’s harder to gain later.', good:true },
-        { text:'So we should start early because early is the best time.', good:false, note:'circular — restates the claim' },
-        { text:'Plus, traveling is exciting.', good:false, note:'off-topic; doesn’t link evidence to claim' }
+        { text:'This means starting young gives students a real head start.', good:true },
+        { text:'So we should start early because early is simply the best time to do just about anything at all.', good:false, note:'circular — restates the claim' },
+        { text:'Plus, traveling to new and exciting places around the world is exciting for just about everybody.', good:false, note:'off-topic; doesn’t link evidence to claim' }
       ] },
     { claim:'Schools should teach students how to manage money.',
       evidences:[
         { text:'A survey found most teens graduate without knowing how to budget or read a paycheck.', good:true },
-        { text:'Money is used in almost every country on Earth.', good:false, note:'true, but it doesn’t support teaching it in school' },
+        { text:'Money is used in almost every single country all across the entire planet Earth.', good:false, note:'true, but it doesn’t support teaching it in school' },
         { text:'Some people are just naturally good with money.', good:false, note:'an opinion, not evidence' }
       ],
       reasonings:[
-        { text:'This shows students are leaving school missing a skill they’ll use for the rest of their lives.', good:true },
-        { text:'So they should learn it because money skills are important to learn.', good:false, note:'circular — repeats the claim' },
-        { text:'Besides, math class is already hard enough.', good:false, note:'off-topic; doesn’t connect to the evidence' }
+        { text:'This shows students are leaving school missing a skill they’ll use for life.', good:true },
+        { text:'So they should learn it because money skills are important skills that everybody really ought to learn.', good:false, note:'circular — repeats the claim' },
+        { text:'Besides, math class is already hard enough for most students to keep up with as it is.', good:false, note:'off-topic; doesn’t connect to the evidence' }
       ] },
     { claim:'Communities should protect their local parks.',
       evidences:[
         { text:'Neighborhoods with parks nearby report lower stress and more daily exercise.', good:true },
-        { text:'Parks usually have grass and some trees.', good:false, note:'irrelevant description, not support' },
+        { text:'Parks usually have grass, some trees, and a few benches scattered around here and there.', good:false, note:'irrelevant description, not support' },
         { text:'A lot of people say they enjoy parks.', good:false, note:'popular opinion, not proof' }
       ],
       reasonings:[
-        { text:'This shows parks directly improve the health of the people who live around them.', good:true },
-        { text:'Therefore parks should be protected because they’re worth protecting.', good:false, note:'circular reasoning' },
-        { text:'And the leaves look pretty in the fall.', good:false, note:'off-topic; ignores the evidence' }
+        { text:'This shows parks directly improve the health of nearby residents.', good:true },
+        { text:'Therefore parks should be protected because they’re worth protecting, plain and simple, no matter what anyone says.', good:false, note:'circular reasoning' },
+        { text:'And the leaves look really pretty when they change color every single fall around this time.', good:false, note:'off-topic; ignores the evidence' }
       ] },
     { claim:'Students should get short breaks during long classes.',
       evidences:[
-        { text:'Studies show attention drops sharply after about 20 minutes of nonstop focus.', good:true },
-        { text:'Classes are held in rooms with desks and chairs.', good:false, note:'irrelevant to the claim' },
+        { text:'Studies show attention drops sharply after about twenty minutes of nonstop focus.', good:true },
+        { text:'Classes are held in rooms that usually have desks, chairs, and a whiteboard up front.', good:false, note:'irrelevant to the claim' },
         { text:'Pretty much everybody enjoys a break.', good:false, note:'opinion, not evidence' }
       ],
       reasonings:[
-        { text:'This means a short break resets focus so the rest of class isn’t wasted staring blankly.', good:true },
-        { text:'So breaks help because breaks are helpful.', good:false, note:'circular — restates itself' },
-        { text:'Plus, lunch is the best part of the day.', good:false, note:'off-topic' }
+        { text:'This means a short break resets focus for the rest of class.', good:true },
+        { text:'So breaks help because breaks are helpful, and that’s really just about all there is to it.', good:false, note:'circular — restates itself' },
+        { text:'Plus, lunch is the best part of the entire school day for most students, if you ask around.', good:false, note:'off-topic' }
       ] },
     { claim:'Libraries should stay open later in the evening.',
       evidences:[
         { text:'A city that extended library hours saw a big jump in teens using it for homework.', good:true },
-        { text:'Libraries hold thousands of books.', good:false, note:'a fact, but it doesn’t support later hours' },
+        { text:'Libraries hold thousands of books on just about every subject you could possibly imagine.', good:false, note:'a fact, but it doesn’t support later hours' },
         { text:'Reading is a really nice hobby.', good:false, note:'opinion, not evidence' }
       ],
       reasonings:[
-        { text:'This shows longer hours give students who are busy after school a quiet place to work.', good:true },
-        { text:'Therefore hours should be longer because longer hours are better.', good:false, note:'circular reasoning' },
-        { text:'Also, the library is usually pretty quiet.', good:false, note:'off-topic; ignores the evidence' }
+        { text:'This shows longer hours give busy students a quiet place to work.', good:true },
+        { text:'Therefore hours should be longer because longer hours are better for the library and everyone who uses it.', good:false, note:'circular reasoning' },
+        { text:'Also, the library is usually pretty quiet in the late afternoon and early evening hours.', good:false, note:'off-topic; ignores the evidence' }
       ] },
     { claim:'Sports teams should rotate who gets to be captain.',
       evidences:[
         { text:'Groups that shared leadership roles reported members felt more motivated and included.', good:true },
-        { text:'Captains often wear a special armband or “C” on their jersey.', good:false, note:'irrelevant detail' },
+        { text:'Captains often wear a special armband or a big letter C stitched onto their jersey.', good:false, note:'irrelevant detail' },
         { text:'Being captain is a lot of fun.', good:false, note:'opinion, not proof' }
       ],
       reasonings:[
-        { text:'This shows spreading the role builds motivation and leadership across the whole team.', good:true },
-        { text:'So we should rotate captains because rotating captains is a good idea.', good:false, note:'circular reasoning' },
-        { text:'Besides, everybody likes winning games.', good:false, note:'off-topic' }
+        { text:'This shows spreading the role builds motivation across the whole team.', good:true },
+        { text:'So we should rotate captains because rotating captains is simply a good idea for any team to try.', good:false, note:'circular reasoning' },
+        { text:'Besides, everybody likes winning games more than just about anything else in sports.', good:false, note:'off-topic' }
       ] }
   ],
 
