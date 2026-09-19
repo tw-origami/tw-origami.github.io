@@ -4,59 +4,130 @@
 // SYNC_URL below is filled in with a deployed Google Apps Script Web App URL — see
 // SETUP-Sync.md.
 //
-// How it works: this scans localStorage for every key starting with "lz" (that's
-// everything this app stores — lesson check-offs, notes, daily habits, day outings,
-// journal entries, teacher-inserted manual lessons, custom lesson order, which kid tab
-// was last selected, etc.) and compares each one to what was last successfully pushed or
-// pulled. Anything changed locally gets pushed up to the shared Google Sheet as soon as
-// it happens; anything changed elsewhere gets pulled down and written into localStorage
-// on a steady ~1s heartbeat. Each key carries its own "last updated" timestamp, so if two
-// devices ever touch the same key, whichever wrote most recently wins.
+// DESIGN (rewritten 2026-09-19 after a mass-deletion incident — read this before changing
+// anything here). The previous version kept a private ledger of "what I believe is synced"
+// and then trusted that ledger over reality. Every failure we hit came from that:
 //
-// This file intentionally has no dependency on lz-common.js's internals — it works
-// purely off the localStorage key namespace, so it never needs updating when new kinds
-// of data get added (a new habit, a new manual-lesson field, etc. all just start with
-// "lz" already and get swept up automatically).
+//   * It inferred deletions from the ledger — a key in the ledger but missing from
+//     localStorage was read as "the user deleted this." When one device's browser storage
+//     was cleared from outside the app, it reported 219 deletions in 34 seconds and every
+//     other device faithfully applied them.
+//   * It recorded a write as successful even when the write threw, because the write was
+//     wrapped in an empty catch. A device whose storage was refusing writes would sit there
+//     reporting "Synced ✓" with an empty localStorage and a ledger claiming 248 keys.
+//   * It pulled with a "since" cursor, so after the sheet was restored from version history
+//     (which restores the original, older timestamps) every restored row looked stale and
+//     was skipped forever.
+//
+// So the rules now are:
+//
+//   1. FULL RECONCILE, NEVER INCREMENTAL. Every pull asks for the entire server state. There
+//      is no cursor to go stale. A device that was wiped, restored, or offline for a month
+//      just re-downloads everything.
+//   2. ABSENCE IS NEVER DELETION. A key missing locally means "I don't have it," and the
+//      answer is to fetch it. The only thing that deletes is a real removeItem() call
+//      happening live in this page — actual user intent — and even that is capped by the
+//      circuit breaker below.
+//   3. WRITES ARE VERIFIED. Every localStorage write is read back. A write that didn't land
+//      is not recorded as synced, and the status pill says so instead of lying.
+//   4. NOTHING IS CACHED. Pushes go out as GETs (Apps Script drops POST bodies on redirect),
+//      and a GET is cacheable — a cached "ok" would look like a successful write that never
+//      happened. Every request carries no-store plus a unique token.
+//
+// The net effect is that devices converge on the UNION of what everyone has. The worst case
+// for a broken device is that it re-downloads; it can no longer take anyone else down with it.
 (function () {
   const SYNC_URL = "https://script.google.com/macros/s/AKfycbzf5pHcdFd4Ed0Y4fQ1KXnHBnAAsRMINCLJwXt6duIxOlEkrYInGt2g8gQD0GIj1M6Ihg/exec";
   if (!SYNC_URL) return; // sync disabled — every page behaves exactly as it did before, all-local
 
-  const META_KEY = "_lzSyncMeta";     // our own bookkeeping — deliberately NOT prefixed "lz" so it's never swept up as content
-  const CURSOR_KEY = "_lzSyncCursor";
-  const HEARTBEAT_MS = 1000;   // background pull, catches changes made on OTHER devices — safe to
-                                // run this often now that only one frame per tab does it (see below)
+  // Our own bookkeeping — deliberately NOT prefixed "lz" so it's never swept up as content.
+  // SEEN_KEY holds, per key, the last value this device and the server agreed on. It is used
+  // for ONE thing only: deciding which side changed when local and server disagree. It is
+  // never consulted to decide whether something was deleted. If it's missing or wrong, the
+  // worst outcome is that a conflict resolves toward the server — never data loss.
+  const SEEN_KEY = "_lzSyncSeen";
+  const PENDING_DEL_KEY = "_lzSyncPendingDel"; // explicit, user-intended deletes awaiting push
+  const LEGACY_KEYS = ["_lzSyncMeta", "_lzSyncCursor"]; // the old ledger — removed on load
+
+  const PULL_MS = 5000;        // full reconcile interval
   const QUICK_PUSH_MS = 250;   // debounce for pushing a change made right here, right now
 
   // --- deletion circuit breaker -----------------------------------------------------
-  // On 2026-09-19 one device's browser storage was wiped from outside this app (Safari
-  // eviction / clear-browsing-data / profile reset). This script read "231 keys I used to
-  // know about are gone from localStorage" as "the user deleted 231 things" and pushed
-  // 219 tombstones to the shared sheet in 34 seconds, which every other device then
-  // faithfully applied. Nothing in this app ever deletes in bulk, so a large deletion
-  // batch is always a storage accident, never a real edit — refuse to push it.
-  const MAX_DELETIONS = 10;          // never push more than this many deletions at once
-  const MAX_DELETION_FRACTION = 0.25; // ...nor more than this share of the keys we know about
-  const MIN_DELETION_ALLOWANCE = 3;   // ...but always allow at least this many, so a small store
-                                      // (a fresh device with 4 keys) isn't locked out of deleting
-  let REAL_SET, REAL_REMOVE;   // unpatched Storage methods — assigned below, used by applyRemote()
-                                // so pulled-in values never loop back around as a "local edit"
+  // Nothing in this app ever deletes in bulk, so a large deletion batch is always an
+  // accident. Applies in both directions: we refuse to PUSH one, and we refuse to APPLY
+  // one handed to us by the server.
+  const MAX_DELETIONS = 10;
+  const MAX_DELETION_FRACTION = 0.25;
+  const MIN_DELETION_ALLOWANCE = 3;   // always allow at least this many, so a small store
+                                      // isn't locked out of deleting anything at all
+  function deletionAllowance(referenceCount) {
+    return Math.max(MIN_DELETION_ALLOWANCE,
+      Math.min(MAX_DELETIONS, Math.floor(referenceCount * MAX_DELETION_FRACTION)));
+  }
 
-  function loadMeta() { try { return JSON.parse(localStorage.getItem(META_KEY) || "{}"); } catch (e) { return {}; } }
-  function saveMeta(m) { try { localStorage.setItem(META_KEY, JSON.stringify(m)); } catch (e) {} }
-  function loadCursor() { return Number(localStorage.getItem(CURSOR_KEY) || 0); }
-  function saveCursor(n) { try { localStorage.setItem(CURSOR_KEY, String(n)); } catch (e) {} }
-  function isContentKey(k) { return typeof k === "string" && k.indexOf("lz") === 0 && k !== META_KEY && k !== CURSOR_KEY; }
+  let REAL_SET, REAL_REMOVE;   // unpatched Storage methods, so applying a pulled value never
+                               // loops back around as a "local edit"
 
+  // --- storage plumbing, all of it verified ----------------------------------------
+  let storageHealthy = true;   // flips false the first time a write doesn't land
+
+  function rawGet(k) {
+    try { return localStorage.getItem(k); } catch (e) { return null; }
+  }
+  // Write and read back. Returns true only if the value is actually there afterwards.
+  // This is the fix for the "Synced ✓ over an empty localStorage" failure: a browser that
+  // is refusing writes (quota, eviction, private mode, storage blocked for the origin)
+  // throws or silently no-ops, and we must not record that as success.
+  function safeSet(k, v) {
+    try {
+      (REAL_SET ? REAL_SET.call(localStorage, k, v) : localStorage.setItem(k, v));
+    } catch (e) {
+      storageHealthy = false;
+      return false;
+    }
+    if (rawGet(k) !== v) { storageHealthy = false; return false; }
+    return true;
+  }
+  function safeRemove(k) {
+    try {
+      (REAL_REMOVE ? REAL_REMOVE.call(localStorage, k) : localStorage.removeItem(k));
+    } catch (e) {
+      storageHealthy = false;
+      return false;
+    }
+    if (rawGet(k) !== null) { storageHealthy = false; return false; }
+    return true;
+  }
+
+  function isContentKey(k) {
+    return typeof k === "string" && k.indexOf("lz") === 0 &&
+      k !== SEEN_KEY && k !== PENDING_DEL_KEY && LEGACY_KEYS.indexOf(k) < 0;
+  }
   function contentKeys() {
     const out = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (isContentKey(k)) out.push(k);
-    }
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (isContentKey(k)) out.push(k);
+      }
+    } catch (e) {}
     return out;
   }
 
-  // --- a small, unobtrusive status pill (bottom-right corner) -----------------------
+  function loadJSON(key) { try { return JSON.parse(rawGet(key) || "{}"); } catch (e) { return {}; } }
+  function saveJSON(key, obj) { safeSet(key, JSON.stringify(obj)); }
+  function loadSeen() { return loadJSON(SEEN_KEY); }
+  function saveSeen(s) { saveJSON(SEEN_KEY, s); }
+  function loadPendingDel() { const p = loadJSON(PENDING_DEL_KEY); return p && typeof p === "object" ? p : {}; }
+  function savePendingDel(p) { saveJSON(PENDING_DEL_KEY, p); }
+
+  // The old ledger is actively harmful now (it's what stalls a restored sheet), so clear it
+  // once on load rather than leaving it to confuse a future reader.
+  LEGACY_KEYS.forEach(k => { if (rawGet(k) !== null) safeRemove(k); });
+
+  // --- status pill (bottom-right corner) --------------------------------------------
+  // Shows the local key count, so four browsers can be compared at a glance without
+  // opening a console — that is the fastest way to see whether they actually agree.
   let pill;
   function ensurePill() {
     if (pill) return pill;
@@ -69,182 +140,175 @@
     return pill;
   }
   function setStatus(text, isError) {
-    if (!document.body) return; // too early — skip, next tick will retry
+    if (!document.body) return; // too early — the next tick will retry
     const el = ensurePill();
     el.textContent = text;
     el.style.color = isError ? "#b91c1c" : "#64748b";
   }
-
-  // --- find everything changed locally since our last known-synced state ------------
-  // No timestamps are assigned here — the server stamps every write with its own clock
-  // when it lands (see AppsScript-Sync.gs), and we record whatever it assigns. Devices'
-  // clocks disagree, and comparing timestamps minted by two different clocks makes
-  // last-write-wins unreliable: the machine running ahead would always win, so the
-  // other machine's edits could be dropped silently and permanently.
-  function collectLocalChanges(meta) {
-    const changes = [];
-    const seen = new Set();
-    contentKeys().forEach(k => {
-      seen.add(k);
-      const val = localStorage.getItem(k);
-      const known = meta[k];
-      if (!known || known.deleted || known.value !== val) {
-        changes.push({ key: k, value: val, deleted: false });
-      }
-    });
-    // anything we used to know about that's no longer in localStorage was deleted locally
-    Object.keys(meta).forEach(k => {
-      if (!seen.has(k) && !meta[k].deleted) {
-        changes.push({ key: k, value: null, deleted: true });
-      }
-    });
-    return changes;
+  function okStatus() {
+    if (!storageHealthy) {
+      setStatus("Storage blocked — this browser can't save", true);
+      return;
+    }
+    setStatus("✓ " + contentKeys().length + " keys · " +
+      new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
   }
 
-  // Split a change set into what's safe to push and deletions we're refusing to push.
-  // The allowance is the smaller of MAX_DELETIONS and MAX_DELETION_FRACTION of the keys
-  // we currently believe exist, floored at MIN_DELETION_ALLOWANCE.
-  function screenDeletions(changes, meta) {
-    const deletions = changes.filter(c => c.deleted);
-    if (!deletions.length) return { safe: changes, refused: [] };
-    let knownLive = 0;
-    Object.keys(meta).forEach(k => { if (!meta[k].deleted) knownLive++; });
-    const allowance = Math.max(
-      MIN_DELETION_ALLOWANCE,
-      Math.min(MAX_DELETIONS, Math.floor(knownLive * MAX_DELETION_FRACTION))
-    );
-    if (deletions.length <= allowance) return { safe: changes, refused: [] };
-    return { safe: changes.filter(c => !c.deleted), refused: deletions, allowance: allowance, knownLive: knownLive };
-  }
-
-  // When the breaker trips, this device's localStorage is the corrupted copy and the
-  // server still holds the good data — so heal in the safe direction: forget our
-  // bookkeeping for the vanished keys and rewind the cursor to 0. The next pull then
-  // sees no local value and no prior meta for those keys, which is exactly the case
-  // applyRemote() treats as "safe to write," so the server's copy comes back down.
-  // If a deletion really was intentional, this resurrects it — that's the deliberate
-  // trade: losing a deliberate delete costs one repeat, losing 219 check-offs doesn't.
-  function tripBreaker(refused, meta, detail) {
-    refused.forEach(c => { delete meta[c.key]; });
-    saveMeta(meta);
-    saveCursor(0);
-    try {
-      console.error("[lz-sync] Deletion circuit breaker: refused to push " + refused.length +
-        " deletions (allowance " + detail.allowance + " of " + detail.knownLive + " known keys). " +
-        "This device's storage was probably cleared externally; re-pulling from the server.",
-        refused.map(c => c.key));
-    } catch (e) {}
-    setStatus("Blocked " + refused.length + " deletions — restoring", true);
-  }
-
-  // Apps Script web apps respond to every request with a redirect to the URL that
-  // actually serves the content. Browsers follow that redirect automatically — but per
-  // the Fetch spec, a redirected POST silently gets downgraded to a GET, and the POST
-  // body is dropped in the process. That made every push look "successful" (no error)
-  // while quietly writing nothing at all. GET requests don't have that problem, so
-  // pushes go one key at a time as GET requests with the change encoded in the URL,
-  // reusing the same single-item path the backend already supports.
-  function pushOne(item) {
-    const url = SYNC_URL + (SYNC_URL.indexOf("?") >= 0 ? "&" : "?") +
-      "action=set" +
-      "&key=" + encodeURIComponent(item.key) +
-      "&value=" + encodeURIComponent(item.value == null ? "" : item.value) +
-      "&deleted=" + (item.deleted ? "1" : "0");
-    return fetch(url, { method: "GET" })
+  // --- network ----------------------------------------------------------------------
+  // Every request is uncacheable. A cached response on a push would report a write that
+  // never reached the sheet, which is indistinguishable from success to the caller.
+  let nonceCounter = 0;
+  function api(params) {
+    const url = SYNC_URL + (SYNC_URL.indexOf("?") >= 0 ? "&" : "?") + params +
+      "&_=" + Date.now() + "." + (++nonceCounter);
+    return fetch(url, { method: "GET", cache: "no-store" })
       .then(r => r.json())
-      .then(j => {
-        if (!j || !j.ok) return { ok: false };
-        // record the timestamp the SERVER assigned, so every device's bookkeeping is
-        // expressed in one shared clock rather than its own
-        return { ok: true, key: item.key, value: item.value, deleted: item.deleted, updated: Number(j.updated || 0) };
-      })
-      .catch(() => ({ ok: false }));
+      .catch(() => null);
   }
-  function pushChanges(changes) {
-    if (!changes.length) return Promise.resolve({ ok: true, applied: [] });
-    return Promise.all(changes.map(pushOne)).then(results => ({
-      ok: results.every(r => r.ok),
-      applied: results.filter(r => r.ok)
-    }));
+  function pullAll() {
+    // since=0 — always the complete server state. There is no cursor by design.
+    return api("action=get&since=0");
   }
-  function commitPushedChanges(meta, applied) {
-    applied.forEach(c => { meta[c.key] = { value: c.value, updated: c.updated, deleted: c.deleted }; });
-    saveMeta(meta);
+  function pushValue(key, value) {
+    return api("action=set&key=" + encodeURIComponent(key) +
+      "&value=" + encodeURIComponent(value == null ? "" : value) + "&deleted=0")
+      .then(j => (j && j.ok) ? { ok: true, key: key, value: value, updated: Number(j.updated || 0) } : { ok: false, key: key });
+  }
+  function pushDelete(key) {
+    return api("action=set&key=" + encodeURIComponent(key) + "&value=&deleted=1")
+      .then(j => (j && j.ok) ? { ok: true, key: key, deleted: true, updated: Number(j.updated || 0) } : { ok: false, key: key });
   }
 
-  // --- pull: ask the server for anything changed since our cursor -------------------
-  function pullChanges(since) {
-    const url = SYNC_URL + (SYNC_URL.indexOf("?") >= 0 ? "&" : "?") + "action=get&since=" + since;
-    return fetch(url, { method: "GET" }).then(r => r.json()).catch(() => null);
-  }
+  // --- the one operation: reconcile local against the full server state --------------
+  let inFlight = false;
+  function reconcile() {
+    if (inFlight) return Promise.resolve();
+    inFlight = true;
+    setStatus("Syncing…");
+    return pullAll().then(res => {
+      if (!res || !res.ok || !res.items) { setStatus("Sync error — will retry", true); return; }
 
-  function applyRemote(items, meta, cursor) {
-    let newCursor = cursor;
-    Object.keys(items || {}).forEach(k => {
-      const item = items[k];
-      const known = meta[k];
-      // Advance the cursor past every item we were handed, including ones we skip —
-      // otherwise the cursor stalls at the last *applied* change and we re-download the
-      // same rows on every heartbeat forever.
-      if (item.updated > newCursor) newCursor = item.updated;
-      if (known && known.updated >= item.updated) return; // we already have this exact state or something newer
+      const items = res.items;
+      const seen = loadSeen();
+      const pendingDel = loadPendingDel();
+      const pushes = [];
+      let applied = 0, refusedRemote = 0;
 
-      // Guard against clobbering a local edit that hasn't been confirmed pushed yet. Each
-      // iframe on this page (kidzone.html, calendar.html, week.html, ...) runs its own
-      // separate copy of this script with its own in-memory state, but they all read and
-      // write the same localStorage and the same persisted meta — so comparing what's
-      // ACTUALLY in localStorage right now against what we last confirmed synced catches
-      // an in-flight edit no matter which frame made it, without needing any shared
-      // in-memory flag. Previously a key with no prior meta entry (the common case for a
-      // lesson's very first check-off) had no protection at all here: `known` was
-      // undefined, so a pulled answer got applied unconditionally, even if this exact
-      // check-off was sitting in localStorage not yet pushed — that's what "check off a
-      // lesson and it goes away" turned out to be.
-      let localCur;
-      try { localCur = localStorage.getItem(k); } catch (e) { localCur = undefined; }
-      const localMatchesKnown = known ? (known.deleted ? localCur === null : localCur === known.value) : localCur === null;
-      if (!localMatchesKnown) return;
-
-      // Write via the REAL storage methods, not the patched ones below — applying a pulled
-      // value is not a local edit, so it must not schedule a redundant push of the same
-      // data right back up. Falls back to the plain localStorage methods if the prototype
-      // patch below never installed (in which case those already are the real, unpatched
-      // methods).
-      if (item.deleted || item.value === null) {
-        try { (REAL_REMOVE ? REAL_REMOVE.call(localStorage, k) : localStorage.removeItem(k)); } catch (e) {}
+      // (1) Server tombstones -> remove locally, capped by the breaker. A server that has
+      // somehow been mass-tombstoned again must not be able to empty this device.
+      const localNow = contentKeys();
+      const toRemove = Object.keys(items).filter(k =>
+        items[k].deleted && isContentKey(k) && rawGet(k) !== null);
+      const removeAllowance = deletionAllowance(localNow.length);
+      if (toRemove.length > removeAllowance) {
+        refusedRemote = toRemove.length;
+        try {
+          console.error("[lz-sync] Refused to apply " + toRemove.length + " deletions from the " +
+            "server (allowance " + removeAllowance + " of " + localNow.length + " local keys). " +
+            "Nothing was removed. Check the sheet before doing anything else.", toRemove);
+        } catch (e) {}
       } else {
-        try { (REAL_SET ? REAL_SET.call(localStorage, k, item.value) : localStorage.setItem(k, item.value)); } catch (e) {}
+        toRemove.forEach(k => {
+          if (safeRemove(k)) { seen[k] = { deleted: true, u: items[k].updated }; applied++; }
+        });
       }
-      meta[k] = { value: item.deleted ? null : item.value, updated: item.updated, deleted: !!item.deleted };
-    });
-    return newCursor;
+
+      // (2) Server's live values.
+      Object.keys(items).forEach(k => {
+        const item = items[k];
+        if (item.deleted || !isContentKey(k)) return;
+        if (pendingDel[k]) return;            // we're about to delete this on purpose
+        const localCur = rawGet(k);
+
+        if (localCur === null) {
+          // We simply don't have it. Absence is never a deletion — fetch it.
+          if (safeSet(k, item.value)) { seen[k] = { v: item.value, u: item.updated }; applied++; }
+          return;
+        }
+        if (localCur === item.value) { seen[k] = { v: item.value, u: item.updated }; return; }
+
+        // Genuine disagreement. If local still matches what we last agreed on, the server
+        // is the one that moved — take it. Otherwise this device has an unsent edit.
+        const agreed = seen[k];
+        if (agreed && agreed.v === localCur) {
+          if (safeSet(k, item.value)) { seen[k] = { v: item.value, u: item.updated }; applied++; }
+        } else {
+          pushes.push(pushValue(k, localCur));
+        }
+      });
+
+      // (3) Keys this device has that the server has never seen. This is what makes the
+      // result a union rather than a takeover — months of check-offs that never synced
+      // get carried up instead of being quietly dropped.
+      localNow.forEach(k => {
+        if (items[k] || pendingDel[k]) return;
+        pushes.push(pushValue(k, rawGet(k)));
+      });
+
+      // (4) Explicit deletes queued by a real removeItem() in this page, breaker-capped.
+      const delKeys = Object.keys(pendingDel);
+      if (delKeys.length) {
+        const allowance = deletionAllowance(Object.keys(items).length || localNow.length);
+        if (delKeys.length > allowance) {
+          try {
+            console.error("[lz-sync] Deletion circuit breaker: refused to push " + delKeys.length +
+              " deletions (allowance " + allowance + "). Dropping the request; nothing was " +
+              "deleted on the server.", delKeys);
+          } catch (e) {}
+          savePendingDel({});   // drop the intent rather than retrying it forever
+          setStatus("Blocked " + delKeys.length + " deletions", true);
+        } else {
+          delKeys.forEach(k => pushes.push(pushDelete(k)));
+        }
+      }
+
+      if (!pushes.length) {
+        saveSeen(seen);
+        if (refusedRemote) setStatus("Blocked " + refusedRemote + " deletions from server", true);
+        else okStatus();
+        return;
+      }
+      return Promise.all(pushes).then(results => {
+        const stillPending = loadPendingDel();
+        results.forEach(r => {
+          if (!r.ok) return;
+          if (r.deleted) { seen[r.key] = { deleted: true, u: r.updated }; delete stillPending[r.key]; }
+          else { seen[r.key] = { v: r.value, u: r.updated }; }
+        });
+        saveSeen(seen);
+        savePendingDel(stillPending);
+        if (refusedRemote) setStatus("Blocked " + refusedRemote + " deletions from server", true);
+        else if (results.every(r => r.ok)) okStatus();
+        else setStatus("Sync error — will retry", true);
+      });
+    }).catch(() => {
+      setStatus("Sync error — will retry", true);
+    }).finally(() => { inFlight = false; });
   }
 
-  // --- quick push: fires within ~250ms of an actual local write, from THIS document --
-  // Independent of the heartbeat/election below — every frame gets this, since it only
-  // ever reacts to a write that happened in its own document (never redundant across
-  // sibling iframes), and it's what makes a check-off show up elsewhere in a couple
-  // seconds instead of waiting up to a full heartbeat interval.
+  // --- reacting to writes made right here, right now ---------------------------------
+  // A quick push covers only values; it can't delete, because it doesn't pull first and so
+  // has no business deciding anything about absence. Deletes are queued as explicit intent
+  // and handled by the next reconcile.
   let quickTimer = null;
   let quickInFlight = false;
   function quickPush() {
     if (quickInFlight) { quickTimer = setTimeout(quickPush, QUICK_PUSH_MS); return; }
-    const meta = loadMeta();
-    // Values only on the fast path. quickPush() pushes without pulling first, so it has
-    // no way to tell "the user deleted this" from "this device never received it / lost
-    // it" — and that guess is what caused the 2026-09-19 wipe. Deletions are left for
-    // tick(), which pulls first and runs them past the circuit breaker.
-    const changes = collectLocalChanges(meta).filter(c => !c.deleted);
+    const seen = loadSeen();
+    const changes = contentKeys().filter(k => {
+      const cur = rawGet(k);
+      const agreed = seen[k];
+      return cur !== null && (!agreed || agreed.deleted || agreed.v !== cur);
+    });
     if (!changes.length) return;
     quickInFlight = true;
     setStatus("Syncing…");
-    pushChanges(changes).then(res => {
-      commitPushedChanges(meta, res.applied); // commit whatever landed, even on partial failure
-      if (res.ok) {
-        setStatus("Synced ✓ " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-      } else {
-        setStatus("Sync error — will retry", true);
-      }
+    Promise.all(changes.map(k => pushValue(k, rawGet(k)))).then(results => {
+      const s = loadSeen();
+      results.forEach(r => { if (r.ok) s[r.key] = { v: r.value, u: r.updated }; });
+      saveSeen(s);
+      if (results.every(r => r.ok)) okStatus();
+      else setStatus("Sync error — will retry", true);
     }).finally(() => { quickInFlight = false; });
   }
   function scheduleQuickPush() {
@@ -252,77 +316,38 @@
     quickTimer = setTimeout(quickPush, QUICK_PUSH_MS);
   }
 
-  // Hook localStorage writes so a change gets queued for a quick push the moment it
-  // happens, rather than waiting to be noticed by the next periodic scan. This runs in
-  // every frame (not just the elected heartbeat owner below) since it only ever fires
-  // for writes made in this exact document.
+  // Hook localStorage so a change here is noticed immediately. A removeItem() reaching this
+  // hook is the ONLY thing in the system that counts as a deletion: it is an actual call,
+  // made by app code, in response to something the user just did — not an inference drawn
+  // from a key being absent.
   try {
-    // Patching the shared Storage.prototype (rather than the localStorage instance
-    // itself) is the reliable way to do this — localStorage is a "legacy platform
-    // object" with its own property-interception behavior, so assigning directly to
-    // localStorage.setItem doesn't consistently stick across environments. Guarded by
-    // `this === localStorage` so a hypothetical sessionStorage write (this app never
-    // makes one) can't trigger a sync push. REAL_SET/REAL_REMOVE are also used directly
-    // by applyRemote() above, so a pulled value never loops back around as a "local edit."
     REAL_SET = Storage.prototype.setItem;
     REAL_REMOVE = Storage.prototype.removeItem;
     Storage.prototype.setItem = function (k, v) {
       REAL_SET.call(this, k, v);
-      if (this === localStorage && isContentKey(k)) scheduleQuickPush();
+      if (this === localStorage && isContentKey(k)) {
+        const p = loadPendingDel();
+        if (p[k]) { delete p[k]; savePendingDel(p); } // re-created before we got around to deleting it
+        scheduleQuickPush();
+      }
     };
     Storage.prototype.removeItem = function (k) {
       REAL_REMOVE.call(this, k);
-      if (this === localStorage && isContentKey(k)) scheduleQuickPush();
+      if (this === localStorage && isContentKey(k)) {
+        const p = loadPendingDel();
+        p[k] = Date.now();
+        savePendingDel(p);
+        scheduleQuickPush();
+      }
     };
-  } catch (e) { /* if Storage.prototype can't be patched, the heartbeat below still catches everything */ }
+  } catch (e) { /* if Storage.prototype can't be patched, the interval below still catches everything */ }
 
-  // --- heartbeat: full pull (+ safety-net push) on a steady interval ----------------
-  let inFlight = false;
-  function tick() {
-    if (inFlight) return;
-    inFlight = true;
-    const meta = loadMeta();
-    const cursor = loadCursor();
-    setStatus("Syncing…");
-    pullChanges(cursor).then(res => {
-      let pullOk = !!(res && res.ok);
-      if (pullOk) {
-        const newCursor = applyRemote(res.items, meta, cursor);
-        saveMeta(meta);
-        saveCursor(newCursor);
-      }
-      const screened = screenDeletions(collectLocalChanges(meta), meta);
-      if (screened.refused.length) {
-        tripBreaker(screened.refused, meta, screened);
-        // Push the non-deletion changes anyway — those are real local edits — but skip
-        // the success status so the breaker's warning stays on screen.
-        return pushChanges(screened.safe).then(pushRes => {
-          commitPushedChanges(meta, pushRes.applied);
-        });
-      }
-      return pushChanges(screened.safe).then(pushRes => {
-        commitPushedChanges(meta, pushRes.applied);
-        if (pullOk && pushRes.ok) {
-          setStatus("Synced ✓ " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-        } else {
-          setStatus("Sync error — will retry", true);
-        }
-      });
-    }).catch(() => {
-      setStatus("Sync error — will retry", true);
-    }).finally(() => { inFlight = false; });
-  }
-
-  // ry.html/reid.html/teacher.html each keep 2-3 of this app's pages loaded as same-origin
-  // iframes at once (e.g. ry.html has kidzone.html + calendar.html + journal.html all live
-  // simultaneously, just hidden by CSS, not lazy-loaded) — every one of them would otherwise
-  // run its own independent heartbeat against the exact same localStorage, tripling or
-  // quadrupling pull traffic for no benefit (the quick-push reflex above already covers
-  // each frame's own writes regardless). So: whichever frame's copy of this script runs
-  // first in a given browser tab claims the recurring heartbeat on the shared top window;
-  // sibling frames skip starting their own, but still see the results a moment later since
-  // they all read/write the same localStorage. A page opened standalone (not inside any of
-  // this app's iframes) is always its own top window, so it always just claims itself.
+  // ry.html/reid.html/teacher.html keep 2-3 of this app's pages loaded as same-origin iframes
+  // at once, all hidden by CSS rather than lazy-loaded. Every one would otherwise run its own
+  // reconcile against the same localStorage. So whichever frame's copy runs first in a tab
+  // claims the recurring pull on the shared top window; siblings skip it but still see the
+  // results, since they all read and write the same storage. A page opened standalone is
+  // always its own top window, so it always claims itself.
   let isHeartbeatOwner = true;
   try {
     if (window.top && window.top !== window && window.top._lzSyncOwnerActive) isHeartbeatOwner = false;
@@ -330,23 +355,23 @@
   } catch (e) { /* cross-origin top (shouldn't happen on this site) — just run normally */ }
 
   if (isHeartbeatOwner) {
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", () => setTimeout(tick, 800));
-    } else {
-      setTimeout(tick, 800);
-    }
-    setInterval(tick, HEARTBEAT_MS);
+    const start = () => { reconcile(); setInterval(reconcile, PULL_MS); };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => setTimeout(start, 300));
+    else setTimeout(start, 300);
   }
 
-  // exposed for debugging from the browser console: LZSYNC.forceSync()
+  // Exposed for debugging from the browser console.
   window.LZSYNC = {
-    forceSync: tick,
+    forceSync: reconcile,
     quickPush: quickPush,
     isHeartbeatOwner: () => isHeartbeatOwner,
-    // LZSYNC.pendingDeletions() — what the breaker would be asked to push right now
-    pendingDeletions: () => {
-      const meta = loadMeta();
-      return screenDeletions(collectLocalChanges(meta), meta);
-    }
+    storageHealthy: () => storageHealthy,
+    // LZSYNC.report() — what this browser actually holds, for comparing devices
+    report: () => ({
+      keys: contentKeys().length,
+      seen: Object.keys(loadSeen()).length,
+      pendingDeletes: Object.keys(loadPendingDel()),
+      storageHealthy: storageHealthy
+    })
   };
 })();
