@@ -61,6 +61,7 @@
   .stop{ display:flex; align-items:center; gap:16px; }
   .sbox{ flex:none; width:34px; height:34px; border-radius:50%; border:3px solid #d7d3ea; background:#fff;
     display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:900; color:#fff; cursor:pointer; }
+  .sbox.static{ cursor:default; }
   .stop.done{ opacity:.55; }
   .stop.done .sbox{ background:var(--green); border-color:var(--green); }
   .stop .t{ font-size:16.5px; font-weight:800; flex:1; min-width:0; }
@@ -69,7 +70,8 @@
   .stop .go{ font-size:13px; font-weight:800; text-decoration:none; }
 
   .nowstop{ display:flex; gap:16px; align-items:stretch; }
-  .nowstop .sbox{ border:4px solid var(--ry); cursor:default; }
+  .nowstop .sbox{ border:4px solid var(--ry); cursor:pointer; }
+  .nowstop .sbox:hover{ background:#eff6ff; }
   .nowcard{ flex:1; min-width:0; background:var(--ry); color:#fff; border-radius:22px; padding:22px 26px;
     display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
   .nowcard .kick{ font-size:11.5px; font-weight:900; letter-spacing:1.4px; text-transform:uppercase; color:#bfdbfe; }
@@ -277,8 +279,11 @@ function doneStopHtml(s){
   </div>` + attachBlock(s);
 }
 function nextStopHtml(s){
+  // Not reached yet — the circle is a preview marker only, not a control. Skipping ahead
+  // isn't allowed; the only way to complete something is to work down to it and use the
+  // "now" stop's own circle (or its Finished button).
   return `<div class="stop">
-    <div class="sbox" data-toggle="${esc(s.key)}" title="Check it off"></div>
+    <div class="sbox static" title="Not up yet"></div>
     <div class="t">${stopLabel(s)}</div>
     <div class="pg">${esc(s.note)}</div>
     ${s.link?`<a class="go" href="${esc(s.link)}" target="_blank" rel="noopener">Open →</a>`:""}
@@ -286,7 +291,7 @@ function nextStopHtml(s){
 }
 function nowStopHtml(s, position){
   return `<div class="nowstop">
-    <div class="sbox"></div>
+    <div class="sbox" data-toggle="${esc(s.key)}" title="Check it off"></div>
     <div class="nowcard">
       <div style="flex:1;min-width:0;">
         <div class="kick">You are here · stop ${position} · ${esc(s.subject)}</div>
