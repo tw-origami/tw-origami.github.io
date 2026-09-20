@@ -123,26 +123,6 @@
   .card:hover .menu{ color:var(--muted); } .card .menu:hover{ background:#f1f5f9; }
   .card.chip{ cursor:default; background:#fcfcfe; }
   /* ---- subject panel ---- */
-  .panel{ border-top:1px solid var(--line); background:#fff; }
-  .ptabs{ display:flex; align-items:center; gap:8px; padding:9px 18px; cursor:pointer; }
-  .ptabs h2{ margin:0; font-size:13px; letter-spacing:.02em; }
-  .ptabs .hint{ font-size:12px; color:var(--muted); }
-  .ptabs .caret{ margin-left:auto; color:var(--muted); }
-  .pbody{ display:grid; grid-template-columns:1fr 1fr; gap:14px; padding:2px 18px 20px; }
-  .pbody.hide{ display:none; }
-  .pcol h3{ margin:0 0 8px; font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
-  .srow{ display:grid; grid-template-columns:1fr auto; gap:6px 10px; align-items:center; padding:8px 0; border-top:1px solid var(--line); }
-  .srow .nm{ font-weight:700; font-size:13px; }
-  .srow .bk{ font-size:11.5px; color:var(--muted); font-weight:400; }
-  .srow .next{ font-size:11.5px; color:var(--muted); grid-column:1/-1; margin-top:-3px; }
-  .srow .next b{ color:var(--ink); font-weight:600; }
-  .bar2{ height:5px; border-radius:99px; background:#eceff5; overflow:hidden; width:120px; }
-  .bar2>i{ display:block; height:100%; }
-  .srow .pct{ font-size:11px; color:var(--muted); text-align:right; }
-  .dows{ display:flex; gap:3px; grid-column:1/-1; margin-top:2px; align-items:center; }
-  .dows button{ border:1px solid var(--line); background:#fff; border-radius:6px; width:24px; height:21px; font-size:10px; font-weight:800; cursor:pointer; color:var(--faint); padding:0; }
-  .dows button.on{ color:#fff; }
-  .dows .addl{ margin-left:auto; width:auto; padding:0 8px; color:var(--ry); border-color:#dfe3f5; }
   .paused{ font-size:11px; color:var(--amber); font-weight:700; }
 
   /* ---- popovers & modal ---- */
@@ -182,18 +162,10 @@
 
 <div class="gridwrap" id="gridwrap"></div>
 
-<div class="panel">
-  <div class="ptabs" id="ptoggle">
-    <h2>Subjects &amp; queues</h2>
-    <span class="hint">progress, what's next, which days each subject runs</span>
-    <span class="caret" id="pcaret">▾</span>
-  </div>
-  <div class="pbody hide" id="pbody"></div>
-</div>
 
 <script src="curriculum.js"></script>
-<script src="lz-common.js?v=4"></script>
-<script src="lz-sync.js?v=13"></script>
+<script src="lz-common.js?v=5"></script>
+<script src="lz-sync.js?v=14"></script>
 <script>
 const KIDS = [
   { id:"ryland", name:"Ryland", color:"#4f46e5", cls:"ry" },
@@ -233,113 +205,15 @@ function days(){
   return out;
 }
 const isMonday = dateISO => dowOf(dateISO) === 1;
-const isWeekend = dateISO => { const w = dowOf(dateISO); return w === 0 || w === 6; };
+const isWeekend = dateISO => LZ.isWeekendISO(dateISO);
 
-// Does a subject run for this kid on this day?
-//
-// A subject's schedule ("which days each subject runs") defaults to Mon-Fri, and the
-// planner was the only thing honouring it: ry.html and reid.html never consult it at all
-// and simply offer the front of each queue every day. So on a Saturday or Sunday the kids'
-// route showed a full day's work while the dashboard showed an empty column. Weekends now
-// always count as running days here, so the plan reflects what the kids are actually
-// given; explicit weekday schedules are still respected.
-function runsOn(kid, subject, dateISO){
-  return !LZ.isDayOff(dateISO) && (isWeekend(dateISO) || LZ.isScheduledOn(kid, subject, dateISO));
-}
-function subjectsFor(kid){
-  const paused = (window.LZ_CONFIG&&LZ_CONFIG.paused)||[];
-  return LZ.getAllSubjects(kid).filter(s=>!paused.includes(s.subject));
-}
+const runsOn = (kid, subject, d) => LZ.runsOn(kid, subject, d);
+const subjectsFor = kid => LZ.activeSubjects(kid);
 
-/* ---------- build the week's plan ---------------------------------------------------- */
-// Cards land on days three ways: a teacher pin (lzAssign / a manual lesson's own date),
-// an automatic flow of the subject's queue onto its scheduled days, or a completion record
-// that already happened. Auto-flow never fills a past day or a day marked off.
-function planFor(kid, list){
-  const today = LZ.todayISO();
-  const byDay = {}; list.forEach(d=>byDay[d]=[]);
-  const inWeek = d => byDay[d] !== undefined;
-
-  subjectsFor(kid).forEach(sub=>{
-    const subject = sub.subject;
-
-    if(sub.kind === "ongoing"){
-      list.forEach(d=>{
-        if(!runsOn(kid,subject,d)) return;
-        const key = LZ.dateKey(kid,subject,d);
-        const done = LZ.isDone(key);
-        const skipped = LZ.isSkipped(kid,subject,d);
-        if(skipped) return;
-        const pick = sub.pick==="daily" ? LZ.dailyPick(kid,subject,d,sub.options) : null;
-        byDay[d].push({ type:"ongoing", kid, sub, subject, date:d, done, doneKey:key,
-          title: pick || (sub.options&&sub.options[0]) || subject, page:"", missed: !done && d<today });
-      });
-      LZ.getManualLessons(kid,subject).filter(m=>m.date).forEach(m=>{
-        if(!inWeek(m.date)) return;
-        const key = LZ.manualDoneKey(kid,subject,m.id);
-        byDay[m.date].push({ type:"manual", kid, sub, subject, itemId:"m|"+m.id, manual:m, date:m.date,
-          done:LZ.isDone(key), doneKey:key, title:m.title, page:m.page, pinned:true, missed:!LZ.isDone(key) && m.date<today });
-      });
-      return;
-    }
-
-    // book subject — completions first, so a finished day shows what actually happened
-    (sub.lessons||[]).forEach(l=>{
-      const k = LZ.dkey(kid,sub,l);
-      const d = LZ.doneDate(k);
-      if(d && inWeek(d)) byDay[d].push({ type:"real", kid, sub, subject, itemId:LZ.lessonItemId(l), lesson:l,
-        date:d, done:true, doneKey:k, title:l.t, page:l.p });
-    });
-    LZ.getManualLessons(kid,subject).filter(m=>!m.date).forEach(m=>{
-      const k = LZ.manualDoneKey(kid,subject,m.id);
-      const d = LZ.doneDate(k);
-      if(d && inWeek(d)) byDay[d].push({ type:"manual", kid, sub, subject, itemId:"m|"+m.id, manual:m,
-        date:d, done:true, doneKey:k, title:m.title, page:m.page });
-    });
-
-    // still-to-do queue
-    //
-    // Two rules below exist purely to keep this grid honest against what ry.html/reid.html
-    // actually put in front of the kids, which is the thing they work from. Without them
-    // the dashboard invented work the checklist never showed:
-    //
-    //   * a subject finished for the day would ALSO get its next lesson flowed onto the
-    //     same day, so Reading read as two lessons here and one there;
-    //   * if the head of a queue is pinned to a future day, the kids' route pauses that
-    //     whole subject until then, while this grid happily flowed the SECOND item into
-    //     today -- which is why Writing showed Ch.2 L12 here and nothing at all there.
-    const doneDays = new Set(Object.keys(byDay).filter(d =>
-      byDay[d].some(c => c.subject===subject && c.done)));
-    const resume = LZ.subjectResumesOn(kid, sub);   // date the queue head is pinned to, if any
-    const queue = LZ.combinedQueue(kid, sub);
-    const pinCount = {};
-    const flowing = [];
-    queue.forEach(it=>{
-      const card = {
-        type: it.kind==="manual" ? "manual" : "real", kid, sub, subject, itemId:it.id,
-        lesson: it.lesson, manual: it.manual, done:false,
-        title: it.kind==="manual" ? it.manual.title : it.lesson.t,
-        page:  it.kind==="manual" ? it.manual.page  : it.lesson.p,
-        doneKey: it.kind==="manual" ? LZ.manualDoneKey(kid,subject,it.manual.id) : LZ.dkey(kid,sub,it.lesson),
-        part: !!(it.kind==="manual" && /part/i.test(it.manual.title||""))
-      };
-      const pin = LZ.getAssignedDate(kid, subject, it.id);
-      if(pin){
-        pinCount[pin] = (pinCount[pin]||0)+1;
-        if(inWeek(pin)) byDay[pin].push(Object.assign(card,{date:pin, pinned:true, missed: pin<today}));
-      } else flowing.push(card);
-    });
-    const open = list.filter(d =>
-      d >= today && runsOn(kid,subject,d) && !pinCount[d] &&
-      !doneDays.has(d) &&                       // already finished this subject that day
-      (!resume || d > resume));                 // subject is paused until its pinned head
-    flowing.slice(0, open.length).forEach((c,i)=>{ byDay[open[i]].push(Object.assign(c,{date:open[i]})); });
-  });
-
-  list.forEach(d=>byDay[d].sort((a,b)=> (a.done?1:0)-(b.done?1:0) ));
-  return byDay;
-}
-
+/* ---------- build the week's plan ----------------------------------------------------
+   The rules for what a day holds now live in lz-common's planDays(), shared with the
+   kids' route so the two views cannot drift apart again. This file only decides how the
+   result is drawn. */
 /* ---------- render -------------------------------------------------------------------- */
 let plans = {};
 function render(){
@@ -347,7 +221,7 @@ function render(){
   const today = LZ.todayISO();
   const wrap = $("#gridwrap");
   const scroll = { x: wrap.scrollLeft, y: wrap.scrollTop };
-  plans = {}; KIDS.forEach(k=>plans[k.id] = planFor(k.id, list));
+  plans = {}; KIDS.forEach(k=>plans[k.id] = LZ.planDays(k.id, list));
 
 
   const table = document.createElement("div");
@@ -383,7 +257,6 @@ function render(){
   const widthBefore = wrap.firstChild ? wrap.firstChild.scrollWidth : 0;
   wrap.innerHTML = ""; wrap.appendChild(table);
   renderSummary();
-  renderPanel();
   // Weeks grafted onto the LEFT shift everything right by exactly the width added; without
   // this correction the view would jump backwards every time earlier weeks load in.
   const grew = pendingLeftGrowth ? (table.scrollWidth - widthBefore) : 0;
@@ -593,57 +466,6 @@ function renderSummary(){
   });
 }
 
-function renderPanel(){
-  const body = $("#pbody");
-  if(body.classList.contains("hide")) return;
-  body.innerHTML = "";
-  KIDS.forEach(k=>{
-    const col = document.createElement("div");
-    col.className = "pcol";
-    col.innerHTML = `<h3 style="color:${k.color}">${k.name}</h3>`;
-    const paused = (window.LZ_CONFIG&&LZ_CONFIG.paused)||[];
-    LZ.getAllSubjects(k.id).forEach(sub=>{
-      const p = LZ.subjProgress(k.id, sub);
-      const q = sub.kind==="book" ? LZ.combinedQueue(k.id, sub) : [];
-      const nx = q[0];
-      const resume = sub.kind==="book" ? LZ.subjectResumesOn(k.id, sub) : null;
-      const isPaused = paused.includes(sub.subject);
-      const row = document.createElement("div");
-      row.className = "srow";
-      row.innerHTML = `
-        <div><span class="nm">${escapeHtml(sub.subject)}</span> ${sub.book?`<span class="bk">${escapeHtml(sub.book)}</span>`:""} ${isPaused?'<span class="paused">paused</span>':""}</div>
-        <div style="display:flex;align-items:center;gap:8px">
-          ${sub.kind==="book"?`<span class="bar2"><i style="width:${p.pct}%;background:${k.color}"></i></span><span class="pct">${p.left} left</span>`:`<span class="pct">daily</span>`}
-        </div>
-        <div class="next">${sub.kind==="book"
-            ? (nx ? `Next: <b>${escapeHtml(nx.kind==="manual"?nx.manual.title:nx.lesson.t)}</b>${(nx.kind==="manual"?nx.manual.page:nx.lesson.p)?` · p.${escapeHtml(String(nx.kind==="manual"?nx.manual.page:nx.lesson.p))}`:""}` : "Finished 🎉")
-            + (resume?` · <span style="color:var(--amber)">starts ${pretty(resume)}</span>`:"")
-            : (sub.note?escapeHtml(sub.note):"")}</div>
-        <div class="dows"></div>`;
-      const dows = row.querySelector(".dows");
-      LZ.DOW_CODES.slice(1,6).concat(["sat","sun"]).forEach(code=>{
-        const on = LZ.getScheduleDays(k.id, sub.subject).includes(code);
-        const b = document.createElement("button");
-        b.textContent = code[0].toUpperCase()+code.slice(1,2);
-        b.className = on?"on":""; if(on) b.style.background = k.color, b.style.borderColor = k.color;
-        b.title = "Run "+sub.subject+" on "+code;
-        b.addEventListener("click",()=>{
-          const cur = LZ.getScheduleDays(k.id, sub.subject);
-          LZ.setScheduleDays(k.id, sub.subject, on ? cur.filter(c=>c!==code) : cur.concat([code]));
-          render();
-        });
-        dows.appendChild(b);
-      });
-      const add = document.createElement("button");
-      add.className = "addl"; add.textContent = "+ lesson";
-      add.addEventListener("click", ()=>openAdd({kid:k.id, subject:sub.subject}));
-      dows.appendChild(add);
-      col.appendChild(row);
-    });
-    body.appendChild(col);
-  });
-}
-
 /* ---------- actions ------------------------------------------------------------------- */
 function toggleDone(c){
   if(c.type==="ongoing"){ LZ.setDone(c.doneKey, !c.done); }
@@ -654,7 +476,8 @@ function toggleDone(c){
 // Everything in a subject that is still to do on a given day, other than the card in hand.
 function occupantsOn(kid, subject, date, exceptItemId){
   return ((plans[kid] && plans[kid][date]) || [])
-    .filter(o=>o.subject===subject && !o.done && o.itemId && o.itemId!==exceptItemId);
+    .filter(o=>o.subject===subject && !o.done && o.itemId && o.itemId!==exceptItemId
+      && o.type!=="ongoing");   // a daily checkbox isn't a lesson that can be shifted
 }
 function nextOpenDay(kid, subject, after){
   return days().find(d => d > after && runsOn(kid, subject, d))
@@ -909,11 +732,6 @@ $("#gridwrap").addEventListener("dragover", e=>{
 ["dragleave","drop","dragend"].forEach(ev=>
   $("#gridwrap").addEventListener(ev, ()=>{ clearInterval(edgeTimer); edgeTimer = null; }));
 $("#addBtn").addEventListener("click", ()=>openAdd({}));
-$("#ptoggle").addEventListener("click", ()=>{
-  const b = $("#pbody"); b.classList.toggle("hide");
-  $("#pcaret").textContent = b.classList.contains("hide") ? "▾" : "▴";
-  if(!b.classList.contains("hide")) renderPanel();
-});
 document.addEventListener("keydown", e=>{
   if(e.target.matches("input,select,textarea")) return;
   if(e.key==="ArrowLeft") $("#prev").click();

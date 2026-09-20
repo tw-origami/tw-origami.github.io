@@ -164,8 +164,8 @@
 </div>
 
 <script src="plan/curriculum.js"></script>
-<script src="plan/lz-common.js?v=4"></script>
-<script src="plan/lz-sync.js?v=13"></script>
+<script src="plan/lz-common.js?v=5"></script>
+<script src="plan/lz-sync.js?v=14"></script>
 <script>
 const KID = "ryland";
 const CFG = window.LZ_CONFIG || {paused:[], habits:[]};
@@ -194,53 +194,39 @@ document.querySelectorAll(".railnav .pill").forEach(p=>{
 });
 
 /* ---------- the route: one stop per active subject, in curriculum order ----------
-   Same records as before (dkey / dateKey / manualDoneKey), so checking a stop off here
-   still shows up on the Master Tracker, calendar and daily sheets. */
+   The decision of WHAT a day holds lives in lz-common's planDays(), shared with the
+   Teacher Dashboard's planner so the checklist and the dashboard cannot disagree — they
+   used to drift apart in four separate ways (weekend schedules, a subject finished for
+   the day still getting its next lesson, a queue head pinned to a future day, and days
+   marked off). This function only turns those cards into stops: wording, links and the
+   itemId that attachments hang off. Same records as before (dkey / dateKey /
+   manualDoneKey), so checking a stop off here still shows up on the Master Tracker,
+   calendar and daily sheets. */
 function buildRoute(){
   const today = todayISO();
-  const subs = (getAllSubjects(KID)||[]).filter(s=>!(CFG.paused||[]).includes(s.subject));
-  const stops = [];
-  subs.forEach(sub=>{
-    if(sub.kind==="ongoing"){
-      const k = dateKey(KID, sub.subject, today);
-      const done = isDone(k);
-      if(!done && isSkipped(KID, sub.subject, today)) return; // parent excused it today
-      let title = sub.subject, note = (sub.options||[]).join(" or "), link = "";
-      if(sub.pick === "daily"){
-        const choice = dailyPick(KID, sub.subject, today, sub.options);
-        title = choice || sub.subject;
-        note = sub.subject + " · today's pick";
-        link = appLink(choice);
+  return LZ.planForDay(KID, today).map(c=>{
+    const stop = { key:c.doneKey, subject:c.subject, title:c.title, done:c.done,
+                   itemId:c.itemId, note:"", link:"" };
+    if(c.type === "ongoing"){
+      // The stop is named for the SUBJECT ("Math"), with the app as the note — except a
+      // daily-rotation subject, where the chosen app is the point ("Fact Checker"). The
+      // planner grid names these the other way round, which is why the shared card keeps
+      // subject and pick separate rather than baking one title for both views.
+      if(c.pick){
+        stop.title = c.pick;
+        stop.note = c.subject + " · today's pick";
+        stop.link = appLink(c.pick);
+      } else {
+        stop.title = c.subject;
+        stop.note = (c.sub.options||[]).length ? (c.sub.options||[]).join(" or ") : (c.sub.note||"");
       }
-      stops.push({key:k, subject:sub.subject, title, note, link, done, itemId:"subject"});
-      return;
-    }
-    // Book subject: anything finished today stays visible as a done stop; otherwise the
-    // front of the queue is the one thing to do.
-    const doneToday = (sub.lessons||[]).filter(l=>doneDate(dkey(KID,sub,l))===today);
-    const manualDoneToday = getManualLessons(KID, sub.subject)
-      .filter(m=>!m.date && doneDate(manualDoneKey(KID,sub.subject,m.id))===today);
-    if(doneToday.length || manualDoneToday.length){
-      doneToday.forEach(l=>stops.push({key:dkey(KID,sub,l), subject:sub.subject, title:l.t,
-        note:(sub.book||sub.subject)+(l.p?" · p."+l.p:""), done:true, itemId:lessonItemId(l)}));
-      manualDoneToday.forEach(m=>stops.push({key:manualDoneKey(KID,sub.subject,m.id), subject:sub.subject,
-        title:m.title, note:(m.page?"p."+m.page:"extra"), done:true, itemId:"m|"+m.id}));
-      return;
-    }
-    const queue = combinedQueue(KID, sub);
-    if(!queue.length) return;                                   // caught up in the book
-    const resume = subjectResumesOn(KID, sub);
-    if(resume && resume > today) return;                         // pinned to a later day
-    const item = queue[0];
-    if(item.kind === "real"){
-      stops.push({key:dkey(KID,sub,item.lesson), subject:sub.subject, title:item.lesson.t,
-        note:(sub.book||sub.subject)+(item.lesson.p?" · p."+item.lesson.p:""), done:false, itemId:item.id});
+    } else if(c.type === "manual"){
+      stop.note = c.extra ? "extra for today" : (c.page ? "p."+c.page : "extra");
     } else {
-      stops.push({key:manualDoneKey(KID,sub.subject,item.manual.id), subject:sub.subject,
-        title:item.manual.title, note:(item.manual.page?"p."+item.manual.page:"extra"), done:false, itemId:item.id});
+      stop.note = (c.sub.book||c.subject) + (c.page ? " · p."+c.page : "");
     }
+    return stop;
   });
-  return stops;
 }
 
 function attachBlock(stop){
@@ -300,11 +286,17 @@ function renderRoute(){
   document.getElementById("dial").style.background =
     `conic-gradient(#fbbf24 0 ${pct}%, rgba(255,255,255,.2) ${pct}% 100%)`;
   document.getElementById("dialText").textContent = `${done.length}/${total}`;
-  document.getElementById("stopsLeft").textContent = left.length
-    ? `${left.length} stop${left.length===1?'':'s'} left` : "All done!";
-  document.getElementById("routeHint").textContent = left.length
-    ? `Work down the line — you're at stop ${done.length+1} of ${total}`
-    : "Every stop is checked off. Nice work.";
+  // A day marked off has nothing to check off, so "all done / nice work" would be a lie.
+  const todayHere = todayISO();
+  const offToday = LZ.isDayOff(todayHere);
+  const offWhy = offToday ? LZ.dayOffLabel(todayHere) : "";
+  document.getElementById("stopsLeft").textContent =
+    left.length ? `${left.length} stop${left.length===1?'':'s'} left`
+    : (offToday && !total ? "Day off" : "All done!");
+  document.getElementById("routeHint").textContent =
+    left.length ? `Work down the line — you're at stop ${done.length+1} of ${total}`
+    : (offToday && !total ? (offWhy ? "Day off — " + offWhy : "Day off. Nothing to do today.")
+                          : "Every stop is checked off. Nice work.");
 
   let html = done.map(doneStopHtml).join("");
   if(left.length){
@@ -314,7 +306,9 @@ function renderRoute(){
   } else if(total){
     html += `<div class="endflag done"><div class="ic">🎉</div><div class="msg">Today's adventure is complete!</div></div>`;
   } else {
-    html += `<div class="endflag done"><div class="ic">🌞</div><div class="msg">Nothing scheduled today — go outside.</div></div>`;
+    html += `<div class="endflag done"><div class="ic">🌞</div><div class="msg">${offToday
+      ? (offWhy ? esc(offWhy) : "Day off") + " — no schoolwork today."
+      : "Nothing scheduled today — go outside."}</div></div>`;
   }
   if((CFG.paused||[]).length) html += `<div class="pausednote">Paused for now: ${esc(CFG.paused.join(", "))}</div>`;
   document.getElementById("routeList").innerHTML = html;

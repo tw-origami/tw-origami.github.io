@@ -555,6 +555,7 @@
   // Defaults to weekdays (Mon-Fri) for any subject the teacher hasn't customized, so nothing
   // needs to be set up for the Week Preview to work right away.
   const DOW_CODES = ["sun","mon","tue","wed","thu","fri","sat"];
+  const WEEKEND_CODES = ["sat","sun"];
   const DEFAULT_SCHEDULE_DAYS = ["mon","tue","wed","thu","fri"];
   function scheduleKey(kid, subject){ return `lzSchedule|${kid}|${slug(subject)}`; }
   function getScheduleDays(kid, subject){
@@ -599,7 +600,127 @@
     dateISO ? localStorage.setItem(catchupResetKey(kid, subject), dateISO) : localStorage.removeItem(catchupResetKey(kid, subject));
   }
 
-  window.LZ = { slug, dkey, skey, dateKey, noteKey, habitKey, skipKey, isSkipped, setSkipped, outingKey, journalKey, isDone, setDone, doneDate, normalizeDate, getNote, setNote,
+  /* ---------- what is actually ON for a kid, on given days -----------------------------
+     ONE answer to "what work does this day hold", shared by the kids' route
+     (ry.html / reid.html) and the Teacher Dashboard's planner.
+
+     These two used to each compute it themselves, and drifted apart in four separate ways
+     that all showed up as "the dashboard doesn't match the checklist":
+       * the planner honoured each subject's schedule; the kid pages ignored it entirely,
+         so a Sunday showed a full route against an empty planner column;
+       * the planner flowed the next lesson onto a day a subject was already finished on,
+         so one view showed two lessons and the other one;
+       * with a queue head pinned to a future day the kid route paused the whole subject
+         while the planner flowed the SECOND item into today;
+       * a day marked off emptied the planner but left the kid route untouched.
+     Anything that decides what a day contains belongs here, so there is only one place
+     for it to be wrong.
+
+     Returns { [dateISO]: [card] }. A card is deliberately view-agnostic — it carries the
+     records and the facts, and each view does its own wording and layout. */
+  function isWeekendISO(dateISO){ return WEEKEND_CODES.includes(dowCode(dateISO)); }
+
+  // A subject runs on any day that isn't marked off. Per-subject weekly schedules used to
+  // gate this, but only the planner ever honoured them -- ry.html/reid.html offered work
+  // every day regardless -- so the two views disagreed about what a day held. The kids'
+  // behaviour is the one that wins: when a day should be empty you mark it off, and you
+  // place lessons by dragging them.
+  //
+  // The schedule data is left intact and is still edited in the Old Tracker and read by
+  // week.html; it simply no longer decides what this plan contains.
+  function runsOn(kid, subject, dateISO){
+    return !isDayOff(dateISO);
+  }
+
+  function activeSubjects(kid){
+    const paused = (window.LZ_CONFIG && window.LZ_CONFIG.paused) || [];
+    return getAllSubjects(kid).filter(s=>!paused.includes(s.subject));
+  }
+
+  function planDays(kid, dates){
+    const today = todayISO();
+    const byDay = {}; dates.forEach(d=>byDay[d]=[]);
+    const inRange = d => byDay[d] !== undefined;
+
+    activeSubjects(kid).forEach(sub=>{
+      const subject = sub.subject;
+
+      if(sub.kind === "ongoing"){
+        dates.forEach(d=>{
+          if(!runsOn(kid,subject,d)) return;
+          if(isSkipped(kid,subject,d)) return;            // parent excused it
+          const key = dateKey(kid,subject,d);
+          const done = isDone(key);
+          const pick = sub.pick==="daily" ? dailyPick(kid,subject,d,sub.options) : null;
+          byDay[d].push({ type:"ongoing", kid, sub, subject, date:d, done, doneKey:key,
+            itemId:"subject", pick,
+            title: pick || (sub.options&&sub.options[0]) || subject, page:"",
+            missed: !done && d < today });
+        });
+        getManualLessons(kid,subject).filter(m=>m.date).forEach(m=>{
+          if(!inRange(m.date) || isDayOff(m.date)) return;
+          const key = manualDoneKey(kid,subject,m.id);
+          byDay[m.date].push({ type:"manual", kid, sub, subject, itemId:"m|"+m.id, manual:m,
+            date:m.date, done:isDone(key), doneKey:key, title:m.title, page:m.page,
+            pinned:true, extra:true, missed:!isDone(key) && m.date < today });
+        });
+        return;
+      }
+
+      // Book subject. Completions first, so a finished day shows what actually happened.
+      (sub.lessons||[]).forEach(l=>{
+        const k = dkey(kid,sub,l);
+        const d = doneDate(k);
+        if(d && inRange(d)) byDay[d].push({ type:"real", kid, sub, subject, itemId:lessonItemId(l),
+          lesson:l, date:d, done:true, doneKey:k, title:l.t, page:l.p });
+      });
+      getManualLessons(kid,subject).filter(m=>!m.date).forEach(m=>{
+        const k = manualDoneKey(kid,subject,m.id);
+        const d = doneDate(k);
+        if(d && inRange(d)) byDay[d].push({ type:"manual", kid, sub, subject, itemId:"m|"+m.id,
+          manual:m, date:d, done:true, doneKey:k, title:m.title, page:m.page });
+      });
+
+      // Days this subject is already finished on don't also get the next lesson pushed at
+      // them -- that was the dashboard showing two Reading lessons against the route's one.
+      const doneDays = new Set(Object.keys(byDay).filter(d =>
+        byDay[d].some(c => c.subject===subject && c.done)));
+      // A queue head pinned to a future day pauses the whole subject until then, rather
+      // than letting the item behind it slide into today.
+      const resume = subjectResumesOn(kid, sub);
+
+      const queue = combinedQueue(kid, sub);
+      const pinCount = {};
+      const flowing = [];
+      queue.forEach(it=>{
+        const card = {
+          type: it.kind==="manual" ? "manual" : "real", kid, sub, subject, itemId:it.id,
+          lesson: it.lesson, manual: it.manual, done:false,
+          title: it.kind==="manual" ? it.manual.title : it.lesson.t,
+          page:  it.kind==="manual" ? it.manual.page  : it.lesson.p,
+          doneKey: it.kind==="manual" ? manualDoneKey(kid,subject,it.manual.id) : dkey(kid,sub,it.lesson),
+          part: !!(it.kind==="manual" && /part/i.test(it.manual.title||""))
+        };
+        const pin = getAssignedDate(kid, subject, it.id);
+        if(pin){
+          pinCount[pin] = (pinCount[pin]||0)+1;
+          if(inRange(pin) && !isDayOff(pin)) byDay[pin].push(Object.assign(card,{date:pin, pinned:true, missed: pin<today}));
+        } else flowing.push(card);
+      });
+      const open = dates.filter(d =>
+        d >= today && runsOn(kid,subject,d) && !pinCount[d] &&
+        !doneDays.has(d) && (!resume || d > resume));
+      flowing.slice(0, open.length).forEach((c,i)=>{ byDay[open[i]].push(Object.assign(c,{date:open[i]})); });
+    });
+
+    dates.forEach(d=>byDay[d].sort((a,b)=> (a.done?1:0)-(b.done?1:0) ));
+    return byDay;
+  }
+  // Just today, for the kids' route.
+  function planForDay(kid, dateISO){ return planDays(kid, [dateISO])[dateISO]; }
+
+  window.LZ = { planDays, planForDay, runsOn, activeSubjects, isWeekendISO,
+    slug, dkey, skey, dateKey, noteKey, habitKey, skipKey, isSkipped, setSkipped, outingKey, journalKey, isDone, setDone, doneDate, normalizeDate, getNote, setNote,
     getOutings, setOutings, getJournal, setJournal, scanKeys, todayISO, recurringForDate, ensureRecurringSeeded,
     undoneLessons, nextLesson, upcomingLessons, subjProgress, doneLessons, doneDatesForSubject,
     manualKey, getManualLessons, setManualLessons, addManualLesson, removeManualLesson, manualDoneKey,
