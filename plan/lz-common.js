@@ -183,8 +183,64 @@
   // teacher's saved custom order, or natural book order + manual items appended at the end if
   // no custom order has been saved yet. This is what master.html and kidzone.html both render
   // as "what's next" / "coming up", so an insertion or reorder shows up in both places.
+  // --- Splitting one lesson into parts ------------------------------------------------
+  // "Do pages 90-91 today and 92-94 Thursday." A split turns one real book lesson into N
+  // teacher-inserted (manual) lessons and hides the original from the queue, so the kid's
+  // page, the week planner and the calendar all show the PARTS with their own checkboxes and
+  // their own days, with no new rendering code anywhere. The original lesson isn't marked
+  // done up front (that would inflate progress) — combinedQueue closes it out automatically
+  // once every part is checked off, which keeps the book's real page count honest.
+  function splitKey(kid, subject, itemId){ return `lzSplit|${kid}|${slug(subject)}|${attachItemSlug(itemId)}`; }
+  function getSplitParts(kid, subject, itemId){
+    try{ return JSON.parse(localStorage.getItem(splitKey(kid,subject,itemId))||"[]"); }catch(e){ return []; }
+  }
+  function setSplitParts(kid, subject, itemId, ids){
+    (ids&&ids.length) ? localStorage.setItem(splitKey(kid,subject,itemId), JSON.stringify(ids))
+                      : localStorage.removeItem(splitKey(kid,subject,itemId));
+  }
+  // parts: [{title, page, date}] — returns the new manual ids, slotted into the subject's
+  // saved order exactly where the original lesson sat.
+  function splitLesson(kid, sub, itemId, parts){
+    const before = combinedQueue(kid, sub).map(x=>x.id);
+    const ids = (parts||[]).map(p=>addManualLesson(kid, sub.subject, {title:p.title, page:p.page}));
+    setSplitParts(kid, sub.subject, itemId, ids);
+    ids.forEach((id,i)=>{ if(parts[i] && parts[i].date) setAssignedDate(kid, sub.subject, "m|"+id, parts[i].date); });
+    const at = before.indexOf(itemId);
+    const next = before.slice();
+    const partIds = ids.map(id=>"m|"+id);
+    if(at>=0) next.splice(at, 1, ...partIds); else next.push(...partIds);
+    setOrder(kid, sub.subject, next);
+    return ids;
+  }
+  // Undo a split: drop the parts (and their pins) and let the original lesson come back.
+  function unsplitLesson(kid, sub, itemId){
+    getSplitParts(kid, sub.subject, itemId).forEach(id=>{
+      setAssignedDate(kid, sub.subject, "m|"+id, null);
+      localStorage.removeItem(manualDoneKey(kid, sub.subject, id));
+      removeManualLesson(kid, sub.subject, id);
+    });
+    setSplitParts(kid, sub.subject, itemId, []);
+    setOrder(kid, sub.subject, []);
+  }
+
+  // --- A day the whole family is off (field trip, sick day, travel) ---------------------
+  // Not per-kid and not per-subject: the planner flows work around these days instead of
+  // stacking it up on them. Stores the reason as the value when there is one.
+  function dayOffKey(dateISO){ return `lzDayOff|${dateISO}`; }
+  function isDayOff(dateISO){ return !!localStorage.getItem(dayOffKey(dateISO)); }
+  function dayOffLabel(dateISO){ const v = localStorage.getItem(dayOffKey(dateISO)); return (v && v!=="1") ? v : ""; }
+  function setDayOff(dateISO, on, label){
+    on ? localStorage.setItem(dayOffKey(dateISO), (label||"").trim() || "1") : localStorage.removeItem(dayOffKey(dateISO));
+  }
+
   function combinedQueue(kid, sub){
-    const realUndone = undoneLessons(kid, sub);
+    // Close out any lesson whose every split part is finished, and hide the ones still in
+    // progress — their parts stand in for them.
+    (sub.lessons||[]).forEach(l=>{
+      const parts = getSplitParts(kid, sub.subject, lessonItemId(l));
+      if(parts.length && parts.every(id=>isDone(manualDoneKey(kid, sub.subject, id)))) setDone(dkey(kid,sub,l), true);
+    });
+    const realUndone = undoneLessons(kid, sub).filter(l=>!getSplitParts(kid, sub.subject, lessonItemId(l)).length);
     const manualUndone = getManualLessons(kid, sub.subject).filter(m=>!m.date && !isDone(manualDoneKey(kid,sub.subject,m.id)));
     const byId = {};
     realUndone.forEach(l=>{ byId[lessonItemId(l)] = {id:lessonItemId(l), kind:"real", lesson:l}; });
@@ -548,6 +604,8 @@
     undoneLessons, nextLesson, upcomingLessons, subjProgress, doneLessons, doneDatesForSubject,
     manualKey, getManualLessons, setManualLessons, addManualLesson, removeManualLesson, manualDoneKey,
     orderKey, getOrder, setOrder, lessonItemId, combinedQueue,
+    splitKey, getSplitParts, setSplitParts, splitLesson, unsplitLesson,
+    dayOffKey, isDayOff, dayOffLabel, setDayOff,
     attachKey, getAttachments, setAttachments, addAttachment, removeAttachment, attachDoneKey,
     safeUrl, guessAttachKind, dailyPick, appLink,
     subjectBySlug, manualById, parseAttachDoneKey, attachmentsDoneOn, manualDoneOn,

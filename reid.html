@@ -61,8 +61,6 @@
   .stop{ display:flex; align-items:center; gap:16px; }
   .sbox{ flex:none; width:34px; height:34px; border-radius:50%; border:3px solid #d7d3ea; background:#fff;
     display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:900; color:#fff; cursor:pointer; }
-  .sbox:hover{ background:#eff6ff; border-color:var(--ry); }
-  .stop.done .sbox:hover{ background:var(--green); }
   .stop.done{ opacity:.55; }
   .stop.done .sbox{ background:var(--green); border-color:var(--green); }
   .stop .t{ font-size:16.5px; font-weight:800; flex:1; min-width:0; }
@@ -71,8 +69,7 @@
   .stop .go{ font-size:13px; font-weight:800; text-decoration:none; }
 
   .nowstop{ display:flex; gap:16px; align-items:stretch; }
-  .nowstop .sbox{ border:4px solid var(--ry); cursor:pointer; }
-  .nowstop .sbox:hover{ background:#f0fdf4; }
+  .nowstop .sbox{ border:4px solid var(--ry); cursor:default; }
   .nowcard{ flex:1; min-width:0; background:var(--ry); color:#fff; border-radius:22px; padding:22px 26px;
     display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
   .nowcard .kick{ font-size:11.5px; font-weight:900; letter-spacing:1.4px; text-transform:uppercase; color:#bbf7d0; }
@@ -167,7 +164,7 @@
 </div>
 
 <script src="plan/curriculum.js"></script>
-<script src="plan/lz-common.js?v=3"></script>
+<script src="plan/lz-common.js?v=4"></script>
 <script src="plan/lz-sync.js?v=13"></script>
 <script>
 const KID = "reid";
@@ -208,10 +205,7 @@ function buildRoute(){
       const k = dateKey(KID, sub.subject, today);
       const done = isDone(k);
       if(!done && isSkipped(KID, sub.subject, today)) return; // parent excused it today
-      // A subject with a short options list shows it ("Khan Academy or Learn Zone (15 min)");
-      // one with none (Book Report) falls back to its own descriptive note instead of a
-      // blank line.
-      let title = sub.subject, note = (sub.options||[]).length ? (sub.options||[]).join(" or ") : (sub.note||""), link = "";
+      let title = sub.subject, note = (sub.options||[]).join(" or "), link = "";
       if(sub.pick === "daily"){
         const choice = dailyPick(KID, sub.subject, today, sub.options);
         title = choice || sub.subject;
@@ -219,13 +213,6 @@ function buildRoute(){
         link = appLink(choice);
       }
       stops.push({key:k, subject:sub.subject, title, note, link, done, itemId:"subject"});
-      // A teacher-inserted one-off task for today (Master Tracker's "+ Add one-off task" on
-      // an ongoing subject, e.g. "Khan Academy instead") — its own stop, same manualDoneKey
-      // record everywhere else reads/writes.
-      getManualLessons(KID, sub.subject).filter(m=>m.date===today).forEach(m=>{
-        const mk = manualDoneKey(KID, sub.subject, m.id);
-        stops.push({key:mk, subject:sub.subject, title:m.title, note:"extra for today", done:isDone(mk), itemId:"m|"+m.id});
-      });
       return;
     }
     // Book subject: anything finished today stays visible as a done stop; otherwise the
@@ -281,11 +268,6 @@ function doneStopHtml(s){
   </div>` + attachBlock(s);
 }
 function nextStopHtml(s){
-  // Not reached yet, but still completable. Kids genuinely do the work out of order —
-  // Science before Reading, handwriting while waiting for a turn — and a route that
-  // refuses to record that just trains them to leave it unchecked. Tapping the circle
-  // completes the lesson wherever it sits in the line; the circle's own tap target is
-  // the control, the same as the "now" stop's.
   return `<div class="stop">
     <div class="sbox" data-toggle="${esc(s.key)}" title="Check it off"></div>
     <div class="t">${stopLabel(s)}</div>

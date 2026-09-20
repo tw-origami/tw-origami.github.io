@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<title>Week Planner · The Learn Zone</title>
+<style>
+  :root{
+    --ink:#15213b; --muted:#6b7a99; --faint:#94a3b8; --line:#e4e9f2; --bg:#f2f4f9;
+    --ry:#4f46e5; --ry-soft:#eef1ff; --reid:#0f766e; --reid-soft:#e6f7f3;
+    --green:#15803d; --amber:#b45309; --red:#be123c;
+    --shadow:0 1px 2px rgba(21,33,59,.06), 0 6px 18px rgba(21,33,59,.06);
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    display:flex; flex-direction:column; }
+  button{ font:inherit; color:inherit; }
+  a{ color:var(--ry); } a:hover{ color:#3730a3; }
+
+  /* ---- top bar ---- */
+  .bar{ display:flex; align-items:center; gap:14px; padding:12px 18px; background:#fff; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .bar h1{ margin:0; font-size:17px; letter-spacing:-.01em; }
+  .wknav{ display:flex; align-items:center; gap:4px; }
+  .wknav button{ border:1px solid var(--line); background:#fff; border-radius:9px; padding:6px 10px; cursor:pointer; font-weight:700; }
+  .wknav button:hover{ background:#f8fafc; }
+  .wknav .range{ font-weight:700; font-size:13.5px; padding:0 6px; min-width:150px; text-align:center; }
+  .spacer{ flex:1; }
+  .sum{ display:flex; gap:8px; }
+  .sumcard{ display:flex; align-items:center; gap:9px; border:1px solid var(--line); border-radius:11px; padding:6px 11px 6px 9px; background:#fff; }
+  .dot{ width:9px; height:9px; border-radius:50%; flex:none; }
+  .sumcard b{ font-size:13px; } .sumcard span{ font-size:12px; color:var(--muted); }
+  .sumcard div{ white-space:nowrap; }
+  .ghost{ border:1px solid var(--line); background:#fff; border-radius:9px; padding:7px 12px; font-weight:700; font-size:13px; cursor:pointer; }
+  .ghost:hover{ background:#f8fafc; }
+  .primary{ background:var(--ink); color:#fff; border:1px solid var(--ink); border-radius:9px; padding:7px 13px; font-weight:700; font-size:13px; cursor:pointer; }
+  .primary:hover{ background:#0d1729; }
+
+  /* ---- grid: subject rows x day columns, per kid ---- */
+  .gridwrap{ flex:1; overflow:auto; padding:12px 14px 20px; }
+  .gtable{ display:grid; border-radius:14px; overflow:hidden; box-shadow:var(--shadow); background:#fff; }
+  .hcell{ position:sticky; top:0; z-index:3; background:#fff; border-bottom:1px solid var(--line); border-left:1px dashed var(--line);
+    padding:8px 9px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; white-space:nowrap; }
+  .hcell.today{ background:#eef1ff; }
+  .hcell.off{ background:#fdf6ec; }
+  .hcell .dow{ font-weight:800; font-size:13px; letter-spacing:.02em; }
+  .hcell .dnum{ font-size:12px; color:var(--muted); }
+  .hcell .todaytag{ font-size:9.5px; font-weight:800; background:var(--ry); color:#fff; border-radius:999px; padding:2px 6px; letter-spacing:.04em; }
+  .hcell .offwhy{ flex:1 0 100%; border:none; border-bottom:1px dashed #e0c9a0; background:none; font:inherit; color:var(--amber); font-size:11.5px; font-weight:700; padding:2px 0 0; min-width:0; }
+  .hcell .offwhy:focus{ outline:none; border-bottom-style:solid; }
+  .corner{ position:sticky; top:0; left:0; z-index:4; background:#fff; border-bottom:1px solid var(--line); border-right:1px solid var(--line);
+    font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .dtools{ margin-left:auto; display:flex; gap:3px; opacity:0; transition:opacity .12s; }
+  .hcell:hover .dtools, .hcell.off .dtools{ opacity:1; }
+  .dtools button{ border:1px solid var(--line); background:#fff; border-radius:7px; width:22px; height:22px; line-height:1; cursor:pointer; font-size:11px; padding:0; color:var(--muted); }
+  .dtools button:hover{ background:#f1f5f9; color:var(--ink); }
+  .dtools button.on{ background:var(--amber); border-color:var(--amber); color:#fff; }
+
+  .kidbar{ grid-column:1/-1; position:sticky; left:0; display:flex; align-items:center; gap:8px; padding:6px 12px;
+    font-weight:800; font-size:12px; letter-spacing:.03em; color:#fff; }
+  .lbl{ position:sticky; left:0; z-index:2; background:#fff; border-right:1px solid var(--line); border-top:1px solid var(--line); padding:9px 10px; min-width:0; }
+  .lbl .nm{ font-weight:700; font-size:12.5px; padding-left:7px; border-left:3px solid var(--ry); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lbl .meta{ font-size:10.5px; color:var(--muted); margin:4px 0 0 10px; }
+  .lbl .bar2{ margin:4px 0 0 10px; width:100px; }
+
+  .cell{ border-top:1px solid var(--line); border-left:1px dashed var(--line); padding:6px; min-height:44px;
+    display:flex; flex-direction:column; gap:5px; position:relative; }
+  .cell.off{ background:#fbfbfd; }
+  .cell.today{ background:#f7f8ff; }
+  .cell.dropping{ background:var(--ry-soft); outline:2px dashed var(--ry); outline-offset:-2px; z-index:1; }
+  .cell.dropping.reid{ background:var(--reid-soft); outline-color:var(--reid); }
+  .cadd{ position:absolute; top:3px; right:3px; border:none; background:none; color:var(--faint); cursor:pointer; font-size:13px; line-height:1; opacity:0; padding:2px; }
+  .cell:hover .cadd{ opacity:1; } .cadd:hover{ color:var(--ink); }
+
+  .card{ position:relative; border:1px solid var(--line); border-left:3px solid var(--ry); border-radius:9px; padding:6px 22px 6px 9px; background:#fff; cursor:grab; }
+  .card.reid{ border-left-color:var(--reid); }
+  .card:hover{ border-color:#cbd5e1; }
+  .card.dragging{ opacity:.35; }
+  .card .ttl{ font-size:12.5px; line-height:1.28; display:flex; gap:6px; align-items:flex-start; }
+  .card .pin{ color:var(--amber); font-size:10px; }
+  .card .pg{ font-size:11px; color:var(--muted); white-space:nowrap; }
+  .card .box{ flex:none; width:15px; height:15px; margin-top:1px; border:1.8px solid #b3bdd0; border-radius:4px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; color:#fff; font-size:10px; background:#fff; }
+  .card.done{ background:#f7faf8; border-left-color:var(--green); }
+  .card.done .box{ background:var(--green); border-color:var(--green); }
+  .card.done .ttl span.txt{ text-decoration:line-through; color:var(--muted); }
+  .card.missed{ border-left-color:var(--red); background:#fff6f8; }
+  .card.part{ border-style:dashed; }
+  .card .menu{ position:absolute; top:4px; right:4px; border:none; background:none; color:#cbd5e1; cursor:pointer; font-size:13px; line-height:1; padding:2px 3px; border-radius:6px; }
+  .card:hover .menu{ color:var(--muted); } .card .menu:hover{ background:#f1f5f9; }
+  .card.chip{ cursor:default; background:#fcfcfe; }
+  /* ---- subject panel ---- */
+  .panel{ border-top:1px solid var(--line); background:#fff; }
+  .ptabs{ display:flex; align-items:center; gap:8px; padding:9px 18px; cursor:pointer; }
+  .ptabs h2{ margin:0; font-size:13px; letter-spacing:.02em; }
+  .ptabs .hint{ font-size:12px; color:var(--muted); }
+  .ptabs .caret{ margin-left:auto; color:var(--muted); }
+  .pbody{ display:grid; grid-template-columns:1fr 1fr; gap:14px; padding:2px 18px 20px; }
+  .pbody.hide{ display:none; }
+  .pcol h3{ margin:0 0 8px; font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
+  .srow{ display:grid; grid-template-columns:1fr auto; gap:6px 10px; align-items:center; padding:8px 0; border-top:1px solid var(--line); }
+  .srow .nm{ font-weight:700; font-size:13px; }
+  .srow .bk{ font-size:11.5px; color:var(--muted); font-weight:400; }
+  .srow .next{ font-size:11.5px; color:var(--muted); grid-column:1/-1; margin-top:-3px; }
+  .srow .next b{ color:var(--ink); font-weight:600; }
+  .bar2{ height:5px; border-radius:99px; background:#eceff5; overflow:hidden; width:120px; }
+  .bar2>i{ display:block; height:100%; }
+  .srow .pct{ font-size:11px; color:var(--muted); text-align:right; }
+  .dows{ display:flex; gap:3px; grid-column:1/-1; margin-top:2px; align-items:center; }
+  .dows button{ border:1px solid var(--line); background:#fff; border-radius:6px; width:24px; height:21px; font-size:10px; font-weight:800; cursor:pointer; color:var(--faint); padding:0; }
+  .dows button.on{ color:#fff; }
+  .dows .addl{ margin-left:auto; width:auto; padding:0 8px; color:var(--ry); border-color:#dfe3f5; }
+  .paused{ font-size:11px; color:var(--amber); font-weight:700; }
+
+  /* ---- popovers & modal ---- */
+  .pop{ position:fixed; z-index:50; background:#fff; border:1px solid var(--line); border-radius:11px; box-shadow:0 12px 38px rgba(21,33,59,.18); padding:5px; min-width:172px; }
+  .pop button{ display:flex; width:100%; gap:8px; align-items:center; border:none; background:none; text-align:left; padding:7px 9px; border-radius:7px; cursor:pointer; font-size:13px; }
+  .pop button:hover{ background:#f1f5f9; }
+  .pop hr{ border:none; border-top:1px solid var(--line); margin:4px 2px; }
+  .pop .k{ color:var(--faint); font-size:11px; margin-left:auto; }
+  .scrim{ position:fixed; inset:0; background:rgba(15,23,42,.35); z-index:60; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .modal{ background:#fff; border-radius:16px; box-shadow:0 30px 70px rgba(15,23,42,.3); width:min(520px,100%); max-height:86vh; overflow:auto; padding:18px 20px 16px; }
+  .modal h3{ margin:0 0 3px; font-size:16px; } .modal .sub{ color:var(--muted); font-size:12.5px; margin-bottom:14px; }
+  .field{ display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
+  .field label{ font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+  input[type=text], select, textarea{ border:1px solid var(--line); border-radius:9px; padding:8px 10px; font:inherit; background:#fff; }
+  input[type=text]:focus, select:focus{ outline:2px solid #c7cdfa; outline-offset:-1px; }
+  .prow{ display:grid; grid-template-columns:1fr 92px 120px auto; gap:7px; align-items:end; margin-bottom:7px; }
+  .prow .x{ border:1px solid var(--line); background:#fff; border-radius:8px; width:30px; height:35px; cursor:pointer; color:var(--red); }
+  .mfoot{ display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
+  .linkish{ border:none; background:none; color:var(--ry); font-weight:700; font-size:12.5px; cursor:pointer; padding:2px 0; }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <h1>Week Planner</h1>
+  <div class="wknav">
+    <button id="prev" title="Previous week">‹</button>
+    <div class="range" id="range"></div>
+    <button id="next" title="Next week">›</button>
+    <button id="thisweek">Today</button>
+  </div>
+  <div class="sum" id="sum"></div>
+  <div class="spacer"></div>
+  <button class="ghost" id="weekend">Show weekend</button>
+  <button class="primary" id="addBtn">+ Add lesson</button>
+  <a class="ghost" style="text-decoration:none" href="../teacher.html">← Dashboard</a>
+</div>
+
+<div class="gridwrap" id="gridwrap"></div>
+
+<div class="panel">
+  <div class="ptabs" id="ptoggle">
+    <h2>Subjects &amp; queues</h2>
+    <span class="hint">progress, what's next, which days each subject runs</span>
+    <span class="caret" id="pcaret">▾</span>
+  </div>
+  <div class="pbody hide" id="pbody"></div>
+</div>
+
+<script src="curriculum.js"></script>
+<script src="lz-common.js?v=4"></script>
+<script src="lz-sync.js?v=13"></script>
+<script>
+const KIDS = [
+  { id:"ryland", name:"Ryland", color:"#4f46e5", cls:"ry" },
+  { id:"reid",   name:"Reid",   color:"#0f766e", cls:"reid" }
+];
+const DOW_LABEL = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const $ = s => document.querySelector(s);
+
+function iso(d){ return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function addDays(dateISO,n){ const d=new Date(dateISO+"T00:00:00"); d.setDate(d.getDate()+n); return iso(d); }
+function mondayOf(dateISO){ const d=new Date(dateISO+"T00:00:00"); d.setDate(d.getDate()-((d.getDay()+6)%7)); return iso(d); }
+function pretty(dateISO){ const d=new Date(dateISO+"T00:00:00"); return d.toLocaleDateString(undefined,{month:"short",day:"numeric"}); }
+function dowOf(dateISO){ return new Date(dateISO+"T00:00:00").getDay(); }
+
+let weekStart = mondayOf(LZ.todayISO());
+let showWeekend = localStorage.getItem("lzPlannerWeekend")==="1";
+
+function days(){
+  const n = showWeekend ? 7 : 5;
+  return Array.from({length:n},(_,i)=>addDays(weekStart,i));
+}
+function subjectsFor(kid){
+  const paused = (window.LZ_CONFIG&&LZ_CONFIG.paused)||[];
+  return LZ.getAllSubjects(kid).filter(s=>!paused.includes(s.subject));
+}
+
+/* ---------- build the week's plan ---------------------------------------------------- */
+// Cards land on days three ways: a teacher pin (lzAssign / a manual lesson's own date),
+// an automatic flow of the subject's queue onto its scheduled days, or a completion record
+// that already happened. Auto-flow never fills a past day or a day marked off.
+function planFor(kid, list){
+  const today = LZ.todayISO();
+  const byDay = {}; list.forEach(d=>byDay[d]=[]);
+  const inWeek = d => byDay[d] !== undefined;
+
+  subjectsFor(kid).forEach(sub=>{
+    const subject = sub.subject;
+
+    if(sub.kind === "ongoing"){
+      list.forEach(d=>{
+        if(LZ.isDayOff(d) || !LZ.isScheduledOn(kid,subject,d)) return;
+        const key = LZ.dateKey(kid,subject,d);
+        const done = LZ.isDone(key);
+        const skipped = LZ.isSkipped(kid,subject,d);
+        if(skipped) return;
+        const pick = sub.pick==="daily" ? LZ.dailyPick(kid,subject,d,sub.options) : null;
+        byDay[d].push({ type:"ongoing", kid, sub, subject, date:d, done, doneKey:key,
+          title: pick || (sub.options&&sub.options[0]) || subject, page:"", missed: !done && d<today });
+      });
+      LZ.getManualLessons(kid,subject).filter(m=>m.date).forEach(m=>{
+        if(!inWeek(m.date)) return;
+        const key = LZ.manualDoneKey(kid,subject,m.id);
+        byDay[m.date].push({ type:"manual", kid, sub, subject, itemId:"m|"+m.id, manual:m, date:m.date,
+          done:LZ.isDone(key), doneKey:key, title:m.title, page:m.page, pinned:true, missed:!LZ.isDone(key) && m.date<today });
+      });
+      return;
+    }
+
+    // book subject — completions first, so a finished day shows what actually happened
+    (sub.lessons||[]).forEach(l=>{
+      const k = LZ.dkey(kid,sub,l);
+      const d = LZ.doneDate(k);
+      if(d && inWeek(d)) byDay[d].push({ type:"real", kid, sub, subject, itemId:LZ.lessonItemId(l), lesson:l,
+        date:d, done:true, doneKey:k, title:l.t, page:l.p });
+    });
+    LZ.getManualLessons(kid,subject).filter(m=>!m.date).forEach(m=>{
+      const k = LZ.manualDoneKey(kid,subject,m.id);
+      const d = LZ.doneDate(k);
+      if(d && inWeek(d)) byDay[d].push({ type:"manual", kid, sub, subject, itemId:"m|"+m.id, manual:m,
+        date:d, done:true, doneKey:k, title:m.title, page:m.page });
+    });
+
+    // still-to-do queue
+    const queue = LZ.combinedQueue(kid, sub);
+    const pinCount = {};
+    const flowing = [];
+    queue.forEach(it=>{
+      const card = {
+        type: it.kind==="manual" ? "manual" : "real", kid, sub, subject, itemId:it.id,
+        lesson: it.lesson, manual: it.manual, done:false,
+        title: it.kind==="manual" ? it.manual.title : it.lesson.t,
+        page:  it.kind==="manual" ? it.manual.page  : it.lesson.p,
+        doneKey: it.kind==="manual" ? LZ.manualDoneKey(kid,subject,it.manual.id) : LZ.dkey(kid,sub,it.lesson),
+        part: !!(it.kind==="manual" && /part/i.test(it.manual.title||""))
+      };
+      const pin = LZ.getAssignedDate(kid, subject, it.id);
+      if(pin){
+        pinCount[pin] = (pinCount[pin]||0)+1;
+        if(inWeek(pin)) byDay[pin].push(Object.assign(card,{date:pin, pinned:true, missed: pin<today}));
+      } else flowing.push(card);
+    });
+    const open = list.filter(d=>d>=today && !LZ.isDayOff(d) && LZ.isScheduledOn(kid,subject,d) && !pinCount[d]);
+    flowing.slice(0, open.length).forEach((c,i)=>{ byDay[open[i]].push(Object.assign(c,{date:open[i]})); });
+  });
+
+  list.forEach(d=>byDay[d].sort((a,b)=> (a.done?1:0)-(b.done?1:0) ));
+  return byDay;
+}
+
+/* ---------- render -------------------------------------------------------------------- */
+let plans = {};
+function render(){
+  const list = days();
+  const today = LZ.todayISO();
+  const wrap = $("#gridwrap");
+  const scroll = { x: wrap.scrollLeft, y: wrap.scrollTop };
+  plans = {}; KIDS.forEach(k=>plans[k.id] = planFor(k.id, list));
+
+  $("#range").textContent = pretty(list[0]) + " – " + pretty(list[list.length-1]);
+
+  const table = document.createElement("div");
+  table.className = "gtable";
+  table.style.gridTemplateColumns = `150px repeat(${list.length}, minmax(150px,1fr))`;
+
+  const corner = document.createElement("div"); corner.className = "hcell corner"; corner.textContent = "Subject";
+  table.appendChild(corner);
+  list.forEach(date=>table.appendChild(headerCell(date, today)));
+
+  KIDS.forEach(k=>{
+    const bar = document.createElement("div");
+    bar.className = "kidbar"; bar.style.background = k.color; bar.textContent = k.name;
+    table.appendChild(bar);
+    subjectsFor(k.id).forEach(sub=>{
+      table.appendChild(labelCell(k, sub));
+      list.forEach(date=>{
+        const cards = (plans[k.id][date]||[]).filter(c=>c.subject===sub.subject);
+        table.appendChild(dayCell(k, sub, date, cards, today));
+      });
+    });
+  });
+
+  wrap.innerHTML = ""; wrap.appendChild(table);
+  renderSummary(list);
+  renderPanel();
+  wrap.scrollLeft = scroll.x; wrap.scrollTop = scroll.y;
+}
+
+function headerCell(date, today){
+  const off = LZ.isDayOff(date), label = LZ.dayOffLabel(date);
+  const d = document.createElement("div");
+  d.className = "hcell" + (date===today?" today":"") + (off?" off":"");
+  d.innerHTML = `
+    <span class="dow">${DOW_LABEL[dowOf(date)]}</span><span class="dnum">${pretty(date)}</span>${date===today?'<span class="todaytag">TODAY</span>':""}
+    <span class="dtools">
+      <button data-act="lighten" title="Push this day's extras to later in the week">⤵</button>
+      <button data-act="off" class="${off?"on":""}" title="${off?"Day off — click to switch back on":"Mark day off"}">⊘</button>
+    </span>
+    ${off?`<input class="offwhy" type="text" value="${escapeHtml(label)}" placeholder="reason (optional)">`:""}`;
+  d.querySelectorAll(".dtools button").forEach(b=>{
+    b.addEventListener("click", e=>{ e.stopPropagation(); b.dataset.act==="off" ? toggleDayOff(date) : lightenDay(date); });
+  });
+  const why = d.querySelector(".offwhy");
+  if(why) why.addEventListener("change", ()=>LZ.setDayOff(date, true, why.value));
+  return d;
+}
+
+function labelCell(k, sub){
+  const d = document.createElement("div"); d.className = "lbl";
+  const p = sub.kind==="book" ? LZ.subjProgress(k.id, sub) : null;
+  d.innerHTML = `<div class="nm" style="border-left-color:${k.color}" title="${escapeHtml(sub.subject)}">${escapeHtml(sub.subject)}</div>` +
+    (p ? `<div class="bar2"><i style="width:${p.pct}%;background:${k.color}"></i></div><div class="meta">${p.left} left</div>`
+       : `<div class="meta">daily</div>`);
+  return d;
+}
+
+function dayCell(k, sub, date, cards, today){
+  const off = LZ.isDayOff(date);
+  const d = document.createElement("div");
+  d.className = "cell" + (off?" off":"") + (date===today?" today":"");
+  d.dataset.kid = k.id; d.dataset.subject = sub.subject; d.dataset.date = date;
+  const add = document.createElement("button");
+  add.className = "cadd"; add.textContent = "+"; add.title = "Add a lesson for " + k.name + " on this day";
+  add.addEventListener("click", e=>{ e.stopPropagation(); openAdd({kid:k.id, date, subject:sub.subject}); });
+  d.appendChild(add);
+  cards.forEach((c,i)=>d.appendChild(cardEl(c, k, date, i)));
+  wireDrop(d);
+  return d;
+}
+
+function cardEl(c, k, date, idx){
+  const el = document.createElement("div");
+  el.className = "card " + k.cls + (c.done?" done":"") + (c.missed&&!c.done?" missed":"") + (c.part?" part":"") + (c.type==="ongoing"?" chip":"");
+  el.draggable = c.type !== "ongoing";
+  el.dataset.kid = c.kid; el.dataset.subject = c.subject; el.dataset.itemId = c.itemId||""; el.dataset.date = date; el.dataset.idx = idx;
+  el.innerHTML = `
+    <div class="ttl"><span class="box">${c.done?"✓":""}</span><span class="txt">${escapeHtml(c.title||"")}</span>${c.page?`<span class="pg">p.${escapeHtml(String(c.page))}</span>`:""}${c.pinned?'<span class="pin" title="Pinned to this day">📌</span>':""}</div>
+    <button class="menu" title="Options">⋯</button>`;
+  el.querySelector(".box").addEventListener("click", e=>{ e.stopPropagation(); toggleDone(c); });
+  el.querySelector(".menu").addEventListener("click", e=>{ e.stopPropagation(); openMenu(e.currentTarget, c); });
+  el.addEventListener("dragstart", e=>{
+    if(c.type==="ongoing"){ e.preventDefault(); return; }
+    drag = c; el.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", c.itemId||"");
+  });
+  el.addEventListener("dragend", ()=>{ el.classList.remove("dragging"); drag=null; });
+  return el;
+}
+
+let drag = null;
+function wireDrop(cell){
+  cell.addEventListener("dragover", e=>{
+    if(!drag || drag.kid !== cell.dataset.kid || drag.subject !== cell.dataset.subject) return;
+    e.preventDefault(); e.dataTransfer.dropEffect="move"; cell.classList.add("dropping", cell.dataset.kid==="reid"?"reid":"");
+  });
+  cell.addEventListener("dragleave", ()=>cell.classList.remove("dropping"));
+  cell.addEventListener("drop", e=>{
+    cell.classList.remove("dropping");
+    if(!drag || drag.kid !== cell.dataset.kid || drag.subject !== cell.dataset.subject) return;
+    e.preventDefault();
+    moveTo(drag, cell.dataset.date);
+  });
+}
+
+function renderSummary(list){
+  const wrap = $("#sum"); wrap.innerHTML = "";
+  KIDS.forEach(k=>{
+    let done=0, total=0, late=0;
+    list.forEach(d=>(plans[k.id][d]||[]).forEach(c=>{ total++; if(c.done) done++; else if(c.missed) late++; }));
+    const el = document.createElement("div");
+    el.className = "sumcard";
+    el.innerHTML = `<span class="dot" style="background:${k.color}"></span>
+      <div><b>${done}/${total}</b> <span>this week</span>${late?` <span style="color:var(--red);font-weight:700">· ${late} late</span>`:""}</div>`;
+    wrap.appendChild(el);
+  });
+}
+
+function renderPanel(){
+  const body = $("#pbody");
+  if(body.classList.contains("hide")) return;
+  body.innerHTML = "";
+  KIDS.forEach(k=>{
+    const col = document.createElement("div");
+    col.className = "pcol";
+    col.innerHTML = `<h3 style="color:${k.color}">${k.name}</h3>`;
+    const paused = (window.LZ_CONFIG&&LZ_CONFIG.paused)||[];
+    LZ.getAllSubjects(k.id).forEach(sub=>{
+      const p = LZ.subjProgress(k.id, sub);
+      const q = sub.kind==="book" ? LZ.combinedQueue(k.id, sub) : [];
+      const nx = q[0];
+      const resume = sub.kind==="book" ? LZ.subjectResumesOn(k.id, sub) : null;
+      const isPaused = paused.includes(sub.subject);
+      const row = document.createElement("div");
+      row.className = "srow";
+      row.innerHTML = `
+        <div><span class="nm">${escapeHtml(sub.subject)}</span> ${sub.book?`<span class="bk">${escapeHtml(sub.book)}</span>`:""} ${isPaused?'<span class="paused">paused</span>':""}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${sub.kind==="book"?`<span class="bar2"><i style="width:${p.pct}%;background:${k.color}"></i></span><span class="pct">${p.left} left</span>`:`<span class="pct">daily</span>`}
+        </div>
+        <div class="next">${sub.kind==="book"
+            ? (nx ? `Next: <b>${escapeHtml(nx.kind==="manual"?nx.manual.title:nx.lesson.t)}</b>${(nx.kind==="manual"?nx.manual.page:nx.lesson.p)?` · p.${escapeHtml(String(nx.kind==="manual"?nx.manual.page:nx.lesson.p))}`:""}` : "Finished 🎉")
+            + (resume?` · <span style="color:var(--amber)">starts ${pretty(resume)}</span>`:"")
+            : (sub.note?escapeHtml(sub.note):"")}</div>
+        <div class="dows"></div>`;
+      const dows = row.querySelector(".dows");
+      LZ.DOW_CODES.slice(1,6).concat(["sat","sun"]).forEach(code=>{
+        const on = LZ.getScheduleDays(k.id, sub.subject).includes(code);
+        const b = document.createElement("button");
+        b.textContent = code[0].toUpperCase()+code.slice(1,2);
+        b.className = on?"on":""; if(on) b.style.background = k.color, b.style.borderColor = k.color;
+        b.title = "Run "+sub.subject+" on "+code;
+        b.addEventListener("click",()=>{
+          const cur = LZ.getScheduleDays(k.id, sub.subject);
+          LZ.setScheduleDays(k.id, sub.subject, on ? cur.filter(c=>c!==code) : cur.concat([code]));
+          render();
+        });
+        dows.appendChild(b);
+      });
+      const add = document.createElement("button");
+      add.className = "addl"; add.textContent = "+ lesson";
+      add.addEventListener("click", ()=>openAdd({kid:k.id, subject:sub.subject}));
+      dows.appendChild(add);
+      col.appendChild(row);
+    });
+    body.appendChild(col);
+  });
+}
+
+/* ---------- actions ------------------------------------------------------------------- */
+function toggleDone(c){
+  if(c.type==="ongoing"){ LZ.setDone(c.doneKey, !c.done); }
+  else if(c.done){ localStorage.removeItem(c.doneKey); }
+  else { localStorage.setItem(c.doneKey, c.date); }   // credited to the day it was planned for
+  render();
+}
+function moveTo(c, date){
+  if(c.type==="manual" && c.manual && c.manual.date){
+    const arr = LZ.getManualLessons(c.kid, c.subject);
+    const m = arr.find(x=>x.id===c.manual.id); if(m) m.date = date;
+    LZ.setManualLessons(c.kid, c.subject, arr);
+  } else if(c.done){
+    localStorage.setItem(c.doneKey, date);            // re-file a completion under another day
+  } else {
+    LZ.setAssignedDate(c.kid, c.subject, c.itemId, date);
+  }
+  render();
+}
+function unpin(c){
+  LZ.setAssignedDate(c.kid, c.subject, c.itemId, null);
+  render();
+}
+function toggleDayOff(date){
+  const on = !LZ.isDayOff(date);
+  LZ.setDayOff(date, on);
+  // Anything explicitly pinned to a day that just went off doesn't sit there stranded —
+  // it hops to the next working day. Unpinned work re-flows on its own.
+  if(on){
+    const list = days();
+    const target = list.find(d=>d>date && !LZ.isDayOff(d));
+    if(target) KIDS.forEach(k=>{
+      (plans[k.id][date]||[]).filter(c=>!c.done && c.itemId).forEach(c=>{
+        if(c.manual && c.manual.date){
+          const arr = LZ.getManualLessons(c.kid,c.subject); const m = arr.find(x=>x.id===c.manual.id);
+          if(m) m.date = target; LZ.setManualLessons(c.kid,c.subject,arr);
+        } else if(c.pinned) LZ.setAssignedDate(c.kid, c.subject, c.itemId, target);
+      });
+    });
+  }
+  render();
+}
+// Keep the first two items per kid, pin the rest onto the lightest later days of the week.
+function lightenDay(date){
+  const list = days();
+  KIDS.forEach(k=>{
+    const cards = (plans[k.id][date]||[]).filter(c=>!c.done && c.itemId);
+    const later = list.filter(d=>d>date && !LZ.isDayOff(d));
+    if(!later.length) return;
+    const load = {}; later.forEach(d=>load[d] = (plans[k.id][d]||[]).filter(c=>!c.done).length);
+    cards.slice(2).forEach(c=>{
+      const target = later.slice().sort((a,b)=>load[a]-load[b] || a.localeCompare(b))[0];
+      load[target]++;
+      if(c.manual && c.manual.date){
+        const arr = LZ.getManualLessons(c.kid,c.subject); const m = arr.find(x=>x.id===c.manual.id);
+        if(m) m.date = target; LZ.setManualLessons(c.kid,c.subject,arr);
+      } else LZ.setAssignedDate(c.kid, c.subject, c.itemId, target);
+    });
+  });
+  render();
+}
+
+/* ---------- card menu ------------------------------------------------------------------ */
+let pop = null;
+function closePop(){ if(pop){ pop.remove(); pop=null; } }
+document.addEventListener("click", closePop);
+function openMenu(anchor, c){
+  closePop();
+  const list = days();
+  const i = list.indexOf(c.date);
+  const el = document.createElement("div");
+  el.className = "pop";
+  const rows = [];
+  if(!c.done && c.type!=="ongoing" && i>=0 && i<list.length-1) rows.push(["→ Push to "+DOW_LABEL[dowOf(list[i+1])], ()=>moveTo(c, list[i+1])]);
+  if(!c.done && c.type!=="ongoing") rows.push(["✂️ Split into parts…", ()=>openSplit(c)]);
+  if(c.pinned && !c.done) rows.push(["📌 Unpin (auto-schedule)", ()=>unpin(c)]);
+  if(c.done) rows.push(["↩︎ Mark not done", ()=>toggleDone(c)]);
+  else rows.push(["✓ Mark done", ()=>toggleDone(c)]);
+  if(c.type==="ongoing") rows.push(["⊘ Skip "+c.subject+" today", ()=>{ LZ.setSkipped(c.kid,c.subject,c.date,true); render(); }]);
+  if(c.type==="manual" && c.manual) rows.push(["🗑 Remove this lesson", ()=>{
+    LZ.setAssignedDate(c.kid,c.subject,"m|"+c.manual.id,null);
+    LZ.removeManualLesson(c.kid, c.subject, c.manual.id); render();
+  }]);
+  if(c.type==="real" && LZ.getSplitParts(c.kid, c.subject, c.itemId).length)
+    rows.push(["↩︎ Undo split", ()=>{ LZ.unsplitLesson(c.kid, c.sub, c.itemId); render(); }]);
+  rows.forEach(([label,fn])=>{
+    const b = document.createElement("button"); b.textContent = label;
+    b.addEventListener("click", e=>{ e.stopPropagation(); closePop(); fn(); });
+    el.appendChild(b);
+  });
+  document.body.appendChild(el);
+  const r = anchor.getBoundingClientRect();
+  el.style.top = Math.min(r.bottom+4, window.innerHeight-el.offsetHeight-8)+"px";
+  el.style.left = Math.min(r.left-140, window.innerWidth-el.offsetWidth-8)+"px";
+  el.addEventListener("click", e=>e.stopPropagation());
+  pop = el;
+}
+
+/* ---------- modals ---------------------------------------------------------------------- */
+function modal(html){
+  const s = document.createElement("div"); s.className="scrim";
+  s.innerHTML = `<div class="modal">${html}</div>`;
+  s.addEventListener("click", e=>{ if(e.target===s) s.remove(); });
+  document.body.appendChild(s);
+  return s;
+}
+function dayOptions(sel){
+  return days().map(d=>`<option value="${d}"${d===sel?" selected":""}>${DOW_LABEL[dowOf(d)]} ${pretty(d)}</option>`).join("");
+}
+
+function openAdd(pre){
+  pre = pre || {};
+  const kid = pre.kid || "ryland";
+  const s = modal(`
+    <h3>Add a lesson</h3>
+    <div class="sub">Slips a one-off task into a subject's queue — it shows up on the boy's own page too.</div>
+    <div class="field"><label>Who</label><select id="aKid">${KIDS.map(k=>`<option value="${k.id}"${k.id===kid?" selected":""}>${k.name}</option>`).join("")}</select></div>
+    <div class="field"><label>Subject</label><select id="aSub"></select></div>
+    <div class="field"><label>What to do</label><input type="text" id="aTitle" placeholder="e.g. Read a library book, 20 min"></div>
+    <div style="display:grid;grid-template-columns:120px 1fr;gap:10px">
+      <div class="field"><label>Page</label><input type="text" id="aPage" placeholder="optional"></div>
+      <div class="field"><label>Day</label><select id="aDate"><option value="">Next open day (auto)</option>${dayOptions(pre.date)}</select></div>
+    </div>
+    <div class="mfoot"><button class="ghost" data-close>Cancel</button><button class="primary" id="aSave">Add lesson</button></div>`);
+  const fillSubs = ()=>{
+    const k = s.querySelector("#aKid").value;
+    s.querySelector("#aSub").innerHTML = subjectsFor(k).map(x=>`<option${x.subject===pre.subject?" selected":""}>${escapeHtml(x.subject)}</option>`).join("");
+  };
+  fillSubs();
+  s.querySelector("#aKid").addEventListener("change", fillSubs);
+  s.querySelector("[data-close]").addEventListener("click", ()=>s.remove());
+  s.querySelector("#aSave").addEventListener("click", ()=>{
+    const k = s.querySelector("#aKid").value, subject = s.querySelector("#aSub").value;
+    const title = s.querySelector("#aTitle").value.trim();
+    if(!title){ s.querySelector("#aTitle").focus(); return; }
+    const page = s.querySelector("#aPage").value.trim(), date = s.querySelector("#aDate").value;
+    const sub = subjectsFor(k).find(x=>x.subject===subject);
+    if(sub && sub.kind==="ongoing"){
+      LZ.addManualLesson(k, subject, {title, page, date: date || LZ.todayISO()});
+    } else {
+      const id = LZ.addManualLesson(k, subject, {title, page});
+      if(date) LZ.setAssignedDate(k, subject, "m|"+id, date);
+    }
+    s.remove(); render();
+  });
+  s.querySelector("#aTitle").focus();
+}
+
+// Split — two parts by default, page range guessed from the lesson's own page number.
+function openSplit(c){
+  const base = String(c.page||"").trim();
+  const s = modal(`
+    <h3>Split “${escapeHtml(c.title||"")}”</h3>
+    <div class="sub">Each part becomes its own checkbox on ${KIDS.find(k=>k.id===c.kid).name}'s page. The original lesson closes out when every part is done.</div>
+    <div id="parts"></div>
+    <button class="linkish" id="addPart">+ another part</button>
+    <div class="mfoot"><button class="ghost" data-close>Cancel</button><button class="primary" id="sSave">Split it</button></div>`);
+  const wrap = s.querySelector("#parts");
+  const addRow = (n, date)=>{
+    const row = document.createElement("div");
+    row.className = "prow";
+    row.innerHTML = `
+      <div class="field" style="margin:0"><label>Part ${n}</label><input type="text" value="${escapeHtml(c.title||"")} — part ${n}"></div>
+      <div class="field" style="margin:0"><label>Page</label><input type="text" value="${escapeHtml(base)}"></div>
+      <div class="field" style="margin:0"><label>Day</label><select>${dayOptions(date)}</select></div>
+      <button class="x" title="Remove">×</button>`;
+    row.querySelector(".x").addEventListener("click", ()=>{ row.remove(); renumber(); });
+    wrap.appendChild(row);
+  };
+  const renumber = ()=>wrap.querySelectorAll(".prow").forEach((r,i)=>r.querySelector("label").textContent = "Part "+(i+1));
+  const list = days(), start = Math.max(0, list.indexOf(c.date));
+  addRow(1, list[start]); addRow(2, list[Math.min(start+1, list.length-1)]);
+  s.querySelector("#addPart").addEventListener("click", ()=>{ addRow(wrap.children.length+1, list[Math.min(start+wrap.children.length, list.length-1)]); });
+  s.querySelector("[data-close]").addEventListener("click", ()=>s.remove());
+  s.querySelector("#sSave").addEventListener("click", ()=>{
+    const parts = [...wrap.querySelectorAll(".prow")].map(r=>{
+      const [t,p] = r.querySelectorAll("input");
+      return { title:t.value.trim(), page:p.value.trim(), date:r.querySelector("select").value };
+    }).filter(p=>p.title);
+    if(parts.length < 2) return;
+    if(c.type==="manual"){ // splitting an already-inserted lesson: replace it with the parts
+      parts.forEach(p=>{
+        const id = LZ.addManualLesson(c.kid, c.subject, {title:p.title, page:p.page, date: c.manual.date ? p.date : ""});
+        if(!c.manual.date) LZ.setAssignedDate(c.kid, c.subject, "m|"+id, p.date);
+      });
+      LZ.setAssignedDate(c.kid, c.subject, "m|"+c.manual.id, null);
+      LZ.removeManualLesson(c.kid, c.subject, c.manual.id);
+    } else {
+      LZ.splitLesson(c.kid, c.sub, c.itemId, parts);
+      LZ.setAssignedDate(c.kid, c.subject, c.itemId, null);
+    }
+    s.remove(); render();
+  });
+}
+
+function escapeHtml(x){ return String(x).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+
+/* ---------- chrome ---------------------------------------------------------------------- */
+$("#prev").addEventListener("click", ()=>{ weekStart = addDays(weekStart,-7); render(); });
+$("#next").addEventListener("click", ()=>{ weekStart = addDays(weekStart, 7); render(); });
+$("#thisweek").addEventListener("click", ()=>{ weekStart = mondayOf(LZ.todayISO()); render(); });
+$("#addBtn").addEventListener("click", ()=>openAdd({}));
+$("#weekend").addEventListener("click", ()=>{
+  showWeekend = !showWeekend;
+  localStorage.setItem("lzPlannerWeekend", showWeekend?"1":"0");
+  $("#weekend").textContent = showWeekend ? "Hide weekend" : "Show weekend";
+  render();
+});
+$("#weekend").textContent = showWeekend ? "Hide weekend" : "Show weekend";
+$("#ptoggle").addEventListener("click", ()=>{
+  const b = $("#pbody"); b.classList.toggle("hide");
+  $("#pcaret").textContent = b.classList.contains("hide") ? "▾" : "▴";
+  if(!b.classList.contains("hide")) renderPanel();
+});
+document.addEventListener("keydown", e=>{
+  if(e.target.matches("input,select,textarea")) return;
+  if(e.key==="ArrowLeft") $("#prev").click();
+  if(e.key==="ArrowRight") $("#next").click();
+  if(e.key==="Escape"){ closePop(); document.querySelectorAll(".scrim").forEach(x=>x.remove()); }
+});
+render();
+</script>
+</body>
+</html>
