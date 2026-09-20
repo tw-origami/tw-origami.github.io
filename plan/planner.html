@@ -386,7 +386,11 @@ function cardEl(c, k, date, idx){
     if(c.type==="ongoing"){ e.preventDefault(); return; }
     drag = c; el.classList.add("dragging");
     e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", c.itemId||"");
-    markDroppable(true);
+    // Deferred by a tick on purpose. Revealing the drop halves re-lays out every cell in
+    // the grid, and doing that synchronously inside dragstart -- while the browser is
+    // still snapshotting the drag image from this very element -- makes the browser
+    // abandon the drag outright. Let dragstart finish first.
+    setTimeout(()=>{ if(drag) markDroppable(true); }, 0);
   });
   el.addEventListener("dragend", ()=>{ el.classList.remove("dragging"); drag=null; markDroppable(false); });
   return el;
@@ -407,12 +411,17 @@ function addDropZones(cell){
   [["push","Push"],["add","Add"]].forEach(([mode,label])=>{
     const z = document.createElement("div");
     z.className = "dz " + mode; z.dataset.mode = mode; z.textContent = label;
-    z.addEventListener("dragover", e=>{
+    // dragenter AND dragover both have to be cancelled. Chrome is happy with dragover
+    // alone, but Safari only treats an element as a drop target if the dragenter was
+    // cancelled too -- without it the drop silently never fires and dragging looks broken.
+    const allow = e => {
       if(!drag || drag.kid!==cell.dataset.kid || drag.subject!==cell.dataset.subject) return;
       e.preventDefault(); e.stopPropagation();
-      e.dataTransfer.dropEffect = "move";
+      if(e.dataTransfer) e.dataTransfer.dropEffect = "move";
       z.classList.add("hot");
-    });
+    };
+    z.addEventListener("dragenter", allow);
+    z.addEventListener("dragover", allow);
     z.addEventListener("dragleave", ()=>z.classList.remove("hot"));
     z.addEventListener("drop", e=>{
       z.classList.remove("hot");
@@ -428,15 +437,17 @@ function addDropZones(cell){
 }
 function wireDrop(cell){
   addDropZones(cell);
-  cell.addEventListener("dragover", e=>{
+  const allowCell = e=>{
     if(!drag || drag.kid !== cell.dataset.kid || drag.subject !== cell.dataset.subject) return;
-    e.preventDefault(); e.dataTransfer.dropEffect="move";
+    e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect="move";
     // classList.add() throws on an empty token, so the reid class is added only when it
     // applies — otherwise every dragover on a Ryland cell raised a SyntaxError and the
     // drop highlight never appeared.
     cell.classList.add("dropping");
     if(cell.dataset.kid==="reid") cell.classList.add("reid");
-  });
+  };
+  cell.addEventListener("dragenter", allowCell);
+  cell.addEventListener("dragover", allowCell);
   cell.addEventListener("dragleave", ()=>cell.classList.remove("dropping","reid"));
   cell.addEventListener("drop", e=>{
     cell.classList.remove("dropping","reid");
