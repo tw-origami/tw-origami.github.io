@@ -40,7 +40,10 @@
 
   /* ---- grid: subject rows x day columns, per kid ---- */
   .gridwrap{ flex:1; overflow:auto; padding:12px 14px 20px; }
-  .gtable{ display:grid; border-radius:14px; overflow:hidden; box-shadow:var(--shadow); background:#fff; }
+  /* width:max-content lets the grid be as wide as all its week columns put together —
+     .gridwrap is the scroller. The old overflow:hidden (there for the rounded corners)
+     clipped the timeline to the viewport, so it could never scroll sideways. */
+  .gtable{ display:grid; width:max-content; min-width:100%; border-radius:14px; box-shadow:var(--shadow); background:#fff; }
   .hcell{ position:sticky; top:0; z-index:3; background:#fff; border-bottom:1px solid var(--line); border-left:1px dashed var(--line);
     padding:8px 9px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; white-space:nowrap; }
   .hcell.today{ background:#eef1ff; }
@@ -68,6 +71,10 @@
   .cell{ border-top:1px solid var(--line); border-left:1px dashed var(--line); padding:6px; min-height:44px;
     display:flex; flex-direction:column; gap:5px; position:relative; }
   .cell.off{ background:#fbfbfd; }
+  /* Weeks run together in one scroller, so the Monday column carries the seam. */
+  .cell.wkstart, .hcell.wkstart{ border-left:2px solid #c9c4e8; }
+  .hcell .wk{ font-size:9.5px; font-weight:800; color:var(--ry); background:#eef1ff;
+    border-radius:999px; padding:2px 6px; letter-spacing:.03em; }
   .cell.today{ background:#f7f8ff; }
   .cell.dropping{ background:var(--ry-soft); outline:2px dashed var(--ry); outline-offset:-2px; z-index:1; }
   .cell.dropping.reid{ background:var(--reid-soft); outline-color:var(--reid); }
@@ -178,13 +185,28 @@ function mondayOf(dateISO){ const d=new Date(dateISO+"T00:00:00"); d.setDate(d.g
 function pretty(dateISO){ const d=new Date(dateISO+"T00:00:00"); return d.toLocaleDateString(undefined,{month:"short",day:"numeric"}); }
 function dowOf(dateISO){ return new Date(dateISO+"T00:00:00").getDay(); }
 
-let weekStart = mondayOf(LZ.todayISO());
+// The planner is ONE CONTINUOUS TIMELINE, not a stack of separate week pages: weeks sit
+// side by side in a horizontally scrollable grid, so a card can be dragged from Thursday
+// straight onto next Monday without the target week having to be "the page you're on".
+// Weeks are added on demand as you scroll toward either end.
+const WEEKS_BACK = 2;      // weeks rendered before the current one at startup
+const WEEKS_FWD = 6;       // ...and after it
+const WEEKS_STEP = 2;      // how many to graft on when you scroll near an edge
+const WEEKS_MAX = 40;      // stop growing eventually; ~9 months of columns is plenty
+let rangeStart = addDays(mondayOf(LZ.todayISO()), -7 * WEEKS_BACK);
+let rangeWeeks = WEEKS_BACK + 1 + WEEKS_FWD;
 let showWeekend = localStorage.getItem("lzPlannerWeekend")==="1";
 
 function days(){
-  const n = showWeekend ? 7 : 5;
-  return Array.from({length:n},(_,i)=>addDays(weekStart,i));
+  const perWeek = showWeekend ? 7 : 5;
+  const out = [];
+  for(let w=0; w<rangeWeeks; w++){
+    const mon = addDays(rangeStart, w*7);
+    for(let i=0;i<perWeek;i++) out.push(addDays(mon,i));
+  }
+  return out;
 }
+const isMonday = dateISO => dowOf(dateISO) === 1;
 function subjectsFor(kid){
   const paused = (window.LZ_CONFIG&&LZ_CONFIG.paused)||[];
   return LZ.getAllSubjects(kid).filter(s=>!paused.includes(s.subject));
@@ -272,11 +294,12 @@ function render(){
   const scroll = { x: wrap.scrollLeft, y: wrap.scrollTop };
   plans = {}; KIDS.forEach(k=>plans[k.id] = planFor(k.id, list));
 
-  $("#range").textContent = pretty(list[0]) + " – " + pretty(list[list.length-1]);
 
   const table = document.createElement("div");
   table.className = "gtable";
-  table.style.gridTemplateColumns = `150px repeat(${list.length}, minmax(150px,1fr))`;
+  // Fixed 170px columns rather than 1fr: with a dozen weeks side by side the grid has to be
+  // wider than the viewport for the timeline to scroll at all.
+  table.style.gridTemplateColumns = `150px repeat(${list.length}, 170px)`;
 
   const corner = document.createElement("div"); corner.className = "hcell corner"; corner.textContent = "Subject";
   table.appendChild(corner);
@@ -295,18 +318,89 @@ function render(){
     });
   });
 
+  const widthBefore = wrap.firstChild ? wrap.firstChild.scrollWidth : 0;
   wrap.innerHTML = ""; wrap.appendChild(table);
-  renderSummary(list);
+  renderSummary();
   renderPanel();
-  wrap.scrollLeft = scroll.x; wrap.scrollTop = scroll.y;
+  // Weeks grafted onto the LEFT shift everything right by exactly the width added; without
+  // this correction the view would jump backwards every time earlier weeks load in.
+  const grew = pendingLeftGrowth ? (table.scrollWidth - widthBefore) : 0;
+  pendingLeftGrowth = false;
+  wrap.scrollLeft = scroll.x + grew;
+  wrap.scrollTop = scroll.y;
+  if(!scrolledToTodayOnce){ scrolledToTodayOnce = true; scrollToDate(LZ.todayISO(), "auto"); }
+  updateRangeLabel();
+}
+
+/* ---------- the continuous timeline: scrolling, and growing at either end ------------- */
+let pendingLeftGrowth = false;
+let scrolledToTodayOnce = false;
+
+const dayMs = d => new Date(d+"T00:00:00").getTime();
+// The nearest rendered column to a date, which is not always the date itself: with weekends
+// hidden, Saturday and Sunday have no column at all, so "Today" on a Sunday has to land on
+// a neighbouring weekday instead of silently doing nothing.
+function nearestColumn(dateISO){
+  const cols = [...$("#gridwrap").querySelectorAll(".hcell[data-date]")];
+  if(!cols.length) return null;
+  const t = dayMs(dateISO);
+  let best = null, bestDiff = Infinity;
+  cols.forEach(c=>{
+    const diff = Math.abs(dayMs(c.dataset.date) - t);
+    if(diff < bestDiff){ bestDiff = diff; best = c; }
+  });
+  return { col: best, days: bestDiff / 86400000 };
+}
+function scrollToDate(dateISO, behavior){
+  const wrap = $("#gridwrap");
+  let hit = nearestColumn(dateISO);
+  if(!hit || hit.days > 6){            // genuinely outside the loaded range — reseat it
+    rangeStart = addDays(mondayOf(dateISO), -7 * WEEKS_BACK);
+    rangeWeeks = WEEKS_BACK + 1 + WEEKS_FWD;
+    render();
+    hit = nearestColumn(dateISO);
+    if(!hit) return;
+  }
+  // 150px is the sticky subject column; keep the target just clear of it.
+  wrap.scrollTo({ left: Math.max(0, hit.col.offsetLeft - 160), behavior: behavior || "smooth" });
+}
+// Which week is under the left edge right now — that's the one the label should name.
+function visibleWeekStart(){
+  const wrap = $("#gridwrap");
+  const cols = [...wrap.querySelectorAll(".hcell[data-date]")];
+  const edge = wrap.scrollLeft + 160;
+  const col = cols.find(c=>c.offsetLeft + c.offsetWidth > edge) || cols[0];
+  return col ? mondayOf(col.dataset.date) : rangeStart;
+}
+function updateRangeLabel(){
+  const mon = visibleWeekStart();
+  const perWeek = showWeekend ? 7 : 5;
+  $("#range").textContent = pretty(mon) + " – " + pretty(addDays(mon, perWeek-1));
+  renderSummary();
+}
+function growIfNeeded(){
+  const wrap = $("#gridwrap");
+  if(rangeWeeks >= WEEKS_MAX) return;
+  const nearLeft  = wrap.scrollLeft < 300;
+  const nearRight = (wrap.scrollWidth - wrap.scrollLeft - wrap.clientWidth) < 300;
+  if(nearLeft){
+    pendingLeftGrowth = true;
+    rangeStart = addDays(rangeStart, -7 * WEEKS_STEP);
+    rangeWeeks += WEEKS_STEP;
+    render();
+  } else if(nearRight){
+    rangeWeeks += WEEKS_STEP;
+    render();
+  }
 }
 
 function headerCell(date, today){
   const off = LZ.isDayOff(date), label = LZ.dayOffLabel(date);
   const d = document.createElement("div");
-  d.className = "hcell" + (date===today?" today":"") + (off?" off":"");
+  d.className = "hcell" + (date===today?" today":"") + (off?" off":"") + (isMonday(date)?" wkstart":"");
+  d.dataset.date = date;
   d.innerHTML = `
-    <span class="dow">${DOW_LABEL[dowOf(date)]}</span><span class="dnum">${pretty(date)}</span>${date===today?'<span class="todaytag">TODAY</span>':""}
+    <span class="dow">${DOW_LABEL[dowOf(date)]}</span><span class="dnum">${pretty(date)}</span>${date===today?'<span class="todaytag">TODAY</span>':""}${isMonday(date)&&date!==today?`<span class="wk">wk ${pretty(date)}</span>`:""}
     <span class="dtools">
       <button data-act="lighten" title="Push this day's extras to later in the week">⤵</button>
       <button data-act="off" class="${off?"on":""}" title="${off?"Day off — click to switch back on":"Mark day off"}">⊘</button>
@@ -332,7 +426,7 @@ function labelCell(k, sub){
 function dayCell(k, sub, date, cards, today){
   const off = LZ.isDayOff(date);
   const d = document.createElement("div");
-  d.className = "cell" + (off?" off":"") + (date===today?" today":"");
+  d.className = "cell" + (off?" off":"") + (date===today?" today":"") + (isMonday(date)?" wkstart":"");
   d.dataset.kid = k.id; d.dataset.subject = sub.subject; d.dataset.date = date;
   const add = document.createElement("button");
   add.className = "cadd"; add.textContent = "+"; add.title = "Add a lesson for " + k.name + " on this day";
@@ -366,22 +460,34 @@ let drag = null;
 function wireDrop(cell){
   cell.addEventListener("dragover", e=>{
     if(!drag || drag.kid !== cell.dataset.kid || drag.subject !== cell.dataset.subject) return;
-    e.preventDefault(); e.dataTransfer.dropEffect="move"; cell.classList.add("dropping", cell.dataset.kid==="reid"?"reid":"");
+    e.preventDefault(); e.dataTransfer.dropEffect="move";
+    // classList.add() throws on an empty token, so the reid class is added only when it
+    // applies — otherwise every dragover on a Ryland cell raised a SyntaxError and the
+    // drop highlight never appeared.
+    cell.classList.add("dropping");
+    if(cell.dataset.kid==="reid") cell.classList.add("reid");
   });
-  cell.addEventListener("dragleave", ()=>cell.classList.remove("dropping"));
+  cell.addEventListener("dragleave", ()=>cell.classList.remove("dropping","reid"));
   cell.addEventListener("drop", e=>{
-    cell.classList.remove("dropping");
+    cell.classList.remove("dropping","reid");
     if(!drag || drag.kid !== cell.dataset.kid || drag.subject !== cell.dataset.subject) return;
     e.preventDefault();
     moveTo(drag, cell.dataset.date);
   });
 }
 
-function renderSummary(list){
+// Scoped to the week currently under the left edge, not the whole loaded timeline —
+// "3/40 this week" across nine rendered weeks would be nonsense.
+function weekDays(mon){
+  const perWeek = showWeekend ? 7 : 5;
+  return Array.from({length:perWeek},(_,i)=>addDays(mon,i));
+}
+function renderSummary(){
+  const list = weekDays(visibleWeekStart());
   const wrap = $("#sum"); wrap.innerHTML = "";
   KIDS.forEach(k=>{
     let done=0, total=0, late=0;
-    list.forEach(d=>(plans[k.id][d]||[]).forEach(c=>{ total++; if(c.done) done++; else if(c.missed) late++; }));
+    list.forEach(d=>(plans[k.id]&&plans[k.id][d]||[]).forEach(c=>{ total++; if(c.done) done++; else if(c.missed) late++; }));
     const el = document.createElement("div");
     el.className = "sumcard";
     el.innerHTML = `<span class="dot" style="background:${k.color}"></span>
@@ -639,9 +745,32 @@ function openSplit(c){
 function escapeHtml(x){ return String(x).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
 
 /* ---------- chrome ---------------------------------------------------------------------- */
-$("#prev").addEventListener("click", ()=>{ weekStart = addDays(weekStart,-7); render(); });
-$("#next").addEventListener("click", ()=>{ weekStart = addDays(weekStart, 7); render(); });
-$("#thisweek").addEventListener("click", ()=>{ weekStart = mondayOf(LZ.todayISO()); render(); });
+// Prev/next now SCROLL the timeline by a week rather than swapping which week is on
+// screen, so the weeks either side stay visible and remain valid drop targets mid-drag.
+$("#prev").addEventListener("click", ()=>scrollToDate(addDays(visibleWeekStart(),-7)));
+$("#next").addEventListener("click", ()=>scrollToDate(addDays(visibleWeekStart(), 7)));
+$("#thisweek").addEventListener("click", ()=>scrollToDate(LZ.todayISO()));
+
+// Grow the timeline as either end comes into view, and keep the label in step. rAF-gated
+// so a flick doesn't re-render per scroll event.
+let scrollTick = false;
+$("#gridwrap").addEventListener("scroll", ()=>{
+  if(scrollTick) return;
+  scrollTick = true;
+  requestAnimationFrame(()=>{ scrollTick = false; updateRangeLabel(); growIfNeeded(); });
+});
+
+// Dragging to a week that's off-screen: nudge the timeline when the pointer reaches an edge.
+let edgeTimer = null;
+$("#gridwrap").addEventListener("dragover", e=>{
+  const wrap = $("#gridwrap"), r = wrap.getBoundingClientRect();
+  const dx = e.clientX - r.left < 90 ? -22 : (r.right - e.clientX < 90 ? 22 : 0);
+  if(!dx){ clearInterval(edgeTimer); edgeTimer = null; return; }
+  if(edgeTimer) return;
+  edgeTimer = setInterval(()=>{ wrap.scrollLeft += dx; }, 16);
+});
+["dragleave","drop","dragend"].forEach(ev=>
+  $("#gridwrap").addEventListener(ev, ()=>{ clearInterval(edgeTimer); edgeTimer = null; }));
 $("#addBtn").addEventListener("click", ()=>openAdd({}));
 $("#weekend").addEventListener("click", ()=>{
   showWeekend = !showWeekend;
