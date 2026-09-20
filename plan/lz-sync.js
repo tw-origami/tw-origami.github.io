@@ -49,8 +49,16 @@
   const PENDING_DEL_KEY = "_lzSyncPendingDel"; // explicit, user-intended deletes awaiting push
   const LEGACY_KEYS = ["_lzSyncMeta", "_lzSyncCursor"]; // the old ledger — removed on load
 
-  const PULL_MS = 5000;        // full reconcile interval
-  const QUICK_PUSH_MS = 250;   // debounce for pushing a change made right here, right now
+  // A full pull is ~35KB and takes several seconds against Apps Script, so it can't be the
+  // thing we do on a fast loop. Instead we poll a tiny "head" check (newest timestamp + row
+  // count, ~60 bytes) and only do a real reconcile when one of those actually moves. That's
+  // what makes another device's check-off show up in about a second instead of never quite
+  // knowing when it will land.
+  const HEAD_MS_ACTIVE = 1200;  // head poll while the page is visible
+  const HEAD_MS_HIDDEN = 20000; // ...and while it's in a background tab
+  const FULL_RECONCILE_MS = 60000; // safety net: a full reconcile regardless of the head
+  const QUICK_PUSH_MS = 150;    // debounce for pushing a change made right here, right now
+  const MAX_URL = 1800;         // keep batched pushes inside a safe URL length
 
   // --- deletion circuit breaker -----------------------------------------------------
   // Nothing in this app ever deletes in bulk, so a large deletion batch is always an
@@ -74,6 +82,14 @@
   // exactly like "I checked off Reading and it jumped to the next lesson." In-memory only:
   // after a reload there is by definition no in-flight edit to protect.
   const touchedAt = Object.create(null);
+
+  // The newest server stamp our own pushes have been given this session. If a pull comes
+  // back whose newest row is OLDER than that, the read didn't see our own write yet — the
+  // whole response is stale and applying any of it would roll us backwards. In-memory and
+  // session-scoped on purpose: after a reload it's 0, so a genuinely restored sheet (whose
+  // rows legitimately carry older timestamps) is still allowed to come down.
+  let lastPushStamp = 0;
+  function notePushStamp(u) { if (u && u > lastPushStamp) lastPushStamp = u; }
 
   // --- storage plumbing, all of it verified ----------------------------------------
   let storageHealthy = true;   // flips false the first time a write doesn't land
@@ -176,15 +192,39 @@
     // since=0 — always the complete server state. There is no cursor by design.
     return api("action=get&since=0");
   }
-  function pushValue(key, value) {
-    return api("action=set&key=" + encodeURIComponent(key) +
-      "&value=" + encodeURIComponent(value == null ? "" : value) + "&deleted=0")
-      .then(j => (j && j.ok) ? { ok: true, key: key, value: value, updated: Number(j.updated || 0) } : { ok: false, key: key });
+  function pullHead() { return api("action=head"); }
+
+  // Push a whole set of changes in as few requests as possible. Every request takes the
+  // script lock and costs a multi-second round trip, so one-request-per-key made the first
+  // sync after a merge crawl and blocked every other device's poll behind it. Items are
+  // packed into batches that stay under a safe URL length; anything too big for a batch
+  // goes on its own.
+  function pushBatch(changes) {
+    if (!changes.length) return Promise.resolve([]);
+    const batches = [];
+    let cur = [], curLen = 0;
+    changes.forEach(c => {
+      const encoded = encodeURIComponent(JSON.stringify(c)).length + 3;
+      if (cur.length && curLen + encoded > MAX_URL) { batches.push(cur); cur = []; curLen = 0; }
+      cur.push(c); curLen += encoded;
+    });
+    if (cur.length) batches.push(cur);
+
+    // Batches go one after another rather than all at once: they all contend for the same
+    // script lock anyway, and firing them in parallel just spreads the wait around.
+    let results = [];
+    return batches.reduce((chain, batch) => chain.then(() =>
+      api("action=set&items=" + encodeURIComponent(JSON.stringify(batch))).then(j => {
+        const ok = !!(j && j.ok);
+        const updated = Number((j && j.updated) || 0);
+        batch.forEach(c => results.push(ok
+          ? { ok: true, key: c.key, value: c.value, deleted: !!c.deleted, updated: updated }
+          : { ok: false, key: c.key }));
+      })
+    ), Promise.resolve()).then(() => results);
   }
-  function pushDelete(key) {
-    return api("action=set&key=" + encodeURIComponent(key) + "&value=&deleted=1")
-      .then(j => (j && j.ok) ? { ok: true, key: key, deleted: true, updated: Number(j.updated || 0) } : { ok: false, key: key });
-  }
+  const valueChange = (key, value) => ({ key: key, value: value == null ? "" : value, deleted: false });
+  const deleteChange = key => ({ key: key, value: "", deleted: true });
 
   // --- the one operation: reconcile local against the full server state --------------
   let inFlight = false;
@@ -198,6 +238,22 @@
     const editedDuringPull = k => touchedAt[k] !== undefined && touchedAt[k] >= pullStarted;
     return pullAll().then(res => {
       if (!res || !res.ok || !res.items) { setStatus("Sync error — will retry", true); return; }
+
+      // A read that predates our own most recent write is stale. Applying it would undo the
+      // thing the user just did -- the "checked Reading off and it jumped to the next lesson"
+      // failure. Wait for the next poll instead.
+      //
+      // maxUpdated is derived from the items when the server doesn't report it, rather than
+      // defaulting to 0: a missing field would otherwise read as "older than everything" and
+      // stall sync completely against any backend that doesn't send it.
+      let srvMax = Number(res.maxUpdated || 0);
+      if (!srvMax) {
+        Object.keys(res.items).forEach(k => {
+          const u = Number(res.items[k].updated || 0);
+          if (u > srvMax) srvMax = u;
+        });
+      }
+      if (lastPushStamp && srvMax && srvMax < lastPushStamp) { okStatus(); return; }
 
       const items = res.items;
       const seen = loadSeen();
@@ -247,11 +303,11 @@
         // the edit back.
         const agreed = seen[k];
         if (editedDuringPull(k)) {
-          pushes.push(pushValue(k, localCur));
+          pushes.push(valueChange(k, localCur));
         } else if (agreed && agreed.v === localCur) {
           if (safeSet(k, item.value)) { seen[k] = { v: item.value, u: item.updated }; applied++; }
         } else {
-          pushes.push(pushValue(k, localCur));
+          pushes.push(valueChange(k, localCur));
         }
       });
 
@@ -260,7 +316,7 @@
       // get carried up instead of being quietly dropped.
       localNow.forEach(k => {
         if (items[k] || pendingDel[k]) return;
-        pushes.push(pushValue(k, rawGet(k)));
+        pushes.push(valueChange(k, rawGet(k)));
       });
 
       // (4) Explicit deletes queued by a real removeItem() in this page, breaker-capped.
@@ -276,7 +332,7 @@
           savePendingDel({});   // drop the intent rather than retrying it forever
           setStatus("Blocked " + delKeys.length + " deletions", true);
         } else {
-          delKeys.forEach(k => pushes.push(pushDelete(k)));
+          delKeys.forEach(k => pushes.push(deleteChange(k)));
         }
       }
 
@@ -286,10 +342,11 @@
         else okStatus();
         return;
       }
-      return Promise.all(pushes).then(results => {
+      return pushBatch(pushes).then(results => {
         const stillPending = loadPendingDel();
         results.forEach(r => {
           if (!r.ok) return;
+          notePushStamp(r.updated);
           if (r.deleted) { seen[r.key] = { deleted: true, u: r.updated }; delete stillPending[r.key]; }
           else { seen[r.key] = { v: r.value, u: r.updated }; }
         });
@@ -321,12 +378,15 @@
     if (!changes.length) return;
     quickInFlight = true;
     setStatus("Syncing…");
-    Promise.all(changes.map(k => pushValue(k, rawGet(k)))).then(results => {
+    pushBatch(changes.map(k => valueChange(k, rawGet(k)))).then(results => {
       const s = loadSeen();
-      results.forEach(r => { if (r.ok) s[r.key] = { v: r.value, u: r.updated }; });
+      results.forEach(r => { if (r.ok) { notePushStamp(r.updated); s[r.key] = { v: r.value, u: r.updated }; } });
       saveSeen(s);
       if (results.every(r => r.ok)) okStatus();
       else setStatus("Sync error — will retry", true);
+      // We just moved the server ourselves. Re-baseline the head signature so the next poll
+      // doesn't read our own push as "someone else changed something" and pay for a full pull.
+      if (typeof rebaseline === "function") rebaseline();
     }).finally(() => { quickInFlight = false; });
   }
   function scheduleQuickPush() {
@@ -374,10 +434,51 @@
     else if (window.top) window.top._lzSyncOwnerActive = true;
   } catch (e) { /* cross-origin top (shouldn't happen on this site) — just run normally */ }
 
+  // --- the polling loop --------------------------------------------------------------
+  // Self-scheduling rather than setInterval: a full pull can take longer than the interval,
+  // and setInterval would just queue up work nobody can service.
+  let lastSig = null;          // "<maxUpdated>:<rowCount>" from the last head check
+  let lastFullAt = 0;
+  let pollTimer = null;
+
+  function headInterval() {
+    return (document.hidden ? HEAD_MS_HIDDEN : HEAD_MS_ACTIVE);
+  }
+  function schedulePoll(ms) {
+    clearTimeout(pollTimer);
+    pollTimer = setTimeout(poll, ms === undefined ? headInterval() : ms);
+  }
+  function poll() {
+    if (inFlight) { schedulePoll(); return; }
+    pullHead().then(h => {
+      const needFull = (Date.now() - lastFullAt) > FULL_RECONCILE_MS;
+      if (!h || !h.ok) { if (needFull) return runFull(); return; }
+      const sig = h.maxUpdated + ":" + h.count;
+      // Something moved on the server, or it's time for the periodic safety net.
+      if (sig !== lastSig || needFull) {
+        lastSig = sig;
+        return runFull();
+      }
+    }).catch(() => {}).finally(() => schedulePoll());
+  }
+  // Re-read the head and treat it as our new baseline. Used after we ourselves have written
+  // to the server, so our own push doesn't read back as "someone else changed something."
+  function rebaseline() {
+    return pullHead().then(h => { if (h && h.ok) lastSig = h.maxUpdated + ":" + h.count; }).catch(() => {});
+  }
+  function runFull() {
+    lastFullAt = Date.now();
+    return reconcile().then(rebaseline);
+  }
+
   if (isHeartbeatOwner) {
-    const start = () => { reconcile(); setInterval(reconcile, PULL_MS); };
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => setTimeout(start, 300));
-    else setTimeout(start, 300);
+    const start = () => { runFull().finally(() => schedulePoll()); };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => setTimeout(start, 200));
+    else setTimeout(start, 200);
+    // Coming back to the tab should feel immediate, not "up to 20 seconds from now."
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) schedulePoll(0);
+    });
   }
 
   // Exposed for debugging from the browser console.

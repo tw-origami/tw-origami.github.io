@@ -19,12 +19,55 @@ function doGet(e)  { return handle(e); }
 function doPost(e) { return handle(e); }
 
 function handle(e) {
+  var p = (e && e.parameter) || {};
+  var action = p.action || 'get';
+
+  // A "head" check: the newest timestamp and the row count, nothing else. The client polls
+  // this once a second or so and only does a real pull when one of the two changes, which
+  // is what makes near-live sync affordable — a full pull is ~35KB and several seconds,
+  // this reads a single column and returns ~60 bytes.
+  //
+  // Deliberately takes NO lock and never calls getSheet_() (which can write a header or a
+  // cell format). Reads used to sit behind the same script lock as writes, so every device's
+  // poll queued behind every other device's poll AND behind every single-key write —
+  // four browsers polling was enough to push a round-trip to 16 seconds.
+  if (action === 'head') {
+    var shH = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('sync');
+    if (!shH || shH.getLastRow() < 2) return json_({ ok: true, maxUpdated: 0, count: 0 });
+    var stamps = shH.getRange(2, 4, shH.getLastRow() - 1, 1).getValues();
+    var maxH = 0;
+    for (var s = 0; s < stamps.length; s++) {
+      var n = Number(stamps[s][0] || 0);
+      if (n > maxH) maxH = n;
+    }
+    return json_({ ok: true, maxUpdated: maxH, count: stamps.length });
+  }
+
+  // Reads don't take the lock either. A read that races a write sees either the old or the
+  // new row — both are states the client already handles, and the next poll catches up.
+  if (action !== 'set') {
+    var shR = getSheet_();
+    var since = Number(p.since || 0);
+    var dataR = shR.getDataRange().getValues();
+    var outR = {};
+    var maxUpdatedR = since;
+    for (var r = 1; r < dataR.length; r++) {
+      var rowR = dataR[r];
+      var keyR = String(rowR[0] || '');
+      if (!keyR) continue;
+      var updR = Number(rowR[3] || 0);
+      if (updR > maxUpdatedR) maxUpdatedR = updR;
+      if (updR <= since) continue;
+      var delR = rowR[2] === true || rowR[2] === 'TRUE';
+      outR[keyR] = { value: delR ? null : cellToString_(rowR[1]), deleted: delR, updated: updR };
+    }
+    return json_({ ok: true, items: outR, serverTime: Date.now(), maxUpdated: maxUpdatedR });
+  }
+
   var lock = LockService.getScriptLock();
   lock.tryLock(10000);
   try {
     var sh = getSheet_();
-    var p = (e && e.parameter) || {};
-    var action = p.action || 'get';
 
     if (action === 'set') {
       // The timestamp is assigned HERE, by the server's clock — never taken from the
@@ -35,28 +78,15 @@ function handle(e) {
       // entirely. The assigned value is returned so the client can record it.
       var stamp = Date.now();
       var items = readItems_(e);
+      // Build the key -> row index once for the whole request. upsert_ used to rescan the
+      // whole key column for every single item, so a batch of 20 meant 20 full scans.
+      var index = buildIndex_(sh);
       items.forEach(function (it) {
-        if (it && it.key) upsert_(sh, String(it.key), it.value, !!it.deleted, stamp);
+        if (it && it.key) upsert_(sh, index, String(it.key), it.value, !!it.deleted, stamp);
       });
       return json_({ ok: true, count: items.length, updated: stamp });
     }
-
-    // default: return everything changed after ?since= (0 / omitted = everything)
-    var since = Number(p.since || 0);
-    var data = sh.getDataRange().getValues();
-    var out = {};
-    var maxUpdated = since;
-    for (var i = 1; i < data.length; i++) {
-      var row = data[i];
-      var key = String(row[0] || '');
-      if (!key) continue;
-      var updated = Number(row[3] || 0);
-      if (updated > maxUpdated) maxUpdated = updated;
-      if (updated <= since) continue;
-      var deleted = row[2] === true || row[2] === 'TRUE';
-      out[key] = { value: deleted ? null : cellToString_(row[1]), deleted: deleted, updated: updated };
-    }
-    return json_({ ok: true, items: out, serverTime: Date.now(), maxUpdated: maxUpdated });
+    return json_({ ok: false, error: 'unknown action' });
   } finally {
     lock.releaseLock();
   }
@@ -75,6 +105,16 @@ function readItems_(e) {
     } catch (err) { /* fall through */ }
   }
   var p = (e && e.parameter) || {};
+  // Batched form: ?action=set&items=<url-encoded JSON array>. Each request takes the script
+  // lock and costs a full Apps Script round trip (several seconds), so pushing 20 keys one
+  // per request meant 20 serialized round trips — which is what made the first sync after a
+  // merge take minutes and starve everyone else's polls.
+  if (p.items) {
+    try {
+      var arr = JSON.parse(p.items);
+      if (arr && arr.length) return arr;
+    } catch (err) { /* fall through to the single-key form */ }
+  }
   if (p.key) return [{ key: p.key, value: p.value || '', deleted: p.deleted === '1' }];
   return [];
 }
@@ -121,34 +161,42 @@ function getSheet_() {
 // history can bring it back. On every delete we copy the value being destroyed into E
 // first; a non-delete write clears E, so E only ever holds "what this key was when it
 // was deleted." Restoring a bad tombstone is then: copy E back to B, set C to FALSE.
-function upsert_(sh, key, value, deleted, updated) {
+// key -> row number, read once per request so a batched write doesn't rescan per item.
+function buildIndex_(sh) {
+  var index = {};
   var last = sh.getLastRow();
   if (last > 1) {
     var keys = sh.getRange(2, 1, last - 1, 1).getValues();
-    for (var r = 0; r < keys.length; r++) {
-      if (String(keys[r][0]) === key) {
-        var rowNum = r + 2;
-        var prev = '';
-        if (deleted) {
-          var existing = sh.getRange(rowNum, 2, 1, 4).getValues()[0];
-          var wasDeleted = existing[1] === true || existing[1] === 'TRUE';
-          // Deleting an already-deleted key must not overwrite the saved value with ''.
-          prev = wasDeleted ? existing[3] : existing[0];
-        }
-        // Plain-text format on the value columns, so a date-shaped or number-shaped string
-        // is stored as the literal text the client sent rather than being coerced into a
-        // Date or a number (see cellToString_).
-        sh.getRange(rowNum, 2).setNumberFormat('@');
-        sh.getRange(rowNum, 5).setNumberFormat('@');
-        sh.getRange(rowNum, 2, 1, 4).setValues([[deleted ? '' : (value == null ? '' : value), !!deleted, updated, prev]]);
-        return;
-      }
+    for (var r = 0; r < keys.length; r++) index[String(keys[r][0])] = r + 2;
+  }
+  return index;
+}
+
+function upsert_(sh, index, key, value, deleted, updated) {
+  if (index[key]) {
+    var rowNum = index[key];
+    var prev = '';
+    if (deleted) {
+      var existing = sh.getRange(rowNum, 2, 1, 4).getValues()[0];
+      var wasDeleted = existing[1] === true || existing[1] === 'TRUE';
+      // Deleting an already-deleted key must not overwrite the saved value with ''.
+      prev = wasDeleted ? cellToString_(existing[3]) : cellToString_(existing[0]);
     }
+    // Plain-text format on the value columns, so a date-shaped or number-shaped string is
+    // stored as the literal text the client sent rather than coerced into a Date or a
+    // number (see cellToString_).
+    sh.getRange(rowNum, 2).setNumberFormat('@');
+    sh.getRange(rowNum, 5).setNumberFormat('@');
+    sh.getRange(rowNum, 2, 1, 4).setValues([[deleted ? '' : (value == null ? '' : value), !!deleted, updated, prev]]);
+    return;
   }
   var newRow = sh.getLastRow() + 1;
   sh.getRange(newRow, 2).setNumberFormat('@');
   sh.getRange(newRow, 5).setNumberFormat('@');
   sh.appendRow([key, deleted ? '' : (value == null ? '' : value), !!deleted, updated, '']);
+  // Register it, so a batch containing the same new key twice updates the row it just
+  // created instead of appending a duplicate.
+  index[key] = newRow;
 }
 
 /**
