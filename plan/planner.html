@@ -152,7 +152,6 @@
   </div>
   <div class="sum" id="sum"></div>
   <div class="spacer"></div>
-  <button class="ghost" id="weekend">Show weekend</button>
   <button class="primary" id="addBtn">+ Add lesson</button>
   <a class="ghost" style="text-decoration:none" href="../teacher.html">← Dashboard</a>
 </div>
@@ -195,10 +194,13 @@ const WEEKS_STEP = 2;      // how many to graft on when you scroll near an edge
 const WEEKS_MAX = 40;      // stop growing eventually; ~9 months of columns is plenty
 let rangeStart = addDays(mondayOf(LZ.todayISO()), -7 * WEEKS_BACK);
 let rangeWeeks = WEEKS_BACK + 1 + WEEKS_FWD;
-let showWeekend = localStorage.getItem("lzPlannerWeekend")==="1";
+// The week always runs Mon–Sun. Hiding weekends made the timeline lie: a lesson pinned to
+// a Saturday still existed but had no column to sit in, and "Today" on a weekend had
+// nowhere to scroll to. Seven days, always.
+const DAYS_PER_WEEK = 7;
 
 function days(){
-  const perWeek = showWeekend ? 7 : 5;
+  const perWeek = DAYS_PER_WEEK;
   const out = [];
   for(let w=0; w<rangeWeeks; w++){
     const mon = addDays(rangeStart, w*7);
@@ -374,7 +376,7 @@ function visibleWeekStart(){
 }
 function updateRangeLabel(){
   const mon = visibleWeekStart();
-  const perWeek = showWeekend ? 7 : 5;
+  const perWeek = DAYS_PER_WEEK;
   $("#range").textContent = pretty(mon) + " – " + pretty(addDays(mon, perWeek-1));
   renderSummary();
 }
@@ -479,7 +481,7 @@ function wireDrop(cell){
 // Scoped to the week currently under the left edge, not the whole loaded timeline —
 // "3/40 this week" across nine rendered weeks would be nonsense.
 function weekDays(mon){
-  const perWeek = showWeekend ? 7 : 5;
+  const perWeek = DAYS_PER_WEEK;
   return Array.from({length:perWeek},(_,i)=>addDays(mon,i));
 }
 function renderSummary(){
@@ -772,13 +774,6 @@ $("#gridwrap").addEventListener("dragover", e=>{
 ["dragleave","drop","dragend"].forEach(ev=>
   $("#gridwrap").addEventListener(ev, ()=>{ clearInterval(edgeTimer); edgeTimer = null; }));
 $("#addBtn").addEventListener("click", ()=>openAdd({}));
-$("#weekend").addEventListener("click", ()=>{
-  showWeekend = !showWeekend;
-  localStorage.setItem("lzPlannerWeekend", showWeekend?"1":"0");
-  $("#weekend").textContent = showWeekend ? "Hide weekend" : "Show weekend";
-  render();
-});
-$("#weekend").textContent = showWeekend ? "Hide weekend" : "Show weekend";
 $("#ptoggle").addEventListener("click", ()=>{
   const b = $("#pbody"); b.classList.toggle("hide");
   $("#pcaret").textContent = b.classList.contains("hide") ? "▾" : "▴";
