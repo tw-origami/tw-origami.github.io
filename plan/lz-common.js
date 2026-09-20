@@ -250,7 +250,23 @@
     if(order.length){
       list = order.map(id=>byId[id]).filter(Boolean);
       const seen = new Set(list.map(x=>x.id));
-      Object.keys(byId).forEach(id=>{ if(!seen.has(id)) list.push(byId[id]); });
+      // Anything the stored order doesn't mention has to be slotted in where it NATURALLY
+      // belongs, not appended. Un-checking a finished lesson puts it back in the queue, and
+      // a lesson added today isn't in an order saved yesterday — appending sent both to the
+      // very end of the book, which looks exactly like the lesson vanishing.
+      const natural = (realUndone.map(l=>lessonItemId(l))).concat(manualUndone.map(m=>"m|"+m.id));
+      natural.forEach((id, i) => {
+        if(seen.has(id) || !byId[id]) return;
+        // Sit it directly after the nearest earlier lesson that is already placed. Earlier
+        // unknowns are handled first, so that anchor always exists by the time we need it.
+        let at = -1;
+        for(let j = i - 1; j >= 0; j--){
+          const idx = list.findIndex(x => x.id === natural[j]);
+          if(idx >= 0){ at = idx; break; }
+        }
+        list.splice(at + 1, 0, byId[id]);
+        seen.add(id);
+      });
     } else {
       list = [...realUndone.map(l=>byId[lessonItemId(l)]), ...manualUndone.map(m=>byId["m|"+m.id])];
     }
