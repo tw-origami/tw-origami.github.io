@@ -662,6 +662,11 @@
     if(resume === undefined) resume = subjectResumesOn(kid, sub);
     return dates.filter(d =>
       d >= today && runsOn(kid,subject,d) && !pinCount[d] &&
+      // A day this subject was excused from is a real hole in the flow, not just a day
+      // without a pin — nothing backfills it. That is what makes it possible to drag a
+      // lesson to a LATER day and have the day it left stay empty, instead of the next
+      // lesson sliding into the gap.
+      !isSkipped(kid, subject, d) &&
       !doneDays.has(d) && (!resume || d > resume));
   }
 

@@ -77,6 +77,14 @@
   .cell{ border-top:1px solid var(--line); border-left:1px dashed var(--line); padding:6px; min-height:44px;
     display:flex; flex-direction:column; gap:5px; position:relative; }
   .cell.off{ background:#fbfbfd; }
+  /* A day deliberately left empty for this subject (a lesson was pushed off it). Shown,
+     because an invisible hole in the flow is impossible to reason about or undo. */
+  .cell.gap{ background:repeating-linear-gradient(135deg,#fafbfd,#fafbfd 6px,#f1f3f9 6px,#f1f3f9 12px); }
+  .cell .gapclear{ position:absolute; inset:auto 0 0 0; margin:auto; width:max-content;
+    border:1px dashed #cbd5e1; background:#fff; color:var(--muted); border-radius:999px;
+    font-size:10px; font-weight:700; padding:2px 8px; cursor:pointer; opacity:0; }
+  .cell.gap .gapclear{ opacity:.75; position:static; margin:auto; }
+  .cell.gap .gapclear:hover{ opacity:1; color:var(--ink); border-color:var(--ry); }
   /* Weeks run together in one scroller, so the Monday column carries the seam. */
   .cell.wkstart, .hcell.wkstart{ border-left:2px solid #c9c4e8; }
   .hcell .wk{ font-size:9.5px; font-weight:800; color:var(--ry); background:#eef1ff;
@@ -164,7 +172,7 @@
 
 
 <script src="curriculum.js"></script>
-<script src="lz-common.js?v=5"></script>
+<script src="lz-common.js?v=6"></script>
 <script src="lz-sync.js?v=14"></script>
 <script>
 const KIDS = [
@@ -361,8 +369,22 @@ function labelCell(k, sub){
 function dayCell(k, sub, date, cards, today){
   const off = LZ.isDayOff(date);
   const d = document.createElement("div");
-  d.className = "cell" + (off?" off":"") + (date===today?" today":"") + (isMonday(date)?" wkstart":"");
+  const gap = !cards.length && LZ.isSkipped(k.id, sub.subject, date);
+  d.className = "cell" + (off?" off":"") + (date===today?" today":"") + (isMonday(date)?" wkstart":"")
+    + (gap?" gap":"");
   d.dataset.kid = k.id; d.dataset.subject = sub.subject; d.dataset.date = date;
+  if(gap){
+    const clear = document.createElement("button");
+    clear.className = "gapclear";
+    clear.textContent = "no " + sub.subject.toLowerCase();
+    clear.title = "Left empty on purpose — click to let the queue fill this day again";
+    clear.addEventListener("click", e=>{
+      e.stopPropagation();
+      LZ.setSkipped(k.id, sub.subject, date, false);
+      render();
+    });
+    d.appendChild(clear);
+  }
   const add = document.createElement("button");
   add.className = "cadd"; add.textContent = "+"; add.title = "Add a lesson for " + k.name + " on this day";
   add.addEventListener("click", e=>{ e.stopPropagation(); openAdd({kid:k.id, date, subject:sub.subject}); });
@@ -505,6 +527,9 @@ function nextOpenDay(kid, subject, after){
 //   add  — the day keeps what it had AND gains this one. Cards that were merely flowing
 //          onto the day get pinned to it, otherwise the new pin would displace them.
 function dropOnDay(c, date, mode){
+  // Dropping anything onto a day puts that day back in play — otherwise a gap made by an
+  // earlier push would stay a hole even once you deliberately filled it.
+  LZ.setSkipped(c.kid, c.subject, date, false);
   const others = occupantsOn(c.kid, c.subject, date, c.itemId);
   others.forEach(o=>{
     const isManualPinned = !!(o.manual && o.manual.date);
@@ -535,6 +560,14 @@ function pushTo(c, date){
   if(!sub || (c.manual && c.manual.date)){ moveTo(c, date); return; }
 
   LZ.setAssignedDate(kid, subject, c.itemId, null);      // it has to flow to be ordered
+
+  // Moving a lesson to a LATER day leaves a hole behind it. Without this the queue simply
+  // closes up — the next lesson slides into the day you just emptied, which reads as a
+  // swap with the neighbour rather than a push. Marking the day excused for this subject
+  // takes it out of the flow so nothing backfills it. Dragging BACKWARD is the opposite
+  // case: there the days after genuinely should shift along to close the gap.
+  if(c.date && date > c.date) LZ.setSkipped(kid, subject, c.date, true);
+
   const open = LZ.openDaysFor(kid, sub, days());
   const slot = open.indexOf(date);
   if(slot < 0){ moveTo(c, date); return; }               // not a flow day — pin it instead
