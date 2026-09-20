@@ -233,6 +233,19 @@ function days(){
   return out;
 }
 const isMonday = dateISO => dowOf(dateISO) === 1;
+const isWeekend = dateISO => { const w = dowOf(dateISO); return w === 0 || w === 6; };
+
+// Does a subject run for this kid on this day?
+//
+// A subject's schedule ("which days each subject runs") defaults to Mon-Fri, and the
+// planner was the only thing honouring it: ry.html and reid.html never consult it at all
+// and simply offer the front of each queue every day. So on a Saturday or Sunday the kids'
+// route showed a full day's work while the dashboard showed an empty column. Weekends now
+// always count as running days here, so the plan reflects what the kids are actually
+// given; explicit weekday schedules are still respected.
+function runsOn(kid, subject, dateISO){
+  return !LZ.isDayOff(dateISO) && (isWeekend(dateISO) || LZ.isScheduledOn(kid, subject, dateISO));
+}
 function subjectsFor(kid){
   const paused = (window.LZ_CONFIG&&LZ_CONFIG.paused)||[];
   return LZ.getAllSubjects(kid).filter(s=>!paused.includes(s.subject));
@@ -252,7 +265,7 @@ function planFor(kid, list){
 
     if(sub.kind === "ongoing"){
       list.forEach(d=>{
-        if(LZ.isDayOff(d) || !LZ.isScheduledOn(kid,subject,d)) return;
+        if(!runsOn(kid,subject,d)) return;
         const key = LZ.dateKey(kid,subject,d);
         const done = LZ.isDone(key);
         const skipped = LZ.isSkipped(kid,subject,d);
@@ -285,6 +298,19 @@ function planFor(kid, list){
     });
 
     // still-to-do queue
+    //
+    // Two rules below exist purely to keep this grid honest against what ry.html/reid.html
+    // actually put in front of the kids, which is the thing they work from. Without them
+    // the dashboard invented work the checklist never showed:
+    //
+    //   * a subject finished for the day would ALSO get its next lesson flowed onto the
+    //     same day, so Reading read as two lessons here and one there;
+    //   * if the head of a queue is pinned to a future day, the kids' route pauses that
+    //     whole subject until then, while this grid happily flowed the SECOND item into
+    //     today -- which is why Writing showed Ch.2 L12 here and nothing at all there.
+    const doneDays = new Set(Object.keys(byDay).filter(d =>
+      byDay[d].some(c => c.subject===subject && c.done)));
+    const resume = LZ.subjectResumesOn(kid, sub);   // date the queue head is pinned to, if any
     const queue = LZ.combinedQueue(kid, sub);
     const pinCount = {};
     const flowing = [];
@@ -303,7 +329,10 @@ function planFor(kid, list){
         if(inWeek(pin)) byDay[pin].push(Object.assign(card,{date:pin, pinned:true, missed: pin<today}));
       } else flowing.push(card);
     });
-    const open = list.filter(d=>d>=today && !LZ.isDayOff(d) && LZ.isScheduledOn(kid,subject,d) && !pinCount[d]);
+    const open = list.filter(d =>
+      d >= today && runsOn(kid,subject,d) && !pinCount[d] &&
+      !doneDays.has(d) &&                       // already finished this subject that day
+      (!resume || d > resume));                 // subject is paused until its pinned head
     flowing.slice(0, open.length).forEach((c,i)=>{ byDay[open[i]].push(Object.assign(c,{date:open[i]})); });
   });
 
@@ -628,7 +657,7 @@ function occupantsOn(kid, subject, date, exceptItemId){
     .filter(o=>o.subject===subject && !o.done && o.itemId && o.itemId!==exceptItemId);
 }
 function nextOpenDay(kid, subject, after){
-  return days().find(d => d > after && !LZ.isDayOff(d) && LZ.isScheduledOn(kid, subject, d))
+  return days().find(d => d > after && runsOn(kid, subject, d))
       || addDays(after, 1);
 }
 // Dropping a lesson on a day now means one of two things, chosen by which half of the cell
