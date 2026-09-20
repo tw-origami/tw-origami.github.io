@@ -61,7 +61,8 @@
   .stop{ display:flex; align-items:center; gap:16px; }
   .sbox{ flex:none; width:34px; height:34px; border-radius:50%; border:3px solid #d7d3ea; background:#fff;
     display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:900; color:#fff; cursor:pointer; }
-  .sbox.static{ cursor:default; }
+  .sbox:hover{ background:#eff6ff; border-color:var(--ry); }
+  .stop.done .sbox:hover{ background:var(--green); }
   .stop.done{ opacity:.55; }
   .stop.done .sbox{ background:var(--green); border-color:var(--green); }
   .stop .t{ font-size:16.5px; font-weight:800; flex:1; min-width:0; }
@@ -280,11 +281,13 @@ function doneStopHtml(s){
   </div>` + attachBlock(s);
 }
 function nextStopHtml(s){
-  // Not reached yet — the circle is a preview marker only, not a control. Skipping ahead
-  // isn't allowed; the only way to complete something is to work down to it and use the
-  // "now" stop's own circle (or its Finished button).
+  // Not reached yet, but still completable. Kids genuinely do the work out of order —
+  // Science before Reading, handwriting while waiting for a turn — and a route that
+  // refuses to record that just trains them to leave it unchecked. Tapping the circle
+  // completes the lesson wherever it sits in the line; the circle's own tap target is
+  // the control, the same as the "now" stop's.
   return `<div class="stop">
-    <div class="sbox static" title="Not up yet"></div>
+    <div class="sbox" data-toggle="${esc(s.key)}" title="Check it off"></div>
     <div class="t">${stopLabel(s)}</div>
     <div class="pg">${esc(s.note)}</div>
     ${s.link?`<a class="go" href="${esc(s.link)}" target="_blank" rel="noopener">Open →</a>`:""}
