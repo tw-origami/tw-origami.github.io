@@ -84,6 +84,24 @@
   .cell.today{ background:#f7f8ff; }
   .cell.dropping{ background:var(--ry-soft); outline:2px dashed var(--ry); outline-offset:-2px; z-index:1; }
   .cell.dropping.reid{ background:var(--reid-soft); outline-color:var(--reid); }
+
+  /* While a lesson is in hand, every cell of that kid+subject splits into two targets:
+     the top half PUSHES (the lesson takes the day, everything there shifts forward) and
+     the bottom half ADDS (the day ends up with both). Hidden entirely when not dragging,
+     so the grid is unchanged at rest. */
+  .dz{ display:none; position:absolute; left:0; right:0; height:50%; z-index:4;
+    align-items:center; justify-content:center; font-size:10.5px; font-weight:800;
+    letter-spacing:.04em; text-transform:uppercase; border-radius:8px; pointer-events:auto; }
+  .dz.push{ top:0; }
+  .dz.add{ bottom:0; }
+  /* Faintly labelled on every candidate day while dragging, so the two halves are
+     discoverable rather than something you find by accident; solid under the cursor. */
+  .cell.droppable .dz{ display:flex; color:rgba(51,65,85,.42); background:rgba(148,163,184,.10);
+    border:1px dashed rgba(100,116,139,.35); }
+  .cell.droppable .dz.hot{ color:#fff; border-style:solid; }
+  .dz.push.hot{ background:rgba(79,70,229,.92); border-color:var(--ry); }
+  .dz.add.hot{  background:rgba(13,148,136,.92); border-color:#0d9488; }
+  .cell.droppable[data-kid="reid"] .dz.push.hot{ background:rgba(21,128,61,.92); }
   .cadd{ position:absolute; top:3px; right:3px; border:none; background:none; color:var(--faint); cursor:pointer; font-size:13px; line-height:1; opacity:0; padding:2px; }
   .cell:hover .cadd{ opacity:1; } .cadd:hover{ color:var(--ink); }
 
@@ -466,13 +484,48 @@ function cardEl(c, k, date, idx){
     if(c.type==="ongoing"){ e.preventDefault(); return; }
     drag = c; el.classList.add("dragging");
     e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", c.itemId||"");
+    markDroppable(true);
   });
-  el.addEventListener("dragend", ()=>{ el.classList.remove("dragging"); drag=null; });
+  el.addEventListener("dragend", ()=>{ el.classList.remove("dragging"); drag=null; markDroppable(false); });
   return el;
 }
 
 let drag = null;
+
+// Reveal the two halves on every cell the card in hand could legally land on, so the
+// choice is visible the whole time you are dragging rather than only under the cursor.
+function markDroppable(on){
+  document.querySelectorAll("#gridwrap .cell").forEach(cell=>{
+    const ok = on && drag && cell.dataset.kid===drag.kid && cell.dataset.subject===drag.subject;
+    cell.classList.toggle("droppable", !!ok);
+    if(!ok) cell.querySelectorAll(".dz.hot").forEach(z=>z.classList.remove("hot"));
+  });
+}
+function addDropZones(cell){
+  [["push","Push"],["add","Add"]].forEach(([mode,label])=>{
+    const z = document.createElement("div");
+    z.className = "dz " + mode; z.dataset.mode = mode; z.textContent = label;
+    z.addEventListener("dragover", e=>{
+      if(!drag || drag.kid!==cell.dataset.kid || drag.subject!==cell.dataset.subject) return;
+      e.preventDefault(); e.stopPropagation();
+      e.dataTransfer.dropEffect = "move";
+      z.classList.add("hot");
+    });
+    z.addEventListener("dragleave", ()=>z.classList.remove("hot"));
+    z.addEventListener("drop", e=>{
+      z.classList.remove("hot");
+      if(!drag || drag.kid!==cell.dataset.kid || drag.subject!==cell.dataset.subject) return;
+      e.preventDefault(); e.stopPropagation();
+      const c = drag;
+      drag = null;
+      markDroppable(false);
+      dropOnDay(c, cell.dataset.date, mode);
+    });
+    cell.appendChild(z);
+  });
+}
 function wireDrop(cell){
+  addDropZones(cell);
   cell.addEventListener("dragover", e=>{
     if(!drag || drag.kid !== cell.dataset.kid || drag.subject !== cell.dataset.subject) return;
     e.preventDefault(); e.dataTransfer.dropEffect="move";
@@ -569,6 +622,46 @@ function toggleDone(c){
   else { localStorage.setItem(c.doneKey, c.date); }   // credited to the day it was planned for
   render();
 }
+// Everything in a subject that is still to do on a given day, other than the card in hand.
+function occupantsOn(kid, subject, date, exceptItemId){
+  return ((plans[kid] && plans[kid][date]) || [])
+    .filter(o=>o.subject===subject && !o.done && o.itemId && o.itemId!==exceptItemId);
+}
+function nextOpenDay(kid, subject, after){
+  return days().find(d => d > after && !LZ.isDayOff(d) && LZ.isScheduledOn(kid, subject, d))
+      || addDays(after, 1);
+}
+// Dropping a lesson on a day now means one of two things, chosen by which half of the cell
+// it lands on. Previously a drop only ever pinned the dragged lesson, which looked like a
+// swap: the day it left got backfilled by the queue and whatever was on the target day got
+// bumped somewhere unpredictable.
+//
+//   push — the dragged lesson takes the day, and whatever was there moves on to the next
+//          open day. Anything pinned to the target stops being held there, so the queue
+//          re-flows and every later lesson shifts along with it.
+//   add  — the day keeps what it had AND gains this one. Cards that were merely flowing
+//          onto the day get pinned to it, otherwise the new pin would displace them.
+function dropOnDay(c, date, mode){
+  const others = occupantsOn(c.kid, c.subject, date, c.itemId);
+  others.forEach(o=>{
+    const isManualPinned = !!(o.manual && o.manual.date);
+    if(mode === "push"){
+      if(isManualPinned){
+        const arr = LZ.getManualLessons(o.kid, o.subject);
+        const m = arr.find(x=>x.id===o.manual.id);
+        if(m) m.date = nextOpenDay(o.kid, o.subject, date);
+        LZ.setManualLessons(o.kid, o.subject, arr);
+      } else if(o.pinned){
+        LZ.setAssignedDate(o.kid, o.subject, o.itemId, null);  // let it flow forward
+      }
+      // an unpinned card needs nothing: the new pin takes the day, so the flow moves it on
+    } else if(!isManualPinned && !o.pinned){
+      LZ.setAssignedDate(o.kid, o.subject, o.itemId, date);    // hold it here alongside
+    }
+  });
+  moveTo(c, date);
+}
+
 function moveTo(c, date){
   if(c.type==="manual" && c.manual && c.manual.date){
     const arr = LZ.getManualLessons(c.kid, c.subject);
