@@ -637,6 +637,34 @@
     return getAllSubjects(kid).filter(s=>!paused.includes(s.subject));
   }
 
+  // The days a subject's unpinned queue actually flows onto, in order. Shared with the
+  // planner's drag handling so "which slot does this day correspond to" is answered the
+  // same way there as here — a push has to reorder the queue to land a lesson on a given
+  // day, and it can only work out the right position from the same list planDays uses.
+  function openDaysFor(kid, sub, dates, precomputed){
+    const subject = sub.subject;
+    const today = todayISO();
+    let pinCount = precomputed && precomputed.pinCount;
+    let doneDays = precomputed && precomputed.doneDays;
+    let resume   = precomputed ? precomputed.resume : undefined;
+    if(!pinCount){
+      pinCount = {};
+      combinedQueue(kid, sub).forEach(it=>{
+        const pin = getAssignedDate(kid, subject, it.id);
+        if(pin) pinCount[pin] = (pinCount[pin]||0)+1;
+      });
+    }
+    if(!doneDays){
+      doneDays = new Set(dates.filter(d =>
+        (sub.lessons||[]).some(l=>doneDate(dkey(kid,sub,l))===d) ||
+        getManualLessons(kid,subject).some(m=>!m.date && doneDate(manualDoneKey(kid,subject,m.id))===d)));
+    }
+    if(resume === undefined) resume = subjectResumesOn(kid, sub);
+    return dates.filter(d =>
+      d >= today && runsOn(kid,subject,d) && !pinCount[d] &&
+      !doneDays.has(d) && (!resume || d > resume));
+  }
+
   function planDays(kid, dates){
     const today = todayISO();
     const byDay = {}; dates.forEach(d=>byDay[d]=[]);
@@ -707,9 +735,7 @@
           if(inRange(pin) && !isDayOff(pin)) byDay[pin].push(Object.assign(card,{date:pin, pinned:true, missed: pin<today}));
         } else flowing.push(card);
       });
-      const open = dates.filter(d =>
-        d >= today && runsOn(kid,subject,d) && !pinCount[d] &&
-        !doneDays.has(d) && (!resume || d > resume));
+      const open = openDaysFor(kid, sub, dates, { pinCount, doneDays, resume });
       flowing.slice(0, open.length).forEach((c,i)=>{ byDay[open[i]].push(Object.assign(c,{date:open[i]})); });
     });
 
@@ -719,7 +745,7 @@
   // Just today, for the kids' route.
   function planForDay(kid, dateISO){ return planDays(kid, [dateISO])[dateISO]; }
 
-  window.LZ = { planDays, planForDay, runsOn, activeSubjects, isWeekendISO,
+  window.LZ = { planDays, planForDay, openDaysFor, runsOn, activeSubjects, isWeekendISO,
     slug, dkey, skey, dateKey, noteKey, habitKey, skipKey, isSkipped, setSkipped, outingKey, journalKey, isDone, setDone, doneDate, normalizeDate, getNote, setNote,
     getOutings, setOutings, getJournal, setJournal, scanKeys, todayISO, recurringForDate, ensureRecurringSeeded,
     undoneLessons, nextLesson, upcomingLessons, subjProgress, doneLessons, doneDatesForSubject,

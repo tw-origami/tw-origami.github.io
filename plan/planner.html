@@ -515,14 +515,44 @@ function dropOnDay(c, date, mode){
         if(m) m.date = nextOpenDay(o.kid, o.subject, date);
         LZ.setManualLessons(o.kid, o.subject, arr);
       } else if(o.pinned){
-        LZ.setAssignedDate(o.kid, o.subject, o.itemId, null);  // let it flow forward
+        LZ.setAssignedDate(o.kid, o.subject, o.itemId, null);  // free the day up
       }
-      // an unpinned card needs nothing: the new pin takes the day, so the flow moves it on
     } else if(!isManualPinned && !o.pinned){
       LZ.setAssignedDate(o.kid, o.subject, o.itemId, date);    // hold it here alongside
     }
   });
-  moveTo(c, date);
+  if(mode === "push") pushTo(c, date); else moveTo(c, date);
+}
+
+// Push can't be done by pinning. Pinning the dragged lesson to the day only frees its old
+// slot, and the lesson that was there flows straight into it -- which is exactly the swap
+// this was meant to replace. A real push has to change the ORDER of the queue: put the
+// dragged lesson in the slot the target day represents, and everything from there on
+// shifts along by one on its own.
+function pushTo(c, date){
+  const { kid, sub, subject } = c;
+  // A dated one-off belongs to its date, not to the queue, so it just moves.
+  if(!sub || (c.manual && c.manual.date)){ moveTo(c, date); return; }
+
+  LZ.setAssignedDate(kid, subject, c.itemId, null);      // it has to flow to be ordered
+  const open = LZ.openDaysFor(kid, sub, days());
+  const slot = open.indexOf(date);
+  if(slot < 0){ moveTo(c, date); return; }               // not a flow day — pin it instead
+
+  const ids = LZ.combinedQueue(kid, sub).map(x=>x.id);
+  const pinned = new Set(ids.filter(id=>LZ.getAssignedDate(kid, subject, id)));
+  const flowing = ids.filter(id=>!pinned.has(id));
+  const from = flowing.indexOf(c.itemId);
+  if(from < 0){ moveTo(c, date); return; }
+
+  flowing.splice(from, 1);
+  flowing.splice(Math.min(slot, flowing.length), 0, c.itemId);
+
+  // Rebuild the full order, leaving pinned items in the positions they already hold —
+  // only the flowing sequence is being resequenced.
+  let f = 0;
+  LZ.setOrder(kid, subject, ids.map(id => pinned.has(id) ? id : flowing[f++]));
+  render();
 }
 
 function moveTo(c, date){
