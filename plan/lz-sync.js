@@ -193,6 +193,7 @@
     return api("action=get&since=0");
   }
   function pullHead() { return api("action=head"); }
+  function pullDelta(since) { return api("action=get&since=" + (since || 0)); }
 
   // Push a whole set of changes in as few requests as possible. Every request takes the
   // script lock and costs a multi-second round trip, so one-request-per-key made the first
@@ -228,7 +229,7 @@
 
   // --- the one operation: reconcile local against the full server state --------------
   let inFlight = false;
-  function reconcile() {
+  function reconcile(mode) {
     if (inFlight) return Promise.resolve();
     inFlight = true;
     setStatus("Syncing…");
@@ -236,7 +237,13 @@
     // A key the user touched after this moment is newer than anything this pull can be
     // carrying, no matter what the server says.
     const editedDuringPull = k => touchedAt[k] !== undefined && touchedAt[k] >= pullStarted;
-    return pullAll().then(res => {
+    // A delta pull asks only for rows newer than what we've already seen. It costs the same
+    // fixed ~1s Apps Script round trip as the head check did, but it CARRIES the change
+    // instead of just announcing it — so noticing another device's check-off is one request
+    // rather than two. Correctness still rests on the periodic full reconcile: a delta can
+    // only ever add information, never decide that something is missing.
+    const full = mode !== "delta";
+    return (full ? pullAll() : pullDelta(lastServerMax)).then(res => {
       if (!res || !res.ok || !res.items) { setStatus("Sync error — will retry", true); return; }
 
       // A read that predates our own most recent write is stale. Applying it would undo the
@@ -254,6 +261,7 @@
         });
       }
       if (lastPushStamp && srvMax && srvMax < lastPushStamp) { okStatus(); return; }
+      if (srvMax > lastServerMax) lastServerMax = srvMax;
 
       const items = res.items;
       const seen = loadSeen();
@@ -314,15 +322,23 @@
       // (3) Keys this device has that the server has never seen. This is what makes the
       // result a union rather than a takeover — months of check-offs that never synced
       // get carried up instead of being quietly dropped.
-      localNow.forEach(k => {
-        if (items[k] || pendingDel[k]) return;
-        pushes.push(valueChange(k, rawGet(k)));
-      });
+      //
+      // FULL PULLS ONLY. A delta response contains just the recently-changed rows, so
+      // "not in items" would mean "not changed lately" rather than "the server doesn't
+      // have it" — and this would re-push the entire local store on every poll.
+      if (full) {
+        localNow.forEach(k => {
+          if (items[k] || pendingDel[k]) return;
+          pushes.push(valueChange(k, rawGet(k)));
+        });
+      }
 
       // (4) Explicit deletes queued by a real removeItem() in this page, breaker-capped.
       const delKeys = Object.keys(pendingDel);
       if (delKeys.length) {
-        const allowance = deletionAllowance(Object.keys(items).length || localNow.length);
+        const allowance = deletionAllowance(full
+          ? (Object.keys(items).length || localNow.length)
+          : localNow.length);
         if (delKeys.length > allowance) {
           try {
             console.error("[lz-sync] Deletion circuit breaker: refused to push " + delKeys.length +
@@ -384,9 +400,8 @@
       saveSeen(s);
       if (results.every(r => r.ok)) okStatus();
       else setStatus("Sync error — will retry", true);
-      // We just moved the server ourselves. Re-baseline the head signature so the next poll
-      // doesn't read our own push as "someone else changed something" and pay for a full pull.
-      if (typeof rebaseline === "function") rebaseline();
+      // No re-baselining needed: our own pushed rows come back on the next delta and match
+      // what's already local, so they cost a comparison and nothing else.
     }).finally(() => { quickInFlight = false; });
   }
   function scheduleQuickPush() {
@@ -437,7 +452,8 @@
   // --- the polling loop --------------------------------------------------------------
   // Self-scheduling rather than setInterval: a full pull can take longer than the interval,
   // and setInterval would just queue up work nobody can service.
-  let lastSig = null;          // "<maxUpdated>:<rowCount>" from the last head check
+  let lastServerMax = 0;       // newest server stamp we've applied (in-memory on purpose:
+                               // a persisted cursor is exactly what went stale before)
   let lastFullAt = 0;
   let pollTimer = null;
 
@@ -450,29 +466,20 @@
   }
   function poll() {
     if (inFlight) { schedulePoll(); return; }
-    pullHead().then(h => {
-      const needFull = (Date.now() - lastFullAt) > FULL_RECONCILE_MS;
-      if (!h || !h.ok) { if (needFull) return runFull(); return; }
-      const sig = h.maxUpdated + ":" + h.count;
-      // Something moved on the server, or it's time for the periodic safety net.
-      if (sig !== lastSig || needFull) {
-        lastSig = sig;
-        return runFull();
-      }
-    }).catch(() => {}).finally(() => schedulePoll());
-  }
-  // Re-read the head and treat it as our new baseline. Used after we ourselves have written
-  // to the server, so our own push doesn't read back as "someone else changed something."
-  function rebaseline() {
-    return pullHead().then(h => { if (h && h.ok) lastSig = h.maxUpdated + ":" + h.count; }).catch(() => {});
+    // A delta pull when we have a baseline, a full reconcile on the safety-net interval.
+    // The full pass is what keeps this honest: it's the only thing that can notice a key
+    // the server is missing, so nothing depends on the delta stream being complete.
+    const needFull = !lastServerMax || (Date.now() - lastFullAt) > FULL_RECONCILE_MS;
+    const run = needFull ? runFull() : reconcile("delta");
+    Promise.resolve(run).catch(() => {}).then(() => schedulePoll());
   }
   function runFull() {
     lastFullAt = Date.now();
-    return reconcile().then(rebaseline);
+    return reconcile("full");
   }
 
   if (isHeartbeatOwner) {
-    const start = () => { runFull().finally(() => schedulePoll()); };
+    const start = () => { Promise.resolve(runFull()).catch(() => {}).then(() => schedulePoll()); };
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => setTimeout(start, 200));
     else setTimeout(start, 200);
     // Coming back to the tab should feel immediate, not "up to 20 seconds from now."
