@@ -821,7 +821,7 @@ window.CURRICULUM = {
    "subject": "Handwriting",
    "book": "",
    "goal": 2,
-   "note": "One page a day in the handwriting book.",
+   "note": "One letter / One page",
    "kind": "ongoing",
    "lessons": []
   },
