@@ -164,8 +164,8 @@
 </div>
 
 <script src="plan/curriculum.js"></script>
-<script src="plan/lz-common.js?v=7"></script>
-<script src="plan/lz-sync.js?v=14"></script>
+<script src="plan/lz-common.js?v=8"></script>
+<script src="plan/lz-sync.js?v=15"></script>
 <script>
 const KID = "reid";
 const CFG = window.LZ_CONFIG || {paused:[], habits:[]};
@@ -235,14 +235,19 @@ function attachBlock(stop){
   return `<div class="attachWrap">` + list.map(a=>{
     const dk = attachDoneKey(KID, stop.subject, stop.itemId, a.id);
     const done = isDone(dk);
-    const href = safeUrl(a.url);
+    // Where a piece of material opens depends on how it was added — the real web page,
+    // our own video page, or a reading page. LZ.attachHref works that out; "plan/" is
+    // the way to those pages from here at the site root.
+    const href = LZ.attachHref(a, "plan/");
     const label = a.title || a.url || "(link)";
+    const ours = a.mode === "video" || a.mode === "read";
     const inner = href
-      ? `<a class="attachLink" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>`
+      ? `<a class="attachLink" href="${esc(href)}${ours?(href.indexOf("?")>=0?"&":"?")+"kid="+esc(KID):""}"${
+          ours ? "" : ` target="_blank" rel="noopener noreferrer"`}>${esc(label)}</a>`
       : `<span class="attachLink bad">${esc(label)}</span>`;
     return `<div class="attachRow"><span class="attachCheck${done?' on':''}" data-attachdone="${esc(dk)}"
-      title="${a.kind==="video"?"Mark as watched":"Mark as read"}">${done?'✓':''}</span>
-      <span>${a.kind==="video"?'📺':'📄'}</span>${inner}</div>`;
+      title="${a.mode==="video"||a.kind==="video"?"Mark as watched":"Mark as read"}">${done?'✓':''}</span>
+      <span>${LZ.attachIcon(a)}</span>${inner}</div>`;
   }).join("") + `</div>`;
 }
 

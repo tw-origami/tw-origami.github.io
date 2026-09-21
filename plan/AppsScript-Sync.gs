@@ -45,7 +45,9 @@ function handle(e) {
 
   // Reads don't take the lock either. A read that races a write sees either the old or the
   // new row — both are states the client already handles, and the next poll catches up.
-  if (action !== 'set') {
+  // Matched explicitly rather than as "anything that isn't a set", so later actions below
+  // are actually reachable.
+  if (action === 'get') {
     var shR = getSheet_();
     var since = Number(p.since || 0);
     var dataR = shR.getDataRange().getValues();
@@ -62,6 +64,57 @@ function handle(e) {
       outR[keyR] = { value: delR ? null : cellToString_(rowR[1]), deleted: delR, updated: updR };
     }
     return json_({ ok: true, items: outR, serverTime: Date.now(), maxUpdated: maxUpdatedR });
+  }
+
+  // --- reading pages -------------------------------------------------------------------
+  // Article text lives in its own sheet, NOT in the key/value store the app syncs. A
+  // pasted article is 10k-50k characters; the sync pushes every value as a GET query
+  // parameter batched under ~1800 characters, so putting one there would break the push
+  // outright. Kept apart, an article costs the sync nothing: the key/value store holds
+  // only the short document id.
+  if (action === 'doc') {
+    var docsR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('docs');
+    if (!docsR || docsR.getLastRow() < 2) return json_({ ok: false, error: 'not found' });
+    var rowsR = docsR.getRange(2, 1, docsR.getLastRow() - 1, 5).getValues();
+    for (var i = 0; i < rowsR.length; i++) {
+      if (String(rowsR[i][0]) === String(p.id)) {
+        return json_({ ok: true, id: p.id, title: cellToString_(rowsR[i][1]),
+                       source: cellToString_(rowsR[i][2]), updated: Number(rowsR[i][3] || 0),
+                       body: cellToString_(rowsR[i][4]) });
+      }
+    }
+    return json_({ ok: false, error: 'not found' });
+  }
+
+  if (action === 'docput') {
+    var lockD = LockService.getScriptLock();
+    lockD.tryLock(10000);
+    try {
+      // Written in pieces: a GET URL can't carry a whole article, so the client sends it
+      // as numbered chunks. seq 0 starts the document over; later chunks append.
+      var docs = getDocsSheet_();
+      var id = String(p.id || '').trim();
+      if (!id) return json_({ ok: false, error: 'missing id' });
+      var seq = Number(p.seq || 0);
+      var chunk = String(p.chunk || '');
+      var row = findDocRow_(docs, id);
+      if (!row) {
+        docs.appendRow([id, String(p.title || ''), String(p.source || ''), Date.now(), '']);
+        row = docs.getLastRow();
+        docs.getRange(row, 5).setNumberFormat('@');
+        docs.getRange(row, 2).setNumberFormat('@');
+      }
+      var body = seq === 0 ? '' : cellToString_(docs.getRange(row, 5).getValue());
+      body += chunk;
+      if (body.length > 45000) return json_({ ok: false, error: 'too long', length: body.length });
+      docs.getRange(row, 5).setValue(body);
+      if (p.title) docs.getRange(row, 2).setValue(String(p.title));
+      if (p.source) docs.getRange(row, 3).setValue(String(p.source));
+      docs.getRange(row, 4).setValue(Date.now());
+      return json_({ ok: true, id: id, length: body.length, seq: seq });
+    } finally {
+      lockD.releaseLock();
+    }
   }
 
   var lock = LockService.getScriptLock();
@@ -138,6 +191,21 @@ function cellToString_(v) {
     return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
   }
   return String(v);
+}
+
+function getDocsSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName('docs');
+  if (!sh) sh = ss.insertSheet('docs');
+  if (sh.getLastRow() === 0) sh.appendRow(['id', 'title', 'source', 'updated', 'body']);
+  return sh;
+}
+function findDocRow_(sh, id) {
+  var last = sh.getLastRow();
+  if (last < 2) return 0;
+  var ids = sh.getRange(2, 1, last - 1, 1).getValues();
+  for (var i = 0; i < ids.length; i++) if (String(ids[i][0]) === id) return i + 2;
+  return 0;
 }
 
 function getSheet_() {

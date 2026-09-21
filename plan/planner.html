@@ -155,6 +155,7 @@
   .scrim{ position:fixed; inset:0; background:rgba(15,23,42,.35); z-index:60; display:flex; align-items:center; justify-content:center; padding:20px; }
   .modal{ background:#fff; border-radius:16px; box-shadow:0 30px 70px rgba(15,23,42,.3); width:min(520px,100%); max-height:86vh; overflow:auto; padding:18px 20px 16px; }
   .modal h3{ margin:0 0 3px; font-size:16px; } .modal .sub{ color:var(--muted); font-size:12.5px; margin-bottom:14px; }
+  .hide{ display:none !important; }
   .field{ display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
   .field label{ font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
   input[type=text], select, textarea{ border:1px solid var(--line); border-radius:9px; padding:8px 10px; font:inherit; background:#fff; }
@@ -185,8 +186,8 @@
 
 
 <script src="curriculum.js"></script>
-<script src="lz-common.js?v=7"></script>
-<script src="lz-sync.js?v=14"></script>
+<script src="lz-common.js?v=8"></script>
+<script src="lz-sync.js?v=15"></script>
 <script>
 const KIDS = [
   { id:"ryland", name:"Ryland", color:"#4f46e5", cls:"ry" },
@@ -709,6 +710,8 @@ function openMenu(anchor, c){
     LZ.setAssignedDate(c.kid,c.subject,"m|"+c.manual.id,null);
     LZ.removeManualLesson(c.kid, c.subject, c.manual.id); render();
   }]);
+  rows.push(["📎 Material… " + (LZ.getAttachments(c.kid, c.subject, c.itemId).length
+    ? "(" + LZ.getAttachments(c.kid, c.subject, c.itemId).length + ")" : ""), ()=>openMaterial(c)]);
   if(c.type==="real" && LZ.getSplitParts(c.kid, c.subject, c.itemId).length)
     rows.push(["↩︎ Undo split", ()=>{ LZ.unsplitLesson(c.kid, c.sub, c.itemId); render(); }]);
   rows.forEach(([label,fn])=>{
@@ -775,6 +778,155 @@ function openAdd(pre){
 }
 
 // Split — two parts by default, page range guessed from the lesson's own page number.
+/* ---------- supplement material ---------------------------------------------------------
+   Four ways to attach something to a lesson, which differ in WHERE the child ends up:
+
+     link   the address itself, in a new tab. Right for a site you're happy to send them
+            to unaccompanied.
+     video  a YouTube link, opened through watch.html — the video alone, without the
+            sidebar, the comments, or a channel two clicks away.
+     paste  text pasted here, saved to the sheet, shown on read.html. Right when the
+            source page is unreadable for ads but the words are worth keeping.
+     page   a reading page built and committed to the site (these come from me: send the
+            URL and I'll produce plan/reading/<name>.html), linked by its path.
+
+   Everything is stored on the existing lzAttach record, so each piece keeps the
+   check-off circle it already has on the kids' route.
+--------------------------------------------------------------------------------------- */
+function openMaterial(c){
+  const kidName = (KIDS.find(k=>k.id===c.kid)||{}).name || c.kid;
+  const s = modal(`
+    <h3>Material for “${escapeHtml(c.title||"")}”</h3>
+    <div class="sub">Extra reading or watching alongside the lesson. ${escapeHtml(kidName)} gets
+      its own tick next to the lesson on their day.</div>
+    <div id="mList"></div>
+    <div class="field"><label>How should it open?</label>
+      <select id="mMode">
+        <option value="link">Open the web page itself, in a new tab</option>
+        <option value="video">YouTube video — play it on its own page</option>
+        <option value="read">Paste the text — make a reading page</option>
+        <option value="page">A reading page already on this site</option>
+      </select></div>
+    <div class="field"><label>Title</label><input type="text" id="mTitle" placeholder="What is it?"></div>
+    <div class="field" id="mUrlField"><label id="mUrlLabel">Address</label>
+      <input type="text" id="mUrl" placeholder="https://…"></div>
+    <div class="field hide" id="mTextField"><label>Article text</label>
+      <textarea id="mText" rows="9" placeholder="Paste the article here. Plain text — blank lines separate paragraphs."></textarea>
+      <div class="sub" style="margin:4px 0 0" id="mCount">0 characters</div></div>
+    <div class="sub hide" id="mNote" style="margin:-4px 0 10px"></div>
+    <div class="mfoot"><button class="ghost" data-close>Close</button><button class="primary" id="mSave">Add it</button></div>`);
+
+  const $$ = q => s.querySelector(q);
+  const mode = () => $$("#mMode").value;
+
+  function drawList(){
+    const list = LZ.getAttachments(c.kid, c.subject, c.itemId);
+    const wrap = $$("#mList");
+    if(!list.length){ wrap.innerHTML = ""; return; }
+    wrap.innerHTML = `<div class="field"><label>Already attached</label></div>`;
+    list.forEach(a=>{
+      const row = document.createElement("div");
+      row.className = "srow";
+      row.style.cssText = "display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line)";
+      const href = LZ.attachHref(a, "");
+      row.innerHTML = `<span>${LZ.attachIcon(a)}</span>
+        <a href="${escapeHtml(href)}" target="_blank" rel="noopener" style="flex:1;min-width:0;font-size:12.5px;
+           overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(a.title || href || "(untitled)")}</a>
+        <button class="linkish" style="color:var(--red)">remove</button>`;
+      row.querySelector("button").addEventListener("click", ()=>{
+        LZ.removeAttachment(c.kid, c.subject, c.itemId, a.id);
+        drawList(); render();
+      });
+      wrap.appendChild(row);
+    });
+  }
+
+  function syncFields(){
+    const m = mode();
+    $$("#mTextField").classList.toggle("hide", m !== "read");
+    $$("#mUrlField").classList.toggle("hide", m === "read");
+    const note = $$("#mNote");
+    if(m === "video"){
+      $$("#mUrlLabel").textContent = "YouTube link";
+      $$("#mUrl").placeholder = "https://www.youtube.com/watch?v=…";
+      note.textContent = "Plays on its own page — no sidebar, no comments. YouTube still shows its own suggestions once a video ends; that can't be turned off.";
+    } else if(m === "page"){
+      $$("#mUrlLabel").textContent = "Path on this site";
+      $$("#mUrl").placeholder = "reading/rome-aqueducts.html";
+      note.textContent = "For a reading page built from a messy source. Ask for one and paste the path you're given.";
+    } else if(m === "read"){
+      note.textContent = "Saved to your sheet and shown as a clean reading page. Plain text only — images and formatting are dropped.";
+    } else {
+      $$("#mUrlLabel").textContent = "Address";
+      $$("#mUrl").placeholder = "https://…";
+      note.textContent = "Opens the real page in a new tab, ads and all.";
+    }
+    note.classList.remove("hide");
+  }
+  $$("#mMode").addEventListener("change", syncFields);
+  $$("#mText").addEventListener("input", ()=>{
+    const n = $$("#mText").value.length;
+    $$("#mCount").textContent = n.toLocaleString() + " characters" + (n > 45000 ? " — too long, trim it" : "");
+  });
+  syncFields(); drawList();
+
+  $$("#mSave").addEventListener("click", async ()=>{
+    const m = mode();
+    const title = $$("#mTitle").value.trim();
+    const btn = $$("#mSave");
+
+    if(m === "read"){
+      const text = $$("#mText").value.trim();
+      if(!text){ $$("#mText").focus(); return; }
+      if(text.length > 45000){ $$("#mCount").textContent = "Too long — trim it under 45,000 characters."; return; }
+      btn.disabled = true; btn.textContent = "Saving…";
+      const docId = "d" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+      const ok = await saveDoc(docId, title || "Reading", "", text, pct=>{ btn.textContent = "Saving… " + pct + "%"; });
+      btn.disabled = false; btn.textContent = "Add it";
+      if(!ok){ $$("#mCount").textContent = "Couldn't save it — check the connection and try again."; return; }
+      LZ.addAttachment(c.kid, c.subject, c.itemId, { title: title || "Reading", kind:"article", mode:"read", doc: docId });
+    } else if(m === "page"){
+      const path = $$("#mUrl").value.trim().replace(/^\/+/, "");
+      if(!path){ $$("#mUrl").focus(); return; }
+      LZ.addAttachment(c.kid, c.subject, c.itemId, { title: title || path, kind:"article", mode:"read", page: path });
+    } else if(m === "video"){
+      const url = $$("#mUrl").value.trim();
+      if(!LZ.youTubeId(url)){ $$("#mUrl").focus(); $$("#mNote").textContent = "That doesn't look like a YouTube link."; return; }
+      LZ.addAttachment(c.kid, c.subject, c.itemId, { title: title || "Video", kind:"video", mode:"video", url });
+    } else {
+      const url = $$("#mUrl").value.trim();
+      if(!/^https?:\/\//i.test(url)){ $$("#mUrl").focus(); $$("#mNote").textContent = "Needs to start with http:// or https://"; return; }
+      LZ.addAttachment(c.kid, c.subject, c.itemId, { title: title || url, kind: LZ.guessAttachKind(url), mode:"link", url });
+    }
+    $$("#mTitle").value = ""; $$("#mUrl").value = ""; $$("#mText").value = "";
+    $$("#mCount").textContent = "0 characters";
+    drawList(); render();
+  });
+}
+
+// An article is far too big for one request: values reach Apps Script as GET query
+// parameters, so the text goes up in numbered pieces and the backend reassembles it.
+// Sequentially, because they all write the same row.
+async function saveDoc(id, title, source, text, onProgress){
+  const base = (window.LZSYNC && window.LZSYNC.url) || "";
+  if(!base) return false;
+  const CHUNK = 1200;
+  const total = Math.max(1, Math.ceil(text.length / CHUNK));
+  for(let i = 0; i < total; i++){
+    const part = text.slice(i * CHUNK, (i + 1) * CHUNK);
+    const url = base + (base.indexOf("?") >= 0 ? "&" : "?") +
+      "action=docput&id=" + encodeURIComponent(id) +
+      "&seq=" + i + "&total=" + total +
+      (i === 0 ? "&title=" + encodeURIComponent(title) + "&source=" + encodeURIComponent(source||"") : "") +
+      "&chunk=" + encodeURIComponent(part) + "&_=" + Date.now() + "." + i;
+    let j = null;
+    try { j = await fetch(url, { cache:"no-store" }).then(r=>r.json()); } catch(e){ return false; }
+    if(!j || !j.ok) return false;
+    if(onProgress) onProgress(Math.round(((i + 1) / total) * 100));
+  }
+  return true;
+}
+
 function openSplit(c){
   const base = String(c.page||"").trim();
   const s = modal(`

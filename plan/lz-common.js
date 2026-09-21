@@ -292,14 +292,73 @@
     (arr&&arr.length) ? localStorage.setItem(attachKey(kid,subject,itemId), JSON.stringify(arr))
                       : localStorage.removeItem(attachKey(kid,subject,itemId));
   }
-  // opts: {title, url, kind:"video"|"article"}. Returns the new attachment's id.
+  // opts: {title, url, kind:"video"|"article", mode, doc, page}. Returns the new id.
+  //
+  // `mode` is how the material should OPEN, which is separate from what it is:
+  //   "link"  — an ordinary web address, opens in a new tab. The default, and what every
+  //             record written before this existed is treated as.
+  //   "video" — a YouTube address, opened through watch.html: the video by itself, no
+  //             sidebar, no comments, no channel page a click away.
+  //   "read"  — a reading page of our own. Either `doc` (text pasted into the dashboard
+  //             and kept in the sheet) or `page` (a page built and committed to the site,
+  //             for when a source is too ad-ridden to send a child to).
   function addAttachment(kid, subject, itemId, opts){
     opts = opts || {};
     const arr = getAttachments(kid, subject, itemId);
     const id = "a" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
-    arr.push({ id, title:(opts.title||"").trim(), url:(opts.url||"").trim(), kind: opts.kind==="article" ? "article" : "video" });
+    const rec = { id, title:(opts.title||"").trim(), url:(opts.url||"").trim(),
+                  kind: opts.kind==="article" ? "article" : "video",
+                  mode: ["link","video","read"].includes(opts.mode) ? opts.mode : "link" };
+    if(opts.doc) rec.doc = String(opts.doc);
+    if(opts.page) rec.page = String(opts.page);
+    arr.push(rec);
     setAttachments(kid, subject, itemId, arr);
     return id;
+  }
+  function updateAttachment(kid, subject, itemId, id, patch){
+    const arr = getAttachments(kid, subject, itemId);
+    const a = arr.find(x=>x.id===id);
+    if(!a) return false;
+    Object.assign(a, patch||{});
+    setAttachments(kid, subject, itemId, arr);
+    return true;
+  }
+
+  // The video id out of any of the shapes a YouTube address comes in — a watch link, a
+  // youtu.be short link, /embed/, /shorts/, or the bare id pasted on its own.
+  function youTubeId(u){
+    const s = String(u||"").trim();
+    if(/^[\w-]{11}$/.test(s)) return s;
+    let m = s.match(/[?&]v=([\w-]{11})/)
+         || s.match(/youtu\.be\/([\w-]{11})/)
+         || s.match(/\/embed\/([\w-]{11})/)
+         || s.match(/\/shorts\/([\w-]{11})/)
+         || s.match(/\/live\/([\w-]{11})/);
+    return m ? m[1] : "";
+  }
+
+  // Where a piece of material should actually open. `base` is the path back to /plan/
+  // from the page asking ("" from inside plan/, "plan/" from ry.html at the site root).
+  function attachHref(a, base){
+    base = base === undefined ? "" : base;
+    if(!a) return "";
+    if(a.mode === "video"){
+      const id = youTubeId(a.url);
+      return id ? base + "watch.html?v=" + encodeURIComponent(id) +
+        (a.title ? "&t=" + encodeURIComponent(a.title) : "") : safeUrl(a.url);
+    }
+    if(a.mode === "read"){
+      if(a.doc)  return base + "read.html?doc=" + encodeURIComponent(a.doc);
+      if(a.page) return base + String(a.page).replace(/^\/+/, "");
+      return safeUrl(a.url);
+    }
+    return safeUrl(a.url);
+  }
+  function attachIcon(a){
+    if(!a) return "📄";
+    if(a.mode === "video" || a.kind === "video") return "📺";
+    if(a.mode === "read") return "📖";
+    return "🔗";
   }
   function removeAttachment(kid, subject, itemId, id){
     setAttachments(kid, subject, itemId, getAttachments(kid,subject,itemId).filter(a=>a.id!==id));
@@ -774,7 +833,8 @@
     orderKey, getOrder, setOrder, lessonItemId, combinedQueue,
     splitKey, getSplitParts, setSplitParts, splitLesson, unsplitLesson,
     dayOffKey, isDayOff, dayOffLabel, setDayOff,
-    attachKey, getAttachments, setAttachments, addAttachment, removeAttachment, attachDoneKey,
+    attachKey, getAttachments, setAttachments, addAttachment, updateAttachment, removeAttachment, attachDoneKey,
+    youTubeId, attachHref, attachIcon,
     safeUrl, guessAttachKind, dailyPick, appLink,
     subjectBySlug, manualById, parseAttachDoneKey, attachmentsDoneOn, manualDoneOn,
     DOW_CODES, DEFAULT_SCHEDULE_DAYS, scheduleKey, getScheduleDays, setScheduleDays, dowCode, isScheduledOn,

@@ -45,6 +45,14 @@
   // for ONE thing only: deciding which side changed when local and server disagree. It is
   // never consulted to decide whether something was deleted. If it's missing or wrong, the
   // worst outcome is that a conflict resolves toward the server — never data loss.
+  // A page that only READS something from the backend (the reader page) loads this file
+  // purely to reach the endpoint, and has no business polling or holding a heartbeat.
+  // Setting window.LZ_SYNC_PASSIVE before the script runs keeps the address available
+  // while leaving the loop and the status pill switched off — better than a second copy
+  // of the URL drifting out of step with this one. Declared up here because setStatus()
+  // reads it, and setStatus can be reached before the heartbeat election further down.
+  const PASSIVE = !!(typeof window !== "undefined" && window.LZ_SYNC_PASSIVE);
+
   const SEEN_KEY = "_lzSyncSeen";
   const PENDING_DEL_KEY = "_lzSyncPendingDel"; // explicit, user-intended deletes awaiting push
   const LEGACY_KEYS = ["_lzSyncMeta", "_lzSyncCursor"]; // the old ledger — removed on load
@@ -163,6 +171,7 @@
     return pill;
   }
   function setStatus(text, isError) {
+    if (PASSIVE) return;        // no status pill on a page that isn't syncing
     if (!document.body) return; // too early — the next tick will retry
     const el = ensurePill();
     el.textContent = text;
@@ -443,11 +452,12 @@
   // claims the recurring pull on the shared top window; siblings skip it but still see the
   // results, since they all read and write the same storage. A page opened standalone is
   // always its own top window, so it always claims itself.
-  let isHeartbeatOwner = true;
+  let isHeartbeatOwner = !PASSIVE;
   try {
+    if (PASSIVE) throw 0;
     if (window.top && window.top !== window && window.top._lzSyncOwnerActive) isHeartbeatOwner = false;
     else if (window.top) window.top._lzSyncOwnerActive = true;
-  } catch (e) { /* cross-origin top (shouldn't happen on this site) — just run normally */ }
+  } catch (e) { /* passive, or a cross-origin top (shouldn't happen here) */ }
 
   // --- the polling loop --------------------------------------------------------------
   // Self-scheduling rather than setInterval: a full pull can take longer than the interval,
@@ -490,6 +500,8 @@
 
   // Exposed for debugging from the browser console.
   window.LZSYNC = {
+    url: SYNC_URL,
+    passive: PASSIVE,
     forceSync: reconcile,
     quickPush: quickPush,
     isHeartbeatOwner: () => isHeartbeatOwner,
