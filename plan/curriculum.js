@@ -8,8 +8,8 @@ window.CURRICULUM = {
    "book": "",
    "goal": 4,
    "options": [
-    "Khan Academy",
-    "Learn Zone (15 min)"
+    "Synthesis",
+    "Learn Zone"
    ],
    "kind": "ongoing",
    "lessons": [],
@@ -819,84 +819,11 @@ window.CURRICULUM = {
   },
   {
    "subject": "Handwriting",
-   "book": "Zaner-Bloser 3",
+   "book": "",
    "goal": 2,
-   "options": [],
-   "kind": "book",
-   "lessons": [
-    {
-     "t": "Unit 3 Review + Apply: Facts",
-     "p": "118",
-     "cur": false,
-     "done": true
-    },
-    {
-     "t": "Write uppercase G, S, L, P, R, B",
-     "p": "120",
-     "cur": false,
-     "done": true
-    },
-    {
-     "t": "Joinings + Review uppercase",
-     "p": "126",
-     "cur": false,
-     "done": true
-    },
-    {
-     "t": "Apply: Book Character",
-     "p": "128",
-     "cur": true,
-     "done": false
-    },
-    {
-     "t": "Apply: Book Summary",
-     "p": "129",
-     "cur": false,
-     "done": false
-    },
-    {
-     "t": "Review Uppercase Cursive + Evaluate",
-     "p": "130",
-     "cur": false,
-     "done": false
-    },
-    {
-     "t": "Practice: Manuscript Maintenance",
-     "p": "134",
-     "cur": false,
-     "done": false
-    },
-    {
-     "t": "Unit 4: Cursive in Real World (letter, invitation, thank-you)",
-     "p": "136",
-     "cur": false,
-     "done": false
-    },
-    {
-     "t": "Apply: Narrative (Last Weekend, Story Retelling)",
-     "p": "140",
-     "cur": false,
-     "done": false
-    },
-    {
-     "t": "Apply: Opinion",
-     "p": "144",
-     "cur": false,
-     "done": false
-    },
-    {
-     "t": "Apply: Informative (Compare, Special Person, How-To)",
-     "p": "148",
-     "cur": false,
-     "done": false
-    },
-    {
-     "t": "Evaluate: Sentence + Posttest",
-     "p": "153",
-     "cur": false,
-     "done": false
-    }
-   ]
+   "note": "One page a day in the handwriting book.",
+   "kind": "ongoing",
+   "lessons": []
   },
   {
    "subject": "Geography",
@@ -1456,8 +1383,8 @@ window.CURRICULUM = {
    "book": "",
    "goal": 4,
    "options": [
-    "Khan Academy",
-    "Learn Zone (15 min)"
+    "Synthesis",
+    "Learn Zone"
    ],
    "kind": "ongoing",
    "lessons": [],
