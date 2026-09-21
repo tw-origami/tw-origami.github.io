@@ -81,6 +81,25 @@
       Math.min(MAX_DELETIONS, Math.floor(referenceCount * MAX_DELETION_FRACTION)));
   }
 
+  // The breaker exists to protect WORK — a lesson checked off, a journal entry, a habit,
+  // an outing, a piece of material someone attached. None of that can be reconstructed if
+  // it's wrongly deleted, which is the whole reason this guard exists.
+  //
+  // Planning decisions are a different matter. A pin, a gap, a day off, a custom lesson
+  // order: every one is re-made in a second by dragging, and rearranging an afternoon
+  // legitimately deletes a dozen of them in a minute. Counting those toward the ceiling
+  // meant ordinary planning could trip a guard meant for catastrophe, and a tripped
+  // breaker drops the intent — the pins would quietly come back on the next sync.
+  //
+  // Deliberately a list of what is NOT protected. Anything new defaults to protected,
+  // which is the side to be wrong on.
+  const PLANNING_PREFIXES = ["lzAssign|", "lzSkip|", "lzDayOff|", "lzOrder|",
+                             "lzSplit|", "lzCarry|", "lzCatchupReset|"];
+  function isPlanningKey(k) {
+    return PLANNING_PREFIXES.some(p => String(k).indexOf(p) === 0);
+  }
+  function isProtectedKey(k) { return isContentKey(k) && !isPlanningKey(k); }
+
   let REAL_SET, REAL_REMOVE;   // unpatched Storage methods, so applying a pulled value never
                                // loops back around as a "local edit"
 
@@ -283,19 +302,23 @@
       const localNow = contentKeys();
       const toRemove = Object.keys(items).filter(k =>
         items[k].deleted && isContentKey(k) && rawGet(k) !== null && !editedDuringPull(k));
-      const removeAllowance = deletionAllowance(localNow.length);
-      if (toRemove.length > removeAllowance) {
-        refusedRemote = toRemove.length;
+      // Only real work is rationed. Planning rows come off freely — refusing those would
+      // leave this device showing pins and gaps every other device has already dropped.
+      const protectedRemovals = toRemove.filter(isProtectedKey);
+      const removeAllowance = deletionAllowance(localNow.filter(isProtectedKey).length);
+      const holdProtected = protectedRemovals.length > removeAllowance;
+      if (holdProtected) {
+        refusedRemote = protectedRemovals.length;
         try {
-          console.error("[lz-sync] Refused to apply " + toRemove.length + " deletions from the " +
-            "server (allowance " + removeAllowance + " of " + localNow.length + " local keys). " +
-            "Nothing was removed. Check the sheet before doing anything else.", toRemove);
+          console.error("[lz-sync] Refused to apply " + protectedRemovals.length + " deletions of " +
+            "saved work from the server (allowance " + removeAllowance + "). Nothing was removed. " +
+            "Check the sheet before doing anything else.", protectedRemovals);
         } catch (e) {}
-      } else {
-        toRemove.forEach(k => {
-          if (safeRemove(k)) { seen[k] = { deleted: true, u: items[k].updated }; applied++; }
-        });
       }
+      toRemove.forEach(k => {
+        if (holdProtected && isProtectedKey(k)) return;
+        if (safeRemove(k)) { seen[k] = { deleted: true, u: items[k].updated }; applied++; }
+      });
 
       // (2) Server's live values.
       Object.keys(items).forEach(k => {
@@ -345,17 +368,24 @@
       // (4) Explicit deletes queued by a real removeItem() in this page, breaker-capped.
       const delKeys = Object.keys(pendingDel);
       if (delKeys.length) {
-        const allowance = deletionAllowance(full
-          ? (Object.keys(items).length || localNow.length)
-          : localNow.length);
-        if (delKeys.length > allowance) {
+        const protectedDels = delKeys.filter(isProtectedKey);
+        const planningDels  = delKeys.filter(k => !isProtectedKey(k));
+        const allowance = deletionAllowance(
+          (full ? Object.keys(items).filter(isProtectedKey).length : 0) ||
+          localNow.filter(isProtectedKey).length);
+        if (protectedDels.length > allowance) {
           try {
-            console.error("[lz-sync] Deletion circuit breaker: refused to push " + delKeys.length +
-              " deletions (allowance " + allowance + "). Dropping the request; nothing was " +
-              "deleted on the server.", delKeys);
+            console.error("[lz-sync] Deletion circuit breaker: refused to push " +
+              protectedDels.length + " deletions of saved work (allowance " + allowance +
+              "). Nothing was deleted on the server.", protectedDels);
           } catch (e) {}
-          savePendingDel({});   // drop the intent rather than retrying it forever
-          setStatus("Blocked " + delKeys.length + " deletions", true);
+          // The refused intents are dropped rather than retried forever. Nothing is lost
+          // by that: the keys are already gone locally, the server still has them, and
+          // the next full reconcile fetches them back — absence is never a deletion.
+          // Planning deletions in the same batch still go; they were never the risk.
+          savePendingDel({});
+          planningDels.forEach(k => pushes.push(deleteChange(k)));
+          setStatus("Blocked " + protectedDels.length + " deletions", true);
         } else {
           delKeys.forEach(k => pushes.push(deleteChange(k)));
         }
