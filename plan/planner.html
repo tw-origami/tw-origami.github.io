@@ -129,9 +129,15 @@
   .card .pg{ font-size:11px; color:var(--muted); white-space:nowrap; }
   .card .box{ flex:none; width:15px; height:15px; margin-top:1px; border:1.8px solid #b3bdd0; border-radius:4px; cursor:pointer;
     display:flex; align-items:center; justify-content:center; color:#fff; font-size:10px; background:#fff; }
-  .card.done{ background:#f7faf8; border-left-color:var(--green); }
-  .card.done .box{ background:var(--green); border-color:var(--green); }
-  .card.done .ttl span.txt{ text-decoration:line-through; color:var(--muted); }
+  /* Finished work is a record, not something to read closely — set it smaller and keep it
+     to one line so a long title can't wrap to three and drag the whole row's height with
+     it. The full title stays in the card's tooltip. */
+  .card.done{ background:#f7faf8; border-left-color:var(--green); padding:3px 20px 3px 8px; }
+  .card.done .box{ background:var(--green); border-color:var(--green); width:13px; height:13px; }
+  .card.done .ttl{ font-size:11px; line-height:1.2; align-items:center; }
+  .card.done .pg{ font-size:10px; }
+  .card.done .ttl span.txt{ text-decoration:line-through; color:var(--muted);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
   .card.missed{ border-left-color:var(--red); background:#fff6f8; }
   .card.part{ border-style:dashed; }
   .card .menu{ position:absolute; top:4px; right:4px; border:none; background:none; color:#cbd5e1; cursor:pointer; font-size:13px; line-height:1; padding:2px 3px; border-radius:6px; }
@@ -401,12 +407,13 @@ function dayCell(k, sub, date, cards, today){
   // A day where several lessons were checked off at once (catching up a backlog in one
   // go) used to stack every one of them, and since a grid row is as tall as its tallest
   // cell, one such day stretched the whole subject row down the entire timeline. Past
-  // work is reference, not something you act on, so more than two collapse into a single
+  // work is reference, not something you act on, so two or more collapse into a single
   // line you can open when you actually want to look.
   const doneCards = cards.filter(c=>c.done);
   const openCards = cards.filter(c=>!c.done);
   const cellKey = k.id+"|"+sub.subject+"|"+date;
-  const collapse = doneCards.length > 2 && !expandedCells.has(cellKey);
+  const COLLAPSE_FROM = 2;   // two finished lessons in a day is already enough to bloat a row
+  const collapse = doneCards.length >= COLLAPSE_FROM && !expandedCells.has(cellKey);
 
   openCards.forEach((c,i)=>d.appendChild(cardEl(c, k, date, i)));
   if(collapse){
@@ -418,7 +425,7 @@ function dayCell(k, sub, date, cards, today){
     d.appendChild(pill);
   } else {
     doneCards.forEach((c,i)=>d.appendChild(cardEl(c, k, date, openCards.length+i)));
-    if(doneCards.length > 2){
+    if(doneCards.length >= COLLAPSE_FROM){
       const pill = document.createElement("button");
       pill.className = "donepill open";
       pill.innerHTML = `<span class="chev">▾</span> hide ${doneCards.length}`;
@@ -435,6 +442,8 @@ function cardEl(c, k, date, idx){
   el.className = "card " + k.cls + (c.done?" done":"") + (c.missed&&!c.done?" missed":"") + (c.part?" part":"") + (c.type==="ongoing"?" chip":"");
   el.draggable = c.type !== "ongoing";
   el.dataset.kid = c.kid; el.dataset.subject = c.subject; el.dataset.itemId = c.itemId||""; el.dataset.date = date; el.dataset.idx = idx;
+  // A finished card's title is clipped to one line, so keep the whole thing reachable.
+  el.title = (c.title||"") + (c.page ? " · p."+c.page : "");
   el.innerHTML = `
     <div class="ttl"><span class="box">${c.done?"✓":""}</span><span class="txt">${escapeHtml(c.title||"")}</span>${c.page?`<span class="pg">p.${escapeHtml(String(c.page))}</span>`:""}${c.pinned?'<span class="pin" title="Pinned to this day">📌</span>':""}</div>
     <button class="menu" title="Options">⋯</button>`;
