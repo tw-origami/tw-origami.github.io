@@ -79,6 +79,13 @@
   .cell.off{ background:#fbfbfd; }
   /* A day deliberately left empty for this subject (a lesson was pushed off it). Shown,
      because an invisible hole in the flow is impossible to reason about or undo. */
+  .donepill{ display:flex; align-items:center; gap:5px; width:100%; border:1px dashed #d7dbe8;
+    background:#f8fafc; color:var(--muted); border-radius:9px; padding:4px 8px; cursor:pointer;
+    font:inherit; font-size:11px; font-weight:700; text-align:left; }
+  .donepill:hover{ background:#eef1ff; border-color:var(--ry); color:var(--ink); }
+  .donepill .tick{ color:var(--green); font-weight:900; }
+  .donepill .chev{ margin-left:auto; opacity:.7; }
+  .donepill.open{ border-style:solid; }
   .cell.gap{ background:repeating-linear-gradient(135deg,#fafbfd,#fafbfd 6px,#f1f3f9 6px,#f1f3f9 12px); }
   .cell .gapclear{ position:absolute; inset:auto 0 0 0; margin:auto; width:max-content;
     border:1px dashed #cbd5e1; background:#fff; color:var(--muted); border-radius:999px;
@@ -276,6 +283,8 @@ function render(){
 }
 
 /* ---------- the continuous timeline: scrolling, and growing at either end ------------- */
+// Cells whose finished lessons the teacher has opened up, keyed kid|subject|date.
+const expandedCells = new Set();
 let pendingLeftGrowth = false;
 let scrolledToTodayOnce = false;
 
@@ -389,7 +398,34 @@ function dayCell(k, sub, date, cards, today){
   add.className = "cadd"; add.textContent = "+"; add.title = "Add a lesson for " + k.name + " on this day";
   add.addEventListener("click", e=>{ e.stopPropagation(); openAdd({kid:k.id, date, subject:sub.subject}); });
   d.appendChild(add);
-  cards.forEach((c,i)=>d.appendChild(cardEl(c, k, date, i)));
+  // A day where several lessons were checked off at once (catching up a backlog in one
+  // go) used to stack every one of them, and since a grid row is as tall as its tallest
+  // cell, one such day stretched the whole subject row down the entire timeline. Past
+  // work is reference, not something you act on, so more than two collapse into a single
+  // line you can open when you actually want to look.
+  const doneCards = cards.filter(c=>c.done);
+  const openCards = cards.filter(c=>!c.done);
+  const cellKey = k.id+"|"+sub.subject+"|"+date;
+  const collapse = doneCards.length > 2 && !expandedCells.has(cellKey);
+
+  openCards.forEach((c,i)=>d.appendChild(cardEl(c, k, date, i)));
+  if(collapse){
+    const pill = document.createElement("button");
+    pill.className = "donepill";
+    pill.innerHTML = `<span class="tick">✓</span> ${doneCards.length} done <span class="chev">▸</span>`;
+    pill.title = doneCards.map(c=>c.title).join("\n");
+    pill.addEventListener("click", e=>{ e.stopPropagation(); expandedCells.add(cellKey); render(); });
+    d.appendChild(pill);
+  } else {
+    doneCards.forEach((c,i)=>d.appendChild(cardEl(c, k, date, openCards.length+i)));
+    if(doneCards.length > 2){
+      const pill = document.createElement("button");
+      pill.className = "donepill open";
+      pill.innerHTML = `<span class="chev">▾</span> hide ${doneCards.length}`;
+      pill.addEventListener("click", e=>{ e.stopPropagation(); expandedCells.delete(cellKey); render(); });
+      d.appendChild(pill);
+    }
+  }
   wireDrop(d);
   return d;
 }
