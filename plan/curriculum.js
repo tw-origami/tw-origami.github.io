@@ -2374,7 +2374,7 @@ window.CURRICULUM = {
   },
   {
    "subject": "Science",
-   "book": "Spectrum Science 3",
+   "book": "Spectrum Science 5",
    "goal": 2,
    "options": [
     "Research a science topic"
@@ -2382,62 +2382,236 @@ window.CURRICULUM = {
    "kind": "book",
    "lessons": [
     {
-     "t": "Chapter 6 Review",
-     "p": "102",
-     "cur": false,
-     "done": true
-    },
-    {
-     "t": "7.1 The Roman Aqueducts",
-     "p": "104",
-     "cur": false,
-     "done": true
-    },
-    {
-     "t": "7.2 A Moldy Discovery",
-     "p": "106",
-     "cur": false,
-     "done": true
-    },
-    {
-     "t": "7.3 A Story Worth Listening To",
-     "p": "108",
-     "cur": true,
-     "done": false
-    },
-    {
-     "t": "7.4 Follow the Leader",
-     "p": "110",
+     "t": "1.1 Weather Trackers",
+     "p": "6",
      "cur": false,
      "done": false
     },
     {
-     "t": "7.5 Mary Anning, Fossil Hunter",
-     "p": "112",
+     "t": "1.2 The Father of Genetics",
+     "p": "8",
      "cur": false,
      "done": false
     },
     {
-     "t": "7.6 Seeing the Stars in Ancient Egypt",
-     "p": "114",
+     "t": "1.3 Break It Down",
+     "p": "10",
      "cur": false,
      "done": false
     },
     {
-     "t": "7.7 The World in Space",
-     "p": "116",
+     "t": "1.4 Taking Heat",
+     "p": "12",
      "cur": false,
      "done": false
     },
     {
-     "t": "Review Chapter 7",
-     "p": "118",
+     "t": "1.5 Flying Into History",
+     "p": "14",
      "cur": false,
      "done": false
     },
     {
-     "t": "Final Test",
-     "p": "120",
+     "t": "1.6 Safety First",
+     "p": "16",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "1.7 Out of This World",
+     "p": "18",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Review Chapter 1",
+     "p": "20",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "2.1 The Anatomy of an Atom",
+     "p": "22",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "2.2 Opposites Attract",
+     "p": "24",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "2.3 The Electromagnetic Connection",
+     "p": "26",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "2.4 Full of Energy",
+     "p": "28",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "2.5 An Elegant Arrangement",
+     "p": "30",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "2.6 Mercury: The Liquid Metal",
+     "p": "32",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "2.7 Sounds Good",
+     "p": "34",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Review Chapter 2",
+     "p": "36",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "3.1 Life in the Grasslands",
+     "p": "38",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "3.2 Bringing Back the Wolves",
+     "p": "40",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "3.3 The Green Desert",
+     "p": "42",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "3.4 A Good Relationship",
+     "p": "44",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "3.5 Bouncing Back",
+     "p": "46",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "3.6 Feeling Nervous?",
+     "p": "48",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "3.7 Seeing Double",
+     "p": "50",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Review Chapter 3",
+     "p": "52",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Mid-Test Chapters 1-3",
+     "p": "54",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "4.1 Keeping Time",
+     "p": "56",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "4.2 An Inside Look at Earth",
+     "p": "58",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "4.3 Recycled Air",
+     "p": "60",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "4.4 Blowin' in the Wind",
+     "p": "62",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "4.5 Looking to the Skies",
+     "p": "64",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "4.6 Not Just Planets",
+     "p": "66",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "4.7 Hubble's Galaxies",
+     "p": "68",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "Review Chapter 4",
+     "p": "70",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "5.1 When the Ground Moves",
+     "p": "72",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "5.2 Super Foods",
+     "p": "74",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "5.3 Sharp as a Laser",
+     "p": "76",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "5.4 The Dawn of the Information Age",
+     "p": "78",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "5.5 Information in the Sky",
+     "p": "80",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "5.6 The Birth of Photography",
+     "p": "82",
      "cur": false,
      "done": false
     }
