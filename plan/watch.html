@@ -5,25 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Watch · The Learn Zone</title>
 <!--
-  A single video, on its own.
+  One video, on a page of ours, with nothing else on it.
 
-  The point of this page is what ISN'T on it. Sending a child to youtube.com for one
-  history clip puts a sidebar of suggestions, a comment section and a channel page one
-  click away. Here there is the video, its title, and the way back to their day.
+  The plain embed wasn't plain enough: YouTube's own controls carry a title overlay and a
+  "Watch on YouTube" button, and when a video ends the player fills itself with a grid of
+  recommendations. No embed parameter turns that grid off — rel=0 only narrows it to the
+  same channel. So this page drives the player through YouTube's IFrame API instead:
 
-  Honest limitation: the embed still shows YouTube's own end-screen when a video finishes
-  (and any end-cards its creator added). `rel=0` used to suppress related videos entirely;
-  since 2018 it only restricts them to the same channel. There is no embed parameter that
-  removes the end-screen, so this reduces the pull rather than eliminating it.
+    * controls=0 — YouTube's control bar and its title overlay never appear. The bar at
+      the bottom of this page is ours: play/pause, a scrubber, time, fullscreen.
+    * The end is intercepted. A timer watches the position and pauses ~1s short of the
+      finish, then covers the player with our own "Finished" panel. The recommendation
+      grid is never reached, so the child is never offered another video.
+    * youtube-nocookie.com, so nothing is set unless the video actually plays.
 
-  youtube-nocookie.com is used so YouTube doesn't set tracking cookies unless the video is
-  actually played.
+  What this does NOT do: it doesn't re-host or download anything. Playback is still
+  YouTube's own player, which is what their terms require.
 -->
 <style>
-  :root{ --ink:#1e2338; --muted:#7b8194; --line:#e6e8f0; --ry:#4f46e5; }
   *{ box-sizing:border-box; }
   html,body{ margin:0; height:100%; }
-  body{ background:#11131c; color:#fff;
+  body{ background:#0f111a; color:#fff;
     font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     display:flex; flex-direction:column; }
   header{ display:flex; align-items:center; gap:14px; padding:12px 18px; flex:none; }
@@ -32,13 +34,52 @@
   .back:hover{ background:#1b1f2e; color:#fff; }
   h1{ font-size:16px; margin:0; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   main{ flex:1; display:flex; align-items:center; justify-content:center; padding:0 18px 18px; min-height:0; }
-  .frame{ width:100%; max-width:1100px; aspect-ratio:16/9; background:#000; border-radius:14px;
+  .stage{ width:100%; max-width:1100px; }
+  .frame{ position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:14px;
     overflow:hidden; box-shadow:0 18px 50px rgba(0,0,0,.45); }
-  .frame iframe{ width:100%; height:100%; border:0; display:block; }
+  .frame iframe{ width:100%; height:100%; border:0; display:block; pointer-events:none; }
+  /* The iframe ignores pointer events and this sits over it, so a click plays or pauses
+     and never reaches YouTube's own surface. */
+  .tap{ position:absolute; inset:0; cursor:pointer; }
+  /* While the video plays the embed shows nothing but the picture, but the moment it is
+     paused YouTube draws its own overlay across it — the video title, a share button and
+     a "watch later" button, each a way out of the lesson. This veil sits over the paused
+     player so none of that is ever visible; it also covers the thumbnail before the first
+     play, so a clickbait frame isn't the first thing on screen. */
+  .veil{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    /* Dense enough that YouTube's title bar underneath isn't legible — at 0.82 it still
+       read through clearly — with a solid band across the top where that bar sits. */
+    background:linear-gradient(rgba(9,11,18,1) 0, rgba(9,11,18,1) 58px, rgba(9,11,18,.93) 58px); }
+  .veil.off{ display:none; }
+  .veil .big{ width:78px; height:78px; border-radius:50%; background:rgba(79,70,229,.95);
+    display:flex; align-items:center; justify-content:center; font-size:28px; color:#fff;
+    box-shadow:0 10px 30px rgba(0,0,0,.4); }
+  .veil:hover .big{ background:#5b53ea; }
+  .endcard{ position:absolute; inset:0; z-index:2; background:rgba(9,11,18,.94); display:none;
+    flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; padding:20px; }
+  .endcard.on{ display:flex; }
+  .endcard h2{ margin:0; font-size:20px; }
+  .endcard p{ margin:0; color:#98a0b5; font-size:14px; }
+  .endcard .row{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  .btn{ border:1px solid #39405a; background:#1b2030; color:#fff; border-radius:999px;
+    padding:10px 18px; font:inherit; font-weight:700; cursor:pointer; text-decoration:none; }
+  .btn:hover{ background:#242b40; }
+  .btn.primary{ background:#4f46e5; border-color:#4f46e5; }
+  .btn.primary:hover{ background:#5b53ea; }
+  .bar{ display:flex; align-items:center; gap:12px; margin-top:12px; padding:0 4px; }
+  .play{ flex:none; width:42px; height:42px; border-radius:50%; border:none; background:#4f46e5;
+    color:#fff; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .play:hover{ background:#5b53ea; }
+  .track{ flex:1; height:8px; border-radius:99px; background:#262c3d; cursor:pointer; position:relative; }
+  .fill{ position:absolute; inset:0 auto 0 0; width:0%; border-radius:99px; background:#4f46e5; }
+  .time{ flex:none; font-variant-numeric:tabular-nums; font-size:12.5px; color:#98a0b5; min-width:92px; text-align:right; }
+  .fs{ flex:none; border:1px solid #39405a; background:none; color:#c9ccd8; border-radius:8px;
+    width:34px; height:30px; cursor:pointer; font-size:13px; }
+  .fs:hover{ background:#1b2030; color:#fff; }
   .bad{ max-width:520px; margin:auto; background:#1b1f2e; border:1px solid #2e3346;
     border-radius:14px; padding:22px 24px; color:#c9ccd8; }
   .bad b{ color:#fff; }
-  .bad a{ color:#9aa6ff; }
   footer{ flex:none; padding:0 18px 16px; color:#6b7085; font-size:12px; text-align:center; }
 </style>
 </head>
@@ -53,17 +94,13 @@
 <script>
 (function(){
   const qs = new URLSearchParams(location.search);
-  // Only ever an 11-character YouTube id. Anything else is refused rather than dropped
-  // into an iframe src, so a doctored link can't point this page somewhere else.
+  // Only ever an 11-character YouTube id, so a doctored link can't aim this page elsewhere.
   const raw = (qs.get("v") || "").trim();
   const id = /^[\w-]{11}$/.test(raw) ? raw : "";
   const title = (qs.get("t") || "").trim();
   const kid = (qs.get("kid") || "").trim();
-
-  if(kid === "reid" || kid === "ryland"){
-    const back = document.getElementById("back");
-    back.href = "../" + (kid === "reid" ? "reid.html" : "ry.html");
-  }
+  const backHref = "../" + (kid === "reid" ? "reid.html" : "ry.html");
+  document.getElementById("back").href = backHref;
   document.getElementById("title").textContent = title || "Video";
   document.title = (title || "Watch") + " · The Learn Zone";
 
@@ -74,22 +111,141 @@
       'material again from the Teacher Dashboard.</div>';
     return;
   }
-  const src = "https://www.youtube-nocookie.com/embed/" + id +
-    "?rel=0&modestbranding=1&playsinline=1&iv_load_policy=3";
-  const wrap = document.createElement("div");
-  wrap.className = "frame";
-  const f = document.createElement("iframe");
-  f.src = src;
-  f.title = title || "Video";
-  // NOT "no-referrer": YouTube verifies the embedding domain and refuses to play at all
-  // without one ("Video player configuration error", error 153). strict-origin sends only
-  // the site, never the lesson page's full address.
-  f.referrerPolicy = "strict-origin-when-cross-origin";
-  f.allow = "accelerometer; encrypted-media; picture-in-picture; fullscreen";
-  f.allowFullscreen = true;
-  wrap.appendChild(f);
-  main.appendChild(wrap);
-  document.getElementById("foot").textContent = "When it's finished, head back to your day.";
+
+  const stage = document.createElement("div");
+  stage.className = "stage";
+  stage.innerHTML =
+    '<div class="frame">' +
+      '<div id="player"></div>' +
+      '<div class="tap" id="tap"></div>' +
+      '<div class="veil" id="veil"><div class="big">▶</div></div>' +
+      '<div class="endcard" id="endcard">' +
+        '<h2>Finished 🎉</h2>' +
+        '<p id="endsub">That\'s the whole video.</p>' +
+        '<div class="row">' +
+          '<button class="btn" id="again">Watch it again</button>' +
+          '<a class="btn primary" id="endback">Back to my day</a>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="bar">' +
+      '<button class="play" id="play" title="Play">▶</button>' +
+      '<div class="track" id="track"><div class="fill" id="fill"></div></div>' +
+      '<div class="time" id="time">0:00 / 0:00</div>' +
+      '<button class="fs" id="fs" title="Fullscreen">⛶</button>' +
+    '</div>';
+  main.appendChild(stage);
+
+  const $ = q => document.getElementById(q);
+  $("endback").href = backHref;
+
+  const fmt = s => {
+    s = Math.max(0, Math.floor(s || 0));
+    const m = Math.floor(s / 60);
+    return m + ":" + String(s % 60).padStart(2, "0");
+  };
+
+  let player = null, ticker = null, ended = false;
+
+  // How far from the end to stop. The recommendation grid is drawn as the video finishes,
+  // so the player is paused before it can appear rather than after.
+  const STOP_BEFORE_END = 1.0;
+
+  function stopTicker(){ if(ticker){ clearInterval(ticker); ticker = null; } }
+  function startTicker(){ if(!ticker) ticker = setInterval(tick, 250); }
+
+  function showEnd(){
+    if(ended) return;
+    ended = true;
+    stopTicker();
+    try { player.pauseVideo(); } catch(e){}
+    $("fill").style.width = "100%";
+    $("play").textContent = "▶";
+    $("endcard").classList.add("on");
+  }
+  function resume(){
+    ended = false;
+    $("endcard").classList.remove("on");
+    startTicker();
+  }
+
+  function tick(){
+    if(!player || !player.getDuration) return;
+    const d = player.getDuration() || 0;
+    const t = player.getCurrentTime() || 0;
+    if(d > 0){
+      $("fill").style.width = Math.min(100, (t / d) * 100) + "%";
+      $("time").textContent = fmt(t) + " / " + fmt(d);
+      if(t >= d - STOP_BEFORE_END) showEnd();
+    }
+  }
+
+  window.onYouTubeIframeAPIReady = function(){
+    player = new YT.Player("player", {
+      videoId: id,
+      host: "https://www.youtube-nocookie.com",
+      playerVars: {
+        controls: 0,        // ours instead — this is what removes the title overlay too
+        rel: 0, modestbranding: 1, iv_load_policy: 3,
+        disablekb: 1, playsinline: 1, fs: 0
+      },
+      events: {
+        onReady: function(){ tick(); startTicker(); },
+        onStateChange: function(e){
+          const playing = e.data === YT.PlayerState.PLAYING;
+          if(playing){ $("play").textContent = "❚❚"; $("play").title = "Pause"; }
+          else { $("play").textContent = "▶"; $("play").title = "Play"; }
+          // Buffering counts as playing here: flashing the veil on every stall would be
+          // worse than briefly showing nothing.
+          const hide = playing || e.data === YT.PlayerState.BUFFERING;
+          $("veil").classList.toggle("off", hide);
+          // Belt and braces, for a video that ends faster than the timer catches it.
+          if(e.data === YT.PlayerState.ENDED) showEnd();
+        },
+        onError: function(){
+          $("endsub").textContent = "This video can't be played here — it may not allow embedding.";
+          $("endcard").classList.add("on");
+        }
+      }
+    });
+  };
+
+  function toggle(){
+    if(!player || !player.getPlayerState || ended) return;
+    if(player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo();
+    else player.playVideo();
+  }
+  $("tap").addEventListener("click", toggle);
+  $("veil").addEventListener("click", toggle);
+  $("play").addEventListener("click", toggle);
+  $("track").addEventListener("click", function(e){
+    if(!player || !player.getDuration) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const to = ((e.clientX - r.left) / r.width) * (player.getDuration() || 0);
+    resume();
+    player.seekTo(to, true);
+  });
+  $("again").addEventListener("click", function(){
+    resume();
+    player.seekTo(0, true);
+    player.playVideo();
+  });
+  $("fs").addEventListener("click", function(){
+    const f = document.querySelector(".frame");
+    if(document.fullscreenElement) document.exitFullscreen();
+    else if(f.requestFullscreen) f.requestFullscreen();
+  });
+  document.addEventListener("keydown", function(e){
+    if(e.code === "Space" && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)){
+      e.preventDefault(); toggle();
+    }
+  });
+
+  $("foot").textContent = "When it's finished, head back to your day.";
+
+  const tag = document.createElement("script");
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.head.appendChild(tag);
 })();
 </script>
 </body>
