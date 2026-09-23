@@ -1375,6 +1375,14 @@ window.CURRICULUM = {
      "done": false
     }
    ]
+  },
+  {
+   "subject": "Book Report",
+   "book": "",
+   "goal": 1,
+   "note": "A little each day",
+   "kind": "ongoing",
+   "lessons": []
   }
  ],
  "reid": [
@@ -2616,6 +2624,14 @@ window.CURRICULUM = {
      "done": false
     }
    ]
+  },
+  {
+   "subject": "Book Report",
+   "book": "",
+   "goal": 1,
+   "note": "A little each day",
+   "kind": "ongoing",
+   "lessons": []
   }
  ]
 };
