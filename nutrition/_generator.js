@@ -24,11 +24,11 @@ const N = {
   'Calcium':     { dv:'1300 mg',flag:'more', does:'strong bones & teeth', foods:['milk','cheese','yogurt','canned salmon','sardines','fortified orange juice','soy milk','fortified cereal','kale','broccoli','collard greens','tofu','almonds','soybeans','bok choy','cottage cheese'] },
   'Iron':        { dv:'18 mg',  flag:'more', does:'carries oxygen in your blood', foods:['beans','peas','lentils','egg','spinach','kale','beef','pork','nuts','beef liver','chicken','turkey','crab','clams','sardines','shrimp','oysters','tofu','fortified cereal','dark chocolate','pumpkin seeds','sunflower seeds'] },
   'Potassium':   { dv:'4700 mg',flag:'more', does:'muscles & heartbeat', foods:['beans','milk','apricots','banana','kiwi','cantaloupe','orange','clams','trout','tomato','potato','sweet potato','spinach','yogurt','salmon','lima beans','plantain','peanuts'] },
-  'Magnesium':   { dv:'420 mg', does:'muscles, nerves & energy', foods:['avocado','beans','peas','milk','banana','raisins','spinach','almonds','pumpkin seeds','potato','whole grains'] },
+  'Magnesium':   { dv:'420 mg', does:'muscles, nerves & energy', foods:['avocado','beans','peas','milk','banana','raisins','spinach','almonds','pumpkin seeds','potato','whole grains','popcorn'] },
   'Zinc':        { dv:'11 mg',  does:'immune system & healing', foods:['beans','peas','beef','milk','cheese','fortified cereal','nuts','chicken','turkey','shrimp','oysters','crab','whole grains'] },
-  'Phosphorus':  { dv:'1250 mg',does:'strong bones & energy', foods:['beans','peas','milk','cheese','beef','nuts','sunflower seeds','chicken','salmon','whole grains','bread'] },
+  'Phosphorus':  { dv:'1250 mg',does:'strong bones & energy', foods:['beans','peas','milk','cheese','beef','nuts','sunflower seeds','chicken','salmon','whole grains','bread','popcorn'] },
   'Copper':      { dv:'0.9 mg', does:'iron use & nerves', foods:['dark chocolate','crab','oysters','shrimp','lentils','nuts','sunflower seeds','beef liver','whole grains'] },
-  'Manganese':   { dv:'2.3 mg', does:'bones & healing', foods:['beans','nuts','pineapple','spinach','sweet potato','whole grains'] },
+  'Manganese':   { dv:'2.3 mg', does:'bones & healing', foods:['beans','nuts','pineapple','spinach','sweet potato','whole grains','popcorn'] },
   'Selenium':    { dv:'55 mcg', does:'protects cells & thyroid', foods:['egg','pasta','rice','beef','Brazil nuts','sunflower seeds','chicken','turkey','salmon','tuna','whole grains'] },
   'Iodine':      { dv:'150 mcg',does:'thyroid & growth', foods:['milk','cheese','cod','tuna','seaweed','bread','potato','turkey'] },
   'Chromium':    { dv:'35 mcg', does:'helps use sugar for energy', foods:['broccoli','apple','banana','orange juice','beef','turkey','whole grains','garlic'] },
@@ -36,7 +36,7 @@ const N = {
   'Chloride':    { dv:'2300 mg',does:'fluid balance & digestion', foods:['seaweed','olives','celery','lettuce','tomato'] },
   // ---- added (not in the chart) ----
   'Protein':     { dv:'50 g',  added:true, does:'builds muscles & heals you', foods:['beef','pork','chicken','turkey','salmon','tuna','cod','trout','shrimp','clams','oysters','crab','sardines','egg','milk','cheese','yogurt','cottage cheese','beans','peas','lentils','lima beans','chickpeas','tofu','soybeans','nuts','peanuts','peanut butter','sunflower seeds'] },
-  'Fiber':       { dv:'28 g',  added:true, flag:'more', does:'healthy digestion, keeps you full', foods:['beans','peas','lentils','lima beans','chickpeas','whole grains','oats','avocado','raspberries','broccoli','Brussels sprouts','cauliflower','sweet potato','potato','spinach','kale','almonds','nuts','pumpkin','apple','orange','banana','kiwi','pineapple'] },
+  'Fiber':       { dv:'28 g',  added:true, flag:'more', does:'healthy digestion, keeps you full', foods:['beans','peas','lentils','lima beans','chickpeas','whole grains','oats','avocado','raspberries','broccoli','Brussels sprouts','cauliflower','sweet potato','potato','spinach','kale','almonds','nuts','pumpkin','apple','orange','banana','kiwi','pineapple','popcorn'] },
   'Omega-3':     { dv:'—',     added:true, does:'brain & focus, healthy heart', foods:['salmon','trout','herring','tuna','sardines','canned salmon','walnuts','flaxseed'] },
 };
 
@@ -59,7 +59,7 @@ const EMOJI = {
   'pumpkin':'🎃','pumpkin seeds':'🎃','raisins':'🍇','raspberries':'🫐','red pepper':'🌶️','rice':'🍚','salmon':'🐟',
   'sardines':'🐟','seaweed':'🌿','shrimp':'🦐','soy milk':'🥛','soybeans':'🫛','spinach':'🥬','strawberries':'🍓',
   'sunflower seeds':'🌻','sweet potato':'🍠','Swiss chard':'🥬','tofu':'⬜','tomato':'🍅','trout':'🐟','tuna':'🐟',
-  'turkey':'🦃','turnip greens':'🥬','vegetable oil':'🫗','walnuts':'🌰','whole grains':'🌾','yogurt':'🥛',
+  'turkey':'🦃','turnip greens':'🥬','vegetable oil':'🫗','walnuts':'🌰','popcorn':'🍿','whole grains':'🌾','yogurt':'🥛',
 };
 
 // Real food images (from food_emoji_pack). Value = filename stem, or absent = emoji only.
@@ -78,14 +78,14 @@ const IMG = {
   'rice':'cooked_rice','shrimp':'fried_shrimp','soy milk':'glass_of_milk','soybeans':'edamame',
   'spinach':'spinach','strawberries':'strawberries','sweet potato':'sweet_potato','Swiss chard':'leafy_green',
   'tomato':'tomato','turkey':'turkey_leg','turnip greens':'leafy_green','vegetable oil':'pouring_liquid',
-  'walnuts':'chestnut','whole grains':'wheat_bread',
+  'walnuts':'chestnut','popcorn':'popcorn','whole grains':'wheat_bread',
 };
 
 // plate group + whole/processed per food (for Build-a-Plate and Sort games)
 const PLATE_GROUP = {
   fruit:['apple','apricots','banana','cantaloupe','grapefruit','kiwi','lemon','orange','pineapple','plantain','raisins','raspberries','strawberries'],
   vegetable:['asparagus','bell pepper','bok choy','broccoli','Brussels sprouts','carrot','cauliflower','celery','collard greens','garlic','kale','lettuce','mushrooms','mustard greens','pumpkin','red pepper','seaweed','spinach','sweet potato','Swiss chard','tomato','turnip greens','potato','avocado'],
-  grain:['bread','fortified cereal','oats','pasta','rice','whole grains'],
+  grain:['bread','fortified cereal','oats','popcorn','pasta','rice','whole grains'],
   protein:['beans','beef','beef liver','Brazil nuts','chicken','chickpeas','clams','cod','crab','egg','flounder','herring','lentils','lima beans','nuts','oysters','peanut butter','peanuts','peas','pork','pumpkin seeds','salmon','canned salmon','sardines','shrimp','soybeans','sunflower seeds','tofu','trout','tuna','turkey','walnuts','flaxseed'],
   dairy:['cheese','cottage cheese','milk','yogurt','fortified milk','soy milk'],
   drink:['orange juice','fortified orange juice'],
@@ -111,9 +111,13 @@ const FOODS = Object.keys(foodMap).sort().map(food=>({
 }));
 
 // validate every mapped image file actually exists in the pack
-const PACK='/Users/traviswilber/Claude-Projects/math-app/nutrition/food_emoji_pack_high_res_300';
-const missingImgs = [...new Set(Object.values(IMG))].filter(stem=> !fs.existsSync(PACK+'/'+stem+'.png'));
-if(missingImgs.length) throw new Error('IMG maps to missing files: '+missingImgs.join(', '));
+// Validate against foodimg/ — the directory the GAMES actually load from (app.js builds
+// 'foodimg/'+f.img). The check used to point at the source pack instead, so a food could
+// pass validation here and still show a broken image in the game, which is exactly what
+// happened when popcorn was added.
+const IMGDIR = __dirname + '/foodimg';
+const missingImgs = [...new Set(Object.values(IMG))].filter(stem=> !fs.existsSync(IMGDIR+'/'+stem+'.png'));
+if(missingImgs.length) throw new Error('IMG maps to files missing from foodimg/: '+missingImgs.join(', '));
 
 // ============ 2) FUNCTIONS: body job -> nutrients (for the matching game) ============
 const FUNCTIONS = [

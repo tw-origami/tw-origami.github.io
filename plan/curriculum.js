@@ -2201,6 +2201,14 @@ window.CURRICULUM = {
    "note": "Learn Zone → Typing Quest, ~15 min per session. No fixed lessons."
   },
   {
+   "subject": "Penmanship",
+   "book": "",
+   "goal": 2,
+   "note": "One letter / One page",
+   "kind": "ongoing",
+   "lessons": []
+  },
+  {
    "subject": "Geography",
    "book": "Geography: Communities 3",
    "goal": 2,
