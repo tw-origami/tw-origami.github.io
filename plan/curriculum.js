@@ -595,71 +595,687 @@ window.CURRICULUM = {
    ]
   },
   {
-   "subject": "Spelling",
-   "book": "Spectrum Spelling 5",
-   "goal": 3,
-   "options": [
-    "Learn Zone → Spell It (×3/wk)"
-   ],
+   "subject": "Vocabulary",
+   "book": "Vocabulary in Context",
+   "goal": 7,
+   "options": [],
    "kind": "book",
    "lessons": [
     {
-     "t": "Lesson 16 Possessives",
-     "p": "78",
+     "t": "U2 The Navy's Computer Age",
+     "p": "18",
      "cur": false,
-     "done": true
-    },
-    {
-     "t": "Review",
-     "p": "80",
-     "cur": true,
      "done": false
     },
     {
-     "t": "Lesson 17 Prefixes (dis-, pre-, un-)",
+     "t": "U2 Context Clues",
+     "p": "19",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U2 Synonyms and Antonyms",
+     "p": "20",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U2 Cloze Paragraphs",
+     "p": "20",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U2 Crossword Puzzle",
+     "p": "21",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U2 Word Game",
+     "p": "22",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U2 Challenge Yourself",
+     "p": "22",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U2 Standardized Test Practice",
+     "p": "23",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U2 Understanding Related Words",
+     "p": "24",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U2 Word Origins",
+     "p": "25",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U2 Word Groups",
+     "p": "26",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U2 Analogies",
+     "p": "26",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U2 Word Pairs",
+     "p": "27",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U2 Writing",
+     "p": "27",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U3 Moving Oil and Gas",
+     "p": "28",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U3 Context Clues",
+     "p": "30",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U3 Word Maze",
+     "p": "32",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U3 Standardized Test Practice",
+     "p": "33",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U3 Understanding Related Words",
+     "p": "34",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U3 True-False",
+     "p": "35",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U3 Suffix Additions",
+     "p": "35",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U3 The Latin Root jacere",
+     "p": "36",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U3 Sentence Completion",
+     "p": "36",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U3 Writing",
+     "p": "37",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U4 Underground Palace",
+     "p": "38",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U4 Context Clues",
+     "p": "39",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U4 Cloze Paragraphs",
+     "p": "40",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U4 Word Groups",
+     "p": "41",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U4 Challenge Yourself",
+     "p": "41",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U4 Word Pairs",
+     "p": "42",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U4 Forming Words",
+     "p": "42",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U4 Standardized Test Practice",
+     "p": "43",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U4 Understanding Related Words",
+     "p": "44",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U4 Name Game",
+     "p": "44",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U4 Dictionary Skills",
+     "p": "45",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U4 Rewriting Sentences",
+     "p": "45",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U4 Synonyms",
+     "p": "46",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U4 Writing",
+     "p": "47",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U5 Tragedy and Triumph",
+     "p": "48",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U5 Context Clues",
+     "p": "49",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U5 Medical Words",
+     "p": "50",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U5 Writing Sentences",
+     "p": "50",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U5 Word Map",
+     "p": "51",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U5 Synonyms and Antonyms",
+     "p": "52",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U5 The Suffixes -ician and -ist",
+     "p": "52",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U5 Standardized Test Practice",
+     "p": "53",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U5 Understanding Related Words",
+     "p": "54",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U5 Word Groups",
+     "p": "55",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U5 Dictionary Skills",
+     "p": "55",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U5 Word Game",
+     "p": "56",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U5 Writing",
+     "p": "57",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U6 Thomas Edison: The Early Years of Genius",
+     "p": "58",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U6 Context Clues",
+     "p": "60",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U6 Understanding Multiple-Meaning Words",
+     "p": "62",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U6 Standardized Test Practice",
+     "p": "63",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U6 Understanding Related Words",
+     "p": "64",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U6 Word Groups",
+     "p": "65",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U6 The Latin Root uni",
+     "p": "66",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U6 The Greek Root mono",
+     "p": "66",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U6 Writing",
+     "p": "67",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U7 Food into Energy",
+     "p": "68",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U7 Context Clues",
+     "p": "69",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U7 Rewriting Sentences",
+     "p": "70",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U7 Cloze Paragraphs",
+     "p": "70",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U7 Tangled-Up Words",
+     "p": "71",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U7 Word Game",
+     "p": "72",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U7 Word Pairs",
+     "p": "72",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U7 Challenge Yourself",
+     "p": "72",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U7 Standardized Test Practice",
+     "p": "73",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U7 Understanding Related Words",
+     "p": "74",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U7 Analogies",
+     "p": "75",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U7 Word Pairs",
+     "p": "75",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U7 Word Play",
+     "p": "76",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U7 Writing",
+     "p": "77",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U8 Triangle of Mystery",
+     "p": "78",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U8 Context Clues",
+     "p": "79",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U8 Analogies",
+     "p": "80",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U8 Cloze Paragraphs",
+     "p": "80",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U8 Word Pairs",
+     "p": "81",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U8 The Latin Root spec",
      "p": "82",
      "cur": false,
      "done": false
     },
     {
-     "t": "Lesson 18 Suffixes (-ion, -tion, -ation)",
+     "t": "U8 Challenge Yourself",
+     "p": "82",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U8 Standardized Test Practice",
+     "p": "83",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U8 Understanding Related Words",
+     "p": "84",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U8 Word Origins",
+     "p": "85",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U8 Using Analogies",
+     "p": "85",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U8 Synonyms",
      "p": "86",
      "cur": false,
      "done": false
     },
     {
-     "t": "Review",
+     "t": "U8 Writing",
+     "p": "87",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U9 A Puzzle Built of Stones",
+     "p": "88",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U9 Context Clues",
+     "p": "89",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U9 Tangled-Up Words",
      "p": "90",
      "cur": false,
      "done": false
     },
     {
-     "t": "Lesson 19 Rhyming Words",
+     "t": "U9 Analogies",
+     "p": "91",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U9 Rewriting Sentences",
+     "p": "91",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U9 Figures of Speech",
      "p": "92",
      "cur": false,
      "done": false
     },
     {
-     "t": "Lesson 20 Homophones",
+     "t": "U9 Word Groups",
+     "p": "92",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U9 Standardized Test Practice",
+     "p": "93",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U9 Understanding Related Words",
+     "p": "94",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U9 Using Analogies",
+     "p": "95",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U9 Cloze Paragraph",
+     "p": "95",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U9 Sentence Completion",
      "p": "96",
      "cur": false,
      "done": false
     },
     {
-     "t": "Lesson 21 Easily Confused Words",
+     "t": "U9 Writing",
+     "p": "97",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U10 Photographs of the Future",
+     "p": "98",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U10 Context Clues",
+     "p": "99",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U10 Word Groups",
      "p": "100",
      "cur": false,
      "done": false
     },
     {
-     "t": "Lesson 22 Using a Dictionary",
+     "t": "U10 Rewriting Sentences",
+     "p": "100",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U10 Crossword Puzzle",
+     "p": "101",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U10 Word Map",
+     "p": "102",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U10 Challenge Yourself",
+     "p": "102",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U10 Standardized Test Practice",
+     "p": "103",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U10 Understanding Related Words",
      "p": "104",
      "cur": false,
      "done": false
     },
     {
-     "t": "Review",
+     "t": "U10 Synonyms",
+     "p": "105",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U10 Cloze Paragraph",
+     "p": "105",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U10 Word Map",
      "p": "106",
+     "cur": false,
+     "done": false
+    },
+    {
+     "t": "U10 Writing",
+     "p": "107",
      "cur": false,
      "done": false
     }
