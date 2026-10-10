@@ -236,9 +236,22 @@
   function combinedQueue(kid, sub){
     // Close out any lesson whose every split part is finished, and hide the ones still in
     // progress — their parts stand in for them.
+    //
+    // Written ONCE, and dated from the last part actually finished. This used to call
+    // setDone(), which stamps todayISO() — and combinedQueue runs on every render, so a
+    // split lesson's completion date was rewritten to "today" every time any page loaded.
+    // It therefore sat on the route as finished-today for ever, and dragging it onto the
+    // day it was really done was undone again the moment the grid redrew. It also meant a
+    // pointless sync write on every single page load.
     (sub.lessons||[]).forEach(l=>{
       const parts = getSplitParts(kid, sub.subject, lessonItemId(l));
-      if(parts.length && parts.every(id=>isDone(manualDoneKey(kid, sub.subject, id)))) setDone(dkey(kid,sub,l), true);
+      if(!parts.length) return;
+      if(!parts.every(id=>isDone(manualDoneKey(kid, sub.subject, id)))) return;
+      const key = dkey(kid, sub, l);
+      if(isDone(key)) return;                       // already closed out — never re-stamp
+      const when = parts.map(id=>doneDate(manualDoneKey(kid, sub.subject, id)))
+                        .filter(Boolean).sort().pop();
+      localStorage.setItem(key, when || todayISO());
     });
     const realUndone = undoneLessons(kid, sub).filter(l=>!getSplitParts(kid, sub.subject, lessonItemId(l)).length);
     const manualUndone = getManualLessons(kid, sub.subject).filter(m=>!m.date && !isDone(manualDoneKey(kid,sub.subject,m.id)));
