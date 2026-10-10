@@ -866,9 +866,13 @@
     appLinks: {
       "Civic Nation":    "../civics/index.html",
       "Word Roots":      "../vocab/index.html",
-      "Test Tactics":    "../testtactics/index.html",
       "History Heroes":  "../history/index.html",
       "Money Smarts":    "../money/index.html",
+      "Spell It":        "../spellit/index.html",
+      "Science Lab":     "../science/index.html",
+      // Dropped from the daily rotation but still reachable by direct link, and still
+      // listed here so any older record naming one resolves instead of dead-ending.
+      "Test Tactics":    "../testtactics/index.html",
       "Debate Dojo":     "../debate/index.html",
       "Fact Checker":    "../factcheck/index.html",
       "Nutrition Quest": "../nutrition/index.html"

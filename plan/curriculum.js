@@ -22,12 +22,10 @@ window.CURRICULUM = {
    "options": [
     "Civic Nation",
     "Word Roots",
-    "Test Tactics",
     "History Heroes",
     "Money Smarts",
-    "Debate Dojo",
-    "Fact Checker",
-    "Nutrition Quest"
+    "Spell It",
+    "Science Lab"
    ],
    "kind": "ongoing",
    "pick": "daily",
@@ -2021,12 +2019,10 @@ window.CURRICULUM = {
    "options": [
     "Civic Nation",
     "Word Roots",
-    "Test Tactics",
     "History Heroes",
     "Money Smarts",
-    "Debate Dojo",
-    "Fact Checker",
-    "Nutrition Quest"
+    "Spell It",
+    "Science Lab"
    ],
    "kind": "ongoing",
    "pick": "daily",
