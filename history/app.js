@@ -33,11 +33,39 @@
   function backBtn(){ const b=el('button','btn btn-ghost','← Menu'); b.onclick=showMenu; return b; }
   function mkBtn(label,fn,cls){ const b=el('button','btn '+(cls||'btn-primary'),label); b.onclick=fn; return b; }
 
+  // How long "Next" stays shut after an answer. The point is that the explanation and the
+  // extra facts get read instead of being clicked straight past — and a wrong answer is
+  // worth sitting with a little longer than a right one.
+  const WAIT_RIGHT = 10, WAIT_WRONG = 15;
+  function mkWaitBtn(label, fn, seconds){
+    const b = el('button','btn btn-wait', label);
+    let left = Math.max(0, seconds|0);
+    b.disabled = left > 0;
+    const paint = () => { b.textContent = left > 0 ? label+' · '+left+'s' : label; };
+    paint();
+    const tick = setInterval(()=>{
+      left--;
+      if(left <= 0){
+        clearInterval(tick);
+        b.disabled = false;
+        b.className = 'btn btn-primary';
+      }
+      paint();
+    }, 1000);
+    b.onclick = () => { if(b.disabled) return; clearInterval(tick); fn(); };
+    return b;
+  }
+
   // ============ 1) WHO DID IT? ============
   function gameMatch(){
     $('subtitle').textContent='Who did this? Tap the right person.';
+    // A shuffled queue rather than a random pick, so every figure is the answer once
+    // before any of them comes round again. Picking at random meant it took roughly 130
+    // rounds to cover all 32 people, and some would barely show up at all.
+    let queue = shuffle(H.FIGURES.slice());
     function round(){
-      const answer = pick(H.FIGURES);
+      if(!queue.length) queue = shuffle(H.FIGURES.slice());
+      const answer = queue.shift();
       const fact = pick(answer.facts);
       const others = sample(H.FIGURES.filter(f=>f.name!==answer.name), 3);
       const options = shuffle([answer, ...others]);
@@ -57,13 +85,18 @@
           bump(ok);
           fb.textContent = ok?'🎉 Correct!':'That was '+answer.name+'.'; fb.className='feedback '+(ok?'good':'bad');
           // reveal a short bio of the answer
+          // Everything known about this person, not just the one fact that was asked —
+          // the reveal is the part that actually teaches, so it carries the whole set.
+          const moreFacts = answer.facts.map(x =>
+            '<li'+(x===fact?' class="asked"':'')+'>'+esc(x)+'</li>').join('');
           const bioCard=el('div','revealbio');
           bioCard.innerHTML = portrait(answer).replace('width:84px;height:84px','width:70px;height:70px')+
             '<div class="rb-text"><div class="rb-nm">'+esc(answer.name)+'</div>'+pronEl(answer)+
             '<div class="rb-meta">'+answer.flag+' '+esc(answer.country)+' · '+esc(answer.eraLabel)+' · '+esc(answer.role)+'</div>'+
-            '<div class="rb-bio">'+esc(answer.bio)+'</div></div>';
+            '<div class="rb-bio">'+esc(answer.bio)+'</div>'+
+            '<ul class="rb-more">'+moreFacts+'</ul></div>';
           card.insertBefore(bioCard, fb);
-          ctr.innerHTML=''; ctr.appendChild(mkBtn('Next ▶',round)); ctr.appendChild(backBtn());
+          ctr.innerHTML=''; ctr.appendChild(mkWaitBtn('Next ▶', round, ok?WAIT_RIGHT:WAIT_WRONG)); ctr.appendChild(backBtn());
         };
         grid.appendChild(t);
       });
@@ -177,7 +210,8 @@
             fb.textContent=ok?'✅ Correct!':'❌ Not quite.'; fb.className='feedback '+(ok?'good':'bad');
             why.textContent=Q.explain;
             const more=qi<QS.length-1;
-            ctr.appendChild(mkBtn(more?'Next question ▶':'New story ▶', ()=>{ if(more){ qi++; render(); } else next(); }));
+            ctr.appendChild(mkWaitBtn(more?'Next question ▶':'New story ▶',
+              ()=>{ if(more){ qi++; render(); } else next(); }, ok?WAIT_RIGHT:WAIT_WRONG));
             ctr.appendChild(backBtn());
           };
           box.appendChild(b);
