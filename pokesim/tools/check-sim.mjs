@@ -27,6 +27,7 @@ globalThis.localStorage = {
 const S = await import('../stats.js');
 const store = await import('../store.js');
 const B = await import('../battle.js');
+const CPU = await import('../computer.js');
 const E = await import('../../poketrivia/js/battle-engine.js');
 const party = await import('../../poketrivia/js/party.js');
 
@@ -728,6 +729,127 @@ check('random team battles always finish with a consistent result', () => {
   }
   E.setRng(steady);
   console.log(`        (${draws} draws, ${lines} narrated lines)`);
+});
+
+/* ==================================================================== */
+section('the computer opponent');
+
+const seeded = (seed) => () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+const bstOf = (m) => S.total(m.stats);
+
+check('a computer team has the size asked for, with no repeated species', () => {
+  for (let n = 1; n <= 6; n++) {
+    const team = CPU.generateTeam({ size: n, level: 50, difficulty: 'normal', rng: seeded(n) });
+    assert.equal(team.length, n);
+    assert.equal(new Set(team.map(m => m.dex)).size, n, 'distinct species');
+  }
+});
+
+check('computer Pokémon are the real thing: real stats, types, art and legal moves', () => {
+  const team = CPU.generateTeam({ size: 6, level: 40, difficulty: 'normal', rng: seeded(7) });
+  for (const m of team) {
+    const real = DEX.find(d => d.id === m.dex);
+    assert.deepEqual(m.stats, real.stats);
+    assert.deepEqual(m.types, real.types);
+    assert.equal(m.name, real.name);
+    assert.equal(m.level, 40);
+    assert.ok(m.art.endsWith(`/${m.dex}.png`));
+    assert.ok(m.moves.length >= 1 && m.moves.length <= 4);
+    assert.ok(m.moves.every(x => window.PL_MOVES[x.real] && E.isSimulated(window.PL_MOVES[x.real])), m.name + ' moves');
+    assert.ok(m.moves.some(x => window.PL_MOVES[x.real].power > 0), m.name + ' can hurt something');
+    const learnable = new Set((window.PL_LEARNSET[m.dex] ?? []).filter(l => l.lv <= 40).map(l => l.m));
+    assert.ok(m.moves.every(x => learnable.has(x.real) || x.real === 'tackle'), m.name + ' only knows what it could really learn by then');
+  }
+});
+
+check('computer Pokémon don\'t carry self-destruct moves unless they have nothing else', () => {
+  const SELF = new Set(['explosion', 'self-destruct', 'misty-explosion']);
+  let withSelf = 0, total = 0;
+  for (let i = 0; i < 80; i++) for (const m of CPU.generateTeam({ size: 6, level: 60, difficulty: 'normal', rng: seeded(i + 500) })) {
+    total++;
+    const attacks = m.moves.filter(x => window.PL_MOVES[x.real].power > 0);
+    if (m.moves.some(x => SELF.has(x.real))) { withSelf++; assert.ok(attacks.length <= 2, m.name + ' had other attacks available'); }
+  }
+  assert.ok(withSelf / total < 0.03, `${withSelf}/${total} carry one`);
+});
+
+check('difficulty decides which Pokémon can appear', () => {
+  const range = (d) => { const t = []; for (let i = 0; i < 60; i++) t.push(...CPU.generateTeam({ size: 6, level: 50, difficulty: d, rng: seeded(i + 1) })); return t; };
+  const easy = range('easy'), normal = range('normal'), hard = range('hard');
+  const avg = (a) => a.reduce((n, m) => n + bstOf(m), 0) / a.length;
+  assert.ok(avg(easy) < avg(normal) && avg(normal) < avg(hard), `${avg(easy)} < ${avg(normal)} < ${avg(hard)}`);
+  assert.ok(!easy.some(m => m.legendary) && !normal.some(m => m.legendary), 'no legendaries below Hard');
+  assert.ok(hard.some(m => m.legendary), 'Hard can bring a legendary');
+  assert.ok(easy.every(m => bstOf(m) <= 420));
+});
+
+check('the same seed gives the same team, and a different one gives a different team', () => {
+  const a = CPU.generateTeam({ size: 4, level: 50, rng: seeded(99) }).map(m => m.dex);
+  const b = CPU.generateTeam({ size: 4, level: 50, rng: seeded(99) }).map(m => m.dex);
+  const c = CPU.generateTeam({ size: 4, level: 50, rng: seeded(100) }).map(m => m.dex);
+  assert.deepEqual(a, b);
+  assert.notDeepEqual(a, c);
+});
+
+const cpuMatch = (teamA, teamB, opts) => {
+  const m = B.createMatch([{ side: { id: 'ryland', name: 'Ryland', color: '#00f' }, mons: teamA },
+                           { side: { id: 'cpu', name: 'Computer', color: '#a0f' }, mons: teamB }], opts);
+  B.startMatch(m);
+  return m;
+};
+
+check('the computer always makes a legal choice, in any state, across many battles', () => {
+  const rng = seeded(2024);
+  E.setRng(rng);
+  for (let n = 0; n < 300; n++) {
+    const A = CPU.generateTeam({ size: 1 + Math.floor(rng() * 4), level: 30 + Math.floor(rng() * 50), difficulty: ['easy', 'normal', 'hard'][n % 3], rng });
+    const Bt = CPU.generateTeam({ size: 1 + Math.floor(rng() * 4), level: 30 + Math.floor(rng() * 50), difficulty: ['easy', 'normal', 'hard'][(n + 1) % 3], rng });
+    const m = cpuMatch(A, Bt, { levelMode: rng() < 0.5 ? 50 : 'own' });
+    let g = 0;
+    while (m.phase !== 'over' && g++ < 400) {
+      if (m.phase === 'replace') {
+        const picks = {};
+        for (const i of [0, 1]) if (m.sides[i].needSwitch) picks[i] = CPU.chooseReplacement(m, i, 0.7, rng);
+        B.replace(m, picks);
+      } else {
+        B.playTurn(m, [CPU.choose(m, 0, 0.7, rng), CPU.choose(m, 1, 0.5, rng)]);
+      }
+    }
+    assert.equal(m.phase, 'over', 'battle ' + n);
+  }
+  E.setRng(steady);
+});
+
+check('a skilled computer beats a random mover most of the time', () => {
+  const rng = seeded(31337);
+  E.setRng(rng);
+  let aiWins = 0, games = 0;
+  for (let n = 0; n < 120; n++) {
+    const base = CPU.generateTeam({ size: 3, level: 50, difficulty: 'normal', rng });
+    const clone = () => base.map((m, i) => ({ ...m, id: m.id + '-' + n + '-' + games + '-' + i, moves: m.moves.slice() }));
+    for (const aiFirst of [true, false]) {
+      const m = cpuMatch(clone(), clone());
+      const aiIdx = aiFirst ? 0 : 1;
+      let g = 0;
+      while (m.phase !== 'over' && g++ < 300) {
+        if (m.phase === 'replace') {
+          const picks = {};
+          for (const i of [0, 1]) if (m.sides[i].needSwitch) picks[i] = i === aiIdx ? CPU.chooseReplacement(m, i, 0.92, rng)
+            : m.sides[i].team.findIndex(b => !b.fainted);
+          B.replace(m, picks);
+        } else {
+          const ch = [0, 1].map(i => i === aiIdx ? CPU.choose(m, i, 0.92, rng) : B.randomChoice(m, i, rng));
+          B.playTurn(m, ch);
+        }
+      }
+      games++;
+      if (m.winner === aiIdx) aiWins++;
+    }
+  }
+  E.setRng(steady);
+  const rate = aiWins / games;
+  console.log(`        (computer won ${aiWins} of ${games} against a random mover — ${(rate * 100).toFixed(0)}%)`);
+  assert.ok(rate > 0.65, 'the AI should clearly out-play random choices, got ' + rate);
 });
 
 console.log('\n' + pass + ' Battle Lab checks passed');

@@ -8,6 +8,7 @@ import * as S from './stats.js';
 import * as store from './store.js';
 import * as B from './battle.js';
 import * as party from '../poketrivia/js/party.js';
+import * as CPU from './computer.js';
 import { isSimulated } from '../poketrivia/js/battle-engine.js';
 
 const { esc } = B;
@@ -38,8 +39,8 @@ const chip = (t) => `<span class="tchip" style="--c:${TYPE_COLOR[t]}">${t}</span
 /* ================================================================== state */
 
 const prefs = (() => {
-  try { return { level: 'own', hints: false, ...JSON.parse(localStorage.getItem('pokesimPrefs') || '{}') }; }
-  catch { return { level: 'own', hints: false }; }
+  try { return { level: 'own', hints: false, vs: 'pvp', cpuSize: 3, difficulty: 'normal', ...JSON.parse(localStorage.getItem('pokesimPrefs') || '{}') }; }
+  catch { return { level: 'own', hints: false, vs: 'pvp', cpuSize: 3, difficulty: 'normal' }; }
 })();
 const savePrefs = () => { try { localStorage.setItem('pokesimPrefs', JSON.stringify(prefs)); } catch { /* private mode */ } };
 
@@ -49,6 +50,7 @@ const state = {
   picks: { ryland: [], reid: [] },         // ids, in the order they'll be sent out
   editor: null,                            // the open editor, or null
   bs: null,                                // the battle in progress, or null
+  cpu: { team: [] },                       // the generated computer team, shown before the fight
   lastSig: '',
 };
 
@@ -83,9 +85,9 @@ function toast(msg, ms = 2600) {
 /* ================================================================== pieces */
 
 function artBox(mon, cls = '') {
-  const data = store.getLocalImage(mon.img);
+  const data = mon.art || store.getLocalImage(mon.img);     // real artwork for the computer's Pokémon
   const c1 = TYPE_COLOR[mon.types[0]], c2 = TYPE_COLOR[mon.types[1] ?? mon.types[0]];
-  return { style: `--c1:${c1}cc;--c2:${c2}88`, inner: data ? `<img src="${data}" alt="">` : TYPE_EMOJI[mon.types[0]] };
+  return { style: `--c1:${c1}cc;--c2:${c2}88`, inner: data ? `<img src="${esc(data)}" alt="">` : TYPE_EMOJI[mon.types[0]] };
 }
 
 function monCard(mon) {
@@ -522,26 +524,70 @@ function saveEditor() {
 
 /* ================================================================== battle: setup */
 
+const humanSides = () => (prefs.vs === 'pvp' ? SIDES : [store.sideById(prefs.vs)]);
+
+function avgPickLevel() {
+  const lv = humanSides().flatMap(sd => state.picks[sd.id].map(id => state.teams[sd.id].find(m => m.id === id)?.level)).filter(Boolean);
+  return lv.length ? Math.round(lv.reduce((n, x) => n + x, 0) / lv.length) : 50;
+}
+
+/** Build a fresh computer team from the current settings. */
+function rollCpu() {
+  const level = prefs.level === 'own' ? avgPickLevel() : Number(prefs.level);
+  state.cpu.team = CPU.generateTeam({ size: prefs.cpuSize, level, difficulty: prefs.difficulty });
+}
+
+function pickColumn(s) {
+  const list = state.teams[s.id];
+  return `<section class="side" style="--c:${s.color}">
+    <header><h3>${esc(store.teamLabel(s))}</h3><span class="count">${state.picks[s.id].length} picked</span></header>
+    ${list.length ? `<div class="pickgrid">${list.map(mon => {
+      const idx = state.picks[s.id].indexOf(mon.id), a = artBox(mon);
+      return `<button class="pick ${idx >= 0 ? 'on' : ''}" style="--c:${s.color};--soft:${s.soft};${a.style}" data-act="pick" data-side="${s.id}" data-id="${mon.id}">
+        <span class="order">${idx + 1}</span>
+        <div class="art">${a.inner}</div><h4>${esc(mon.name)}</h4>
+        <div class="meta">Lv ${mon.level} · ${mon.types.map(cap).join('/')}</div></button>`;
+    }).join('')}</div>` : `<div class="empty">No Pokémon yet — add some on the Teams tab.</div>`}
+  </section>`;
+}
+
+function cpuColumn() {
+  const c = CPU.CPU_SIDE, team = state.cpu.team;
+  const label = (k) => MOVES()[k]?.label ?? k;
+  return `<section class="side" style="--c:${c.color}">
+    <header style="flex-wrap:wrap"><h3>🤖 Computer</h3><span class="count">${team.length} Pokémon</span>
+      <button class="btn small" data-act="reroll" style="margin-left:auto">🎲 New team</button></header>
+    <div class="cpubar">
+      <label>How many <select id="cpusize">${[1, 2, 3, 4, 5, 6].map(n => `<option value="${n}" ${prefs.cpuSize === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+      <label>Difficulty <select id="cpudiff">${Object.entries(CPU.DIFFICULTY).map(([k, d]) => `<option value="${k}" ${prefs.difficulty === k ? 'selected' : ''}>${d.label}</option>`).join('')}</select></label>
+    </div>
+    <div class="eff" style="margin:0 0 10px">${esc(CPU.DIFFICULTY[prefs.difficulty].note)}. Real Pokémon with their real stats and moves.</div>
+    <div class="pickgrid">${team.map(m => {
+      const a = artBox(m);
+      return `<div class="pick" style="--c:${c.color};--soft:${c.soft};${a.style};cursor:default">
+        <div class="art">${a.inner}</div><h4>${esc(m.name)}</h4>
+        <div class="meta">Lv ${m.level} · ${m.types.map(cap).join('/')}</div>
+        <div class="meta" style="margin-top:3px">${m.moves.map(x => esc(label(x.real))).join(' · ')}</div></div>`;
+    }).join('')}</div>
+  </section>`;
+}
+
 function renderBattleSetup() {
-  const ready = SIDES.every(s => state.picks[s.id].length > 0);
-  const sizes = SIDES.map(s => state.picks[s.id].length);
+  const humans = humanSides();
+  if (prefs.vs !== 'pvp' && !state.cpu.team.length) rollCpu();
+  const ready = humans.every(s => state.picks[s.id].length > 0) && (prefs.vs === 'pvp' || state.cpu.team.length > 0);
+  const sizes = prefs.vs === 'pvp' ? SIDES.map(s => state.picks[s.id].length) : [state.picks[prefs.vs].length, state.cpu.team.length];
   const mode = !ready ? '' : (sizes[0] === 1 && sizes[1] === 1 ? 'Duel' : `Team battle · ${sizes[0]} vs ${sizes[1]}`);
+  const opt = (v, text) => `<button class="btn ${prefs.vs === v ? 'primary' : ''}" data-act="vs" data-vs="${v}">${text}</button>`;
   $('#app').innerHTML = `
     <h2>Pick who fights</h2>
-    <p class="sub">Tap Pokémon to add them. Pick one each for a duel, or several each for a team battle — the order you tap is the order they’re sent out.</p>
-    <div class="teams">${SIDES.map(s => {
-      const list = state.teams[s.id];
-      return `<section class="side" style="--c:${s.color}">
-        <header><h3>${esc(store.teamLabel(s))}</h3><span class="count">${state.picks[s.id].length} picked</span></header>
-        ${list.length ? `<div class="pickgrid">${list.map(mon => {
-          const idx = state.picks[s.id].indexOf(mon.id), a = artBox(mon);
-          return `<button class="pick ${idx >= 0 ? 'on' : ''}" style="--c:${s.color};--soft:${s.soft};${a.style}" data-act="pick" data-side="${s.id}" data-id="${mon.id}">
-            <span class="order">${idx + 1}</span>
-            <div class="art">${a.inner}</div><h4>${esc(mon.name)}</h4>
-            <div class="meta">Lv ${mon.level} · ${mon.types.map(cap).join('/')}</div></button>`;
-        }).join('')}</div>` : `<div class="empty">No Pokémon yet — add some on the Teams tab.</div>`}
-      </section>`;
-    }).join('')}</div>
+    <div class="vsbar" style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px">
+      ${opt('pvp', `${esc(SIDES[0].name)} vs ${esc(SIDES[1].name)}`)}
+      ${opt('ryland', `${esc(SIDES[0].name)} vs 🤖 Computer`)}
+      ${opt('reid', `${esc(SIDES[1].name)} vs 🤖 Computer`)}
+    </div>
+    <p class="sub">Tap Pokémon to add them. Pick one for a duel, or several for a team battle — the order you tap is the order they’re sent out.</p>
+    <div class="teams">${humans.map(pickColumn).join('')}${prefs.vs === 'pvp' ? '' : cpuColumn()}</div>
     <div class="setupbar">
       <label>Levels <select id="levelmode">
         <option value="own" ${prefs.level === 'own' ? 'selected' : ''}>Each Pokémon’s own level</option>
@@ -554,14 +600,24 @@ function renderBattleSetup() {
 }
 
 function startBattle() {
-  const lineups = SIDES.map(s => ({
-    side: { ...s, name: store.getTeamName(s.id) || s.name, owner: s.name },
-    mons: state.picks[s.id].map(id => state.teams[s.id].find(m => m.id === id)).filter(Boolean),
-  }));
+  let lineups, cpuIdx = -1;
+  const pickMons = (sd) => state.picks[sd.id].map(id => state.teams[sd.id].find(m => m.id === id)).filter(Boolean);
+  const human = (sd) => ({ side: { ...sd, name: store.getTeamName(sd.id) || sd.name, owner: sd.name }, mons: pickMons(sd) });
+  if (prefs.vs === 'pvp') {
+    lineups = SIDES.map(human);
+  } else {
+    if (!state.cpu.team.length) rollCpu();
+    lineups = [human(store.sideById(prefs.vs)), { side: { ...CPU.CPU_SIDE, owner: 'Computer' }, mons: state.cpu.team }];
+    cpuIdx = 1;
+  }
   if (lineups.some(l => !l.mons.length)) return;
+  beginMatch(lineups, cpuIdx);
+}
+
+function beginMatch(lineups, cpuIdx) {
   const match = B.createMatch(lineups, { levelMode: prefs.level === 'own' ? 'own' : Number(prefs.level) });
   B.startMatch(match);
-  state.bs = { match, choices: [null, null], picks: {}, lineups };
+  state.bs = { match, choices: [null, null], picks: {}, lineups, cpuIdx, skill: CPU.DIFFICULTY[prefs.difficulty].skill };
   autoPickReplacements();
   renderBattle();
 }
@@ -596,6 +652,10 @@ function fighterHtml(i) {
 function actionsHtml(i) {
   const bs = state.bs, m = bs.match, side = m.sides[i];
   if (m.phase === 'over') return '';
+  if (i === bs.cpuIdx) {
+    return `<div class="actions"><h5>🤖 The computer chooses when you press Resolve</h5>
+      <div class="eff">Its move is picked at the same moment as yours, so there’s no peeking.</div></div>`;
+  }
   if (m.phase === 'replace') {
     if (!side.needSwitch) return `<div class="actions"><h5>Waiting for the other side to pick…</h5></div>`;
     const alive = side.team.map((b, idx) => ({ b, idx })).filter(x => !x.b.fainted && x.b !== side.active);
@@ -628,7 +688,8 @@ function logHtml() {
       const text = B.narrate(ev, m);
       if (!text) return '';
       const si = ev.side ?? (ev.who ? B.sideOfName(m, ev.who) : -1);
-      return `<div class="line ${si >= 0 ? 's' + si : ''}">${text}</div>`;
+      const col = si >= 0 ? ` style="border-left-color:${esc(m.sides[si].color)}"` : '';
+      return `<div class="line"${col}>${text}</div>`;
     }).join('');
     return lines ? `<div class="turn"><h6>${esc(h.title)}</h6>${lines}</div>` : '';
   }).join('');
@@ -638,10 +699,12 @@ function renderBattle() {
   const bs = state.bs, m = bs.match;
   let center = '';
   if (m.phase === 'choose') {
-    const ready = bs.choices[0] && bs.choices[1];
+    const ready = [0, 1].every(i => i === bs.cpuIdx || bs.choices[i]);
     center = `<div class="center"><span class="info">Turn ${m.turn + 1}${m.battle.weather ? ' · ' + esc(m.battle.weather) : ''}</span>
       <button class="btn primary fight" data-act="resolve" ${ready ? '' : 'disabled'}>⚔️ Resolve turn</button>
-      <span class="info">${ready ? 'Both sides chosen.' : 'Each side picks a move or a switch.'}</span></div>`;
+      <span class="info">${bs.cpuIdx >= 0
+        ? (ready ? 'Ready — the computer will choose now.' : 'Pick a move or a switch, then press Resolve.')
+        : (ready ? 'Both sides chosen.' : 'Each side picks a move or a switch.')}</span></div>`;
   } else if (m.phase === 'replace') {
     const need = [0, 1].filter(i => m.sides[i].needSwitch);
     const ready = need.every(i => bs.picks[i] != null);
@@ -652,6 +715,7 @@ function renderBattle() {
     center = `<div class="winner"><h2>${r.draw ? '🤝 It’s a draw!' : `🏆 ${esc(r.winner.name)} wins!`}</h2>
       <div>${r.turns} turns · ${r.standing.map(s => `${esc(s.name)}: ${s.alive} of ${s.total} standing`).join(' · ')}</div>
       <div class="center"><button class="btn primary" data-act="rematch">Rematch</button>
+        ${bs.cpuIdx >= 0 ? `<button class="btn" data-act="rematch-new">Rematch vs a new computer team</button>` : ''}
         <button class="btn" data-act="tosetup">Pick different fighters</button></div></div>`;
   }
   $('#app').innerHTML = `<div class="arena">${fighterHtml(0)}${fighterHtml(1)}</div>${center}
@@ -665,13 +729,22 @@ function autoPickReplacements() {
   if (m.phase !== 'replace') return;
   for (const i of [0, 1]) {
     if (!m.sides[i].needSwitch) continue;
+    if (i === bs.cpuIdx) { bs.picks[i] = CPU.chooseReplacement(m, i, bs.skill); continue; }
     const alive = m.sides[i].team.map((b, idx) => ({ b, idx })).filter(x => !x.b.fainted && x.b !== m.sides[i].active);
     if (alive.length === 1) bs.picks[i] = alive[0].idx;
+  }
+  // if only the computer needs someone new there's nothing for the person to decide
+  const need = [0, 1].filter(i => m.sides[i].needSwitch);
+  if (need.length && need.every(i => i === bs.cpuIdx) && bs.picks[bs.cpuIdx] != null) {
+    B.replace(m, bs.picks);
+    bs.picks = {};
+    autoPickReplacements();
   }
 }
 
 function resolveTurn() {
   const bs = state.bs;
+  if (bs.cpuIdx >= 0) bs.choices[bs.cpuIdx] = CPU.choose(bs.match, bs.cpuIdx, bs.skill);
   try { B.playTurn(bs.match, bs.choices); }
   catch (err) { toast(err.message); return; }
   bs.choices = [null, null];
@@ -737,27 +810,28 @@ document.addEventListener('click', (ev) => {
       renderBattleSetup(); break;
     }
     case 'start': startBattle(); break;
+    case 'vs': prefs.vs = t.dataset.vs; savePrefs(); if (prefs.vs !== 'pvp') rollCpu(); renderBattleSetup(); break;
+    case 'reroll': rollCpu(); renderBattleSetup(); break;
     case 'move': { state.bs.choices[Number(side)] = { type: 'move', move: t.dataset.key }; renderBattle(); break; }
     case 'switch': { state.bs.choices[Number(side)] = { type: 'switch', to: Number(t.dataset.idx) }; renderBattle(); break; }
-    case 'random': { const i = Number(side); state.bs.choices[i] = B.randomChoice(state.bs.match, i); renderBattle(); break; }
+    case 'random': { const i = Number(side); if (i === state.bs.cpuIdx) break; state.bs.choices[i] = B.randomChoice(state.bs.match, i); renderBattle(); break; }
     case 'resolve': resolveTurn(); break;
     case 'replace': { state.bs.picks[Number(side)] = Number(t.dataset.idx); renderBattle(); break; }
     case 'sendout': {
       try { B.replace(state.bs.match, state.bs.picks); } catch (err) { toast(err.message); break; }
       autoPickReplacements(); renderBattle(); break;
     }
-    case 'rematch': startBattleFrom(state.bs.lineups); break;
+    case 'rematch': beginMatch(state.bs.lineups, state.bs.cpuIdx); break;
+    case 'rematch-new': {
+      const lineups = state.bs.lineups.slice();
+      rollCpu();
+      lineups[state.bs.cpuIdx] = { side: lineups[state.bs.cpuIdx].side, mons: state.cpu.team };
+      beginMatch(lineups, state.bs.cpuIdx);
+      break;
+    }
     case 'tosetup': state.bs = null; renderBattleSetup(); break;
   }
 });
-
-function startBattleFrom(lineups) {
-  const match = B.createMatch(lineups, { levelMode: prefs.level === 'own' ? 'own' : Number(prefs.level) });
-  B.startMatch(match);
-  state.bs = { match, choices: [null, null], picks: {}, lineups };
-  autoPickReplacements();
-  renderBattle();
-}
 
 const modal = $('#modal');
 modal.addEventListener('input', onEditorInput);
@@ -767,6 +841,8 @@ modal.addEventListener('change', onEditorChange);
 document.addEventListener('change', (ev) => {
   if (ev.target.id === 'levelmode') { prefs.level = ev.target.value; savePrefs(); }
   if (ev.target.id === 'hints') { prefs.hints = ev.target.checked; savePrefs(); }
+  if (ev.target.id === 'cpusize') { prefs.cpuSize = Number(ev.target.value); savePrefs(); rollCpu(); renderBattleSetup(); }
+  if (ev.target.id === 'cpudiff') { prefs.difficulty = ev.target.value; savePrefs(); rollCpu(); renderBattleSetup(); }
 });
 
 /* Another device may have added a Pokémon; sync writes straight to storage, so look for it. */
