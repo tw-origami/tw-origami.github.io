@@ -12,7 +12,7 @@
 //                           use, which is how the other kid's device gets them.
 
 import * as party from '../poketrivia/js/party.js';
-import { clamp, normalizeCustomMove, STAT_KEYS } from './stats.js';
+import { clamp, normalizeCustomMove, normalizeCustomAbility, toEngineMove, abilityFx, STAT_KEYS } from './stats.js';
 
 export const SIDES = [
   { id: 'ryland', name: 'Ryland', color: '#3b63e8', soft: '#e8edff' },
@@ -69,7 +69,7 @@ export function dexIdFor(id) {
 export const RECORD_VERSION = 1;
 // Keys this version of the code understands. Anything else found on a stored record is kept
 // verbatim and written back, so an older copy of the page editing a newer record can't strip it.
-const KNOWN = new Set(['v', 'n', 't', 'l', 's', 'c', 'm', 'nt', 'ab', 'it', 'lg', 'im']);
+const KNOWN = new Set(['v', 'n', 't', 'l', 's', 'c', 'm', 'nt', 'ab', 'ca', 'it', 'lg', 'im']);
 
 export function toRecord(mon) {
   const rec = {
@@ -80,12 +80,17 @@ export function toRecord(mon) {
     l: mon.level,
     s: STAT_KEYS.map(k => mon.stats[k]),
     c: mon.created,
-    m: mon.moves.map(m => m.custom
-      ? { n: m.custom.label, t: m.custom.type, k: m.custom.cls === 'special' ? 's' : 'p', p: m.custom.power, a: m.custom.acc }
-      : m.real),
+    m: mon.moves.map(m => {
+      if (!m.custom) return m.real;
+      const c = m.custom;
+      const o = { n: c.label, t: c.type, k: c.cls === 'status' ? 'x' : c.cls === 'special' ? 's' : 'p', p: c.power, a: c.acc };
+      if (c.fx && c.fx.id !== 'none') o.e = c.fx;
+      return o;
+    }),
   };
   if (mon.nature && mon.nature !== 'serious') rec.nt = mon.nature;
   if (mon.ability && mon.ability !== 'none') rec.ab = mon.ability;
+  if (mon.ability === 'custom' && mon.customAbility) rec.ca = mon.customAbility;
   if (mon.item && mon.item !== 'none') rec.it = mon.item;
   if (mon.legendary) rec.lg = 1;
   if (mon.img) rec.im = mon.img;
@@ -119,7 +124,8 @@ export function fromRecord(side, id, text, validTypes) {
   const moves = (Array.isArray(r.m) ? r.m : []).slice(0, 4).filter(m => m && (typeof m === 'string' || typeof m === 'object')).map(m =>
     typeof m === 'string'
       ? { real: m }
-      : { custom: normalizeCustomMove({ label: m.n, type: m.t, cls: m.k === 's' ? 'special' : 'physical', power: m.p, acc: m.a }, validTypes) });
+      : { custom: normalizeCustomMove({ label: m.n, type: m.t, cls: m.k === 's' ? 'special' : m.k === 'x' ? 'status' : 'physical',
+          power: m.p, acc: m.a, fx: m.e }, validTypes) });
 
   const extra = {};
   for (const k of Object.keys(r)) if (!KNOWN.has(k)) extra[k] = r[k];
@@ -137,6 +143,12 @@ export function fromRecord(side, id, text, validTypes) {
     created: Number(r.c) || 0,
     moves,
   };
+  if (mon.ability === 'custom') {
+    // an ability someone made: if it can't be read back, the Pokémon falls back to having none
+    // rather than being hidden
+    if (r.ca && typeof r.ca === 'object') mon.customAbility = normalizeCustomAbility(r.ca, validTypes);
+    else mon.ability = 'none';
+  }
   if (Object.keys(extra).length) mon._extra = extra;
   if (Number(r.v) > RECORD_VERSION) (mon._extra ??= {}).v = Number(r.v);
   return mon;
@@ -207,20 +219,21 @@ export function prepareForBattle(mon) {
     id: dex, name: mon.name, types: mon.types, stats: { ...mon.stats },
     genus: 'Made-up Pokémon', custom: true,
   });
-  const MOVES = (globalThis.window ?? globalThis).PL_MOVES;
+  const W = globalThis.window ?? globalThis;
+  const MOVES = W.PL_MOVES;
   const moveKeys = mon.moves.map((m, i) => {
     if (m.real) return m.real;
     const key = `custom-${mon.id}-${i}`;
-    const c = m.custom;
-    MOVES[key] = {
-      name: key, label: c.label, type: c.type, power: c.power, acc: c.acc, class: c.cls, pp: c.pp,
-      prio: 0, target: 'selected-pokemon', cat: 'damage', ailment: null, ailChance: 0, stats: [],
-      statChance: 0, drain: 0, heal: 0, flinch: 0, critRate: 0, hits: null, turns: null,
-      short: 'An invented move — plain damage with no extra effect.', invented: true,
-    };
+    MOVES[key] = toEngineMove(m.custom, key);
     return key;
   });
-  return { dex, moveKeys };
+  // an ability someone invented is registered like a real one, under its own key
+  let ability = mon.ability || 'none';
+  if (ability === 'custom' && mon.customAbility) {
+    ability = `custom-ab-${mon.id}`;
+    (W.PL_ABILITY_FX ??= {})[ability] = abilityFx(mon.customAbility);
+  } else if (ability === 'custom') ability = 'none';
+  return { dex, moveKeys, ability };
 }
 
 /* ------------------------------------------------------------------ pictures */

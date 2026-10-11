@@ -40,6 +40,7 @@ E.setRng(steady);
 
 const stats = (hp, atk, def, spa, spd, spe) => ({ hp, atk, def, spa, spd, spe });
 let counter = 0;
+const seeded = (seed) => () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
 const mk = (side, name, types, st, moves, over = {}) => ({
   id: 'm' + (++counter), side, name, types, level: 50, stats: st, nature: 'serious', ability: 'none',
   item: 'none', legendary: false, img: '', created: counter,
@@ -193,7 +194,7 @@ section('saving — one small record each, identical on every device');
 
 check('a Pokémon survives a save and a load exactly', () => {
   const m = mk('reid', 'Blazewing', ['fire', 'flying'], stats(78, 84, 78, 109, 85, 100),
-    ['flamethrower', 'air-slash', { label: 'Sun Slash', type: 'fire', cls: 'special', power: 95, acc: 100, pp: 15 }],
+    ['flamethrower', 'air-slash', { label: 'Sun Slash', type: 'fire', cls: 'special', power: 95, acc: 100, pp: 15, fx: { id: 'none' } }],
     { nature: 'timid', ability: 'blaze', item: 'leftovers', legendary: false, img: 'abc123' });
   store.saveMon(m);
   const back = store.listTeam('reid', TYPES).find(x => x.id === m.id);
@@ -542,6 +543,242 @@ check('two Ghosts with no PP left cannot stalemate — Struggle ignores type and
   assert.ok(guard < 100, `took ${guard} turns`);
 });
 
+section('invented moves with effects, and invented abilities');
+
+// a one-move custom attacker against a sturdy dummy, so the effect is the only variable
+const fxMon = (c, over = {}) => mk('ryland', 'Maker', over.types ?? ['normal'], over.stats ?? stats(250, 100, 80, 100, 80, 60),
+  [S.normalizeCustomMove({ label: 'Custom', type: 'normal', cls: 'physical', power: 60, acc: 100, ...c }, TYPES)], over);
+const dummy = (over = {}) => mk('reid', 'Dummy', over.types ?? ['normal'], over.stats ?? stats(250, 80, 80, 80, 80, 20), ['tackle'], over);
+const useFx = (c, attackerOver, foeOver, rngFn = () => 0) => {
+  E.setRng(rngFn);
+  const m = duel(fxMon(c, attackerOver), dummy(foeOver));
+  const key = m.sides[0].active.moves[0].name;
+  const ev = B.playTurn(m, [mv(key), mv('tackle')]);
+  E.setRng(steady);
+  return { m, ev, user: m.sides[0].active, foe: m.sides[1].active };
+};
+
+check('an attack that can burn burns, and a status-chance roll that fails does nothing', () => {
+  const hit = useFx({ cls: 'special', fx: { id: 'status', ailment: 'burn', chance: 30 } });
+  assert.equal(hit.foe.status, 'burn');
+  const miss = useFx({ cls: 'special', fx: { id: 'status', ailment: 'burn', chance: 30 } }, {}, {}, () => 0.99);
+  assert.equal(miss.foe.status, null);
+});
+
+check('a move that raises its own stat raises the USER\'s', () => {
+  const r = useFx({ fx: { id: 'raiseSelf', stat: 'speed' } });
+  assert.equal(r.user.stages.spe, 1);
+  assert.equal(r.foe.stages.spe, 0);
+});
+
+check('a move that lowers its own stats lowers the USER\'s, not the foe\'s', () => {
+  const r = useFx({ cls: 'special', power: 90, fx: { id: 'lowerSelf', stat: 'special-attack', stages: 2 } });
+  assert.equal(r.user.stages.spa, -2);
+  assert.equal(r.foe.stages.spa, 0);
+});
+
+check('a move that may lower the foe\'s stat lowers the foe\'s', () => {
+  const r = useFx({ cls: 'special', fx: { id: 'dropFoe', stat: 'special-defense', chance: 30 } });
+  assert.equal(r.foe.stages.spd, -1);
+  assert.equal(r.user.stages.spd, 0);
+});
+
+check('a drain move heals the user by half of what it dealt', () => {
+  const m = duel(fxMon({ power: 80, fx: { id: 'drain' } }), dummy());
+  const u = m.sides[0].active; u.hp = 100;
+  E.setRng(() => 0);
+  const ev = B.playTurn(m, [mv(u.moves[0].name), mv('tackle')]);
+  E.setRng(steady);
+  const dealt = ev.filter(e => e.t === 'damage' && e.who === 'Dummy').reduce((n, e) => n + e.dmg, 0);
+  const healed = ev.filter(e => e.t === 'heal' && e.who === 'Maker').reduce((n, e) => n + e.amount, 0);
+  assert.ok(dealt > 0 && healed > 0);
+  assert.equal(healed, Math.max(1, Math.floor(dealt / 2)));
+});
+
+check('a recoil move hurts the user by the share it chose', () => {
+  const r = useFx({ power: 90, fx: { id: 'recoil', pct: 33 } });
+  const dealt = r.ev.filter(e => e.t === 'damage' && e.who === 'Dummy').reduce((n, e) => n + e.dmg, 0);
+  const hurt = r.ev.filter(e => e.t === 'recoil' && e.who === 'Maker').reduce((n, e) => n + e.amount, 0);
+  assert.equal(hurt, Math.max(1, Math.floor(dealt * 0.33)));
+});
+
+check('a multi-hit move lands more than one hit', () => {
+  const r = useFx({ power: 25, fx: { id: 'multi', hits: 'two' } });
+  assert.equal(r.ev.filter(e => e.t === 'damage' && e.who === 'Dummy').length, 2);
+});
+
+check('a priority move goes first even when the user is slower', () => {
+  const slow = fxMon({ power: 40, fx: { id: 'priority', prio: 1 } }, { stats: stats(250, 100, 80, 100, 80, 10) });
+  const fast = mk('reid', 'Quick', ['normal'], stats(250, 80, 80, 80, 80, 200), ['tackle']);
+  const m = duel(slow, fast);
+  const ev = B.playTurn(m, [mv(m.sides[0].active.moves[0].name), mv('tackle')]);
+  assert.equal(ev.find(e => e.t === 'move').who, 'Maker');
+});
+
+check('a status move can heal, buff, debuff and inflict', () => {
+  const hm = duel(fxMon({ cls: 'status', fx: { id: 'heal' } }), dummy());
+  const hu = hm.sides[0].active;
+  hu.hp = 100;
+  const heal = B.playTurn(hm, [mv(hu.moves[0].name), mv('tackle')]).find(e => e.t === 'heal' && e.who === 'Maker');
+  assert.equal(heal.amount, Math.floor(hu.maxHp * 50 / 100), 'half of max HP');
+  assert.equal(useFx({ cls: 'status', fx: { id: 'buff', stat: 'attack', stages: 2 } }).user.stages.atk, 2);
+  const two = useFx({ cls: 'status', fx: { id: 'buff', stat: 'attack', stat2: 'speed', stages: 1 } }).user;
+  assert.equal(two.stages.atk, 1); assert.equal(two.stages.spe, 1);
+  assert.equal(useFx({ cls: 'status', fx: { id: 'debuff', stat: 'defense', stages: 2 } }).foe.stages.def, -2);
+  assert.equal(useFx({ cls: 'status', fx: { id: 'inflict', ailment: 'paralysis' } }).foe.status, 'paralysis');
+});
+
+check('effects are priced like real moves: more worth means less raw power', () => {
+  const plain = S.maxPowerFor({ id: 'none' });
+  assert.ok(S.maxPowerFor({ id: 'drain' }) <= plain);
+  assert.equal(S.maxPowerFor({ id: 'priority', prio: 1 }), 50);
+  assert.equal(S.maxPowerFor({ id: 'priority', prio: 2 }), 80);
+  assert.ok(S.maxAccuracyFor(90, { id: 'status', ailment: 'burn', chance: 10 }) <= 100);
+  // the real examples are all legal under the rule
+  const legal = (power, acc, fx) => power * (acc / 100) * S.fxWorth(fx).bonus * S.fxWorth(fx).hits <= 105;
+  assert.ok(legal(90, 100, { id: 'status', ailment: 'burn', chance: 10 }), 'Flamethrower');
+  assert.ok(legal(85, 100, { id: 'status', ailment: 'paralysis', chance: 30 }), 'Body Slam');
+  assert.ok(legal(120, 100, { id: 'recoil', pct: 33 }), 'Flare Blitz');
+  assert.ok(legal(130, 90, { id: 'lowerSelf', stat: 'special-attack', stages: 2 }), 'Draco Meteor');
+  assert.ok(legal(75, 100, { id: 'drain' }), 'Giga Drain');
+});
+
+check('a move can\'t beat the rule whatever the form sends', () => {
+  const m = S.normalizeCustomMove({ label: 'Cheat', type: 'fire', cls: 'special', power: 130, acc: 100,
+    fx: { id: 'status', ailment: 'burn', chance: 30 } }, TYPES);
+  assert.ok(m.power * (m.acc / 100) * S.fxWorth(m.fx).bonus <= 105, `${m.power}@${m.acc}`);
+  const p = S.normalizeCustomMove({ label: 'Fast', type: 'normal', cls: 'physical', power: 130, acc: 100, fx: { id: 'priority', prio: 1 } }, TYPES);
+  assert.equal(p.power, 50);
+  const slp = S.normalizeCustomMove({ label: 'Nap', type: 'psychic', cls: 'status', acc: 100, fx: { id: 'inflict', ailment: 'sleep' } }, TYPES);
+  assert.ok(slp.acc <= 75, 'sleep moves are never fully accurate');
+});
+
+check('every effect survives a save and a load', () => {
+  const effects = [
+    { cls: 'special', fx: { id: 'status', ailment: 'paralysis', chance: 20 } }, { fx: { id: 'flinch', chance: 10 } },
+    { fx: { id: 'multi', hits: 'range' } }, { cls: 'status', fx: { id: 'heal' } },
+    { cls: 'status', fx: { id: 'buff', stat: 'speed', stages: 2 } },
+  ];
+  const moves = effects.map((e, i) => S.normalizeCustomMove({ label: 'M' + i, type: 'normal', cls: 'physical', power: 30, acc: 100, ...e }, TYPES));
+  const m = mk('ryland', 'Roundtrip', ['normal'], stats(80, 80, 80, 80, 80, 80), []);
+  m.moves = moves.slice(0, 4).map(c => ({ custom: c }));
+  store.saveMon(m);
+  const back = store.listTeam('ryland', TYPES).find(x => x.id === m.id);
+  assert.deepEqual(back.moves, m.moves);
+  store.deleteMon(m);
+});
+
+// ---- abilities
+const abMon = (ab, over = {}) => mk('ryland', 'Gifted', over.types ?? ['normal'], over.stats ?? stats(250, 100, 100, 100, 100, 100),
+  ['tackle', 'ember', 'water-gun', 'thunder-shock'], { ability: 'custom',
+    customAbility: S.normalizeCustomAbility({ label: 'Mine', ...ab }, TYPES), ...over });
+
+check('an invented ability registers and is used by name', () => {
+  const m = duel(abMon({ kind: 'intimidate', stat: 'defense' }), dummy());
+  assert.ok(m.sides[0].active.ability.startsWith('custom-ab-'));
+  assert.equal(m.sides[1].active.stages.def, -1, 'the foe\'s Defense dropped on entry');
+  assert.equal(m.sides[1].active.stages.atk, 0);
+});
+
+check('an ability that changes the weather changes it', () => {
+  const m = duel(abMon({ kind: 'weather', weather: 'sand' }), dummy());
+  assert.equal(m.battle.weather, 'sand');
+});
+
+check('an ability can make a Pokémon immune to a type, or heal from it', () => {
+  const a = mk('ryland', 'Burner', ['fire'], stats(100, 100, 100, 100, 100, 100), ['ember']);
+  const m2 = duel(a, abMon({ kind: 'immune', type: 'fire' }, { side: 'reid' }));
+  const ev2 = B.playTurn(m2, [mv('ember'), mv('tackle')]);
+  assert.ok(ev2.some(e => e.t === 'abilityImmune'));
+  assert.equal(m2.sides[1].active.hp, m2.sides[1].active.maxHp);
+  const b = mk('ryland', 'Splasher', ['water'], stats(100, 100, 100, 100, 100, 100), ['water-gun']);
+  const g = abMon({ kind: 'absorb', type: 'water' }, { side: 'reid' });
+  const m3 = duel(b, g);
+  m3.sides[1].active.hp = 100;
+  const ev3 = B.playTurn(m3, [mv('water-gun'), mv('tackle')]);
+  assert.ok(ev3.some(e => e.t === 'abilityAbsorb'));
+  assert.ok(m3.sides[1].active.hp > 100);
+});
+
+check('a type-boost ability only powers up when the Pokémon is low on HP', () => {
+  const run = (hp) => {
+    const m = duel(abMon({ kind: 'pinch', type: 'fire' }, { stats: stats(200, 100, 100, 100, 100, 100) }), dummy());
+    m.sides[0].active.hp = hp;
+    E.setRng(() => 0.5);
+    const ev = B.playTurn(m, [mv('ember'), mv('tackle')]);
+    E.setRng(steady);
+    return ev.filter(e => e.t === 'damage' && e.who === 'Dummy').reduce((n, e) => n + e.dmg, 0);
+  };
+  assert.ok(run(10) > run(200) * 1.3, 'the pinch boost applies at low HP');
+});
+
+check('a contact ability can hand the attacker a condition', () => {
+  E.setRng(() => 0);
+  const att = mk('ryland', 'Puncher', ['normal'], stats(250, 100, 100, 100, 100, 100), ['tackle']);
+  const m = duel(att, abMon({ kind: 'contact', ailment: 'burn' }, { side: 'reid' }));
+  B.playTurn(m, [mv('tackle'), mv('tackle')]);
+  E.setRng(steady);
+  assert.equal(m.sides[0].active.status, 'burn');
+});
+
+check('a condition-block ability can\'t be bypassed', () => {
+  E.setRng(() => 0);
+  const att = mk('ryland', 'Sleeper', ['normal'], stats(250, 100, 100, 100, 100, 100), []);
+  att.moves = [{ custom: S.normalizeCustomMove({ label: 'Nap', type: 'psychic', cls: 'status', fx: { id: 'inflict', ailment: 'sleep' } }, TYPES) }];
+  const m = duel(att, abMon({ kind: 'block', ailment: 'sleep' }, { side: 'reid' }));
+  B.playTurn(m, [mv(m.sides[0].active.moves[0].name), mv('tackle')]);
+  E.setRng(steady);
+  assert.equal(m.sides[1].active.status, null);
+});
+
+check('doubling Attack is refused on a heavy hitter, and allowed on a gentle one', () => {
+  const heavy = abMon({ kind: 'power', mult: 2 }, { stats: stats(80, 130, 80, 80, 80, 80) });
+  assert.ok(S.monProblems(heavy, TYPES).some(p => /Attack of 90/.test(p)));
+  const soft = abMon({ kind: 'power', mult: 2 }, { stats: stats(80, 60, 80, 80, 80, 80) });
+  assert.deepEqual(S.monProblems(soft, TYPES), []);
+  const half = abMon({ kind: 'power', mult: 1.5 }, { stats: stats(80, 130, 80, 80, 80, 80) });
+  assert.deepEqual(S.monProblems(half, TYPES), [], '1.5x is fine for anyone');
+});
+
+check('a custom ability survives save and load, and a Pokémon with an unreadable one just has none', () => {
+  const m = abMon({ kind: 'intimidate', stat: 'speed' });
+  store.saveMon(m);
+  const back = store.listTeam('ryland', TYPES).find(x => x.id === m.id);
+  assert.equal(back.ability, 'custom');
+  assert.deepEqual(back.customAbility, m.customAbility);
+  store.deleteMon(m);
+  const broken = store.fromRecord('ryland', 'b', JSON.stringify({ v: 1, n: 'Oops', t: ['fire'], s: [1, 1, 1, 1, 1, 1], m: ['tackle'], ab: 'custom' }), TYPES);
+  assert.equal(broken.ability, 'none');
+});
+
+check('invented abilities and effects never wedge a random battle', () => {
+  const rng = seeded(8080);
+  E.setRng(rng);
+  const kinds = S.ABILITY_KINDS.map(k => k.id);
+  const fxList = [{ id: 'none' }, { id: 'status', ailment: 'burn', chance: 30 }, { id: 'drain' }, { id: 'recoil', pct: 50 },
+    { id: 'multi', hits: 'range' }, { id: 'priority', prio: 2 }, { id: 'lowerSelf', stat: 'speed', stages: 2 }, { id: 'flinch', chance: 30 }];
+  for (let n = 0; n < 150; n++) {
+    const team = (side) => Array.from({ length: 1 + Math.floor(rng() * 3) }, (_, i) => {
+      const mon = mk(side, 'P' + i, ['fire'], stats(...Array.from({ length: 6 }, () => 40 + Math.floor(rng() * 100))), []);
+      mon.moves = Array.from({ length: 3 }, () => ({ custom: S.normalizeCustomMove({
+        label: 'X', type: TYPES[Math.floor(rng() * TYPES.length)], cls: rng() < 0.5 ? 'special' : 'physical',
+        power: 30 + Math.floor(rng() * 90), acc: 100, fx: fxList[Math.floor(rng() * fxList.length)] }, TYPES) }));
+      mon.ability = 'custom';
+      mon.customAbility = S.normalizeCustomAbility({ label: 'A', kind: kinds[Math.floor(rng() * kinds.length)],
+        type: TYPES[Math.floor(rng() * TYPES.length)], stat: 'attack', weather: 'rain', ailment: 'paralysis' }, TYPES);
+      return mon;
+    });
+    const m = duel(team('ryland'), team('reid'));
+    let g = 0;
+    while (m.phase !== 'over' && g++ < 400) {
+      if (m.phase === 'replace') { const picks = {}; for (const i of [0, 1]) if (m.sides[i].needSwitch) picks[i] = m.sides[i].team.findIndex(b => !b.fainted); B.replace(m, picks); }
+      else B.playTurn(m, [B.randomChoice(m, 0, rng), B.randomChoice(m, 1, rng)]);
+    }
+    assert.equal(m.phase, 'over', 'battle ' + n);
+  }
+  E.setRng(steady);
+});
+
 check('a Choice item locks the holder into the first move it picks, until it switches out', () => {
   const a = mk('ryland', 'Banded', ['normal'], stats(80, 100, 80, 80, 80, 80), ['tackle', 'quick-attack', 'scratch'], { item: 'choice-band' });
   const b = mk('ryland', 'Bench', ['normal'], stats(80, 80, 80, 80, 80, 80), ['tackle']);
@@ -734,7 +971,6 @@ check('random team battles always finish with a consistent result', () => {
 /* ==================================================================== */
 section('the computer opponent');
 
-const seeded = (seed) => () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
 const bstOf = (m) => S.total(m.stats);
 
 check('a computer team has the size asked for, with no repeated species', () => {
@@ -818,6 +1054,33 @@ check('the computer always makes a legal choice, in any state, across many battl
     assert.equal(m.phase, 'over', 'battle ' + n);
   }
   E.setRng(steady);
+});
+
+check('two kids can team up: one side holding Pokémon from both owners, taking a plural verb', () => {
+  const ry = mk('ryland', 'Ember', ['fire'], stats(90, 90, 90, 90, 90, 90), ['ember', 'flamethrower']);
+  const re = mk('reid', 'Splash', ['water'], stats(90, 90, 90, 90, 90, 90), ['water-gun', 'surf']);
+  const team = CPU.generateTeam({ size: 3, level: 50, difficulty: 'normal', rng: seeded(11) });
+  const m = B.createMatch([
+    { side: { id: 'coop', name: 'Ryland & Reid', owner: 'Ryland & Reid', color: '#c9a227', coop: true, plural: true }, mons: [ry, re] },
+    { side: { id: 'cpu', name: 'Computer', color: '#a0f' }, mons: team }]);
+  B.startMatch(m);
+  assert.deepEqual(m.sides[0].team.map(b => b.mon.side), ['ryland', 'reid'], 'each Pokémon still knows its owner');
+  const lead = B.narrate(m.history[0].events[0], m);
+  assert.ok(/Ryland &amp; Reid send out/.test(lead), 'plural verb: ' + lead);
+  let g = 0;
+  const rng = seeded(5);
+  while (m.phase !== 'over' && g++ < 300) {
+    if (m.phase === 'replace') {
+      const picks = {};
+      for (const i of [0, 1]) if (m.sides[i].needSwitch) picks[i] = CPU.chooseReplacement(m, i, 0.8, rng);
+      B.replace(m, picks);
+    } else B.playTurn(m, [CPU.choose(m, 0, 0.8, rng), CPU.choose(m, 1, 0.6, rng)]);
+  }
+  assert.equal(m.phase, 'over');
+  assert.equal(m.sides[0].plural, true);
+  const sent = m.history.flatMap(h => h.events).filter(e => e.t === 'sendOut' && e.side === 0)
+    .map(e => B.narrate(e, m)).filter(Boolean);
+  for (const line of sent) assert.ok(!/sends out|pulls back/.test(line), 'plural everywhere: ' + line);
 });
 
 check('a skilled computer beats a random mover most of the time', () => {

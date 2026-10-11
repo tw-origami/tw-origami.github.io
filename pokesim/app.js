@@ -9,6 +9,7 @@ import * as store from './store.js';
 import * as B from './battle.js';
 import * as party from '../poketrivia/js/party.js';
 import * as CPU from './computer.js';
+import * as Stage from './stage.js';
 import { isSimulated } from '../poketrivia/js/battle-engine.js';
 
 const { esc } = B;
@@ -39,7 +40,7 @@ const chip = (t) => `<span class="tchip" style="--c:${TYPE_COLOR[t]}">${t}</span
 /* ================================================================== state */
 
 const prefs = (() => {
-  try { return { level: 'own', hints: false, vs: 'pvp', cpuSize: 3, difficulty: 'normal', ...JSON.parse(localStorage.getItem('pokesimPrefs') || '{}') }; }
+  try { return { level: 'own', hints: false, anim: true, vs: 'pvp', cpuSize: 3, difficulty: 'normal', ...JSON.parse(localStorage.getItem('pokesimPrefs') || '{}') }; }
   catch { return { level: 'own', hints: false, vs: 'pvp', cpuSize: 3, difficulty: 'normal' }; }
 })();
 const savePrefs = () => { try { localStorage.setItem('pokesimPrefs', JSON.stringify(prefs)); } catch { /* private mode */ } };
@@ -48,6 +49,7 @@ const state = {
   tab: 'teams',
   teams: { ryland: [], reid: [] },
   picks: { ryland: [], reid: [] },         // ids, in the order they'll be sent out
+  coopPicks: [],                           // [{side,id}] — one shared line-up when they team up
   editor: null,                            // the open editor, or null
   bs: null,                                // the battle in progress, or null
   cpu: { team: [] },                       // the generated computer team, shown before the fight
@@ -57,6 +59,7 @@ const state = {
 function refreshTeams() {
   for (const s of SIDES) state.teams[s.id] = store.listTeam(s.id, TYPES);
   for (const s of SIDES) state.picks[s.id] = state.picks[s.id].filter(id => state.teams[s.id].some(m => m.id === id));
+  state.coopPicks = state.coopPicks.filter(p => state.teams[p.side]?.some(m => m.id === p.id));
   state.lastSig = store.signature();
   fetchMissingImages();
 }
@@ -173,7 +176,7 @@ function openEditor(sideId, mon = null) {
         state.editor = {
           view: 'form', isNew: true, d: draft.d, imgData: draft.imgData ?? null, imgRemoved: false,
           mf: { q: '', type: '', cls: '', tab: 'real' },
-          invent: draft.invent ?? { label: '', type: 'normal', cls: 'physical', power: 70, acc: 100 },
+          invent: draft.invent ? { ...newInvent(), ...draft.invent } : newInvent(),
         };
         renderEditor();
         return;
@@ -190,7 +193,7 @@ function openEditor(sideId, mon = null) {
           nature: 'serious', ability: 'none', item: 'none', legendary: false, img: '', created: Date.now(), moves: [] },
     imgData: null, imgRemoved: false,
     mf: { q: '', type: '', cls: '', tab: 'real' },
-    invent: { label: '', type: 'normal', cls: 'physical', power: 70, acc: 100 },
+    invent: newInvent(),
   };
   renderEditor();
 }
@@ -263,13 +266,16 @@ function editorHtml(d, side) {
         <div class="slots" id="slots"></div>
       </div>
 
-      <details class="adv"><summary>Advanced: nature, ability, held item</summary>
+      <details class="adv" ${d.ability === 'custom' ? 'open' : ''}><summary>Advanced: nature, ability, held item</summary>
         <div class="row3">
           <div class="field"><label class="l">Nature</label><select data-f="nature">${NATURES.map(n => `<option value="${n}" ${d.nature === n ? 'selected' : ''}>${cap(n)}${natureNote(n)}</option>`).join('')}</select></div>
-          <div class="field"><label class="l">Ability</label><select data-f="ability"><option value="none">— none —</option>${ABILITIES.map(n => `<option value="${n}" ${d.ability === n ? 'selected' : ''}>${pretty(n)}</option>`).join('')}</select></div>
+          <div class="field"><label class="l">Ability</label><select data-f="ability"><option value="none">— none —</option>
+            <option value="custom" ${d.ability === 'custom' ? 'selected' : ''}>✏️ My own ability…</option>
+            ${ABILITIES.filter(n => !n.startsWith('custom-')).map(n => `<option value="${n}" ${d.ability === n ? 'selected' : ''}>${pretty(n)}</option>`).join('')}</select></div>
           <div class="field"><label class="l">Held item</label><select data-f="item">${ITEMS.map(n => `<option value="${n}" ${d.item === n ? 'selected' : ''}>${n === 'none' ? '— none —' : esc(W.PL_ITEMS[n].label)}</option>`).join('')}</select></div>
         </div>
         <div class="eff" id="advnote" style="padding-bottom:12px"></div>
+        ${d.ability === 'custom' && d.customAbility ? abilityBuilderHtml(d.customAbility) : ''}
       </details>
 
       <ul class="problems hidden" id="problems"></ul>
@@ -278,6 +284,30 @@ function editorHtml(d, side) {
       <button class="btn primary" data-act="save" id="savebtn">Save Pokémon</button>
       <button class="btn" data-act="close">Cancel</button>
     </footer></div>`;
+}
+
+function abilityBuilderHtml(ab) {
+  const sel = (name, list, val) => `<select data-ab="${name}">${opts(list, val)}</select>`;
+  const kind = S.ABILITY_KINDS.find(k => k.id === ab.kind);
+  const has = (p) => kind?.params?.includes(p);
+  const controls = [
+    has('stat') && `<div class="field"><label class="l">Which stat</label>${sel('stat', STAT_OPTS, ab.stat)}</div>`,
+    has('statAny') && `<div class="field"><label class="l">Which stat</label>${sel('stat', [['', '— any stat —'], ...STAT_OPTS], ab.stat ?? '')}</div>`,
+    has('weather') && `<div class="field"><label class="l">Weather</label>${sel('weather', S.WEATHERS.map(w => [w.id, cap(w.label)]), ab.weather)}</div>`,
+    has('type') && `<div class="field"><label class="l">Which type</label>${sel('type', TYPES.map(t => [t, cap(t)]), ab.type)}</div>`,
+    has('ailment3') && `<div class="field"><label class="l">Condition</label>${sel('ailment', [['paralysis', 'Paralysis'], ['burn', 'Burn'], ['poison', 'Poison']], ab.ailment)}</div>`,
+    has('ailment5') && `<div class="field"><label class="l">Condition</label>${sel('ailment', [['paralysis', 'Paralysis'], ['burn', 'Burn'], ['sleep', 'Sleep'], ['poison', 'Poison'], ['freeze', 'Freeze'], ['confusion', 'Confusion']], ab.ailment)}</div>`,
+    has('mult') && `<div class="field"><label class="l">Boost</label>${sel('mult', [[1.5, '1.5× Attack'], [2, '2× Attack (only if base Attack is 90 or less)']], ab.mult)}</div>`,
+  ].filter(Boolean).join('');
+  return `<div style="border-top:2px dashed var(--line,#ccc);padding:12px 0">
+    <div class="field"><label class="l">Name your ability</label>
+      <input type="text" data-ab="label" maxlength="24" value="${esc(ab.label)}" placeholder="e.g. Thunder Aura"></div>
+    <div class="field" style="margin-top:10px"><label class="l">What does it do?</label>
+      ${sel('kind', S.ABILITY_KINDS.map(k => [k.id, k.label]), ab.kind)}
+      <div class="eff" style="margin-top:4px">Like: ${esc(kind?.example ?? '')}</div></div>
+    ${controls ? `<div class="row2" style="margin-top:10px">${controls}</div>` : ''}
+    <div class="note" style="margin-top:10px;font-weight:800">${esc(ab.label || 'Your ability')}: ${esc(S.describeAbility(ab))}</div>
+  </div>`;
 }
 
 function natureNote(n) {
@@ -323,7 +353,8 @@ function syncDerived() {
     return `<div class="slot"><button class="rm" data-act="rmmove" data-i="${i}" title="Remove">✕</button>
       <div class="nm">${esc(mv.real ? info.label : info.label)} ${mv.custom ? '<span class="eff">· invented</span>' : ''}</div>
       <div>${chip(type)} ${stab ? '<span class="stab">★ same-type</span>' : ''}</div>
-      <div class="info">${CLASS_ICON[cls] ?? ''} ${cls} · ${power ? power + ' power' : 'no damage'} · ${acc ? acc + '%' : 'never misses'} · ${mv.real ? info.pp : mv.custom.pp} PP</div></div>`;
+      <div class="info">${CLASS_ICON[cls] ?? ''} ${cls} · ${power ? power + ' power' : 'no damage'} · ${acc ? acc + '%' : 'never misses'} · ${mv.real ? info.pp : mv.custom.pp} PP</div>
+      ${mv.custom ? `<div class="info">${esc(S.describeMove(mv.custom))}</div>` : ''}</div>`;
   }).join('');
 
   const probs = draftProblems();
@@ -332,7 +363,7 @@ function syncDerived() {
   ul.innerHTML = probs.map(p => `<li>${esc(p)}</li>`).join('');
   $('#savebtn').disabled = probs.length > 0;
 
-  const ab = d.ability !== 'none' ? (W.PL_ABILITY_FX[d.ability]?.text ?? '').replace("{P}'s", 'Its').replace('{P}', 'It') : '';
+  const ab = d.ability === 'custom' ? '' : d.ability !== 'none' ? (W.PL_ABILITY_FX[d.ability]?.text ?? '').replace("{P}'s", 'Its').replace('{P}', 'It') : '';
   const it = d.item !== 'none' ? W.PL_ITEMS[d.item]?.blurb ?? '' : '';
   const note = $('#advnote');
   if (note) note.textContent = [ab && `Ability: ${ab}`, it && `Item: ${it}`].filter(Boolean).join('   ');
@@ -383,40 +414,107 @@ function moveRows() {
     + `<div class="eff" style="padding:6px">${list.length} moves.</div>`;
 }
 
+const newInvent = () => ({ label: '', type: 'normal', cls: 'physical', power: 70, acc: 100, fx: { id: 'none' } });
+
+const opts = (list, sel) => list.map(([v, l]) => `<option value="${esc(String(v))}" ${String(sel) === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('');
+const STAT_OPTS = S.FX_STATS.map(x => [x.id, x.label]);
+const CHANCE_OPTS = [[10, '10%'], [20, '20%'], [30, '30%']];
+
+/** The extra controls an effect needs. Every `data-fx` field writes straight into the move's effect. */
+function fxParamsHtml(fx, isStatus) {
+  const sel = (name, list, val) => `<select data-fx="${name}">${opts(list, val)}</select>`;
+  const field = (label, control) => `<div class="field"><label class="l">${label}</label>${control}</div>`;
+  const second = (fx) => field('and also (optional)', sel('stat2', [['', '— just one —'], ...STAT_OPTS.filter(([v]) => v !== fx.stat)], fx.stat2 ?? ''));
+  const cols = (...x) => `<div class="row2">${x.join('')}</div>`;
+  switch (fx.id) {
+    case 'status': return cols(
+      field('Condition', sel('ailment', [['burn', 'Burn'], ['paralysis', 'Paralysis'], ['poison', 'Poison'], ['freeze', 'Freeze'], ['confusion', 'Confusion']], fx.ailment)),
+      field('Chance', fx.ailment === 'freeze' ? `<select disabled><option>10% (freeze is always 10%)</option></select>` : sel('chance', CHANCE_OPTS, fx.chance)));
+    case 'dropFoe': return cols(field('Lowers its', sel('stat', STAT_OPTS, fx.stat)), field('Chance', sel('chance', CHANCE_OPTS, fx.chance)));
+    case 'flinch': return field('Chance', sel('chance', CHANCE_OPTS, fx.chance));
+    case 'raiseSelf': return field('Raises its own', sel('stat', STAT_OPTS, fx.stat));
+    case 'lowerSelf': return cols(field('Lowers its own', sel('stat', STAT_OPTS, fx.stat)), second(fx))
+      + field('By', fx.stat2 ? `<select disabled><option>1 stage each</option></select>` : sel('stages', [[1, 'one stage'], [2, 'two stages']], fx.stages));
+    case 'recoil': return field('The user takes back', sel('pct', [[25, '¼ of the damage'], [33, '⅓ of the damage'], [50, '½ of the damage']], fx.pct));
+    case 'multi': return field('Hits', sel('hits', [['two', 'exactly twice'], ['range', '2 to 5 times']], fx.hits));
+    case 'priority': return field('Priority', sel('prio', [[1, '+1 (like Quick Attack)'], [2, '+2 (like Extreme Speed)']], fx.prio));
+    case 'inflict': return field('Condition', sel('ailment', [['paralysis', 'Paralysis'], ['burn', 'Burn'], ['sleep', 'Sleep'], ['poison', 'Poison'], ['confusion', 'Confusion']], fx.ailment));
+    case 'buff': return cols(field('Raises its own', sel('stat', STAT_OPTS, fx.stat)), second(fx))
+      + field('By', fx.stat2 ? `<select disabled><option>1 stage each</option></select>` : sel('stages', [[1, 'one stage'], [2, 'two stages']], fx.stages));
+    case 'debuff': return cols(field('Lowers the foe’s', sel('stat', STAT_OPTS, fx.stat)), field('By', sel('stages', [[1, 'one stage'], [2, 'two stages']], fx.stages)));
+    default: return '';
+  }
+}
+
 function inventHtml() {
   const v = state.editor.invent;
-  const maxAcc = S.maxAccuracyFor(v.power);
-  v.acc = Math.min(v.acc, maxAcc);
+  const n = S.normalizeCustomMove(v, TYPES);                 // snap whatever is on screen to something legal
+  v.fx = n.fx; v.power = n.cls === 'status' ? v.power : n.power; v.acc = n.acc ?? v.acc;
+  const isStatus = v.cls === 'status';
+  const list = isStatus ? S.STATUS_EFFECTS : S.ATTACK_EFFECTS;
+  const maxP = S.maxPowerFor(v.fx), maxA = S.maxAccuracyFor(v.power, v.fx);
+  const eg = list.find(x => x.id === v.fx.id)?.example ?? '';
   return `<div class="invent">
     <div class="field"><label class="l">Move name</label><input type="text" data-iv="label" maxlength="24" value="${esc(v.label)}" placeholder="e.g. Thunder Claw"></div>
     <div class="row2">
       <div class="field"><label class="l">Type</label><select data-iv="type">${TYPES.map(t => `<option value="${t}" ${v.type === t ? 'selected' : ''}>${cap(t)}</option>`).join('')}</select></div>
-      <div class="field"><label class="l">Kind</label><div class="radio" style="padding-top:8px">
+      <div class="field"><label class="l">Kind</label><div class="radio" style="padding-top:8px;flex-wrap:wrap">
         <label><input type="radio" name="cls" data-iv="cls" value="physical" ${v.cls === 'physical' ? 'checked' : ''}> 💥 Physical</label>
-        <label><input type="radio" name="cls" data-iv="cls" value="special" ${v.cls === 'special' ? 'checked' : ''}> 🌀 Special</label></div></div>
+        <label><input type="radio" name="cls" data-iv="cls" value="special" ${v.cls === 'special' ? 'checked' : ''}> 🌀 Special</label>
+        <label><input type="radio" name="cls" data-iv="cls" value="status" ${isStatus ? 'checked' : ''}> ✨ Status</label></div></div>
     </div>
-    <div class="field"><label class="l">Power: <b id="ivp">${v.power}</b></label>
-      <input type="range" data-iv="power" min="${S.CUSTOM_POWER_MIN}" max="${S.CUSTOM_POWER_MAX}" step="5" value="${v.power}" style="width:100%"></div>
-    <div class="field"><label class="l">Accuracy: <b id="iva">${v.acc}%</b> <span class="eff">(at most ${maxAcc}% for this power)</span></label>
-      <input type="range" data-iv="acc" min="${S.CUSTOM_ACC_MIN}" max="${maxAcc}" step="1" value="${v.acc}" style="width:100%"></div>
+    ${isStatus ? '' : `
+    <div class="field"><label class="l">Power: <b id="ivp">${v.power}</b> <span class="eff">(at most ${maxP} with this effect)</span></label>
+      <input type="range" data-iv="power" min="${S.CUSTOM_POWER_MIN}" max="${maxP}" step="5" value="${v.power}" style="width:100%"></div>
+    <div class="field"><label class="l">Accuracy: <b id="iva">${v.acc}%</b> <span class="eff">(at most ${maxA}% for this power)</span></label>
+      <input type="range" data-iv="acc" min="${S.CUSTOM_ACC_MIN}" max="${maxA}" step="1" value="${v.acc}" style="width:100%" ${v.fx.id === 'priority' ? 'disabled' : ''}></div>`}
+    <div class="field"><label class="l">${isStatus ? 'What does it do?' : 'Extra effect'}</label>
+      <select data-fxid="1">${opts(list.map(x => [x.id, x.label]), v.fx.id)}</select>
+      <div class="eff" style="margin-top:4px">Like: ${esc(eg)}</div></div>
+    ${fxParamsHtml(v.fx, isStatus)}
     <div class="note" id="ivnote"></div>
+    <div class="note" id="ivwhat" style="font-weight:800"></div>
     <div class="cmp" id="ivcmp"></div>
     <div><button class="btn primary" data-act="addinvented" id="ivadd">Add this move</button></div>
   </div>`;
 }
 
+/** Real moves that do something similar, so a made-up move can be judged against the real thing. */
+function similarReal(c) {
+  const mine = S.toEngineMove(c, 'x');
+  const feat = (m) => [m.ailment && 'a:' + m.ailment, m.drain > 0 && 'drain', m.drain < 0 && 'recoil', m.heal > 0 && 'heal',
+    m.flinch > 0 && 'flinch', m.hits && 'multi', m.critRate > 0 && 'crit', m.prio > 0 && 'prio',
+    m.stats?.length && ('s:' + (m.cat === 'damage-raise' || m.target === 'user' ? (m.stats[0].stage < 0 ? 'self-' : 'self+') : 'foe-'))].filter(Boolean);
+  const want = new Set(feat(mine));
+  return Object.values(MOVES())
+    .filter(m => !m.invented && isSimulated(m) && m.class === c.cls && (c.cls === 'status' ? m.power === 0 : m.power > 0))
+    .map(m => {
+      const f = feat(m);
+      const shared = f.filter(x => want.has(x)).length;
+      const miss = [...want].filter(x => !f.includes(x)).length + f.filter(x => !want.has(x)).length;
+      const d = c.cls === 'status' ? 0 : Math.abs(m.power - c.power) + Math.abs((m.acc ?? 100) - (c.acc ?? 100)) / 4;
+      return { m, score: d - shared * 40 + miss * 25 };
+    })
+    .sort((a, b) => a.score - b.score).slice(0, 3).map(x => x.m);
+}
+
 function syncInvent() {
   const v = state.editor.invent;
-  const maxAcc = S.maxAccuracyFor(v.power);
-  if (v.acc > maxAcc) v.acc = maxAcc;
-  $('#ivp').textContent = v.power; $('#iva').textContent = v.acc + '%';
-  const acc = $('[data-iv=acc]'); acc.max = maxAcc; acc.value = v.acc;
-  $('#ivnote').innerHTML = `<b>${S.ppFor(v.power)} PP.</b> Real moves trade power for accuracy: Thunderbolt is 90 power at 100%,
-    Fire Blast 110 at 85%, Thunder 110 at 70%. The harder it hits, the less often it lands (and the fewer times you can use it).`;
-  const near = Object.values(MOVES()).filter(m => !m.invented && m.class === v.cls && m.power > 0 && m.acc)
-    .sort((a, b) => (Math.abs(a.power - v.power) + Math.abs(a.acc - v.acc) / 4) - (Math.abs(b.power - v.power) + Math.abs(b.acc - v.acc) / 4))
-    .slice(0, 3);
-  $('#ivcmp').innerHTML = 'Similar real moves: ' + near.map(m => `<b>${esc(m.label)}</b> (${m.power} @ ${m.acc}%)`).join(', ');
+  const n = S.normalizeCustomMove(v, TYPES);
+  if (v.cls !== 'status') {
+    v.power = n.power; v.acc = n.acc;
+    if ($('#ivp')) $('#ivp').textContent = v.power;
+    if ($('#iva')) $('#iva').textContent = v.acc + '%';
+    const acc = $('[data-iv=acc]');
+    if (acc) { acc.max = S.maxAccuracyFor(v.power, v.fx); acc.value = v.acc; }
+  }
+  const worth = v.cls === 'status' ? '' : `Real moves trade power for accuracy and for extras: Thunderbolt is 90 power at 100%, Fire Blast 110 at 85%,
+    and a move that also burns, drains or raises your stats is allowed less raw power. `;
+  $('#ivnote').innerHTML = `<b>${n.pp} PP.</b> ${worth}`;
+  $('#ivwhat').textContent = n.label ? `${n.label}: ${S.describeMove(n)}` : S.describeMove(n);
+  const near = similarReal(n);
+  $('#ivcmp').innerHTML = 'Similar real moves: ' + near.map(m =>
+    `<b>${esc(m.label)}</b> (${m.power ? m.power + ' @ ' + (m.acc ?? '—') + '%' : 'status'})`).join(', ');
   $('#ivadd').disabled = !v.label.trim();
 }
 
@@ -444,6 +542,9 @@ function onEditorInput(ev) {
     else if (k === 'power') v.power = Number(t.value);
     else if (k === 'acc') v.acc = Number(t.value);
     syncInvent();
+  } else if (t.dataset.ab) {
+    // typing the name of an invented ability
+    if (t.dataset.ab === 'label') { d.customAbility.label = t.value; syncDerived(); }
   }
 }
 
@@ -466,7 +567,11 @@ async function onEditorChange(ev) {
     case 'type0': d.types[0] = t.value; if (d.types[1] === t.value) d.types.length = 1; renderEditor(); return;
     case 'type1': d.types = t.value ? [d.types[0], t.value] : [d.types[0]]; renderEditor(); return;
     case 'legendary': d.legendary = t.checked; syncDerived(); return;
-    case 'nature': case 'ability': case 'item': d[t.dataset.f] = t.value; syncDerived(); return;
+    case 'ability':
+      d.ability = t.value;
+      if (t.value === 'custom' && !d.customAbility) d.customAbility = S.normalizeCustomAbility({ kind: 'intimidate', label: '' }, TYPES);
+      renderEditor(); return;
+    case 'nature': case 'item': d[t.dataset.f] = t.value; syncDerived(); return;
     case 'template': {
       const p = DEX.find(x => String(x.id) === t.value);
       if (p) {
@@ -479,8 +584,31 @@ async function onEditorChange(ev) {
     }
   }
   if (t.dataset.mf) { e.mf[t.dataset.mf] = t.value; if (e.mf.tab === 'real') $('#mlist').innerHTML = moveRows(); }
-  if (t.dataset.iv === 'cls') { e.invent.cls = t.value; syncInvent(); }
-  if (t.dataset.iv === 'type') { e.invent.type = t.value; syncInvent(); }
+  if (t.dataset.iv === 'cls') {
+    const v = e.invent;
+    v.cls = t.value;
+    v.fx = t.value === 'status' ? { id: 'inflict', ailment: 'paralysis' } : { id: 'none' };
+    if (t.value !== 'status' && v.power < S.CUSTOM_POWER_MIN) v.power = 70;
+    renderEditor(); syncInvent(); return;
+  }
+  if (t.dataset.iv === 'type') { e.invent.type = t.value; syncInvent(); return; }
+  if (t.dataset.fxid) {                       // a different extra effect: start it from its defaults
+    e.invent.fx = { id: t.value };
+    renderEditor(); syncInvent(); return;
+  }
+  if (t.dataset.fx) {                         // one parameter of the chosen effect
+    const k = t.dataset.fx, raw = t.value;
+    e.invent.fx = { ...e.invent.fx, [k]: ['chance', 'stages', 'pct', 'prio'].includes(k) ? Number(raw) : raw };
+    if (k === 'stat2' && !raw) delete e.invent.fx.stat2;
+    renderEditor(); syncInvent(); return;
+  }
+  if (t.dataset.ab) {                         // the invented ability
+    const k = t.dataset.ab, ab = d.customAbility;
+    if (k === 'kind') d.customAbility = S.normalizeCustomAbility({ ...ab, kind: t.value }, TYPES);
+    else d.customAbility = S.normalizeCustomAbility({ ...ab, [k]: k === 'mult' ? Number(t.value) : t.value }, TYPES);
+    if (k !== 'label') { renderEditor(); }
+    return;
+  }
 }
 
 function addMove(m) {
@@ -501,6 +629,7 @@ function saveEditor() {
     stats: d.stats, nature: d.nature, ability: d.ability, item: d.item, legendary: d.legendary,
     img: d.img, created: d.created, moves: d.moves,
   };
+  if (d.ability === 'custom' && d.customAbility) mon.customAbility = d.customAbility;
   if (e.imgData) {
     const old = d.img;
     mon.img = store.newId();
@@ -524,10 +653,17 @@ function saveEditor() {
 
 /* ================================================================== battle: setup */
 
-const humanSides = () => (prefs.vs === 'pvp' ? SIDES : [store.sideById(prefs.vs)]);
+const COOP = { id: 'coop', color: '#c9a227', soft: '#fff3c4' };
+/** "Ryland & Reid", or the two team names if both have one. */
+const coopName = () => {
+  const a = store.getTeamName('ryland'), b = store.getTeamName('reid');
+  return a && b ? `${a} & ${b}` : `${SIDES[0].name} & ${SIDES[1].name}`;
+};
+const humanSides = () => (prefs.vs === 'pvp' || prefs.vs === 'coop' ? SIDES : [store.sideById(prefs.vs)]);
+const picksFor = (sd) => (prefs.vs === 'coop' ? state.coopPicks.filter(p => p.side === sd.id).map(p => p.id) : state.picks[sd.id]);
 
 function avgPickLevel() {
-  const lv = humanSides().flatMap(sd => state.picks[sd.id].map(id => state.teams[sd.id].find(m => m.id === id)?.level)).filter(Boolean);
+  const lv = humanSides().flatMap(sd => picksFor(sd).map(id => state.teams[sd.id].find(m => m.id === id)?.level)).filter(Boolean);
   return lv.length ? Math.round(lv.reduce((n, x) => n + x, 0) / lv.length) : 50;
 }
 
@@ -540,9 +676,12 @@ function rollCpu() {
 function pickColumn(s) {
   const list = state.teams[s.id];
   return `<section class="side" style="--c:${s.color}">
-    <header><h3>${esc(store.teamLabel(s))}</h3><span class="count">${state.picks[s.id].length} picked</span></header>
+    <header><h3>${esc(store.teamLabel(s))}</h3><span class="count">${picksFor(s).length} picked</span></header>
     ${list.length ? `<div class="pickgrid">${list.map(mon => {
-      const idx = state.picks[s.id].indexOf(mon.id), a = artBox(mon);
+      const idx = prefs.vs === 'coop'
+        ? state.coopPicks.findIndex(p => p.id === mon.id)       // one shared order across both rosters
+        : state.picks[s.id].indexOf(mon.id);
+      const a = artBox(mon);
       return `<button class="pick ${idx >= 0 ? 'on' : ''}" style="--c:${s.color};--soft:${s.soft};${a.style}" data-act="pick" data-side="${s.id}" data-id="${mon.id}">
         <span class="order">${idx + 1}</span>
         <div class="art">${a.inner}</div><h4>${esc(mon.name)}</h4>
@@ -554,7 +693,7 @@ function pickColumn(s) {
 function cpuColumn() {
   const c = CPU.CPU_SIDE, team = state.cpu.team;
   const label = (k) => MOVES()[k]?.label ?? k;
-  return `<section class="side" style="--c:${c.color}">
+  return `<section class="side" style="--c:${c.color}${prefs.vs === 'coop' ? ';grid-column:1/-1' : ''}">
     <header style="flex-wrap:wrap"><h3>🤖 Computer</h3><span class="count">${team.length} Pokémon</span>
       <button class="btn small" data-act="reroll" style="margin-left:auto">🎲 New team</button></header>
     <div class="cpubar">
@@ -575,8 +714,11 @@ function cpuColumn() {
 function renderBattleSetup() {
   const humans = humanSides();
   if (prefs.vs !== 'pvp' && !state.cpu.team.length) rollCpu();
-  const ready = humans.every(s => state.picks[s.id].length > 0) && (prefs.vs === 'pvp' || state.cpu.team.length > 0);
-  const sizes = prefs.vs === 'pvp' ? SIDES.map(s => state.picks[s.id].length) : [state.picks[prefs.vs].length, state.cpu.team.length];
+  const coop = prefs.vs === 'coop';
+  const ready = coop ? state.coopPicks.length > 0 && state.cpu.team.length > 0
+    : humans.every(s => state.picks[s.id].length > 0) && (prefs.vs === 'pvp' || state.cpu.team.length > 0);
+  const sizes = prefs.vs === 'pvp' ? SIDES.map(s => state.picks[s.id].length)
+    : [coop ? state.coopPicks.length : state.picks[prefs.vs].length, state.cpu.team.length];
   const mode = !ready ? '' : (sizes[0] === 1 && sizes[1] === 1 ? 'Duel' : `Team battle · ${sizes[0]} vs ${sizes[1]}`);
   const opt = (v, text) => `<button class="btn ${prefs.vs === v ? 'primary' : ''}" data-act="vs" data-vs="${v}">${text}</button>`;
   $('#app').innerHTML = `
@@ -585,8 +727,11 @@ function renderBattleSetup() {
       ${opt('pvp', `${esc(SIDES[0].name)} vs ${esc(SIDES[1].name)}`)}
       ${opt('ryland', `${esc(SIDES[0].name)} vs 🤖 Computer`)}
       ${opt('reid', `${esc(SIDES[1].name)} vs 🤖 Computer`)}
+      ${opt('coop', `🤝 ${esc(SIDES[0].name)} + ${esc(SIDES[1].name)} vs 🤖 Computer`)}
     </div>
-    <p class="sub">Tap Pokémon to add them. Pick one for a duel, or several for a team battle — the order you tap is the order they’re sent out.</p>
+    <p class="sub">${coop
+      ? `Teaming up! Tap Pokémon from <b>either</b> team — up to 6 between you. The order you tap is the order they’re sent out.`
+      : `Tap Pokémon to add them. Pick one for a duel, or several for a team battle — the order you tap is the order they’re sent out.`}</p>
     <div class="teams">${humans.map(pickColumn).join('')}${prefs.vs === 'pvp' ? '' : cpuColumn()}</div>
     <div class="setupbar">
       <label>Levels <select id="levelmode">
@@ -605,6 +750,12 @@ function startBattle() {
   const human = (sd) => ({ side: { ...sd, name: store.getTeamName(sd.id) || sd.name, owner: sd.name }, mons: pickMons(sd) });
   if (prefs.vs === 'pvp') {
     lineups = SIDES.map(human);
+  } else if (prefs.vs === 'coop') {
+    if (!state.cpu.team.length) rollCpu();
+    const mons = state.coopPicks.map(p => state.teams[p.side].find(m => m.id === p.id)).filter(Boolean);
+    lineups = [{ side: { ...COOP, name: coopName(), owner: coopName(), coop: true, plural: true }, mons },
+               { side: { ...CPU.CPU_SIDE, owner: 'Computer' }, mons: state.cpu.team }];
+    cpuIdx = 1;
   } else {
     if (!state.cpu.team.length) rollCpu();
     lineups = [human(store.sideById(prefs.vs)), { side: { ...CPU.CPU_SIDE, owner: 'Computer' }, mons: state.cpu.team }];
@@ -626,20 +777,33 @@ function beginMatch(lineups, cpuIdx) {
 
 function hpClass(pct) { return pct <= 20 ? 'low' : pct <= 50 ? 'mid' : ''; }
 
+/** "✨ Thunder Aura" under a Pokémon's name, so the kids can see why something just happened. */
+function abilityLine(b) {
+  const key = b.ability;
+  if (!key || key === 'none') return '';
+  const name = key.startsWith('custom-ab-') ? (b.mon.customAbility?.label || 'Its ability') : pretty(key);
+  return `<div class="eff" style="margin-top:3px">✨ ${esc(name)}</div>`;
+}
+
 function fighterHtml(i) {
   const bs = state.bs, m = bs.match, side = m.sides[i], b = side.active, snap = B.snapshot(b);
   const a = artBox(b.mon);
-  const pips = side.team.map(x => `<span class="pip ${x.fainted ? 'out' : ''} ${x === b ? 'cur' : ''}" title="${esc(x.name)}"></span>`).join('');
+  const ownerOf = (x) => (side.coop ? store.sideById(x.mon.side) : null);   // a shared side mixes two owners
+  const col = ownerOf(b)?.color ?? side.color;
+  const pips = side.team.map(x => `<span class="pip ${x.fainted ? 'out' : ''} ${x === b ? 'cur' : ''}"
+    style="${x.fainted ? '' : `background:${ownerOf(x)?.color ?? side.color}`}" title="${esc(x.name)}${ownerOf(x) ? ' — ' + esc(ownerOf(x).name) + '’s' : ''}"></span>`).join('');
   const badges = [
     snap.status && `<span class="badge status">${snap.status}</span>`,
     snap.confused && `<span class="badge status">confused</span>`,
     ...snap.stages.map(s => `<span class="badge ${s.v > 0 ? 'up' : 'down'}">${B.esc((({ atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe', acc: 'Acc', eva: 'Eva' })[s.stat]))} ${s.v > 0 ? '+' : ''}${s.v}</span>`),
   ].filter(Boolean).join('');
-  return `<section class="fighter ${snap.fainted ? 'fainted' : ''}" style="--c:${side.color}">
+  return `<section class="fighter ${snap.fainted ? 'fainted' : ''}" style="--c:${col}">
     <div class="who">
       <div class="art" style="${a.style}">${a.inner}</div>
-      <div><div class="trainer">${esc(side.name)}${side.owner && side.owner !== side.name ? ` <span class="eff">· ${esc(side.owner)}</span>` : ''}</div><h3>${esc(b.name)}</h3>
-        <div>${b.types.map(chip).join(' ')} <span class="eff">Lv ${b.level}</span></div></div>
+      <div><div class="trainer">${esc(side.name)}${side.coop ? ` <span class="eff">· ${esc(ownerOf(b).name)}’s</span>`
+      : side.owner && side.owner !== side.name ? ` <span class="eff">· ${esc(side.owner)}</span>` : ''}</div><h3>${esc(b.name)}</h3>
+        <div>${b.types.map(chip).join(' ')} <span class="eff">Lv ${b.level}</span></div>
+        ${abilityLine(b)}</div>
     </div>
     <div class="hp"><div class="bar"><i class="${hpClass(snap.pct)}" style="width:${snap.pct}%"></i></div>
       <div class="txt"><span>HP ${snap.hp} / ${snap.maxHp}</span><span>${snap.pct}%</span></div></div>
@@ -660,7 +824,7 @@ function actionsHtml(i) {
     if (!side.needSwitch) return `<div class="actions"><h5>Waiting for the other side to pick…</h5></div>`;
     const alive = side.team.map((b, idx) => ({ b, idx })).filter(x => !x.b.fainted && x.b !== side.active);
     return `<div class="actions"><h5>${esc(side.name)}: who comes in?</h5><div class="bench">${alive.map(x => `
-      <button class="benchbtn ${bs.picks[i] === x.idx ? 'chosen' : ''}" style="--c:${side.color};--soft:${store.sideById(side.id).soft}" data-act="replace" data-side="${i}" data-idx="${x.idx}">
+      <button class="benchbtn ${bs.picks[i] === x.idx ? 'chosen' : ''}" style="--c:${side.color};--soft:${(store.sideById(side.id) ?? COOP).soft}" data-act="replace" data-side="${i}" data-idx="${x.idx}">
         <b>${esc(x.b.name)}</b><span class="hpmini">${x.b.hp}/${x.b.maxHp} HP · Lv ${x.b.level}</span></button>`).join('')}</div></div>`;
   }
   const o = B.options(m, i, { hints: prefs.hints });
@@ -670,14 +834,15 @@ function actionsHtml(i) {
       ? (mv.mult === 0 ? `<span class="hint imm">No effect</span>` : mv.mult > 1 ? `<span class="hint sup">Super effective ×${mv.mult}</span>`
         : mv.mult < 1 ? `<span class="hint res">Not very effective ×${mv.mult}</span>` : '') : '';
     return `<button class="move ${ch?.type === 'move' && ch.move === mv.key ? 'chosen' : ''}" style="--mc:${TYPE_COLOR[mv.type]}"
-        data-act="move" data-side="${i}" data-key="${mv.key}" ${mv.disabled ? 'disabled' : ''}>
+        data-act="move" data-side="${i}" data-key="${mv.key}" ${mv.disabled ? 'disabled' : ''} title="${esc(mv.short || '')}">
         <b>${esc(mv.label)}</b>
         <span class="info">${chip(mv.type)} ${CLASS_ICON[mv.cls] ?? ''} ${mv.power ? mv.power + ' pow' : 'status'} · ${mv.acc ? mv.acc + '%' : '—'} · PP ${mv.pp}/${mv.maxPp}${mv.locked ? ' · 🔒 locked' : ''}</span>${hint}</button>`;
   }).join('');
   const bench = o.bench.length ? `<h5>Or switch</h5><div class="bench">${o.bench.map(x => `
-      <button class="benchbtn ${ch?.type === 'switch' && ch.to === x.idx ? 'chosen' : ''}" style="--c:${side.color};--soft:${store.sideById(side.id).soft}" data-act="switch" data-side="${i}" data-idx="${x.idx}">
+      <button class="benchbtn ${ch?.type === 'switch' && ch.to === x.idx ? 'chosen' : ''}" style="--c:${side.color};--soft:${(store.sideById(side.id) ?? COOP).soft}" data-act="switch" data-side="${i}" data-idx="${x.idx}">
         <b>${esc(x.name)}</b><span class="hpmini">${x.hp}/${x.maxHp} HP · Lv ${x.level}${x.status ? ' · ' + x.status : ''}</span></button>`).join('')}</div>` : '';
-  return `<div class="actions"><h5>${esc(side.name)} chooses <button class="btn small" data-act="random" data-side="${i}" style="margin-left:6px">🎲 random</button></h5>
+  const who = side.coop ? `${esc(store.sideById(side.active.mon.side).name)} chooses for ${esc(side.active.name)}` : `${esc(side.name)} chooses`;
+  return `<div class="actions"><h5>${who} <button class="btn small" data-act="random" data-side="${i}" style="margin-left:6px">🎲 random</button></h5>
     <div class="moves">${moves}</div>${bench}</div>`;
 }
 
@@ -712,15 +877,76 @@ function renderBattle() {
       <button class="btn primary fight" data-act="sendout" ${ready ? '' : 'disabled'}>Send them out</button></div>`;
   } else {
     const r = B.summary(m);
-    center = `<div class="winner"><h2>${r.draw ? '🤝 It’s a draw!' : `🏆 ${esc(r.winner.name)} wins!`}</h2>
+    center = `<div class="winner"><h2>${r.draw ? '🤝 It’s a draw!' : `🏆 ${esc(r.winner.name)} ${r.winner.plural ? 'win' : 'wins'}!`}</h2>
       <div>${r.turns} turns · ${r.standing.map(s => `${esc(s.name)}: ${s.alive} of ${s.total} standing`).join(' · ')}</div>
       <div class="center"><button class="btn primary" data-act="rematch">Rematch</button>
         ${bs.cpuIdx >= 0 ? `<button class="btn" data-act="rematch-new">Rematch vs a new computer team</button>` : ''}
         <button class="btn" data-act="tosetup">Pick different fighters</button></div></div>`;
   }
-  $('#app').innerHTML = `<div class="arena">${fighterHtml(0)}${fighterHtml(1)}</div>${center}
+  $('#app').innerHTML = `${Stage.stageHtml(m, artBox, { enter: !bs.shownOnce })}<div class="arena">${fighterHtml(0)}${fighterHtml(1)}</div>${center}
     <div class="log">${logHtml()}</div>
-    <div class="center"><button class="btn small" data-act="tosetup">← Leave battle</button></div>`;
+    <div class="center"><button class="btn small" data-act="tosetup">← Leave battle</button>
+      <button class="btn small" data-act="anim">🎬 Animations: ${prefs.anim ? 'on' : 'off'}</button></div>`;
+  bs.shownOnce = true;
+}
+
+/* ---- replaying a turn on the stage */
+
+const reducedMotion = () => globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+/** HP of every battler right now, by name, so the replay can start from "before the turn". */
+function hpMap(m) {
+  const map = new Map();
+  for (const sd of m.sides) for (const b of sd.team) map.set(b.name, b.hp);
+  return map;
+}
+
+/**
+ * Run `act` (which changes the match), then replay the events it produced on the stage before the
+ * screen is redrawn from the new state. Clicks are ignored while it plays.
+ */
+async function withReplay(act) {
+  const bs = state.bs, m = bs.match;
+  const hp = hpMap(m), n0 = m.history.length;
+  const pre = m.sides.map(sd => sd.active.name);
+  act();
+  const events = m.history.slice(n0).flatMap(h => h.events);
+  if (!prefs.anim || reducedMotion() || !document.getElementById('stage') || !events.length) { renderBattle(); return; }
+  // the stage still shows the pre-turn actives; remember their names for the replay
+  const root = document.getElementById('stage');
+  root.dataset.n0 = pre[0]; root.dataset.n1 = pre[1];
+  bs.busy = true;
+  const control = { skipped: false };
+  bs.skip = () => { control.skipped = true; };
+  const guard = setTimeout(() => { control.skipped = true; }, 30000);
+  const classOf = (label) => {
+    const mv = Object.values(W.PL_MOVES).find(x => x.label === label);
+    return mv?.class === 'special' ? 'special' : mv?.class === 'status' || mv?.power === 0 ? 'status' : 'physical';
+  };
+  try {
+    await Stage.play(events, {
+      match: m, hp, control, art: artBox, typeColor: (t) => TYPE_COLOR[t] ?? '#fff', moveClass: classOf,
+      narrate: (ev) => B.narrate(ev, m),
+      refreshPanel: (i) => {
+        const old = document.querySelectorAll('.arena .fighter')[i];
+        if (old) old.outerHTML = fighterHtml(i);
+      },
+      setPanelHp: (i, v, max) => {
+        const f = document.querySelectorAll('.arena .fighter')[i];
+        if (!f) return;
+        const mx = max || Number((f.querySelector('.hp .txt span')?.textContent.match(/\/ (\d+)/) ?? [])[1]) || 1;
+        const pct = Math.max(0, Math.round((v / mx) * 100));
+        const bar = f.querySelector('.hp .bar i');
+        if (bar) { bar.style.width = pct + '%'; bar.className = hpClass(pct); }
+        const t = f.querySelectorAll('.hp .txt span');
+        if (t[0]) t[0].textContent = `HP ${Math.max(0, v)} / ${mx}`;
+        if (t[1]) t[1].textContent = pct + '%';
+      },
+    });
+  } catch { /* decoration only */ }
+  clearTimeout(guard);
+  bs.busy = false; bs.skip = null;
+  if (state.bs === bs) renderBattle();
 }
 
 function autoPickReplacements() {
@@ -745,11 +971,13 @@ function autoPickReplacements() {
 function resolveTurn() {
   const bs = state.bs;
   if (bs.cpuIdx >= 0) bs.choices[bs.cpuIdx] = CPU.choose(bs.match, bs.cpuIdx, bs.skill);
-  try { B.playTurn(bs.match, bs.choices); }
-  catch (err) { toast(err.message); return; }
-  bs.choices = [null, null];
-  autoPickReplacements();
-  renderBattle();
+  const choices = bs.choices;
+  withReplay(() => {
+    try { B.playTurn(bs.match, choices); }
+    catch (err) { toast(err.message); return; }
+    bs.choices = [null, null];
+    autoPickReplacements();
+  });
 }
 
 /* ================================================================== routing + events */
@@ -769,6 +997,7 @@ document.addEventListener('click', (ev) => {
     state.tab = t.dataset.tab; render(); return;
   }
   const act = t.dataset.act, side = t.dataset.side, id = t.dataset.id;
+  if (state.bs?.busy && act !== 'skip') return;
   const e = state.editor;
   switch (act) {
     case 'new': openEditor(side); break;
@@ -800,11 +1029,18 @@ document.addEventListener('click', (ev) => {
     case 'addinvented': {
       const c = S.normalizeCustomMove(e.invent, TYPES);
       if (!c.label) { toast('Give the move a name first.'); break; }
-      e.invent = { label: '', type: 'normal', cls: 'physical', power: 70, acc: 100 };
+      e.invent = newInvent();
       addMove({ custom: c });
       break;
     }
     case 'pick': {
+      if (prefs.vs === 'coop') {
+        const k = state.coopPicks.findIndex(p => p.id === id);
+        if (k >= 0) state.coopPicks.splice(k, 1);
+        else if (state.coopPicks.length < 6) state.coopPicks.push({ side, id });
+        else toast('A team can have up to 6.');
+        renderBattleSetup(); break;
+      }
       const arr = state.picks[side], i = arr.indexOf(id);
       if (i >= 0) arr.splice(i, 1); else if (arr.length < 6) arr.push(id); else toast('A team can have up to 6.');
       renderBattleSetup(); break;
@@ -818,8 +1054,12 @@ document.addEventListener('click', (ev) => {
     case 'resolve': resolveTurn(); break;
     case 'replace': { state.bs.picks[Number(side)] = Number(t.dataset.idx); renderBattle(); break; }
     case 'sendout': {
-      try { B.replace(state.bs.match, state.bs.picks); } catch (err) { toast(err.message); break; }
-      autoPickReplacements(); renderBattle(); break;
+      const bs = state.bs;
+      withReplay(() => {
+        try { B.replace(bs.match, bs.picks); } catch (err) { toast(err.message); return; }
+        autoPickReplacements();
+      });
+      break;
     }
     case 'rematch': beginMatch(state.bs.lineups, state.bs.cpuIdx); break;
     case 'rematch-new': {
@@ -829,7 +1069,9 @@ document.addEventListener('click', (ev) => {
       beginMatch(lineups, state.bs.cpuIdx);
       break;
     }
-    case 'tosetup': state.bs = null; renderBattleSetup(); break;
+    case 'tosetup': if (state.bs?.busy) break; state.bs = null; renderBattleSetup(); break;
+    case 'skip': state.bs?.skip?.(); break;
+    case 'anim': prefs.anim = !prefs.anim; savePrefs(); if (state.bs && !state.bs.busy) renderBattle(); break;
   }
 });
 

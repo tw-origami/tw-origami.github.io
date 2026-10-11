@@ -61,11 +61,11 @@ function uniqueNames(sides) {
 }
 
 function buildBattler(mon, sideIdx, levelMode) {
-  const { dex, moveKeys } = prepareForBattle(mon);
+  const { dex, moveKeys, ability } = prepareForBattle(mon);
   const level = levelMode === 'own' ? mon.level : levelMode;
   const b = E.makeBattler(
     { dex, level, hp: party.maxHp(dex, level) },
-    { moves: moveKeys, nature: mon.nature || 'serious', ability: mon.ability || 'none', item: mon.item || 'none' });
+    { moves: moveKeys, nature: mon.nature || 'serious', ability, item: mon.item || 'none' });
   b.mon = mon;
   b.sideIdx = sideIdx;
   return b;
@@ -78,6 +78,8 @@ function buildBattler(mon, sideIdx, levelMode) {
 export function createMatch(lineups, { levelMode = 'own' } = {}) {
   const sides = lineups.map((l, i) => ({
     id: l.side.id, name: l.side.name, owner: l.side.owner ?? l.side.name, color: l.side.color,
+    plural: !!l.side.plural,        // "Ryland & Reid" take a plural verb — they win, they send out
+    coop: !!l.side.coop,            // one side made of Pokémon from more than one owner
     team: l.mons.map(m => buildBattler(m, i, levelMode)),
     active: null, needSwitch: false, defeated: false,
   }));
@@ -294,11 +296,12 @@ const EFF = (m) => m === 0 ? "It had no effect…" : m >= 4 ? 'It’s doubly sup
 export function narrate(ev, match) {
   const who = (n) => `<b>${esc(n)}</b>`;
   const side = (i) => esc(match.sides[i].name);
+  const verb = (i, one, many) => (match.sides[i].plural ? many : one);
   switch (ev.t) {
-    case 'lead': return `${side(ev.side)} sends out ${who(ev.name)}!`;
+    case 'lead': return `${side(ev.side)} ${verb(ev.side, 'sends', 'send')} out ${who(ev.name)}!`;
     case 'sendOut': return ev.from
-      ? `${side(ev.side)} pulls back ${who(ev.from)} and sends out ${who(ev.name)}!`
-      : `${side(ev.side)} sends out ${who(ev.name)}!`;
+      ? `${side(ev.side)} ${verb(ev.side, 'pulls', 'pull')} back ${who(ev.from)} and ${verb(ev.side, 'sends', 'send')} out ${who(ev.name)}!`
+      : `${side(ev.side)} ${verb(ev.side, 'sends', 'send')} out ${who(ev.name)}!`;
     case 'charge': return `${who(ev.who)} is gathering power for <b>${esc(ev.move)}</b>!`;
     case 'recharge': return `${who(ev.who)} has to recharge — it can't move!`;
     case 'turn': return null;
