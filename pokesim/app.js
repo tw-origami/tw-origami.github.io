@@ -116,6 +116,7 @@ function renderTeams() {
           <button class="btn small" data-act="rename" data-side="${s.id}" title="Give ${esc(s.name)}’s team a name">✏️</button>
           <span class="count">${list.length} Pokémon</span>
           <button class="btn small ${s.id === 'ryland' ? 'ry' : 're'}" data-act="new" data-side="${s.id}">+ New Pokémon</button></header>
+        ${store.unreadable(s.id).length ? `<div class="eff" style="margin-bottom:8px">⚠️ ${store.unreadable(s.id).length} saved Pokémon couldn’t be read. It’s still safe in storage — it hasn’t been deleted.</div>` : ''}
         ${list.length ? `<div class="mons">${list.map(monCard).join('')}</div>`
           : `<div class="empty">No Pokémon yet.<br>Tap <b>+ New Pokémon</b> to invent ${esc(s.name)}’s first one.</div>`}
       </section>`;
@@ -126,7 +127,58 @@ function renderTeams() {
 
 const BLANK_STATS = { hp: 80, atk: 80, def: 80, spa: 80, spd: 80, spe: 80 };
 
+/* A half-made Pokémon is kept as the kid goes, so a reload, an accidental close or an update
+   landing mid-edit doesn't throw their work away. Local to this device (not synced) and thrown
+   away once the Pokémon is actually saved. */
+const draftKey = (side) => `pokesimDraft|${side}`;
+let draftTimer = null;
+function scheduleDraftSave() {
+  const e = state.editor;
+  if (!e || !e.isNew) return;
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(draftKey(e.d.side), JSON.stringify({ d: e.d, imgData: e.imgData, invent: e.invent, at: Date.now() }));
+    } catch { /* storage full or blocked — nothing more to do */ }
+  }, 350);
+}
+function takeDraft(side) {
+  try {
+    const raw = localStorage.getItem(draftKey(side));
+    if (!raw) return null;
+    const x = JSON.parse(raw);
+    return x && x.d && x.d.side === side ? x : null;
+  } catch { return null; }
+}
+const clearDraft = (side) => { clearTimeout(draftTimer); try { localStorage.removeItem(draftKey(side)); } catch { /* ignore */ } };
+
 function openEditor(sideId, mon = null) {
+  // A move can disappear if the move list changes later. Drop it with a clear note rather than
+  // leaving a slot the editor can't draw — everything else about the Pokémon is kept as it was.
+  let gone = 0;
+  if (mon) {
+    const kept = mon.moves.filter(m => m.custom || MOVES()[m.real]);
+    gone = mon.moves.length - kept.length;
+    if (gone) mon = { ...mon, moves: kept };
+  }
+  if (gone) toast(`${gone} move${gone > 1 ? 's are' : ' is'} no longer available — pick ${gone > 1 ? 'replacements' : 'a replacement'}.`, 5000);
+
+  if (!mon) {
+    const draft = takeDraft(sideId);
+    if (draft && (draft.d.name?.trim() || draft.d.moves?.length || draft.imgData)) {
+      const label = draft.d.name?.trim() ? `“${draft.d.name.trim()}”` : 'a Pokémon';
+      if (confirm(`You were in the middle of making ${label}. Carry on with it?`)) {
+        state.editor = {
+          view: 'form', isNew: true, d: draft.d, imgData: draft.imgData ?? null, imgRemoved: false,
+          mf: { q: '', type: '', cls: '', tab: 'real' },
+          invent: draft.invent ?? { label: '', type: 'normal', cls: 'physical', power: 70, acc: 100 },
+        };
+        renderEditor();
+        return;
+      }
+      clearDraft(sideId);
+    }
+  }
   state.editor = {
     view: 'form',
     isNew: !mon,
@@ -370,6 +422,7 @@ function syncInvent() {
 
 function onEditorInput(ev) {
   const e = state.editor; if (!e) return;
+  scheduleDraftSave();
   const t = ev.target, d = e.d;
   if (t.dataset.stat) {
     const k = t.dataset.stat;
@@ -394,6 +447,7 @@ function onEditorInput(ev) {
 
 async function onEditorChange(ev) {
   const e = state.editor; if (!e) return;
+  scheduleDraftSave();
   const t = ev.target, d = e.d;
   if (t.id === 'file') {
     const file = t.files?.[0];
@@ -401,6 +455,7 @@ async function onEditorChange(ev) {
     try {
       e.imgData = await store.processImageFile(file);
       e.imgRemoved = false;
+      scheduleDraftSave();
       $('#pic').innerHTML = `<img src="${e.imgData}" alt="">`;
     } catch (err) { toast(err.message || 'Could not read that picture.'); }
     return;
@@ -427,6 +482,7 @@ async function onEditorChange(ev) {
 }
 
 function addMove(m) {
+  scheduleDraftSave();
   const d = state.editor.d;
   if (d.moves.length >= S.MAX_MOVES) { toast(`A Pokémon can only know ${S.MAX_MOVES} moves.`); return; }
   d.moves.push(m);
@@ -456,6 +512,7 @@ function saveEditor() {
     mon.img = '';
   }
   const len = store.saveMon(mon);
+  clearDraft(mon.side);
   if (len > 1500) toast('That Pokémon is unusually large — it may be slow to sync.');
   closeEditor();
   refreshTeams();
@@ -661,10 +718,10 @@ document.addEventListener('click', (ev) => {
     case 'close': closeEditor(); break;
     case 'save': saveEditor(); break;
     case 'rmpic': if (e) { e.imgData = null; e.imgRemoved = true; renderEditor(); } break;
-    case 'fit': if (e) { e.d.stats = S.scaleToBudget(e.d.stats, e.d.legendary); renderEditor(); } break;
+    case 'fit': if (e) { e.d.stats = S.scaleToBudget(e.d.stats, e.d.legendary); scheduleDraftSave(); renderEditor(); } break;
     case 'addmove': if (e) { e.view = 'moves'; renderEditor(); } break;
     case 'backform': if (e) { e.view = 'form'; renderEditor(); } break;
-    case 'rmmove': if (e) { e.d.moves.splice(Number(t.dataset.i), 1); syncDerived(); } break;
+    case 'rmmove': if (e) { e.d.moves.splice(Number(t.dataset.i), 1); scheduleDraftSave(); syncDerived(); } break;
     case 'mtab': if (e) { e.mf.tab = t.dataset.mtab; renderEditor(); if (e.mf.tab === 'invent') syncInvent(); } break;
     case 'pickmove': addMove({ real: t.dataset.move }); break;
     case 'addinvented': {

@@ -66,9 +66,15 @@ export function dexIdFor(id) {
 /* ------------------------------------------------------------------ the record */
 
 /** In-memory shape → the compact JSON that is stored and synced. */
+export const RECORD_VERSION = 1;
+// Keys this version of the code understands. Anything else found on a stored record is kept
+// verbatim and written back, so an older copy of the page editing a newer record can't strip it.
+const KNOWN = new Set(['v', 'n', 't', 'l', 's', 'c', 'm', 'nt', 'ab', 'it', 'lg', 'im']);
+
 export function toRecord(mon) {
   const rec = {
-    v: 1,
+    ...(mon._extra ?? {}),
+    v: Math.max(RECORD_VERSION, Number(mon._extra?.v) || 0),
     n: mon.name,
     t: mon.types,
     l: mon.level,
@@ -86,18 +92,38 @@ export function toRecord(mon) {
   return JSON.stringify(rec);
 }
 
+/**
+ * Read a stored record back into a Pokémon. This is deliberately forgiving: the only thing that
+ * makes it return null is text that isn't a JSON object at all. A Pokémon that was valid when a
+ * kid made it must keep showing up after the design changes, so every field falls back to a
+ * sensible default rather than rejecting the whole record:
+ *   - any version number is accepted, and unknown fields are carried along untouched;
+ *   - a type the game no longer knows becomes Normal instead of making it vanish;
+ *   - stats can be missing, extra or out of range — they're clamped, not refused;
+ *   - a move that has since been removed is dealt with by the editor, not here.
+ * Whether it is still within TODAY'S rules only matters if someone edits it; battles never
+ * re-check, so an old Pokémon always plays.
+ */
 export function fromRecord(side, id, text, validTypes) {
   let r;
   try { r = JSON.parse(text); } catch { return null; }
-  if (!r || r.v !== 1 || !Array.isArray(r.s) || r.s.length !== 6) return null;
-  const types = (r.t || []).filter(t => validTypes.includes(t)).slice(0, 2);
-  if (!types.length) return null;
+  if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
+
+  const types = (Array.isArray(r.t) ? r.t : []).filter(t => validTypes.includes(t)).slice(0, 2);
+  if (!types.length) types.push('normal');
+
   const stats = {};
-  STAT_KEYS.forEach((k, i) => { stats[k] = clamp(Math.round(Number(r.s[i]) || 1), 1, 255); });
-  const moves = (r.m || []).slice(0, 4).map(m => typeof m === 'string'
-    ? { real: m }
-    : { custom: normalizeCustomMove({ label: m.n, type: m.t, cls: m.k === 's' ? 'special' : 'physical', power: m.p, acc: m.a }, validTypes) });
-  return {
+  const src = Array.isArray(r.s) ? r.s : [];
+  STAT_KEYS.forEach((k, i) => { stats[k] = clamp(Math.round(Number(src[i]) || 60), 1, 255); });
+
+  const moves = (Array.isArray(r.m) ? r.m : []).slice(0, 4).filter(m => m && (typeof m === 'string' || typeof m === 'object')).map(m =>
+    typeof m === 'string'
+      ? { real: m }
+      : { custom: normalizeCustomMove({ label: m.n, type: m.t, cls: m.k === 's' ? 'special' : 'physical', power: m.p, acc: m.a }, validTypes) });
+
+  const extra = {};
+  for (const k of Object.keys(r)) if (!KNOWN.has(k)) extra[k] = r[k];
+  const mon = {
     id, side,
     name: String(r.n ?? '').slice(0, 20) || 'Unnamed',
     types,
@@ -107,10 +133,24 @@ export function fromRecord(side, id, text, validTypes) {
     ability: r.ab || 'none',
     item: r.it || 'none',
     legendary: !!r.lg,
-    img: r.im || '',
+    img: typeof r.im === 'string' ? r.im : '',
     created: Number(r.c) || 0,
     moves,
   };
+  if (Object.keys(extra).length) mon._extra = extra;
+  if (Number(r.v) > RECORD_VERSION) (mon._extra ??= {}).v = Number(r.v);
+  return mon;
+}
+
+/** Stored Pokémon that can't be read at all (not even as JSON) — kept in storage, never deleted. */
+export function unreadable(side) {
+  const store = ls(), pre = `${PREFIX}${side}|`, out = [];
+  for (let i = 0; i < store.length; i++) {
+    const k = store.key(i);
+    if (!k || k.indexOf(pre) !== 0) continue;
+    if (fromRecord(side, k.slice(pre.length), store.getItem(k), []) === null) out.push(k);
+  }
+  return out;
 }
 
 /* ------------------------------------------------------------------ the team */

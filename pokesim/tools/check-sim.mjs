@@ -45,6 +45,16 @@ const mk = (side, name, types, st, moves, over = {}) => ({
   moves: moves.map(m => (typeof m === 'string' ? { real: m } : { custom: m })), ...over,
 });
 
+// referee helpers (used by several sections below)
+const duel = (a, b, opts) => {
+  const m = B.createMatch([{ side: { id: 'ryland', name: 'Ryland', color: '#00f' }, mons: Array.isArray(a) ? a : [a] },
+                           { side: { id: 'reid', name: 'Reid', color: '#0a0' }, mons: Array.isArray(b) ? b : [b] }], opts);
+  B.startMatch(m);
+  return m;
+};
+const mv = (key) => ({ type: 'move', move: key });
+const dmgOf = (events, who) => events.filter(e => e.t === 'damage' && e.who === who).reduce((n, e) => n + e.dmg, 0);
+
 /* ==================================================================== */
 section('the very first thing: registering an invented species must not hide the real ones');
 
@@ -206,12 +216,81 @@ check('the same Pokémon id always maps to the same dex number, clear of the rea
   for (const id of ['a', 'zzzz', 'm1', Date.now().toString(36)]) assert.ok(store.dexIdFor(id) >= 100000);
 });
 
-check('garbage from the sync never becomes a Pokémon', () => {
+check('text that is not a Pokémon at all is never shown, and is reported rather than deleted', () => {
   assert.equal(store.fromRecord('ryland', 'x', 'not json', TYPES), null);
-  assert.equal(store.fromRecord('ryland', 'x', '{"v":2}', TYPES), null);
-  assert.equal(store.fromRecord('ryland', 'x', JSON.stringify({ v: 1, n: 'X', t: ['bogus'], s: [1, 1, 1, 1, 1, 1], m: ['tackle'] }), TYPES), null);
+  assert.equal(store.fromRecord('ryland', 'x', '[1,2,3]', TYPES), null);
+  assert.equal(store.fromRecord('ryland', 'x', '"just a string"', TYPES), null);
+  localStorage.setItem('lzPokesim|ryland|broken1', '{{{ not json');
+  assert.deepEqual(store.unreadable('ryland'), ['lzPokesim|ryland|broken1']);
+  assert.equal(localStorage.getItem('lzPokesim|ryland|broken1'), '{{{ not json', 'it is still in storage');
+  localStorage.removeItem('lzPokesim|ryland|broken1');
+});
+
+check('wild values are clamped, not refused', () => {
   const wild = store.fromRecord('ryland', 'x', JSON.stringify({ v: 1, n: 'X'.repeat(99), t: ['fire'], l: 9999, s: [999, -5, 'a', 1, 1, 1], m: ['tackle'] }), TYPES);
   assert.equal(wild.name.length, 20); assert.equal(wild.level, 100); assert.equal(wild.stats.hp, 255); assert.equal(wild.stats.atk, 1);
+});
+
+section('updates must never hide a kid\'s Pokémon');
+
+check('a record written by a NEWER version still loads', () => {
+  const m = store.fromRecord('ryland', 'fut', JSON.stringify({ v: 7, n: 'Futuristic', t: ['fire'], l: 40,
+    s: [70, 70, 70, 70, 70, 70], m: ['ember'], c: 5 }), TYPES);
+  assert.ok(m, 'a future version must not be rejected');
+  assert.equal(m.name, 'Futuristic'); assert.equal(m.level, 40);
+});
+
+check('fields a newer version added survive an edit by older code', () => {
+  const text = JSON.stringify({ v: 9, n: 'Future', t: ['water'], l: 50, s: [60, 60, 60, 60, 60, 60], m: ['surf'], c: 1,
+    shiny: true, form: 'alolan', trainerNote: 'brave' });
+  const m = store.fromRecord('reid', 'f2', text, TYPES);
+  m.level = 55;                                    // an older copy edits it…
+  const back = JSON.parse(store.toRecord(m));
+  assert.equal(back.l, 55);
+  assert.equal(back.shiny, true);                   // …and the newer fields are still there
+  assert.equal(back.form, 'alolan');
+  assert.equal(back.trainerNote, 'brave');
+  assert.equal(back.v, 9, 'and it is not downgraded');
+});
+
+check('a type the game no longer has becomes Normal rather than making the Pokémon vanish', () => {
+  const m = store.fromRecord('ryland', 'x', JSON.stringify({ v: 1, n: 'Odd', t: ['cosmic'], s: [1, 1, 1, 1, 1, 1], m: ['tackle'] }), TYPES);
+  assert.deepEqual(m.types, ['normal']);
+  const keep = store.fromRecord('ryland', 'x', JSON.stringify({ v: 1, n: 'Odd', t: ['cosmic', 'fire'], s: [1, 1, 1, 1, 1, 1], m: ['tackle'] }), TYPES);
+  assert.deepEqual(keep.types, ['fire'], 'the part that is still valid is kept');
+});
+
+check('a different number of stats still loads', () => {
+  const few = store.fromRecord('ryland', 'x', JSON.stringify({ v: 1, n: 'Few', t: ['fire'], s: [100, 90], m: ['tackle'] }), TYPES);
+  assert.equal(few.stats.hp, 100); assert.equal(few.stats.atk, 90); assert.equal(few.stats.spe, 60, 'missing ones get a sensible default');
+  const many = store.fromRecord('ryland', 'x', JSON.stringify({ v: 1, n: 'Many', t: ['fire'], s: [1, 2, 3, 4, 5, 6, 7, 8], m: ['tackle'] }), TYPES);
+  assert.equal(many.stats.spe, 6);
+});
+
+check('a Pokémon that is over today\'s budget still battles — rules only apply when editing', () => {
+  const big = mk('ryland', 'Oldie', ['normal'], stats(200, 200, 200, 200, 200, 200), ['tackle']);
+  assert.ok(S.monProblems(big, TYPES).length, 'it breaks the current budget');
+  const m = duel(big, mk('reid', 'Other', ['normal'], stats(80, 80, 80, 80, 80, 80), ['tackle']));
+  assert.doesNotThrow(() => B.playTurn(m, [mv('tackle'), mv('tackle')]));
+});
+
+check('a move that is later removed from the game does not break the battle', () => {
+  const gone = mk('ryland', 'Lost', ['normal'], stats(80, 80, 80, 80, 80, 80), ['tackle', 'move-that-no-longer-exists']);
+  const m = duel(gone, mk('reid', 'Other', ['normal'], stats(80, 80, 80, 80, 80, 80), ['tackle']));
+  assert.deepEqual(B.options(m, 0).moves.map(x => x.key), ['tackle'], 'the missing move is just absent');
+  assert.doesNotThrow(() => B.playTurn(m, [mv('tackle'), mv('tackle')]));
+});
+
+check('saving never touches other Pokémon or the team name', () => {
+  store.setTeamName('reid', 'Keepers');
+  const a = mk('reid', 'Keep1', ['fire'], stats(80, 80, 80, 80, 80, 80), ['ember']);
+  const b = mk('reid', 'Keep2', ['water'], stats(80, 80, 80, 80, 80, 80), ['surf']);
+  store.saveMon(a); store.saveMon(b);
+  const before = JSON.stringify(store.listTeam('reid', TYPES).filter(x => x.id === a.id));
+  store.saveMon({ ...b, level: 77 });
+  assert.equal(JSON.stringify(store.listTeam('reid', TYPES).filter(x => x.id === a.id)), before);
+  assert.equal(store.getTeamName('reid'), 'Keepers');
+  store.setTeamName('reid', '');
 });
 
 check('delete removes it, and the page can tell something changed', () => {
@@ -250,15 +329,6 @@ check('only genuine image data is accepted as a picture', () => {
 
 /* ==================================================================== */
 section('the referee — real Pokémon behaviour on invented creatures');
-
-const duel = (a, b, opts) => {
-  const m = B.createMatch([{ side: { id: 'ryland', name: 'Ryland', color: '#00f' }, mons: Array.isArray(a) ? a : [a] },
-                           { side: { id: 'reid', name: 'Reid', color: '#0a0' }, mons: Array.isArray(b) ? b : [b] }], opts);
-  B.startMatch(m);
-  return m;
-};
-const mv = (key) => ({ type: 'move', move: key });
-const dmgOf = (events, who) => events.filter(e => e.t === 'damage' && e.who === who).reduce((n, e) => n + e.dmg, 0);
 
 check('the faster Pokémon moves first', () => {
   const fast = mk('ryland', 'Zippy', ['normal'], stats(70, 70, 70, 70, 70, 130), ['tackle']);
