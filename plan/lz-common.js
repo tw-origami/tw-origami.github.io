@@ -870,6 +870,7 @@
       "Money Smarts":    "../money/index.html",
       "Spell It":        "../spellit/index.html",
       "Science Lab":     "../science/index.html",
+      "Battle Lab":      "../pokesim/index.html",
       // Dropped from the daily rotation but still reachable by direct link, and still
       // listed here so any older record naming one resolves instead of dead-ending.
       "Test Tactics":    "../testtactics/index.html",

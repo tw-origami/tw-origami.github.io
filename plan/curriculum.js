@@ -25,7 +25,8 @@ window.CURRICULUM = {
     "History Heroes",
     "Money Smarts",
     "Spell It",
-    "Science Lab"
+    "Science Lab",
+    "Battle Lab"
    ],
    "kind": "ongoing",
    "pick": "daily",
@@ -2022,7 +2023,8 @@ window.CURRICULUM = {
     "History Heroes",
     "Money Smarts",
     "Spell It",
-    "Science Lab"
+    "Science Lab",
+    "Battle Lab"
    ],
    "kind": "ongoing",
    "pick": "daily",

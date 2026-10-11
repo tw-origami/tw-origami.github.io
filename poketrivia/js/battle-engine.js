@@ -72,7 +72,7 @@ export function defaultAbility(dexId) {
 export function makeBattler(mon, opts = {}) {
   const sp = species(mon.dex);
   const moves = (opts.moves ?? autoMoves(mon)).map(name => {
-    const m = MOVES()[name] ?? (name === STRUGGLE.name ? STRUGGLE : null);
+    const m = name === STRUGGLE.name ? STRUGGLE : (MOVES()[name] ?? null);
     return m ? { name, pp: m.pp, maxPp: m.pp } : null;
   }).filter(Boolean);
 
@@ -207,10 +207,11 @@ export function computeDamage(attacker, defender, move, battle, quality = 1, opt
     if (move.type === 'water') push(0.5, 'harsh sunlight');
   }
 
-  const stab = attacker.types.includes(move.type) ? 1.5 : 1;
+  // a typeless move (Struggle) has no same-type bonus and ignores the type chart entirely
+  const stab = !move.typeless && attacker.types.includes(move.type) ? 1.5 : 1;
   push(stab, 'same-type attack bonus');
 
-  const typeMult = typeMultiplier(move.type, defender.types);
+  const typeMult = move.typeless ? 1 : typeMultiplier(move.type, defender.types);
   push(typeMult, 'type matchup');
 
   if (!special && attacker.status === 'burn' && attacker.ability !== 'guts') {
@@ -275,8 +276,14 @@ const STATUS_IMMUNE_TYPES = {
   poison: ['poison', 'steel'], toxic: ['poison', 'steel'],
 };
 
+// PokéAPI lists many "ailments" the engine has no rules for (trap, leech-seed, yawn, nightmare…).
+// Applying one of those used to stamp a permanent junk status on the target that did nothing and
+// blocked every real status afterwards. Anything not modelled is simply not applied.
+const MAJOR_STATUS = new Set(['burn', 'poison', 'toxic', 'paralysis', 'sleep', 'freeze']);
+
 export function canTakeStatus(target, ailment) {
   if (!ailment) return false;
+  if (ailment !== 'confusion' && !MAJOR_STATUS.has(ailment)) return false;
   if (ailment === 'confusion') {
     return !target.volatile.confusion && !hasBlock(target, 'confusion');
   }
@@ -326,6 +333,62 @@ function applyStatChange(target, changes, log, { fromFoe }) {
   }
 }
 
+/* ============================ moves with their own damage rules ============================ */
+
+// PokéAPI gives these a power of nothing, which made them silently do nothing. Each is a
+// well-known fixed rule, so they are implemented as such rather than as ordinary attacks.
+const FIXED_DAMAGE = {
+  'dragon-rage': () => 40,
+  'sonic-boom': () => 20,
+  'seismic-toss': (u) => u.level,
+  'night-shade': (u) => u.level,
+  'super-fang': (u, t) => Math.max(1, Math.floor(t.hp / 2)),
+  'endeavor': (u, t) => Math.max(0, t.hp - u.hp),
+};
+const OHKO = new Set(['fissure', 'guillotine', 'horn-drill', 'sheer-cold']);
+
+/** Flail / Reversal: the lower its own HP, the harder it hits (the real lookup table). */
+function lowHpPower(u) {
+  const r = Math.floor((48 * u.hp) / u.maxHp);
+  return r <= 1 ? 200 : r <= 4 ? 150 : r <= 9 ? 100 : r <= 16 ? 80 : r <= 32 ? 40 : 20;
+}
+/** Magnitude: a random strength, with the real odds. */
+function magnitudePower() {
+  const r = rng() * 100;
+  return r < 5 ? 10 : r < 15 ? 30 : r < 35 ? 50 : r < 65 ? 70 : r < 85 ? 90 : r < 95 ? 110 : 150;
+}
+/**
+ * Moves whose real rules need something the engine doesn't keep (the last hit taken, a stockpile,
+ * the target's weight, a delayed hit…). Played as plain attacks they'd be wrong, so callers that
+ * let a person CHOOSE moves should leave them out.
+ */
+export const UNSIMULATED_MOVES = new Set([
+  'counter', 'mirror-coat', 'spit-up', 'swallow', 'low-kick', 'grass-knot', 'heavy-slam', 'heat-crash',
+  'bide', 'metal-burst', 'comeuppance', 'focus-punch', 'future-sight', 'doom-desire', 'last-resort',
+  'dream-eater', 'snore', 'sky-drop', 'meteor-beam', 'electro-shot', 'geomancy', 'rest',
+  'struggle', 'outrage', 'thrash', 'petal-dance', 'belly-drum', 'psyshock', 'psystrike', 'secret-sword', 'foul-play',
+]);
+const SIMULATED_UNIQUE = new Set(['protect', 'detect']);
+const WEATHER_MOVE = /rain-dance|sunny-day|sandstorm|hail/;
+
+/** Can this move be played correctly? Takes the move record, not just its name. */
+export function isSimulated(move) {
+  if (!move || UNSIMULATED_MOVES.has(move.name)) return false;
+  switch (move.cat) {
+    case 'unique': return SIMULATED_UNIQUE.has(move.name);
+    case 'whole-field-effect': return WEATHER_MOVE.test(move.name);
+    case 'field-effect': case 'force-switch': case 'swagger': return false;
+    default: return true;
+  }
+}
+
+/** A move's power for this particular use (0 when it isn't an ordinary power-based attack). */
+function effectivePower(move, user) {
+  if (move.name === 'flail' || move.name === 'reversal') return lowHpPower(user);
+  if (move.name === 'magnitude') return magnitudePower();
+  return move.power;
+}
+
 /* ============================ executing one move ============================ */
 
 /**
@@ -335,8 +398,24 @@ function applyStatChange(target, changes, log, { fromFoe }) {
  *   0<q<1 — damage scaled; a non-damaging move still works
  *   0     — the move fails outright
  */
+/** Moves that cost the user its life when it actually goes off. */
+const SELF_KO = new Set(['explosion', 'self-destruct', 'misty-explosion']);
+
 export function useMove(battle, user, target, moveName, quality, log = []) {
-  const move = MOVES()[moveName] ?? (moveName === STRUGGLE.name ? STRUGGLE : null);
+  const start = log.length;
+  useMoveInner(battle, user, target, moveName, quality, log);
+  // Only if the move was really used: a sleeping or paralysed Pokémon doesn't blow itself up.
+  // It happens whether or not the attack connected, which is the real (and costly) rule.
+  if (SELF_KO.has(moveName) && !user.fainted && log.slice(start).some(e => e.t === 'move' && e.who === user.name)) {
+    user.hp = 0;
+    checkFaint(user, log);
+  }
+  return log;
+}
+
+function useMoveInner(battle, user, target, moveName, quality, log = []) {
+  // Struggle is the engine's own move; a data file that happens to list one must never replace it
+  const move = moveName === STRUGGLE.name ? STRUGGLE : (MOVES()[moveName] ?? null);
   if (!move) return log;
 
   const slot = user.moves.find(m => m.name === moveName);
@@ -441,8 +520,20 @@ export function useMove(battle, user, target, moveName, quality, log = []) {
     }
   }
 
+  const isOhko = OHKO.has(move.name);
+  const fixedFn = FIXED_DAMAGE[move.name];
+  const power = effectivePower(move, user);
+
   /* --- accuracy --- */
-  if (move.power > 0 || move.acc != null) {
+  if (isOhko) {
+    // a one-hit KO lands 30% of the time, +1% per level the user has over the target, and
+    // never works at all on a higher-level target
+    const odds = 30 + (user.level - target.level);
+    if (user.level < target.level || !chance(clamp(odds, 1, 100))) {
+      log.push({ t: 'miss', who: user.name, move: move.label, acc: clamp(odds, 0, 100) });
+      return log;
+    }
+  } else if (power > 0 || fixedFn || move.acc != null) {
     if (!willHit(user, target, move, battle)) {
       log.push({ t: 'miss', who: user.name, move: move.label, acc: move.acc });
       return log;
@@ -451,14 +542,18 @@ export function useMove(battle, user, target, moveName, quality, log = []) {
 
   /* --- damage --- */
   let dealt = 0, res = null;
-  if (move.power > 0) {
+  if (power > 0 || fixedFn || isOhko) {
     const hits = move.hits ? between(move.hits[0], move.hits[1]) : 1;
     for (let i = 0; i < hits && target.hp > 0; i++) {
-      res = computeDamage(user, target, move, battle, quality);
+      // type matchup still applies to these (Seismic Toss can't touch a Ghost); the amount doesn't
+      const shaped = power > 0 && !fixedFn && !isOhko ? { ...move, power } : { ...move, power: 1 };
+      res = computeDamage(user, target, shaped, battle, quality);
       if (res.typeMult === 0) {
         log.push({ t: 'noEffect', who: target.name, moveType: move.type });
         return log;
       }
+      if (isOhko) res = { ...res, dmg: target.hp, crit: false, stab: 1 };
+      else if (fixedFn) res = { ...res, dmg: Math.max(1, fixedFn(user, target)), crit: false, stab: 1 };
       let dmg = Math.min(res.dmg, target.hp);
       // Focus Sash / Sturdy: survive a would-be knockout from full HP with 1 HP
       const item = ITEMS()[target.item];
@@ -487,6 +582,13 @@ export function useMove(battle, user, target, moveName, quality, log = []) {
       const hurt = Math.max(1, Math.floor(dealt * Math.abs(move.drain) / 100));
       user.hp = Math.max(0, user.hp - hurt);
       log.push({ t: 'recoil', who: user.name, amount: hurt });
+    }
+
+    // Struggle: a fixed share of the USER's max HP, not of the damage dealt
+    if (move.recoilMaxFrac && res) {
+      const hurt = Math.max(1, Math.floor(user.maxHp * move.recoilMaxFrac));
+      user.hp = Math.max(0, user.hp - hurt);
+      log.push({ t: 'recoil', who: user.name, amount: hurt, why: move.label });
     }
 
     // Life Orb costs you HP every time it powers a hit
@@ -534,7 +636,11 @@ export function useMove(battle, user, target, moveName, quality, log = []) {
     const rolled = move.statChance ? chance(move.statChance) : true;
     const secondaryBlocked = move.power > 0 && hasFx(target, 'blockSecondary');
     if (rolled && !(secondaryBlocked && move.stats[0].stage < 0)) {
-      const toSelf = move.target === 'user' || move.stats.every(s => s.stage > 0) && move.power === 0;
+      // "damage-raise" is PokéAPI's category for a damaging move that changes the USER's stats —
+      // including the ones that LOWER them (Overheat, Close Combat, Superpower, Draco Meteor).
+      // Those used to land on the target, so Superpower weakened the foe instead of the user.
+      const toSelf = move.target === 'user' || move.cat === 'damage-raise'
+        || move.stats.every(s => s.stage > 0) && move.power === 0;
       const who = toSelf ? user : target;
       applyStatChange(who, move.stats, log, { fromFoe: who === target });
     }
@@ -557,7 +663,7 @@ export function useMove(battle, user, target, moveName, quality, log = []) {
 
   // Belt and braces: if a status move somehow produced no visible outcome, say
   // so rather than leaving the player wondering why a right answer did nothing.
-  if (move.power === 0 && !log.some(e =>
+  if (move.power === 0 && !fixedFn && !isOhko && !log.some(e =>
     ['stat', 'statFail', 'status', 'statusFail', 'heal', 'healFail', 'weather', 'protect'].includes(e.t))) {
     log.push({ t: 'noOutcome', who: user.name, move: move.label });
   }
@@ -633,11 +739,21 @@ export function endOfTurn(battle, battlers, log = []) {
 
 /* ============================ switch-in ============================ */
 
-export function onSwitchIn(battle, entering, foe, log = []) {
+/** Stat changes and volatiles do not follow a Pokémon out of battle. */
+export function resetOnEntry(entering) {
   entering.volatile.protectStreak = 0;
-  // stat changes and volatiles do not follow a Pokémon out of battle
   for (const k of Object.keys(entering.stages)) entering.stages[k] = 0;
   entering.volatile.confusion = 0;
+}
+
+/**
+ * Fire a Pokémon's switch-in effects. Pass `{ reset: false }` when two Pokémon enter at the same
+ * moment (both leads, or two replacements after a double knockout): call `resetOnEntry` on each
+ * FIRST, then this for each. Otherwise the second one's reset wipes the stat drop the first
+ * one's Intimidate just caused — the real games let everyone enter, then trigger abilities.
+ */
+export function onSwitchIn(battle, entering, foe, log = [], { reset = true } = {}) {
+  if (reset) resetOnEntry(entering);
 
   const fx = ABIL_FX()[entering.ability];
   if (fx?.on === 'switchIn') {

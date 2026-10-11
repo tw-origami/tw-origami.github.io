@@ -14,6 +14,18 @@ export function species(dexId) {
   return byId.get(dexId);
 }
 
+/**
+ * Add a species that isn't in the dex — the Battle Lab uses this for the Pokémon
+ * the kids invent. The real 151 are loaded first: `species()` only fills its table
+ * while the table is empty, so registering a custom one into an empty table would
+ * stop the real ones ever loading.
+ */
+export function registerSpecies(s) {
+  if (!byId.size) for (const d of DEX()) byId.set(d.id, d);
+  byId.set(s.id, s);
+  return s;
+}
+
 export const artUrl = (dexId) => `img/art/${dexId}.png`;
 
 /* ---------------- stats ---------------- */
@@ -163,9 +175,14 @@ export function moveHasEffect(mv) {
   return false;
 }
 
+// The real Struggle: typeless (so it can hit Ghost types and gets no same-type bonus), never
+// misses, and always costs the user a quarter of its max HP — whether or not that hurt the foe.
+// It used to be a plain Normal-type 50-power move, which meant two Ghosts with no PP left could
+// "not affect" each other for ever.
 export const STRUGGLE = {
-  name: 'struggle', label: 'Struggle', type: 'normal', power: 50, acc: 100,
-  class: 'physical', pp: 1, short: 'Used when nothing else can be. It hurts a little to use.',
+  name: 'struggle', label: 'Struggle', type: 'normal', power: 50, acc: null,
+  class: 'physical', pp: 1, typeless: true, recoilMaxFrac: 0.25,
+  short: 'Used when nothing else can be. It hurts the user too.',
 };
 
 export function movesFor(dexId, level) {

@@ -260,6 +260,145 @@ check('Intimidate lowers the foe\'s Attack on switch-in', () => {
   assert.equal(foe.stages.atk, -1);
 });
 
+check('Struggle is typeless: it hits a Ghost type that Normal moves cannot touch', () => {
+  const b = E.createBattle();
+  const user = mon(143, 40);               // Snorlax
+  const ghost = mon(94, 40);               // Gengar
+  const log = E.useMove(b, user, ghost, party.STRUGGLE.name, 1);
+  const hit = log.find(e => e.t === 'damage');
+  assert.ok(hit, 'Struggle must damage a Ghost');
+  assert.equal(hit.typeMult, 1, 'no type matchup applies');
+  assert.equal(hit.stab, false, 'and no same-type bonus, even from a Normal-type');
+  assert.ok(!log.some(e => e.t === 'noEffect'));
+});
+
+check('Struggle recoil is a quarter of the USER\'s max HP, not of the damage dealt', () => {
+  const b = E.createBattle();
+  const user = mon(143, 40);
+  const foe = mon(113, 40);                // Chansey — huge HP, so the damage is small
+  const before = user.hp;
+  const log = E.useMove(b, user, foe, party.STRUGGLE.name, 1);
+  const rec = log.find(e => e.t === 'recoil');
+  assert.equal(rec.amount, Math.max(1, Math.floor(user.maxHp / 4)));
+  assert.equal(user.hp, before - rec.amount);
+});
+
+check('Struggle never misses', () => {
+  E.setRng(never);
+  const b = E.createBattle();
+  const log = E.useMove(b, mon(143, 40), mon(113, 40), party.STRUGGLE.name, 1);
+  E.setRng(steady);
+  assert.ok(log.some(e => e.t === 'damage') && !log.some(e => e.t === 'miss'));
+});
+
+check('Dragon Rage always does exactly 40, whatever the stats', () => {
+  const b = E.createBattle();
+  for (const [u, t] of [[mon(149, 80), mon(113, 10)], [mon(10, 5), mon(143, 100)]]) {
+    const hp = t.hp;
+    const log = E.useMove(b, u, t, 'dragon-rage', 1);
+    assert.equal(hp - t.hp, 40);
+    assert.ok(!log.some(e => e.t === 'noOutcome'), 'it did something, so it must not say it did nothing');
+  }
+});
+
+check('Seismic Toss does damage equal to the user\'s level, and Ghosts are immune to it', () => {
+  const b = E.createBattle();
+  const user = mon(66, 37), t = mon(143, 50);
+  const hp = t.hp;
+  E.useMove(b, user, t, 'seismic-toss', 1);
+  assert.equal(hp - t.hp, 37);
+  const g = mon(94, 50);
+  const log = E.useMove(b, user, g, 'seismic-toss', 1);
+  assert.ok(log.some(e => e.t === 'noEffect'));
+  assert.equal(g.hp, g.maxHp);
+});
+
+check('Super Fang takes half the target\'s current HP', () => {
+  const b = E.createBattle();
+  const t = mon(143, 50); t.hp = 101;
+  E.useMove(b, mon(19, 50), t, 'super-fang', 1);
+  assert.equal(t.hp, 101 - 50);
+});
+
+check('a one-hit KO knocks out outright, but fails on a higher-level target', () => {
+  E.setRng(always);
+  const b = E.createBattle();
+  const t1 = mon(143, 40);
+  E.useMove(b, mon(112, 60), t1, 'fissure', 1);
+  assert.equal(t1.hp, 0);
+  const t2 = mon(143, 70);
+  const log = E.useMove(b, mon(112, 60), t2, 'fissure', 1);
+  assert.equal(t2.hp, t2.maxHp, 'a level 60 cannot KO a level 70');
+  assert.ok(log.some(e => e.t === 'miss'));
+  E.setRng(steady);
+});
+
+check('Flail hits harder the lower the user\'s own HP is', () => {
+  const b = E.createBattle();
+  const full = mon(129, 50), low = mon(129, 50);
+  low.hp = 3;
+  const dummy = () => mon(143, 50);
+  const t1 = dummy(), t2 = dummy();
+  E.useMove(b, full, t1, 'flail', 1);
+  E.useMove(b, low, t2, 'flail', 1);
+  assert.ok(t2.maxHp - t2.hp > (t1.maxHp - t1.hp) * 4, 'near-death Flail should be several times stronger');
+});
+
+check('an ailment the engine does not model never becomes a junk status', () => {
+  const b = E.createBattle();
+  const t = mon(1, 40);
+  E.useMove(b, mon(143, 40), t, 'wrap', 1);
+  assert.equal(t.status, null, 'Wrap used to leave a permanent "trap" status');
+  const real = mon(1, 40);
+  E.setRng(always);
+  E.useMove(b, mon(25, 40), real, 'thunder-wave', 1);
+  E.setRng(steady);
+  assert.equal(real.status, 'paralysis', 'real statuses still work');
+});
+
+check('Superpower lowers the USER\'s Attack and Defense, not the target\'s', () => {
+  E.setRng(always);
+  const b = E.createBattle();
+  const user = mon(68, 50), foe = mon(143, 50);
+  E.useMove(b, user, foe, 'superpower', 1);
+  E.setRng(steady);
+  assert.equal(user.stages.atk, -1);
+  assert.equal(user.stages.def, -1);
+  assert.equal(foe.stages.atk, 0);
+  assert.equal(foe.stages.def, 0);
+});
+
+check('Explosion knocks out the user, and does so even when it misses', () => {
+  const b = E.createBattle();
+  const hit = mon(143, 50), foe = mon(113, 50);
+  const log = E.useMove(b, hit, foe, 'explosion', 1);
+  assert.equal(hit.fainted, true);
+  assert.ok(log.some(e => e.t === 'faint' && e.who === hit.name));
+  E.setRng(never);
+  const missed = mon(143, 50);
+  E.useMove(b, missed, mon(113, 50), 'explosion', 1);
+  E.setRng(steady);
+  assert.equal(missed.fainted, true, 'a miss still costs the Pokémon its life');
+});
+
+check('a sleeping Pokémon does not blow itself up', () => {
+  const b = E.createBattle();
+  const u = mon(143, 50);
+  u.status = 'sleep'; u.statusTurns = 2;
+  E.useMove(b, u, mon(113, 50), 'explosion', 1);
+  assert.equal(u.fainted, false);
+});
+
+check('only moves the engine can play correctly are offered to a chooser', () => {
+  const M = window.PL_MOVES;
+  for (const k of ['thunderbolt', 'protect', 'rain-dance', 'seismic-toss', 'hyper-beam', 'explosion']) {
+    assert.equal(E.isSimulated(M[k]), true, k);
+  }
+  for (const k of ['counter', 'reflect', 'light-screen', 'spikes', 'swagger', 'whirlwind', 'rest', 'mimic', 'substitute']) {
+    assert.equal(E.isSimulated(M[k]), false, k);
+  }
+});
+
 check('Levitate makes Ground moves miss entirely', () => {
   const b = E.createBattle();
   const gengar = mon(94, 40, { ability: 'levitate' });
