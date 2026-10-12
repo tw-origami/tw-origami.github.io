@@ -41,6 +41,9 @@
   /* The iframe ignores pointer events and this sits over it, so a click plays or pauses
      and never reaches YouTube's own surface. */
   .tap{ position:absolute; inset:0; cursor:pointer; }
+  /* An ad is playing: hand the surface to YouTube so its "Skip" button can be clicked. */
+  .frame.ad .tap, .frame.ad .veil{ display:none; }
+  .frame.ad iframe{ pointer-events:auto; }
   /* While the video plays the embed shows nothing but the picture, but the moment it is
      paused YouTube draws its own overlay across it — the video title, a share button and
      a "watch later" button, each a way out of the lesson. This veil sits over the paused
@@ -171,6 +174,11 @@
 
   function tick(){
     if(!player || !player.getDuration) return;
+    // Ads play in the same player under a different video id.
+    let ad = false;
+    try { const v = player.getVideoData && player.getVideoData(); ad = !!(v && v.video_id && v.video_id !== id); } catch(e){}
+    document.querySelector(".frame").classList.toggle("ad", ad);
+    if(ad) return;                  // an ad's length must not count as the lesson's
     const d = player.getDuration() || 0;
     const t = player.getCurrentTime() || 0;
     if(d > 0){
