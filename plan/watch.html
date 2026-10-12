@@ -43,7 +43,10 @@
   .tap{ position:absolute; inset:0; cursor:pointer; }
   /* An ad is playing: hand the surface to YouTube so its "Skip" button can be clicked. */
   .frame.ad .tap, .frame.ad .veil{ display:none; }
-  .frame.ad iframe{ pointer-events:auto; }
+  /* Always leave a hole in the lower-right corner, where YouTube puts the ad's Skip button
+     (ad detection can miss), so clicks there fall through to the player itself. */
+  .frame iframe{ pointer-events:auto; }
+  .tap, .veil{ clip-path:polygon(0 0, 100% 0, 100% calc(100% - 110px), calc(100% - 240px) calc(100% - 110px), calc(100% - 240px) 100%, 0 100%); }
   /* While the video plays the embed shows nothing but the picture, but the moment it is
      paused YouTube draws its own overlay across it — the video title, a share button and
      a "watch later" button, each a way out of the lesson. This veil sits over the paused
