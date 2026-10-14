@@ -94,7 +94,7 @@
   // Deliberately a list of what is NOT protected. Anything new defaults to protected,
   // which is the side to be wrong on.
   const PLANNING_PREFIXES = ["lzAssign|", "lzSkip|", "lzDayOff|", "lzOrder|",
-                             "lzSplit|", "lzCarry|", "lzCatchupReset|"];
+                             "lzSplit|", "lzSplit2|", "lzCarry|", "lzCatchupReset|"];
   function isPlanningKey(k) {
     return PLANNING_PREFIXES.some(p => String(k).indexOf(p) === 0);
   }

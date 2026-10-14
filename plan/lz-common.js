@@ -190,9 +190,32 @@
   // their own days, with no new rendering code anywhere. The original lesson isn't marked
   // done up front (that would inflate progress) — combinedQueue closes it out automatically
   // once every part is checked off, which keeps the book's real page count honest.
-  function splitKey(kid, subject, itemId){ return `lzSplit|${kid}|${slug(subject)}|${attachItemSlug(itemId)}`; }
+  // `lzSplit2`, not `lzSplit`: copies of the script from before 2026-10-10 re-dated every
+  // finished split lesson to "today" on each render and kept doing it from any device that
+  // was left open or cached. They only look under the old name, so moving the data aside
+  // makes them blind to it. migrateSplitKeys() below carries existing records across.
+  function splitKey(kid, subject, itemId){ return `lzSplit2|${kid}|${slug(subject)}|${attachItemSlug(itemId)}`; }
+  function migrateSplitKeys(){
+    try{
+      const old = [];
+      for(let i=0;i<localStorage.length;i++){ const k = localStorage.key(i); if(k && k.indexOf("lzSplit|")===0) old.push(k); }
+      old.forEach(k=>{
+        const nk = "lzSplit2|" + k.slice("lzSplit|".length);
+        if(!localStorage.getItem(nk)){ const v = localStorage.getItem(k); if(v) localStorage.setItem(nk, v); }
+        localStorage.removeItem(k);
+      });
+    }catch(e){}
+  }
+  // Deferred, so it runs after lz-sync has hooked localStorage: a deletion made before that
+  // would never be pushed, and the old key would just be pulled back. Twice, because the
+  // first full reconcile can land after the first pass.
+  setTimeout(migrateSplitKeys, 1500);
+  setTimeout(migrateSplitKeys, 9000);
   function getSplitParts(kid, subject, itemId){
-    try{ return JSON.parse(localStorage.getItem(splitKey(kid,subject,itemId))||"[]"); }catch(e){ return []; }
+    // Falls back to the pre-rename key until migrateSplitKeys has moved it across.
+    const nk = splitKey(kid,subject,itemId);
+    const raw = localStorage.getItem(nk) || localStorage.getItem(nk.replace("lzSplit2|","lzSplit|")) || "[]";
+    try{ return JSON.parse(raw); }catch(e){ return []; }
   }
   function setSplitParts(kid, subject, itemId, ids){
     (ids&&ids.length) ? localStorage.setItem(splitKey(kid,subject,itemId), JSON.stringify(ids))
