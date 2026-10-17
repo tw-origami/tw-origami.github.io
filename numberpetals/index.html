@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Number Petals</title>
+<style>
+  :root{
+    --ink:#1f2937; --muted:#6b7280; --accent:#4d7c0f; --accent2:#84cc16; --leaf:#b5d47f;
+    --soft:#f1f8e4; --line:#e3edd2; --good:#16a34a; --bad:#dc2626;
+    --shadow:0 16px 36px rgba(54,83,20,.14);
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    min-height:100vh; padding:20px 14px 50px; display:flex; flex-direction:column; align-items:center;
+    background:radial-gradient(circle at 12% 4%, rgba(132,204,22,.18), transparent 32%),
+      radial-gradient(circle at 88% 8%, rgba(250,204,21,.14), transparent 26%),
+      linear-gradient(160deg,#fbfff5,#f3faea 46%,#f8fafc); }
+  .nav{ display:flex; gap:8px; background:#fff; padding:5px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:14px; }
+  .nav a{ text-decoration:none; font-weight:800; font-size:14px; color:var(--muted); padding:8px 15px; border-radius:9px; }
+  .nav a:hover{ background:var(--soft); color:var(--accent); }
+  header{ text-align:center; max-width:640px; margin-bottom:12px; }
+  h1{ margin:0; font-size:clamp(30px,5vw,44px); letter-spacing:-1px; }
+  .sub{ margin:8px auto 0; color:var(--muted); font-size:15px; line-height:1.5; }
+
+  .panel{ background:#fff; border-radius:16px; box-shadow:var(--shadow); padding:8px; display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-bottom:10px; }
+  .panel button{ border:none; background:transparent; font:inherit; font-weight:800; font-size:14px; padding:9px 13px; border-radius:10px; cursor:pointer; color:var(--muted);
+    display:flex; flex-direction:column; align-items:center; line-height:1.15; }
+  .panel button small{ font-size:10.5px; font-weight:700; opacity:.8; }
+  .panel button.on{ background:var(--accent); color:#fff; }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; align-items:center; margin-bottom:10px; }
+  .chip{ background:#fff; border-radius:999px; padding:8px 16px; font-weight:800; font-size:14px; box-shadow:var(--shadow); }
+  .chip small{ color:var(--muted); font-weight:700; }
+  .go{ border:none; background:var(--accent); color:#fff; font:inherit; font-weight:900; font-size:17px; padding:12px 26px; border-radius:14px; cursor:pointer; box-shadow:var(--shadow); }
+  .go:hover{ background:#3f6212; }
+
+  /* the sun crossing the sky */
+  .sky{ width:min(720px,100%); height:64px; border-radius:16px; position:relative; overflow:hidden; margin-bottom:10px; box-shadow:var(--shadow);
+    background:linear-gradient(#7dd3fc,#e0f2fe); transition:background 1s; }
+  .sky .hill{ position:absolute; left:-5%; right:-5%; bottom:-34px; height:58px; border-radius:50%; background:#65a30d; }
+  .sky .sun{ position:absolute; font-size:30px; transform:translate(-50%,-50%); left:6%; top:60%; transition:left .25s linear, top .25s linear; }
+  .sky .left{ position:absolute; right:12px; top:8px; font-weight:900; font-size:13px; color:#0c4a6e; background:rgba(255,255,255,.7); padding:3px 9px; border-radius:99px; }
+
+  .board{ width:min(720px,100%); background:#fff; border-radius:22px; box-shadow:var(--shadow); padding:6px; position:relative; }
+  svg{ width:100%; height:auto; display:block; user-select:none; -webkit-user-select:none; }
+  .grp polygon.shape{ fill:#fff; stroke:#1f2937; stroke-width:6; stroke-linejoin:round; }
+  .grp.solved polygon.shape{ fill:#f1f8e4; stroke:var(--accent); }
+  .grp line.spoke{ stroke:#1f2937; stroke-width:1.5; opacity:.35; }
+  .grp polygon.hub{ fill:var(--leaf); stroke:#1f2937; stroke-width:4; }
+  .num{ cursor:pointer; }
+  .num circle{ fill:transparent; transition:fill .15s; }
+  .num:hover circle{ fill:#ecfccb; }
+  .num text{ font-weight:900; font-size:42px; fill:#1f2937; text-anchor:middle; dominant-baseline:central; pointer-events:none; }
+  .num.wrong text{ fill:#cbd5e1; } .num.wrong{ cursor:default; } .num.wrong:hover circle{ fill:transparent; }
+  .num.right circle{ fill:var(--accent2); } .num.right text{ fill:#fff; }
+  .num.reveal circle{ fill:#fde68a; }
+  .grp.solved .num:not(.right) text{ fill:#cbd5e1; }
+  .center polygon.shape{ fill:var(--leaf); stroke:#1f2937; stroke-width:7; stroke-linejoin:round; }
+  .center.live polygon.shape{ fill:#d9f99d; }
+  .center .op{ font-size:64px; font-weight:900; fill:#365314; text-anchor:middle; dominant-baseline:central; opacity:.5; }
+  .shake{ animation:shake .35s; }
+  @keyframes shake{ 20%{transform:translateX(-7px)} 40%{transform:translateX(7px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+
+  .msg{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:12px; text-align:center;
+    background:rgba(255,255,255,.9); border-radius:22px; padding:20px; }
+  .msg.on{ display:flex; }
+  .msg h2{ margin:0; font-size:34px; }
+  .msg p{ margin:0; color:var(--muted); font-weight:700; max-width:420px; line-height:1.45; }
+  .how{ max-width:720px; color:var(--muted); font-size:14px; line-height:1.55; margin-top:14px; text-align:center; }
+  .how b{ color:var(--ink); }
+</style>
+</head>
+<body>
+<nav class="nav"><a href="../index.html">← Learn Zone</a></nav>
+<header>
+  <h1>🌼 Number Petals</h1>
+  <p class="sub">In every petal, one number is the answer to two of the others. Find it in each petal, then solve the flower in the middle before the sun sets.</p>
+</header>
+
+<div class="panel" id="ops"></div>
+<div class="panel" id="levels"></div>
+<div class="row">
+  <span class="chip">Round <b id="round">1</b></span>
+  <span class="chip">Solved <b id="solved">0</b></span>
+  <span class="chip"><small>Best</small> <b id="best">—</b></span>
+  <button class="go" id="start">▶ Start</button>
+</div>
+<div class="sky" id="sky"><div class="hill"></div><div class="sun" id="sun">☀️</div><div class="left" id="left"></div></div>
+<div class="board" id="board">
+  <svg id="svg" viewBox="0 0 1000 1000"></svg>
+  <div class="msg on" id="msg"><h2>Ready?</h2><p>Pick a level and press Start.</p></div>
+</div>
+<p class="how"><b>How to play:</b> In each outer petal, tap the number that is the <b>sum</b> (or <b>product</b>) of two other numbers in that petal.
+Each answer moves into the middle. When the middle is full, find the one that's the sum (or product) of two others there. Wrong taps grey out — keep looking!</p>
+
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const rand = (a,b) => a + Math.floor(Math.random()*(b-a+1));
+const shuffle = a => { for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+
+// Outer petals and centre each use an operation. Times multiplies in the petals and adds in
+// the middle, like the original game: the product of two petal answers would be far bigger
+// than any of them, so a multiplying middle has no answer at all on the easier levels.
+const OPS = {
+  plus:  { label:"➕ Plus",  sub:"add everywhere",     outer:"+", center:"+" },
+  times: { label:"✖️ Times", sub:"× petals, + middle", outer:"×", center:"+" },
+};
+// size = numbers per petal (and petals per flower); max = biggest addend; fmax = biggest factor; secs = sun time.
+const LEVELS = [
+  { name:"1", sub:"up to 12",     size:4, max:11, fmax:5,  top:12, ttop:20, secs:120 },
+  { name:"2", sub:"5 per petal",  size:5, max:15, fmax:6,  secs:150 },
+  { name:"3", sub:"5 per petal",  size:5, max:25, fmax:9,  secs:140 },
+  { name:"4", sub:"6 per petal",  size:6, max:30, fmax:10, secs:180 },
+  { name:"5", sub:"6, faster",    size:6, max:50, fmax:12, secs:150 },
+];
+let prefs = { op:"plus", level:0 };
+try { Object.assign(prefs, JSON.parse(localStorage.getItem("numberPetalsPrefs")||"{}")); } catch(e){}
+if(!OPS[prefs.op]) prefs.op = "plus";
+if(!LEVELS[prefs.level]) prefs.level = 0;
+const savePrefs = () => { try { localStorage.setItem("numberPetalsPrefs", JSON.stringify(prefs)); } catch(e){} };
+const bestKey = () => "numberPetalsBest|" + prefs.op + "|" + prefs.level;
+
+const apply = (op, a, b) => op === "+" ? a + b : a * b;
+
+/** Indexes of every number in the group that equals op(two OTHER numbers in it). A fair puzzle has exactly one. */
+function answers(vals, op){
+  const out = [];
+  vals.forEach((t, ti) => {
+    for(let i=0;i<vals.length;i++) for(let j=i+1;j<vals.length;j++){
+      if(i===ti || j===ti) continue;
+      if(apply(op, vals[i], vals[j]) === t){ out.push(ti); return; }
+    }
+  });
+  return out;
+}
+
+/** A petal of `size` distinct numbers whose only answer is `target` under `op`. */
+const capFor = (op, L) => (op === "+" ? L.top : L.ttop) || Infinity;
+function makeGroup(target, op, L){
+  for(let tries=0; tries<4000; tries++){
+    let a, b;
+    if(op === "+"){ a = rand(1, target-1); b = target - a; }
+    else {
+      const f = []; for(let d=2; d*d<=target; d++) if(target % d === 0) f.push(d);
+      if(!f.length) return null;
+      a = f[rand(0, f.length-1)]; b = target / a;
+    }
+    if(a === b) continue;
+    const vals = [target, a, b];
+    const cap = capFor(op, L);
+    const hi = Math.min(cap, op === "+" ? Math.max(L.max, target) : Math.max(L.fmax*L.fmax, target));
+    let guard = 0;
+    while(vals.length < L.size && guard++ < 200){
+      // fillers look like the rest: small numbers for the parts, big ones that could be answers
+      const v = Math.random() < .5 ? rand(op==="×"?2:1, Math.min(hi, op==="+" ? L.max : L.fmax)) : rand(2, hi);
+      if(!vals.includes(v)) vals.push(v);
+    }
+    if(vals.length < L.size) continue;
+    const ans = answers(vals, op);
+    if(ans.length === 1 && ans[0] === 0) return shuffle(vals.slice());
+  }
+  return null;
+}
+
+/** Numbers that can be an outer petal's answer. */
+function candidates(op, L){
+  const out = [];
+  const cap = capFor(op, L);
+  if(op === "+"){ for(let v=3; v<=Math.min(L.max*2, cap); v++) out.push(v); }
+  else { for(let a=2;a<=L.fmax;a++) for(let b=a+1;b<=L.fmax;b++) if(a*b <= cap && !out.includes(a*b)) out.push(a*b); }
+  return out;
+}
+
+function makePuzzle(){
+  const L = LEVELS[prefs.level], O = OPS[prefs.op];
+  const pool = candidates(O.outer, L);
+  for(let tries=0; tries<5000; tries++){
+    // the middle first: `size` petal answers whose only centre answer is one of them
+    const pick = shuffle(pool.slice()).slice(0, L.size);
+    const ans = answers(pick, O.center);
+    if(ans.length !== 1) continue;
+    const groups = pick.map(t => makeGroup(t, O.outer, L));
+    if(groups.some(g => !g)) continue;
+    return { L, O, targets: pick, groups, final: pick[ans[0]] };
+  }
+  return null;
+}
+
+/* ------------------------------------------------------------ drawing */
+const SVGNS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs, parent) => { const e = document.createElementNS(SVGNS, tag); for(const k in attrs) e.setAttribute(k, attrs[k]); if(parent) parent.appendChild(e); return e; };
+const poly = (cx, cy, r, n, rot) => Array.from({length:n}, (_,i) => {
+  const a = rot + i * 2*Math.PI/n; return [cx + r*Math.cos(a), cy + r*Math.sin(a)];
+});
+const pts = p => p.map(q => q[0].toFixed(1)+","+q[1].toFixed(1)).join(" ");
+
+let game = null;
+
+function draw(){
+  const svg = $("svg"); svg.innerHTML = "";
+  if(!game) return;
+  const n = game.L.size, up = -Math.PI/2;
+  const CR = n === 4 ? 150 : 165;                       // centre polygon radius
+  const GR = n === 4 ? 165 : n === 5 ? 150 : 140;       // petal radius
+  const RING = CR * Math.cos(Math.PI/n) + GR * Math.cos(Math.PI/n) + 4; // petals sit edge-to-edge with the centre
+  // centre
+  const c = el("g", { class: "center" + (game.stage === "center" ? " live" : "") }, svg);
+  el("polygon", { class:"shape", points: pts(poly(500,500,CR,n, up + Math.PI/n)) }, c);
+  if(game.stage !== "center") { const t = el("text", { class:"op", x:500, y:500 }, c); t.textContent = game.O.center; }
+  // petals, each pointing outwards from an edge of the centre
+  game.groups.forEach((g, gi) => {
+    const dir = up + gi*2*Math.PI/n;                          // towards the middle of the centre's edge gi
+    const gx = 500 + RING*Math.cos(dir), gy = 500 + RING*Math.sin(dir);
+    const gEl = el("g", { class: "grp" + (game.solved[gi] ? " solved" : "") }, svg);
+    const rot = dir + Math.PI + Math.PI/n;                    // corners either side of the edge facing the centre
+    const corners = poly(gx, gy, GR, n, rot);
+    el("polygon", { class:"shape", points: pts(corners) }, gEl);
+    const hub = poly(gx, gy, GR*0.24, n, rot);
+    corners.forEach((p, i) => el("line", { class:"spoke", x1: hub[i][0], y1: hub[i][1], x2: p[0], y2: p[1] }, gEl));
+    el("polygon", { class:"hub", points: pts(hub) }, gEl);
+    g.forEach((v, vi) => {
+      const a = rot + Math.PI/n + vi*2*Math.PI/n;               // middle of each wedge
+      const rr = GR*Math.cos(Math.PI/n)*0.62;               // inside the wedge, clear of the rim
+      const x = gx + rr*Math.cos(a), y = gy + rr*Math.sin(a);
+      const st = game.marks[gi][vi];
+      const b = el("g", { class:"num" + (st ? " " + st : ""), "data-g": gi, "data-v": vi }, gEl);
+      el("circle", { cx:x, cy:y, r: GR*Math.cos(Math.PI/n)*0.3 }, b);
+      const t = el("text", { x, y, style: `font-size:${n===6 ? 36 : 42}px` }, b); t.textContent = v;
+    });
+  });
+  // centre numbers, filled in as petals are solved
+  const cpos = poly(500, 500, CR*0.58, n, up);
+  game.targets.forEach((v, i) => {
+    if(!game.solved[i]) return;
+    const st = game.cmarks[i];
+    const b = el("g", { class:"num" + (st ? " " + st : ""), "data-c": i }, c);
+    el("circle", { cx:cpos[i][0], cy:cpos[i][1], r: 38 }, b);
+    const t = el("text", { x:cpos[i][0], y:cpos[i][1] }, b); t.textContent = v;
+  });
+}
+
+/* ------------------------------------------------------------ playing */
+let timer = null;
+let stats = { round: 1, solved: 0 };
+
+function setMsg(h, p, btn){
+  $("msg").innerHTML = `<h2>${h}</h2><p>${p}</p>` + (btn ? `<button class="go" id="again">${btn}</button>` : "");
+  $("msg").classList.add("on");
+  const a = $("again"); if(a) a.onclick = start;
+}
+
+function sky(){
+  if(!game) { $("sun").style.left = "6%"; $("sun").style.top = "60%"; $("left").textContent = ""; return; }
+  const f = Math.min(1, (Date.now() - game.t0) / (game.L.secs*1000));
+  $("sun").style.left = (6 + 88*f) + "%";
+  $("sun").style.top = (70 - 50*Math.sin(Math.PI*f)) + "%";
+  $("sky").style.background = f < .75 ? "linear-gradient(#7dd3fc,#e0f2fe)"
+    : f < .92 ? "linear-gradient(#fb923c,#fde68a)" : "linear-gradient(#7c3aed,#f472b6)";
+  const left = Math.max(0, Math.ceil(game.L.secs - (Date.now() - game.t0)/1000));
+  $("left").textContent = left + "s";
+  if(f >= 1) lose();
+}
+
+function start(){
+  const p = makePuzzle();
+  if(!p){ setMsg("Hmm", "Couldn't build a puzzle — try again.", "Try again"); return; }
+  game = Object.assign(p, {
+    stage: "outer", t0: Date.now(), over: false,
+    solved: p.groups.map(() => false),
+    marks: p.groups.map(g => g.map(() => "")),
+    cmarks: p.targets.map(() => ""),
+  });
+  $("msg").classList.remove("on");
+  $("start").textContent = "↻ New puzzle";
+  clearInterval(timer); timer = setInterval(sky, 250); sky();
+  draw();
+}
+
+function finish(){
+  clearInterval(timer); game.over = true;
+  const secs = Math.round((Date.now() - game.t0)/1000);
+  stats.solved++; stats.round++;
+  let best = Number(localStorage.getItem(bestKey())) || 0;
+  const isBest = !best || secs < best;
+  if(isBest) try { localStorage.setItem(bestKey(), secs); } catch(e){}
+  showStats();
+  setTimeout(() => setMsg("🌼 Solved!", `Finished in ${secs} seconds.${isBest ? " That's your best time on this level!" : ""}`, "Next puzzle ▶"), 700);
+}
+
+function lose(){
+  clearInterval(timer); game.over = true;
+  // show where every answer was
+  game.groups.forEach((g, gi) => { if(!game.solved[gi]) { game.marks[gi][g.indexOf(game.targets[gi])] = "reveal"; } });
+  draw();
+  stats.round++; showStats();
+  setTimeout(() => setMsg("🌙 The sun set!", "The yellow numbers were the answers. The middle answer was " + game.final + ".", "Try another ▶"), 900);
+}
+
+function shake(node){ node.classList.remove("shake"); void node.getBBox; node.classList.add("shake"); setTimeout(() => node.classList.remove("shake"), 400); }
+
+$("svg").addEventListener("click", e => {
+  if(!game || game.over) return;
+  const b = e.target.closest(".num"); if(!b) return;
+  if(b.dataset.g !== undefined){
+    const gi = +b.dataset.g, vi = +b.dataset.v;
+    if(game.solved[gi] || game.marks[gi][vi] === "wrong") return;
+    if(game.groups[gi][vi] === game.targets[gi]){
+      game.marks[gi][vi] = "right"; game.solved[gi] = true;
+      if(game.solved.every(Boolean)) game.stage = "center";
+      draw();
+    } else { game.marks[gi][vi] = "wrong"; draw(); shake($("board")); }
+  } else if(b.dataset.c !== undefined){
+    if(game.stage !== "center") return;           // the middle opens once every petal is done
+    const i = +b.dataset.c;
+    if(game.cmarks[i] === "wrong") return;
+    if(game.targets[i] === game.final){ game.cmarks[i] = "right"; draw(); finish(); }
+    else { game.cmarks[i] = "wrong"; draw(); shake($("board")); }
+  }
+});
+
+/* ------------------------------------------------------------ menus */
+function showStats(){
+  $("round").textContent = stats.round; $("solved").textContent = stats.solved;
+  const b = Number(localStorage.getItem(bestKey())) || 0;
+  $("best").textContent = b ? b + "s" : "—";
+}
+function menus(){
+  $("ops").innerHTML = Object.entries(OPS).map(([k,o]) =>
+    `<button class="${prefs.op===k?"on":""}" data-op="${k}">${o.label}<small>${o.sub}</small></button>`).join("");
+  $("levels").innerHTML = LEVELS.map((l,i) =>
+    `<button class="${prefs.level===i?"on":""}" data-lv="${i}">Level ${l.name}<small>${l.sub}</small></button>`).join("");
+  showStats();
+}
+document.addEventListener("click", e => {
+  const o = e.target.closest("[data-op]"), l = e.target.closest("[data-lv]");
+  if(!o && !l) return;
+  if(o) prefs.op = o.dataset.op;
+  if(l) prefs.level = +l.dataset.lv;
+  savePrefs(); menus();
+  clearInterval(timer); game = null; draw(); sky();
+  $("start").textContent = "▶ Start";
+  setMsg("Ready?", "Press Start when you are.");
+});
+$("start").addEventListener("click", start);
+menus(); sky();
+
+// for the test page
+window.__petals = { answers, makeGroup, makePuzzle, LEVELS, OPS, prefs };
+})();
+</script>
+</body>
+</html>
