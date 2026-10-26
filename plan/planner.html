@@ -150,6 +150,9 @@
   .pop{ position:fixed; z-index:50; background:#fff; border:1px solid var(--line); border-radius:11px; box-shadow:0 12px 38px rgba(21,33,59,.18); padding:5px; min-width:172px; }
   .pop button{ display:flex; width:100%; gap:8px; align-items:center; border:none; background:none; text-align:left; padding:7px 9px; border-radius:7px; cursor:pointer; font-size:13px; }
   .pop button:hover{ background:#f1f5f9; }
+  .pop.picklist{ max-height:min(420px, 70vh); overflow-y:auto; min-width:210px; }
+  .pop .pophead{ font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:#64748b; padding:8px 9px 4px; }
+  .pop button.cur{ font-weight:800; background:#eef2ff; }
   .pop hr{ border:none; border-top:1px solid var(--line); margin:4px 2px; }
   .pop .k{ color:var(--faint); font-size:11px; margin-left:auto; }
   .scrim{ position:fixed; inset:0; background:rgba(15,23,42,.35); z-index:60; display:flex; align-items:center; justify-content:center; padding:20px; }
@@ -186,8 +189,8 @@
 
 
 <script src="curriculum.js?v=6"></script>
-<script src="lz-common.js?v=13"></script>
-<script src="lz-sync.js?v=17"></script>
+<script src="lz-common.js?v=14"></script>
+<script src="lz-sync.js?v=18"></script>
 <script>
 const KIDS = [
   { id:"ryland", name:"Ryland", color:"#4f46e5", cls:"ry" },
@@ -706,6 +709,8 @@ function openMenu(anchor, c){
   if(c.done) rows.push(["↩︎ Mark not done", ()=>toggleDone(c)]);
   else rows.push(["✓ Mark done", ()=>toggleDone(c)]);
   if(c.type==="ongoing") rows.push(["⊘ Skip "+c.subject+" today", ()=>{ LZ.setSkipped(c.kid,c.subject,c.date,true); render(); }]);
+  // a daily-rotation subject (Learn Zone): swap the app for just this day
+  if(c.type==="ongoing" && c.pick) rows.push(["🔀 Change…", ()=>openPickMenu(anchor, c)]);
   if(c.type==="manual" && c.manual) rows.push(["🗑 Remove this lesson", ()=>{
     LZ.setAssignedDate(c.kid,c.subject,"m|"+c.manual.id,null);
     LZ.removeManualLesson(c.kid, c.subject, c.manual.id); render();
@@ -724,6 +729,39 @@ function openMenu(anchor, c){
   el.style.top = Math.min(r.bottom+4, window.innerHeight-el.offsetHeight-8)+"px";
   el.style.left = Math.min(r.left-140, window.innerWidth-el.offsetWidth-8)+"px";
   el.addEventListener("click", e=>e.stopPropagation());
+  pop = el;
+}
+
+// The list of every app for a daily-rotation subject. Picking the automatic one clears the
+// override rather than storing it, so that day goes back to following the rotation.
+function openPickMenu(anchor, c){
+  closePop();
+  const opts = c.sub.options || [];
+  const auto = LZ.autoPick(c.kid, c.subject, c.date, opts);
+  const all = Object.keys((window.LZ_CONFIG && window.LZ_CONFIG.appLinks) || {});
+  const others = all.filter(o=>!opts.includes(o)).sort((x,y)=>x.localeCompare(y));
+  const el = document.createElement("div");
+  el.className = "pop picklist";
+  const head = text => { const h = document.createElement("div"); h.className = "pophead"; h.textContent = text; el.appendChild(h); };
+  const item = o => {
+    const b = document.createElement("button");
+    b.textContent = (o===c.pick ? "✓ " : "") + o + (o===auto ? "  (automatic)" : "");
+    if(o===c.pick) b.className = "cur";
+    b.addEventListener("click", e=>{
+      e.stopPropagation(); closePop();
+      LZ.setPickOverride(c.kid, c.subject, c.date, o===auto ? null : o);
+      render();
+    });
+    el.appendChild(b);
+  };
+  head("Learn Zone rotation"); opts.forEach(item);
+  if(others.length){ head("All other apps"); others.forEach(item); }
+  document.body.appendChild(el);
+  const r = anchor.getBoundingClientRect();
+  el.style.top = Math.max(8, Math.min(r.bottom+4, window.innerHeight-el.offsetHeight-8))+"px";
+  el.style.left = Math.max(8, Math.min(r.left-140, window.innerWidth-el.offsetWidth-8))+"px";
+  el.addEventListener("click", e=>e.stopPropagation());
+  const cur = el.querySelector(".cur"); if(cur) cur.scrollIntoView({block:"nearest"});
   pop = el;
 }
 

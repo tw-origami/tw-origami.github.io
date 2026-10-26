@@ -607,7 +607,14 @@
   // agrees without needing to sync anything, and it can't drift or get "re-rolled" by a
   // refresh. Stepping one position per day cycles evenly through the whole list instead of
   // randomly repeating, and the per-kid offset keeps the two boys on different apps.
-  function dailyPick(kid, subject, dateISO, options){
+  // A parent can swap the day's app for another. Stored per kid+subject+date, so it never
+  // affects any other day; the automatic rotation carries on around it.
+  function pickKey(kid, subject, dateISO){ return `lzPick|${kid}|${slug(subject)}|${dateISO}`; }
+  function getPickOverride(kid, subject, dateISO){ return localStorage.getItem(pickKey(kid, subject, dateISO)) || null; }
+  function setPickOverride(kid, subject, dateISO, choice){
+    choice ? localStorage.setItem(pickKey(kid, subject, dateISO), choice) : localStorage.removeItem(pickKey(kid, subject, dateISO));
+  }
+  function autoPick(kid, subject, dateISO, options){
     const list = options || [];
     if(!list.length) return null;
     const day = Math.floor(Date.parse(dateISO + "T00:00:00Z") / 86400000);
@@ -615,6 +622,13 @@
     const seed = `${kid}|${subject}`;
     for(let i=0;i<seed.length;i++) off = (off*31 + seed.charCodeAt(i)) >>> 0;
     return list[(((day + off) % list.length) + list.length) % list.length];
+  }
+  function dailyPick(kid, subject, dateISO, options){
+    const list = options || [];
+    const chosen = getPickOverride(kid, subject, dateISO);
+    // only honoured while it's still one of the subject's apps
+    // honoured while it's still one of the subject's apps, or any app the site links to
+    return (chosen && (list.includes(chosen) || appLink(chosen))) ? chosen : autoPick(kid, subject, dateISO, list);
   }
   // Where a Learn Zone option actually lives, so the day's pick can be a real link.
   // Paths are relative to /plan/, which is where every page that renders them sits.
@@ -871,7 +885,7 @@
     dayOffKey, isDayOff, dayOffLabel, setDayOff,
     attachKey, getAttachments, setAttachments, addAttachment, updateAttachment, removeAttachment, attachDoneKey,
     youTubeId, attachHref, attachIcon,
-    safeUrl, guessAttachKind, dailyPick, appLink,
+    safeUrl, guessAttachKind, dailyPick, autoPick, pickKey, getPickOverride, setPickOverride, appLink,
     subjectBySlug, manualById, parseAttachDoneKey, attachmentsDoneOn, manualDoneOn,
     DOW_CODES, DEFAULT_SCHEDULE_DAYS, scheduleKey, getScheduleDays, setScheduleDays, dowCode, isScheduledOn,
     carryKey, getCarryOver, setCarryOver, catchupResetKey, getCatchupReset, setCatchupReset,
@@ -899,7 +913,28 @@
       "Test Tactics":    "../testtactics/index.html",
       "Debate Dojo":     "../debate/index.html",
       "Fact Checker":    "../factcheck/index.html",
-      "Nutrition Quest": "../nutrition/index.html"
+      "Nutrition Quest": "../nutrition/index.html",
+      // Every other app on the home page, so a parent can swap any of them in for a day.
+      "Draw Lab":         "../draw/index.html",
+      "Math Practice":    "../math/index.html",
+      "Grammar Gym":      "../grammar/index.html",
+      "Reading Rescue":   "../readingrescue/index.html",
+      "Writing Sprint":   "../writingsprint/index.html",
+      "Typing Quest":     "../typing/index.html",
+      "Spelling Bee":     "../spellingbee/index.html",
+      "Number Petals":    "../numberpetals/index.html",
+      "World Explorer":   "../geography/index.html",
+      "Story Lab":        "../storyteller/index.html",
+      "PokéTrivia Island": "../poketrivia/index.html",
+      "PokéLearn":        "../pokelearn/index.html",
+      "Comic Studio":     "../comics/index.html",
+      "Lit Devices Lab":  "../english/index.html",
+      "Essay Builder":    "../essay/index.html",
+      "Writing Workshop": "../writing/index.html",
+      "Chem Basics":      "../chem/index.html",
+      "Geometry Gym":     "../geometry/index.html",
+      "Physics Playground": "../physics/index.html",
+      "Bio Basics":       "../bio/index.html"
     },
     // days: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
     recurring: [

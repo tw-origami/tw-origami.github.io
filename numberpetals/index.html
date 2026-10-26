@@ -70,6 +70,8 @@
   .msg p{ margin:0; color:var(--muted); font-weight:700; max-width:420px; line-height:1.45; }
   .eq{ font-weight:900; font-size:26px; min-height:38px; margin-bottom:8px; letter-spacing:.5px; color:var(--accent); }
   .eq .q{ color:#cbd5e1; }
+  .eq .mid{ display:inline-block; background:#fef3c7; color:#92400e; border-radius:12px; padding:4px 14px; font-size:22px; }
+  .eq .mid b{ color:#b45309; }
   .how{ max-width:720px; color:var(--muted); font-size:14px; line-height:1.55; margin-top:14px; text-align:center; }
   .how b{ color:var(--ink); }
 </style>
@@ -218,7 +220,15 @@ let game = null;
 function showEq(){
   const box = $("eq");
   const s = game && game.sel;
-  if(!s || !s.idx.length){ box.innerHTML = "&nbsp;"; return; }
+  if(!s || !s.idx.length){
+    // The middle often uses a different operation from the petals (Times adds there, Divide
+    // subtracts), and with nothing on screen saying so it looks like it has no answer.
+    if(game && game.stage === "center" && !game.over){
+      const word = { "+":"ADD", "−":"SUBTRACT", "×":"MULTIPLY", "÷":"DIVIDE" }[game.O.center];
+      box.innerHTML = `<span class="mid">Now the middle: <b>${word}</b> (${game.O.center})</span>`;
+    } else box.innerHTML = "&nbsp;";
+    return;
+  }
   const vals = s.where === "c" ? game.targets : game.groups[s.where];
   const op = s.where === "c" ? game.O.center : game.O.outer;
   const v = s.idx.map(i => vals[i]);
@@ -236,7 +246,7 @@ function draw(){
   // centre
   const c = el("g", { class: "center" + (game.stage === "center" ? " live" : "") }, svg);
   el("polygon", { class:"shape", points: pts(poly(500,500,CR,n, up + Math.PI/n)) }, c);
-  if(game.stage !== "center") { const t = el("text", { class:"op", x:500, y:500 }, c); t.textContent = game.O.center; }
+  { const t = el("text", { class:"op", x:500, y:500 }, c); t.textContent = game.O.center; }
   // petals, each pointing outwards from an edge of the centre
   game.groups.forEach((g, gi) => {
     const dir = up + gi*2*Math.PI/n;                          // towards the middle of the centre's edge gi
@@ -259,12 +269,14 @@ function draw(){
     });
   });
   // centre numbers, filled in as petals are solved
-  const cpos = poly(500, 500, CR*0.58, n, up);
+  // placed toward the corners but kept inside the shape's inner circle, so squares fit too
+  const cr = CR*Math.cos(Math.PI/n);
+  const cpos = poly(500, 500, cr*0.6, n, up);
   game.targets.forEach((v, i) => {
     if(!game.solved[i]) return;
     const st = game.cmarks[i];
     const b = el("g", { class:"num" + (st ? " " + st : ""), "data-c": i }, c);
-    el("circle", { cx:cpos[i][0], cy:cpos[i][1], r: 38 }, b);
+    el("circle", { cx:cpos[i][0], cy:cpos[i][1], r: Math.min(38, cr*0.32) }, b);
     const t = el("text", { x:cpos[i][0], y:cpos[i][1] }, b); t.textContent = v;
   });
 }
