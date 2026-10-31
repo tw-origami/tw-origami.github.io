@@ -56,7 +56,7 @@
   .num.part circle{ fill:#d9f99d; }
   .num.right circle{ fill:var(--accent2); } .num.right text{ fill:#fff; }
   .num.reveal circle{ fill:#fde68a; }
-  .grp.solved .num:not(.right):not(.part) text{ fill:#cbd5e1; }
+  .grp.solved .num:not(.right):not(.part):not(.reveal) text{ fill:#cbd5e1; }
   .center polygon.shape{ fill:var(--leaf); stroke:#1f2937; stroke-width:7; stroke-linejoin:round; }
   .center.live polygon.shape{ fill:#d9f99d; }
   .center .op{ font-size:64px; font-weight:900; fill:#365314; text-anchor:middle; dominant-baseline:central; opacity:.5; }
@@ -66,6 +66,15 @@
   .msg{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:12px; text-align:center;
     background:rgba(255,255,255,.9); border-radius:22px; padding:20px; }
   .msg.on{ display:flex; }
+  .result{ display:none; width:min(720px,100%); background:#fff; border-radius:18px; box-shadow:var(--shadow); padding:16px 20px; margin-top:12px; text-align:center; }
+  .result.on{ display:block; }
+  .result h3{ margin:0 0 8px; font-size:22px; }
+  .result p{ margin:6px 0; color:var(--muted); font-weight:700; }
+  .result ul{ list-style:none; padding:0; margin:6px 0 10px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+  .result li{ background:var(--soft); border-radius:10px; padding:6px 12px; font-weight:900; font-size:20px; }
+  .result .key{ font-size:13px; }
+  .result .sw{ display:inline-block; width:14px; height:14px; border-radius:50%; vertical-align:-2px; }
+  .result .sw.part{ background:#d9f99d; } .result .sw.rev{ background:#fde68a; }
   .msg h2{ margin:0; font-size:34px; }
   .msg p{ margin:0; color:var(--muted); font-weight:700; max-width:420px; line-height:1.45; }
   .eq{ font-weight:900; font-size:26px; min-height:38px; margin-bottom:8px; letter-spacing:.5px; color:var(--accent); }
@@ -97,6 +106,7 @@
   <svg id="svg" viewBox="0 0 1000 1000"></svg>
   <div class="msg on" id="msg"><h2>Ready?</h2><p>Pick a level and press Start.</p></div>
 </div>
+<div class="result" id="result"></div>
 <p class="how" id="how"><b>How to play:</b> In each petal, tap the <b>two numbers</b> that go together (they turn blue), then tap the number they <b>add</b> (or <b>multiply</b>) to make.
 That answer moves into the middle. When the middle is full, do the same there. Tap a blue number again to un-pick it; a wrong set shakes and clears.</p>
 
@@ -313,6 +323,7 @@ function start(){
     cmarks: p.targets.map(() => ""),
   });
   $("msg").classList.remove("on");
+  $("result").classList.remove("on");
   $("start").textContent = "↻ New puzzle";
   clearInterval(timer); timer = setInterval(sky, 250); sky();
   draw();
@@ -329,16 +340,49 @@ function finish(){
   setTimeout(() => setMsg("🌼 Solved!", `Finished in ${secs} seconds.${isBest ? " That's your best time on this level!" : ""}`, "Next puzzle ▶"), 700);
 }
 
+/** One correct tap order for a set of numbers: [first, second, result] indexes, or null. */
+function solution(vals, op){
+  for(let i=0;i<vals.length;i++) for(let j=0;j<vals.length;j++) for(let k=0;k<vals.length;k++){
+    if(i===j || j===k || i===k) continue;
+    if(apply(op, vals[i], vals[j]) === vals[k]) return [i, j, k];
+  }
+  return null;
+}
+const sentence = (vals, op, t) => `${vals[t[0]]} ${op} ${vals[t[1]]} = ${vals[t[2]]}`;
+
+// When the sun sets, show the working for everything left unsolved -- both numbers and the
+// result, on the board and written out underneath -- so the puzzle teaches instead of just ending.
 function lose(){
   clearInterval(timer); game.over = true;
   clearPicks();
-  // show where every answer was
-  game.groups.forEach((g, gi) => { if(!game.solved[gi]) { game.marks[gi][g.indexOf(game.targets[gi])] = "reveal"; } });
+  const missed = [];
+  game.groups.forEach((g, gi) => {
+    if(game.solved[gi]) return;
+    const t = solution(g, game.O.outer);
+    if(!t) return;
+    const m = game.marks[gi];
+    // the result is the yellow one; for − and ÷ the starting number is what moves to the middle
+    m[t[0]] = m[t[1]] = "part"; m[t[2]] = "reveal";
+    missed.push(sentence(g, game.O.outer, t));
+    game.solved[gi] = true;                     // so the middle fills in
+  });
+  const ct = solution(game.targets, game.O.center);
+  if(ct){
+    game.cmarks.fill("");
+    game.cmarks[ct[0]] = game.cmarks[ct[1]] = "part"; game.cmarks[ct[2]] = "reveal";
+  }
+  game.stage = "center";
   draw();
   stats.round++; showStats();
-  setTimeout(() => setMsg("🌙 The sun set!", ordered(game.O.outer)
-    ? "The yellow numbers were the starting numbers that moved to the middle. The middle's starting number was " + game.final + "."
-    : "The yellow numbers were the answers. The middle answer was " + game.final + ".", "Try another ▶"), 900);
+  const rows = missed.map(x => `<li>${x}</li>`).join("");
+  $("result").innerHTML = `<h3>🌙 The sun set! Here's how to solve it:</h3>
+    ${rows ? `<p>Petals you hadn't finished:</p><ul>${rows}</ul>` : ""}
+    ${ct ? `<p>The middle: <b>${sentence(game.targets, game.O.center, ct)}</b></p>` : ""}
+    <p class="key"><span class="sw part"></span> the two numbers &nbsp; <span class="sw rev"></span> what they make</p>
+    <button class="go" id="again2">Try another ▶</button>`;
+  $("result").classList.add("on");
+  $("again2").onclick = start;
+  $("result").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 function shake(node){ node.classList.remove("shake"); void node.getBBox; node.classList.add("shake"); setTimeout(() => node.classList.remove("shake"), 400); }
@@ -429,6 +473,7 @@ document.addEventListener("click", e => {
   if(l) prefs.level = +l.dataset.lv;
   savePrefs(); menus();
   clearInterval(timer); game = null; draw(); sky();
+  $("result").classList.remove("on");
   $("start").textContent = "▶ Start";
   setMsg("Ready?", "Press Start when you are.");
 });

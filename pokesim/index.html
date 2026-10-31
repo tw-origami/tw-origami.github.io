@@ -299,6 +299,30 @@
   .st-skip{ position:absolute; right:10px; top:10px; }
   @media (max-width:560px){ .stage{ height:190px; } .st-mon{ width:92px; height:92px; } .st-right{ width:80px; height:80px; } }
   @media (prefers-reduced-motion:reduce){ .st-mon.entering{ animation:none; } }
+
+  /* ---- weather on the stage ---- */
+  .st-wx{ position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .6s, background .6s; z-index:0; }
+  .stage .st-ground, .stage .st-mon{ z-index:1; } .stage .st-fx{ z-index:2; } .stage .st-cap, .stage .st-skip{ z-index:4; }
+  .stage.wx-rain .st-wx{ opacity:1; background:
+      repeating-linear-gradient(105deg, transparent 0 14px, rgba(160,200,255,.45) 14px 15px, transparent 15px 34px),
+      linear-gradient(rgba(20,40,90,.45), rgba(20,40,90,.2));
+    background-size:60px 60px, 100% 100%; animation:wxRain .45s linear infinite; }
+  @keyframes wxRain{ to{ background-position:-16px 60px, 0 0; } }
+  .stage.wx-sun .st-wx{ opacity:1; background:radial-gradient(60% 80% at 85% 0%, rgba(255,214,90,.75), rgba(255,140,40,.25) 55%, transparent 75%); animation:wxSun 3s ease-in-out infinite alternate; }
+  @keyframes wxSun{ from{ filter:brightness(1); } to{ filter:brightness(1.25); } }
+  .stage.wx-sand .st-wx{ opacity:1; background:
+      repeating-linear-gradient(170deg, transparent 0 9px, rgba(230,190,120,.35) 9px 11px, transparent 11px 23px),
+      linear-gradient(rgba(170,120,60,.5), rgba(120,80,30,.35));
+    background-size:90px 40px, 100% 100%; animation:wxSand .6s linear infinite; }
+  @keyframes wxSand{ to{ background-position:90px 8px, 0 0; } }
+  .stage.wx-hail .st-wx{ opacity:1; background:
+      radial-gradient(circle, rgba(255,255,255,.9) 0 2px, transparent 3px),
+      linear-gradient(rgba(180,210,240,.35), rgba(120,160,210,.2));
+    background-size:28px 28px, 100% 100%; animation:wxHail .7s linear infinite; }
+  @keyframes wxHail{ to{ background-position:-6px 28px, 0 0; } }
+  .st-wxbadge{ position:absolute; left:10px; top:10px; z-index:3; background:rgba(8,9,24,.7); color:#fff; font-weight:900; font-size:13px;
+    padding:4px 10px; border-radius:99px; }
+  @media (prefers-reduced-motion:reduce){ .st-wx{ animation:none !important; } }
 </style>
 </head>
 <body>
@@ -321,6 +345,6 @@
 <script src="../poketrivia/data/growth.js"></script>
 <script src="../poketrivia/data/battle-data.js"></script>
 <script src="../plan/lz-sync.js?v=16"></script>
-<script type="module" src="app.js?v=5"></script>
+<script type="module" src="app.js?v=6"></script>
 </body>
 </html>

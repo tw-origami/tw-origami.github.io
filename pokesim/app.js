@@ -9,7 +9,7 @@ import * as store from './store.js';
 import * as B from './battle.js';
 import * as party from '../poketrivia/js/party.js';
 import * as CPU from './computer.js';
-import * as Stage from './stage.js';
+import * as Stage from './stage.js?v=2';
 import { isSimulated } from '../poketrivia/js/battle-engine.js';
 
 const { esc } = B;

@@ -10,17 +10,40 @@
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
+const WEATHER = {
+  rain: { icon: '🌧️', label: 'Rain' },
+  sun:  { icon: '☀️', label: 'Harsh sunlight' },
+  sand: { icon: '🏜️', label: 'Sandstorm' },
+  hail: { icon: '🌨️', label: 'Hail' },
+};
+/** Weather drawn over the arena: a tint and falling rain/hail/sand, plus a corner badge. */
+export function setWeather(root, w, turns) {
+  if (!root) return;
+  Object.keys(WEATHER).forEach(k => root.classList.remove('wx-' + k));
+  const badge = root.querySelector('.st-wxbadge');
+  const info = WEATHER[w];
+  if (!info) { if (badge) badge.hidden = true; return; }
+  root.classList.add('wx-' + w);
+  if (badge) {
+    badge.hidden = false;
+    badge.textContent = `${info.icon} ${info.label}${turns > 0 ? ` · ${turns} turn${turns === 1 ? '' : 's'} left` : ''}`;
+  }
+}
+
 /** The stage markup for whoever is currently out. */
 const esc = (t) => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export function stageHtml(match, art, { enter = false } = {}) {
+  const w = WEATHER[match.battle?.weather] ? match.battle.weather : '';
+  const turns = match.battle?.weatherTurns ?? 0;
   const mon = (i) => {
     const b = match.sides[i].active, a = art(b.mon);
     return `<div class="st-mon st-${i ? 'right' : 'left'} ${b.fainted ? 'gone' : ''} ${enter ? 'entering' : ''}" data-st="${i}">
       <div class="st-art" style="${a.style}">${a.inner}</div><div class="st-shadow"></div></div>`;
   };
-  return `<div class="stage" id="stage" aria-hidden="true" data-n0="${esc(match.sides[0].active.name)}" data-n1="${esc(match.sides[1].active.name)}">
-    <div class="st-ground"></div>${mon(0)}${mon(1)}<div class="st-fx"></div>
+  return `<div class="stage${w ? ' wx-' + w : ''}" id="stage" aria-hidden="true" data-n0="${esc(match.sides[0].active.name)}" data-n1="${esc(match.sides[1].active.name)}">
+    <div class="st-wx"></div><div class="st-ground"></div>${mon(0)}${mon(1)}<div class="st-fx"></div>
+    <div class="st-wxbadge"${w ? '' : ' hidden'}>${w ? `${WEATHER[w].icon} ${WEATHER[w].label}${turns > 0 ? ` · ${turns} turn${turns === 1 ? '' : 's'} left` : ''}` : ''}</div>
     <div class="st-cap"></div>
     <button class="btn small st-skip" data-act="skip" hidden>⏭ Skip</button>
   </div>`;
@@ -168,7 +191,9 @@ export async function play(events, ctx) {
           }
           await pause(200); break;
         }
-        case 'ability': case 'abilityImmune': case 'abilityAbsorb': case 'weather':
+        case 'weather': setWeather(root, ev.weather, 5); if (text) await pause(750); break;
+        case 'weatherEnd': setWeather(root, null); if (text) await pause(600); break;
+        case 'ability': case 'abilityImmune': case 'abilityAbsorb':
         case 'charge': case 'recharge': case 'flinch': case 'asleep': case 'frozen': case 'fullPara': case 'protect': case 'blocked':
           if (text) await pause(750);
           break;
