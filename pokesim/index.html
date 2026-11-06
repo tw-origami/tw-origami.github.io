@@ -316,10 +316,14 @@
     background-size:90px 40px, 100% 100%; animation:wxSand .6s linear infinite; }
   @keyframes wxSand{ to{ background-position:90px 8px, 0 0; } }
   .stage.wx-hail .st-wx{ opacity:1; background:
-      radial-gradient(circle, rgba(255,255,255,.9) 0 2px, transparent 3px),
-      linear-gradient(rgba(180,210,240,.35), rgba(120,160,210,.2));
-    background-size:28px 28px, 100% 100%; animation:wxHail .7s linear infinite; }
-  @keyframes wxHail{ to{ background-position:-6px 28px, 0 0; } }
+      radial-gradient(circle at 20% 30%, #fff 0 2.5px, transparent 3.5px),
+      radial-gradient(circle at 70% 60%, rgba(255,255,255,.95) 0 3.5px, transparent 4.5px),
+      radial-gradient(circle at 45% 85%, rgba(230,245,255,.9) 0 2px, transparent 3px),
+      radial-gradient(circle at 85% 15%, rgba(255,255,255,.85) 0 1.5px, transparent 2.5px),
+      linear-gradient(rgba(170,205,240,.45), rgba(110,150,205,.25));
+    background-size:47px 53px, 71px 67px, 59px 41px, 37px 61px, 100% 100%;
+    animation:wxHail .9s linear infinite; }
+  @keyframes wxHail{ to{ background-position:-12px 53px, -18px 67px, -10px 41px, -8px 61px, 0 0; } }
   .st-wxbadge{ position:absolute; left:10px; top:10px; z-index:3; background:rgba(8,9,24,.7); color:#fff; font-weight:900; font-size:13px;
     padding:4px 10px; border-radius:99px; }
   @media (prefers-reduced-motion:reduce){ .st-wx{ animation:none !important; } }
@@ -341,10 +345,10 @@
 <!-- The real Gen I data and the real battle engine live in PokéTrivia; this app reuses them. -->
 <script src="../poketrivia/data/dex.js"></script>
 <script src="../poketrivia/data/moves.js"></script>
-<script src="moves-extra.js?v=1"></script>
+<script src="moves-extra.js?v=2"></script>
 <script src="../poketrivia/data/growth.js"></script>
 <script src="../poketrivia/data/battle-data.js"></script>
-<script src="../plan/lz-sync.js?v=16"></script>
-<script type="module" src="app.js?v=6"></script>
+<script src="../plan/lz-sync.js?v=18"></script>
+<script type="module" src="app.js?v=7"></script>
 </body>
 </html>

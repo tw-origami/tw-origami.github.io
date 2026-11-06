@@ -70,9 +70,13 @@ function clips() {
   for (const level of sandbox.window.SPELL.LEVELS) {
     for (const w of level.words) {
       const slug = slugify(w.w);
-      const cap = w.w.charAt(0).toUpperCase() + w.w.slice(1);
+      // `say` is a respelling for words the voice gets wrong (choir → "kwire"); it is only
+      // what gets read aloud, never shown, so the word and sentence clips use it in place of the word.
+      const spoken = w.say || w.w;
+      const cap = spoken.charAt(0).toUpperCase() + spoken.slice(1);
+      const sentence = w.say ? w.s.replace(new RegExp(`\\b${w.w}\\b`, 'gi'), w.say) : w.s;
       out.push({ word: slug, file: slug, text: `${cap}.` });
-      out.push({ word: slug, file: slug + '_s', text: w.s });
+      out.push({ word: slug, file: slug + '_s', text: sentence });
       out.push({ word: slug, file: slug + '_d', text: `${w.pos}. ${w.def}` });
     }
   }

@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Pizza Rush 64</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#1b1030; --panel:#2b1d4f; --gold:#ffd23f; --red:#e63946; --green:#3ddc84; --cream:#fff6d8; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; background:#120a24; color:#fff; font-family:"Press Start 2P", monospace; overflow:hidden; }
+  #game{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
+  /* low resolution, scaled up with hard pixels: the N64 look */
+  canvas#view{ image-rendering:pixelated; image-rendering:crisp-edges; width:min(100vw, 133.33vh); height:auto; aspect-ratio:4/3; max-height:100vh; display:block; }
+  .hud{ position:fixed; pointer-events:none; }
+  .top{ top:10px; left:50%; transform:translateX(-50%); display:flex; gap:10px; }
+  .pill{ background:rgba(27,16,48,.85); border:3px solid #fff; border-radius:8px; padding:8px 12px; font-size:12px; text-shadow:2px 2px 0 #000; }
+  .pill b{ color:var(--gold); }
+  .strikes{ color:var(--red); letter-spacing:3px; }
+  #rail{ position:fixed; top:54px; left:10px; display:flex; flex-direction:column; gap:8px; width:min(250px, 34vw); pointer-events:none; }
+  .ticket{ background:var(--cream); color:var(--ink); border:3px solid #000; border-radius:4px; padding:8px 9px 9px; font-size:9.5px; line-height:1.7;
+    box-shadow:4px 4px 0 rgba(0,0,0,.45); position:relative; }
+  .ticket.new{ animation:slidein .35s ease-out; }
+  .ticket.cur{ outline:4px solid var(--gold); }
+  .ticket .who{ font-size:10px; margin-bottom:4px; display:flex; justify-content:space-between; }
+  .ticket .line{ display:flex; justify-content:space-between; }
+  .ticket .line.ok{ color:#15803d; } .ticket .line.over{ color:#dc2626; }
+  .ticket .pat{ height:7px; background:#ddd; border:2px solid #000; margin-top:5px; }
+  .ticket .pat i{ display:block; height:100%; background:var(--green); }
+  .ticket .pat i.warn{ background:var(--gold); } .ticket .pat i.bad{ background:var(--red); }
+  @keyframes slidein{ from{ transform:translateX(-120%); } to{ transform:none; } }
+  #bins{ position:fixed; bottom:10px; left:50%; transform:translateX(-50%); display:flex; gap:6px; flex-wrap:wrap; justify-content:center; width:min(96vw, 900px); }
+  #bins button{ font-family:inherit; font-size:10px; color:#fff; background:var(--panel); border:3px solid #fff; border-radius:6px; padding:8px 8px 7px; cursor:pointer;
+    box-shadow:0 4px 0 #000; min-width:78px; text-shadow:2px 2px 0 #000; }
+  #bins button:active{ transform:translateY(3px); box-shadow:0 1px 0 #000; }
+  #bins button .em{ display:block; font-size:20px; margin-bottom:4px; font-family:system-ui, sans-serif; text-shadow:none; }
+  #bins button .k{ color:var(--gold); }
+  #bins button.act{ background:#7c2d12; } #bins button.go{ background:#166534; } #bins button.trash{ background:#4b5563; }
+  #toast{ position:fixed; top:40%; left:50%; transform:translate(-50%,-50%); font-size:22px; text-shadow:3px 3px 0 #000; pointer-events:none; opacity:0; transition:opacity .2s; text-align:center; line-height:1.5; }
+  #toast.on{ opacity:1; }
+  #screen{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(18,10,36,.82); z-index:5; }
+  #screen .box{ background:var(--panel); border:4px solid #fff; border-radius:10px; padding:26px 28px; text-align:center; max-width:560px; box-shadow:8px 8px 0 #000; }
+  #screen h1{ font-size:26px; color:var(--gold); text-shadow:4px 4px 0 #b91c1c; margin:0 0 16px; line-height:1.4; }
+  #screen p{ font-size:11px; line-height:1.9; margin:8px 0; color:#e9e3ff; }
+  #screen button{ font-family:inherit; font-size:14px; background:var(--red); color:#fff; border:4px solid #fff; border-radius:8px; padding:12px 18px; margin-top:12px; cursor:pointer; box-shadow:0 5px 0 #000; }
+  #screen a{ color:var(--gold); font-size:10px; display:inline-block; margin-top:16px; }
+  .hidden{ display:none !important; }
+  @media (max-width:700px){ .pill{ font-size:9px; padding:6px 8px; } #bins button{ min-width:62px; font-size:8px; padding:6px 5px; } #bins button .em{ font-size:16px; }
+    .ticket{ font-size:8px; } #rail{ top:44px; } }
+</style>
+</head>
+<body>
+<div id="game"><canvas id="view"></canvas></div>
+<div class="hud top"><div class="pill">💰 <b id="coins">0</b></div><div class="pill">🍕 <b id="served">0</b></div><div class="pill">LV <b id="lvl">1</b></div><div class="pill strikes" id="strikes">✖ ✖ ✖</div></div>
+<div id="rail"></div>
+<div id="bins"></div>
+<div id="toast"></div>
+<div id="screen"><div class="box">
+  <h1>PIZZA RUSH 64</h1>
+  <p>Orders come in on the left. Make the <b style="color:#ffd23f">oldest</b> one first!</p>
+  <p>Add SAUCE, then CHEESE, then the right number of each topping. BAKE it in the oven, then BOX it to send it out.</p>
+  <p>Wrong toppings, a raw pizza, or a customer who waits too long = a strike. Three strikes and the shift is over.</p>
+  <p style="color:#ffd23f">Keys: 1–8 toppings · B bake · SPACE box · X trash</p>
+  <button id="startBtn">▶ START SHIFT</button><br>
+  <a href="../index.html">← back to Learn Zone</a>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+
+/* =============================================================== ingredients */
+// Each topping: how it looks (built below) and how it reads on a ticket.
+const TOPPINGS = [
+  { id:"pepperoni", name:"Pepperoni", em:"🔴", color:0xc81d25 },
+  { id:"mushroom",  name:"Mushroom",  em:"🍄", color:0xd9c3a5 },
+  { id:"olive",     name:"Olive",     em:"⚫", color:0x1f1f1f },
+  { id:"pepper",    name:"Pepper",    em:"🫑", color:0x2fa84f },
+  { id:"pineapple", name:"Pineapple", em:"🍍", color:0xf6d32d },
+  { id:"onion",     name:"Onion",     em:"🧅", color:0xf3e8ff },
+];
+const CUSTOMERS = ["🧑 Sam","👩 Rosa","👴 Gus","👧 Mia","🧔 Leo","👩‍🦰 Ivy","🧑‍🚀 Astro Al","🦸 Max","👵 Nana Jo","🤖 Bolt","🐻 Bear","🧙 Merl"];
+
+/* =============================================================== 3D scene */
+// Rendered tiny (320×240) and scaled up with pixelated edges, flat shading and fog —
+// the chunky look of a Nintendo 64 game.
+const W = 320, H = 240;
+const canvas = $("view");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:false });
+renderer.setPixelRatio(1);
+renderer.setSize(W, H, false);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x5b3a8c);
+scene.fog = new THREE.Fog(0x5b3a8c, 9, 20);
+const camera = new THREE.PerspectiveCamera(48, W/H, 0.1, 50);
+camera.position.set(0, 5.2, 6.4);
+camera.lookAt(0, 0.4, 0.6);
+scene.add(new THREE.HemisphereLight(0xfff1d6, 0x3a2266, 0.9));
+const sun = new THREE.DirectionalLight(0xffffff, 0.7); sun.position.set(3, 6, 4); scene.add(sun);
+
+const mat = (c, extra) => new THREE.MeshLambertMaterial(Object.assign({ color:c, flatShading:true }, extra||{}));
+function box(w,h,d,c){ return new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat(c)); }
+function cyl(rt,rb,h,seg,c){ return new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg), mat(c)); }
+
+// kitchen: checker floor, back wall, counter, window
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 30, 15, 15), new THREE.MeshLambertMaterial({ vertexColors:true, flatShading:true }));
+{ const g = floor.geometry.toNonIndexed(); const cols = []; const p = g.attributes.position;
+  for(let i=0;i<p.count;i+=6){ const x = Math.floor((p.getX(i)+15)/2), y = Math.floor((p.getY(i)+15)/2);
+    const c = (x+y)%2 ? new THREE.Color(0xf2e6c9) : new THREE.Color(0x2b1d4f);
+    for(let k=0;k<6;k++) cols.push(c.r,c.g,c.b); }
+  g.setAttribute("color", new THREE.Float32BufferAttribute(cols, 3)); floor.geometry = g; }
+floor.rotation.x = -Math.PI/2; floor.position.y = -1.2; scene.add(floor);
+const wall = box(30, 10, .3, 0xe76f51); wall.position.set(0, 3, -4); scene.add(wall);
+const tiles = box(30, 1.2, .32, 0xf4a261); tiles.position.set(0, 0.2, -3.95); scene.add(tiles);
+const counter = box(9, .5, 4.4, 0x8d5524); counter.position.set(0, -.25, 0.4); scene.add(counter);
+const counterTop = box(9.1, .12, 4.5, 0xf8f1e3); counterTop.position.set(0, .06, .4); scene.add(counterTop);
+// window to the street, where boxed pizzas go
+const win = box(2.6, 1.8, .34, 0x87ceeb); win.position.set(-3.3, 2.5, -3.9); scene.add(win);
+const winFrame = box(2.9, .2, .4, 0xffffff); winFrame.position.set(-3.3, 1.55, -3.85); scene.add(winFrame);
+// sign
+const sign = box(3.6, .8, .2, 0xffd23f); sign.position.set(0.4, 4.1, -3.8); scene.add(sign);
+// oven on the right
+const oven = new THREE.Group(); oven.position.set(3.2, 0.12, -1.6); scene.add(oven);
+const ovenBody = box(2.2, 1.8, 1.8, 0x6b7280); ovenBody.position.y = .9; oven.add(ovenBody);
+const ovenDome = new THREE.Mesh(new THREE.SphereGeometry(1.05, 8, 5, 0, Math.PI*2, 0, Math.PI/2), mat(0x9ca3af)); ovenDome.position.y = 1.8; oven.add(ovenDome);
+const ovenMouth = box(1.5, .7, .1, 0x1b1030); ovenMouth.position.set(0, .75, .91); oven.add(ovenMouth);
+const ovenFire = box(1.3, .25, .05, 0xff7b00); ovenFire.position.set(0, .5, .95); oven.add(ovenFire);
+// stack of boxes on the left
+for(let i=0;i<4;i++){ const b = box(1.4, .16, 1.4, 0xe8d3a3); b.position.set(-3.4, .2 + i*.17, .2); b.rotation.y = (i%2? .08 : -.05); scene.add(b); }
+
+/* -------- the pizza */
+const pizza = new THREE.Group(); scene.add(pizza);
+const PIZZA_HOME = new THREE.Vector3(0, .14, .7);
+let dough, sauce, cheese, crust;
+const placed = [];          // { id, mesh }
+function newPizza(){
+  scene.remove(pizza); pizza.clear(); placed.length = 0;
+  pizza.position.copy(PIZZA_HOME); pizza.rotation.set(0, 0, 0); pizza.scale.set(1,1,1);
+  dough = cyl(1.3, 1.3, .12, 12, 0xf5deb3); pizza.add(dough);
+  crust = new THREE.Mesh(new THREE.TorusGeometry(1.27, .12, 4, 14), mat(0xe9c48f)); crust.rotation.x = Math.PI/2; crust.position.y = .07; pizza.add(crust);
+  sauce = cyl(1.13, 1.13, .03, 12, 0xd62828); sauce.position.y = .07; sauce.visible = false; pizza.add(sauce);
+  cheese = cyl(1.06, 1.06, .03, 12, 0xffd166); cheese.position.y = .095; cheese.visible = false; pizza.add(cheese);
+  scene.add(pizza);
+  cur = { sauce:false, cheese:false, baked:false, counts:{} };
+  updateTickets();
+}
+function toppingMesh(t){
+  let m;
+  switch(t.id){
+    case "pepperoni": m = cyl(.17,.17,.04,8,t.color); break;
+    case "mushroom": { m = new THREE.Group(); const cap = new THREE.Mesh(new THREE.SphereGeometry(.15,6,3,0,Math.PI*2,0,Math.PI/2), mat(t.color)); cap.scale.y=.6;
+      const st = cyl(.05,.06,.07,5,0xf5ebe0); st.position.y=-.02; m.add(st); m.add(cap); break; }
+    case "olive": m = new THREE.Mesh(new THREE.TorusGeometry(.08,.04,4,8), mat(t.color)); m.rotation.x = Math.PI/2; break;
+    case "pepper": m = new THREE.Mesh(new THREE.TorusGeometry(.14,.035,3,8,Math.PI*1.2), mat(t.color)); m.rotation.x = Math.PI/2; break;
+    case "pineapple": m = box(.15,.08,.15,t.color); break;
+    case "onion": m = new THREE.Mesh(new THREE.TorusGeometry(.13,.025,3,10), mat(t.color)); m.rotation.x = Math.PI/2; break;
+  }
+  return m;
+}
+// a free spot on the pizza, spread out so toppings can be counted
+function spot(){
+  let best = null, bestD = -1;
+  for(let i=0;i<24;i++){
+    const r = Math.sqrt(Math.random()) * .9, a = Math.random()*Math.PI*2;
+    const x = Math.cos(a)*r, z = Math.sin(a)*r;
+    const d = placed.reduce((m,p)=>Math.min(m, Math.hypot(p.mesh.position.x-x, p.mesh.position.z-z)), 9);
+    if(d > bestD){ bestD = d; best = [x,z]; }
+    if(d > .4) break;
+  }
+  return best;
+}
+
+/* =============================================================== game state */
+let cur = null;             // the pizza on the counter
+let orders = [];            // { id, who, sauce, cheese, items:{id:n}, patience, left }
+let coins = 0, served = 0, strikes = 0, level = 1, running = false, busy = false, nextOrderIn = 0, orderSeq = 0;
+const anims = [];           // per-frame tweens
+
+function tween(dur, step, done){ anims.push({ t:0, dur, step, done }); }
+
+function makeOrder(){
+  const nTop = Math.min(1 + Math.floor((level-1)/2), 3) - (Math.random() < .25 && level > 2 ? 1 : 0);
+  const pool = TOPPINGS.slice().sort(()=>Math.random()-.5).slice(0, Math.max(1, nTop));
+  const maxN = Math.min(3 + level, 9);
+  const items = {}; pool.forEach(t => items[t.id] = 2 + Math.floor(Math.random()*(maxN-1)));
+  // now and then a "white pizza" (no sauce) to keep everyone reading the ticket
+  const sauce = !(level >= 3 && Math.random() < .15);
+  const patience = Math.max(28, 75 - level*5) + Object.values(items).reduce((a,b)=>a+b,0)*1.5;
+  return { id: ++orderSeq, who: CUSTOMERS[Math.floor(Math.random()*CUSTOMERS.length)], sauce, cheese:true, items, patience, left: patience };
+}
+
+/* =============================================================== HUD */
+// tickets are redrawn several times a second (patience bars), so only one that has never been
+// shown before gets the slide-in animation
+const shownTickets = new Set();
+function updateTickets(){
+  const rail = $("rail");
+  rail.innerHTML = orders.map((o, i) => {
+    const lines = [];
+    const mark = (ok) => ok ? "ok" : "";
+    if(i === 0 && cur){
+      lines.push(`<div class="line ${mark(cur.sauce === o.sauce)}"><span>${o.sauce ? "🍅 Sauce" : "🚫 NO sauce"}</span><span>${o.sauce ? (cur.sauce ? "✓" : "") : (cur.sauce ? "✗" : "✓")}</span></div>`);
+      lines.push(`<div class="line ${mark(cur.cheese)}"><span>🧀 Cheese</span><span>${cur.cheese ? "✓" : ""}</span></div>`);
+      Object.entries(o.items).forEach(([id,n]) => { const t = TOPPINGS.find(x=>x.id===id); const have = cur.counts[id] || 0;
+        lines.push(`<div class="line ${have===n?"ok":have>n?"over":""}"><span>${t.em} ${t.name}</span><span>${have}/${n}</span></div>`); });
+      Object.entries(cur.counts).forEach(([id,n]) => { if(!o.items[id] && n){ const t = TOPPINGS.find(x=>x.id===id);
+        lines.push(`<div class="line over"><span>${t.em} ${t.name}?!</span><span>${n}/0</span></div>`); } });
+    } else {
+      lines.push(`<div class="line"><span>${o.sauce ? "🍅 Sauce" : "🚫 NO sauce"}</span></div><div class="line"><span>🧀 Cheese</span></div>`);
+      Object.entries(o.items).forEach(([id,n]) => { const t = TOPPINGS.find(x=>x.id===id); lines.push(`<div class="line"><span>${t.em} ${t.name}</span><span>×${n}</span></div>`); });
+    }
+    const f = o.left / o.patience;
+    const fresh = !shownTickets.has(o.id); shownTickets.add(o.id);
+    return `<div class="ticket ${i===0?"cur":""} ${fresh?"new":""}"><div class="who"><span>${o.who}</span><span>#${o.id}</span></div>${lines.join("")}
+      <div class="pat"><i class="${f<.25?"bad":f<.5?"warn":""}" style="width:${Math.max(0,f*100)}%"></i></div></div>`;
+  }).join("");
+}
+function updateHud(){
+  $("coins").textContent = coins; $("served").textContent = served; $("lvl").textContent = level;
+  $("strikes").textContent = "✖ ✖ ✖".split(" ").map((x,i)=> i < strikes ? "✖" : "·").join(" ");
+}
+let toastTimer = null;
+function toast(msg, color){
+  const t = $("toast"); t.innerHTML = msg; t.style.color = color || "#fff"; t.classList.add("on");
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove("on"), 1300);
+}
+function buildBins(){
+  const b = [
+    ...TOPPINGS.map((t,i)=>`<button data-top="${t.id}"><span class="em">${t.em}</span>${t.name}<br><span class="k">${i+3}</span></button>`),
+  ];
+  $("bins").innerHTML =
+    `<button data-act="sauce"><span class="em">🍅</span>Sauce<br><span class="k">1</span></button>` +
+    `<button data-act="cheese"><span class="em">🧀</span>Cheese<br><span class="k">2</span></button>` +
+    b.join("") +
+    `<button class="act" data-act="bake"><span class="em">🔥</span>Bake<br><span class="k">B</span></button>` +
+    `<button class="go" data-act="box"><span class="em">📦</span>Box it<br><span class="k">SPACE</span></button>` +
+    `<button class="trash" data-act="trash"><span class="em">🗑️</span>Trash<br><span class="k">X</span></button>`;
+}
+
+/* =============================================================== sounds (tiny synth blips) */
+let actx = null;
+function beep(freq, dur, type, vol){
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type || "square"; o.frequency.value = freq; g.gain.value = vol || .06;
+    o.connect(g); g.connect(actx.destination); o.start();
+    g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime + dur);
+    o.stop(actx.currentTime + dur);
+  }catch(e){}
+}
+const sfx = {
+  plop: () => beep(520 + Math.random()*120, .08, "square", .05),
+  spread: () => beep(180, .15, "sawtooth", .04),
+  good: () => { beep(660,.1); setTimeout(()=>beep(880,.1),90); setTimeout(()=>beep(1320,.18),180); },
+  bad: () => { beep(200,.2,"sawtooth",.07); setTimeout(()=>beep(140,.3,"sawtooth",.07),160); },
+  ding: () => beep(1046, .25, "triangle", .08),
+};
+
+/* =============================================================== actions */
+function addSauce(){
+  if(busy || cur.baked) return;
+  if(cur.cheese){ toast("Sauce goes<br>UNDER cheese!", "#ffd23f"); return; }
+  if(cur.sauce) return;
+  cur.sauce = true; sauce.visible = true; sauce.scale.set(.1,1,.1); sfx.spread();
+  tween(.25, f => sauce.scale.set(.1+.9*f, 1, .1+.9*f)); updateTickets();
+}
+function addCheese(){
+  if(busy || cur.baked || cur.cheese) return;
+  if(placed.length){ toast("Cheese before<br>toppings!", "#ffd23f"); return; }
+  cur.cheese = true; cheese.visible = true; cheese.scale.set(.1,1,.1); sfx.spread();
+  tween(.25, f => cheese.scale.set(.1+.9*f, 1, .1+.9*f)); updateTickets();
+}
+function addTopping(id){
+  if(busy || cur.baked) return;
+  if(!cur.cheese){ toast("Cheese first!", "#ffd23f"); return; }
+  const t = TOPPINGS.find(x=>x.id===id);
+  const m = toppingMesh(t); const [x,z] = spot();
+  m.position.set(x, 1.4, z); m.rotation.y = Math.random()*Math.PI*2;
+  m.scale.multiplyScalar(1.5);          // big enough to count at this low resolution
+  pizza.add(m); placed.push({ id, mesh:m });
+  cur.counts[id] = (cur.counts[id]||0) + 1; sfx.plop();
+  tween(.22, f => { m.position.y = 1.4 - 1.27*f*f; });
+  updateTickets();
+}
+function bake(){
+  if(busy || cur.baked) return;
+  if(!cur.cheese && !cur.sauce){ toast("Nothing to<br>bake yet!", "#ffd23f"); return; }
+  busy = true;
+  const start = pizza.position.clone(), mouth = new THREE.Vector3(3.2, .55, -1.2);
+  tween(.45, f => { pizza.position.lerpVectors(start, mouth, f); pizza.scale.setScalar(1 - .35*f); }, () => {
+    pizza.visible = false; ovenFire.material.color.setHex(0xffd000);
+    tween(1.1, f => { ovenFire.scale.y = 1 + Math.sin(f*Math.PI*6)*.6; }, () => {
+      ovenFire.material.color.setHex(0xff7b00); ovenFire.scale.y = 1;
+      // baked look: golden crust, melted bubbly cheese
+      dough.material.color.setHex(0xd4a056); crust.material.color.setHex(0xb87333);
+      if(cheese.visible) cheese.material.color.setHex(0xffb627);
+      pizza.visible = true; sfx.ding();
+      tween(.45, f => { pizza.position.lerpVectors(mouth, PIZZA_HOME, f); pizza.scale.setScalar(.65 + .35*f); }, () => {
+        cur.baked = true; busy = false; updateTickets();
+      });
+    });
+  });
+}
+function trash(){
+  if(busy) return;
+  sfx.bad();
+  busy = true;
+  tween(.3, f => { pizza.rotation.z = f*1.4; pizza.position.y = PIZZA_HOME.y - f*2; }, () => { busy = false; newPizza(); });
+}
+function boxIt(){
+  if(busy || !orders.length) return;
+  const o = orders[0];
+  // what's wrong, if anything — checked against the oldest order
+  const problems = [];
+  if(!cur.baked) problems.push("It's RAW!");
+  if(cur.sauce !== o.sauce) problems.push(o.sauce ? "No sauce!" : "They said NO sauce!");
+  if(!cur.cheese) problems.push("No cheese!");
+  TOPPINGS.forEach(t => { const want = o.items[t.id]||0, have = cur.counts[t.id]||0;
+    if(want !== have) problems.push(have > want ? `Too much ${t.name.toLowerCase()}` : `Need ${want - have} more ${t.name.toLowerCase()}`); });
+  busy = true;
+  // the box drops over the pizza, closes, and slides out the window
+  const lid = box(2.8, .12, 2.8, 0xe8d3a3), base = box(2.8, .18, 2.8, 0xe8d3a3);
+  const logo = box(1, .02, 1, 0xd62828); logo.position.y = .07; lid.add(logo);
+  base.position.set(0, -.08, 0); pizza.add(base); lid.position.set(0, 2, 0); pizza.add(lid);
+  tween(.3, f => { lid.position.y = 2 - 1.75*f; }, () => {
+    const start = pizza.position.clone(), out = new THREE.Vector3(-3.3, 2.5, -4.5);
+    tween(.6, f => { pizza.position.lerpVectors(start, out, f); pizza.scale.setScalar(1 - .6*f); }, () => {
+      orders.shift();
+      if(problems.length){
+        strikes++; sfx.bad();
+        toast(`😠 ${o.who.split(" ").slice(1).join(" ")} is upset!<br><span style="font-size:13px">${problems.slice(0,2).join("<br>")}</span>`, "#ff6b6b");
+      } else {
+        const tip = Math.round(o.left / o.patience * 10);
+        const pay = 10 + Object.values(o.items).reduce((a,b)=>a+b,0) + tip;
+        coins += pay; served++; sfx.good();
+        toast(`😋 PERFECT!<br>+${pay} coins`, "#3ddc84");
+        if(served % 3 === 0){ level++; setTimeout(()=>toast(`⭐ LEVEL ${level}!`, "#ffd23f"), 900); }
+      }
+      updateHud(); busy = false; newPizza();
+      if(strikes >= 3) gameOver();
+    });
+  });
+}
+
+/* =============================================================== loop */
+let last = performance.now();
+function frame(now){
+  const dt = Math.min(.05, (now - last)/1000); last = now;
+  for(let i = anims.length-1; i >= 0; i--){
+    const a = anims[i]; a.t += dt; const f = Math.min(1, a.t / a.dur);
+    a.step(f); if(f >= 1){ anims.splice(i,1); a.done && a.done(); }
+  }
+  // gentle bob on the oven fire and the sign, for life
+  ovenFire.position.y = .5 + Math.sin(now/180)*.02;
+  sign.rotation.z = Math.sin(now/900)*.02;
+  if(running){
+    nextOrderIn -= dt;
+    if((orders.length === 0 || nextOrderIn <= 0) && orders.length < 3){
+      orders.push(makeOrder()); nextOrderIn = Math.max(9, 24 - level*2); sfx.ding(); updateTickets();
+    }
+    let changed = false;
+    orders.forEach(o => { o.left -= dt; });
+    const gone = orders.filter(o => o.left <= 0);
+    if(gone.length){
+      orders = orders.filter(o => o.left > 0);
+      gone.forEach(o => { strikes++; toast(`😤 ${o.who.split(" ").slice(1).join(" ")} gave up waiting!`, "#ff6b6b"); sfx.bad(); });
+      updateHud(); changed = true;
+      if(strikes >= 3) gameOver();
+    }
+    if(changed || Math.floor(now/250) !== Math.floor((now - dt*1000)/250)) updateTickets();
+  }
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+function start(){
+  coins = 0; served = 0; strikes = 0; level = 1; orders = []; nextOrderIn = 0; orderSeq = 0;
+  $("screen").classList.add("hidden"); running = true; newPizza(); updateHud(); updateTickets();
+}
+function gameOver(){
+  running = false;
+  const best = Math.max(coins, Number(localStorage.getItem("pizzaRush64Best")) || 0);
+  try{ localStorage.setItem("pizzaRush64Best", best); }catch(e){}
+  $("screen").innerHTML = `<div class="box"><h1>SHIFT OVER!</h1>
+    <p>Pizzas served: <b style="color:#ffd23f">${served}</b></p><p>Coins earned: <b style="color:#ffd23f">${coins}</b></p>
+    <p>Level reached: <b style="color:#ffd23f">${level}</b></p><p>Best ever: <b style="color:#ffd23f">${best}</b> coins</p>
+    <button id="startBtn">▶ NEW SHIFT</button><br><a href="../index.html">← back to Learn Zone</a></div>`;
+  $("screen").classList.remove("hidden");
+  $("startBtn").onclick = start;
+}
+
+/* =============================================================== input */
+document.addEventListener("click", e => {
+  const b = e.target.closest("#bins button"); if(!b || !running) return;
+  if(b.dataset.top) addTopping(b.dataset.top);
+  else ({ sauce:addSauce, cheese:addCheese, bake, box:boxIt, trash })[b.dataset.act]();
+});
+document.addEventListener("keydown", e => {
+  if(!running) return;
+  const k = e.key.toLowerCase();
+  if(k === "1") addSauce(); else if(k === "2") addCheese();
+  else if(k >= "3" && k <= "8") addTopping(TOPPINGS[+k - 3].id);
+  else if(k === "b") bake(); else if(k === " "){ e.preventDefault(); boxIt(); } else if(k === "x") trash();
+});
+$("startBtn").onclick = start;
+buildBins(); newPizza(); updateHud();
+requestAnimationFrame(frame);
+window.__pizza = { get orders(){ return orders; }, get cur(){ return cur; }, addSauce, addCheese, addTopping, bake, boxIt, get state(){ return { coins, served, strikes, level, busy, running }; } };
+})();
+</script>
+</body>
+</html>

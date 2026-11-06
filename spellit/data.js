@@ -176,7 +176,7 @@ window.SPELL = {
         { w:'lightning', pos:'noun',      def:'The bright flash of light during a storm.',        s:'Lightning lit up the whole sky.' },
         { w:'vegetable', pos:'noun',      def:'A plant grown to be eaten, such as a carrot.',     s:'Spinach is a healthy vegetable.' },
         { w:'colonel',   pos:'noun',      def:'A high-ranking army officer. (Sounds like “kernel!”)', s:'The colonel saluted the troops.' },
-        { w:'choir',     pos:'noun',      def:'A group of people who sing together.',             s:'The choir sang at the assembly.' },
+        { w:'choir',     say:'quire', pos:'noun',      def:'A group of people who sing together.',             s:'The choir sang at the assembly.' },
         { w:'dessert',   pos:'noun',      def:'A sweet treat after a meal. (Two s’s — you want seconds!)', s:'We had ice cream for dessert.' },
         { w:'foreign',   pos:'adjective', def:'From another country.',                            s:'She collects foreign coins.' },
         { w:'ninety',    pos:'noun',      def:'The number after eighty-nine.',                    s:'My great-grandma just turned ninety.' },

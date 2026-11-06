@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Reading Lab</title>
+<style>
+  :root{
+    --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --card:#fff;
+    --accent:#0f766e; --accent2:#14b8a6; --soft:#ccfbf1;
+    --good:#16a34a; --goodsoft:#dcfce7; --bad:#dc2626; --badsoft:#fee2e2;
+    --starter:#16a34a; --core:#2563eb; --advanced:#7c3aed;
+    --shadow:0 12px 30px rgba(15,23,42,.08);
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--ink);
+    background:radial-gradient(circle at 10% 0%, rgba(20,184,166,.12), transparent 30%), linear-gradient(180deg,#f0fdfa,#f8fafc 40%); min-height:100vh; }
+  .wrap{ max-width:860px; margin:0 auto; padding:18px 16px 60px; }
+  .top{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .top a.home{ text-decoration:none; font-weight:800; color:var(--muted); background:#fff; padding:8px 13px; border-radius:10px; box-shadow:var(--shadow); font-size:14px; }
+  .top h1{ margin:0; font-size:26px; letter-spacing:-.5px; flex:1; }
+  .kids{ display:flex; gap:6px; background:#fff; padding:4px; border-radius:12px; box-shadow:var(--shadow); }
+  .kids button{ border:none; background:none; font:inherit; font-weight:800; font-size:13px; padding:7px 12px; border-radius:9px; cursor:pointer; color:var(--muted); }
+  .kids button.on{ background:var(--accent); color:#fff; }
+  .bar{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:16px; }
+  .chip{ border:1px solid var(--line); background:#fff; font:inherit; font-weight:800; font-size:13px; padding:7px 12px; border-radius:99px; cursor:pointer; color:var(--muted); }
+  .chip.on{ border-color:transparent; color:#fff; }
+  .chip.on[data-lv="all"]{ background:var(--ink); } .chip.on[data-lv="starter"]{ background:var(--starter); }
+  .chip.on[data-lv="core"]{ background:var(--core); } .chip.on[data-lv="advanced"]{ background:var(--advanced); }
+  .btn{ border:none; font:inherit; font-weight:800; font-size:14px; padding:10px 16px; border-radius:12px; cursor:pointer; background:#fff; color:var(--ink); box-shadow:var(--shadow); }
+  .btn.primary{ background:var(--accent); color:#fff; }
+  .btn.small{ font-size:12.5px; padding:7px 11px; }
+  .btn:disabled{ opacity:.5; cursor:default; }
+  .spacer{ flex:1; }
+  h2.part{ font-size:13px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); margin:22px 0 10px; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:12px; }
+  .skill{ background:var(--card); border-radius:16px; padding:14px 16px; box-shadow:var(--shadow); cursor:pointer; border:2px solid transparent; transition:border-color .15s, transform .15s; }
+  .skill:hover{ border-color:var(--accent2); transform:translateY(-2px); }
+  .skill .ic{ font-size:24px; } .skill h3{ margin:6px 0 4px; font-size:16px; }
+  .skill .num{ font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
+  .dots{ display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  .dot{ font-size:11px; font-weight:800; padding:3px 8px; border-radius:99px; background:#f1f5f9; color:var(--muted); }
+  .dot.done{ background:var(--goodsoft); color:#166534; }
+  .card{ background:var(--card); border-radius:18px; box-shadow:var(--shadow); padding:18px 20px; margin-bottom:14px; }
+  .card h2{ margin:0 0 8px; font-size:22px; }
+  .card h3{ margin:0 0 8px; font-size:17px; }
+  .lead{ font-size:16px; line-height:1.6; margin:0 0 10px; }
+  ul.tips{ margin:6px 0 0; padding-left:20px; line-height:1.55; }
+  ul.tips li{ margin-bottom:4px; }
+  .lvl{ display:inline-block; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; padding:3px 9px; border-radius:99px; color:#fff; }
+  .lvl.starter{ background:var(--starter); } .lvl.core{ background:var(--core); } .lvl.advanced{ background:var(--advanced); }
+  .lvl.ours{ background:#f59e0b; }
+  .plist{ display:flex; flex-direction:column; gap:8px; }
+  .prow{ display:flex; align-items:center; gap:10px; padding:11px 14px; border-radius:12px; background:#f8fafc; border:1px solid var(--line); cursor:pointer; }
+  .prow:hover{ border-color:var(--accent2); }
+  .prow .t{ flex:1; font-weight:800; }
+  .prow .sc{ font-size:13px; font-weight:800; color:var(--muted); }
+  .prow .sc.full{ color:var(--good); }
+  .vocab{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 12px; }
+  .vw{ background:var(--soft); color:#115e59; border:none; font:inherit; font-weight:800; font-size:13px; padding:6px 11px; border-radius:99px; cursor:pointer; }
+  .vdef{ font-size:14px; color:var(--muted); min-height:20px; margin-bottom:6px; }
+  .passage{ background:#fffdf7; border:1px solid #f1e7cf; border-radius:14px; padding:16px 18px; font-family:Georgia,"Times New Roman",serif; font-size:17px; line-height:1.7; }
+  .passage p{ margin:0 0 10px; } .passage p:last-child{ margin-bottom:0; }
+  .passage h4{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; margin:0 0 6px; font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+  .pair{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:680px){ .pair{ grid-template-columns:1fr; } }
+  .chart{ margin-top:12px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px 14px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; }
+  .chart .ct{ font-weight:800; font-size:14px; margin-bottom:8px; }
+  .chart .row{ display:grid; grid-template-columns:120px 1fr 54px; gap:8px; align-items:center; font-size:13.5px; margin:5px 0; }
+  .chart .track{ background:#f1f5f9; border-radius:6px; height:18px; overflow:hidden; }
+  .chart .fill{ background:var(--accent2); height:100%; border-radius:6px; }
+  .chart .val{ font-weight:800; text-align:right; }
+  .chart .unit{ font-size:12px; color:var(--muted); margin-top:4px; }
+  .q{ margin-top:14px; }
+  .q .stem{ font-weight:800; font-size:16px; line-height:1.45; margin-bottom:8px; }
+  .choice{ display:flex; gap:10px; width:100%; text-align:left; background:#fff; border:2px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:7px;
+    font:inherit; font-size:15px; line-height:1.4; cursor:pointer; color:var(--ink); }
+  .choice:hover:not(:disabled){ border-color:var(--accent2); }
+  .choice .L{ font-weight:900; color:var(--muted); width:20px; flex:none; }
+  .choice.right{ border-color:var(--good); background:var(--goodsoft); }
+  .choice.wrong{ border-color:var(--bad); background:var(--badsoft); }
+  .choice:disabled{ cursor:default; }
+  .why{ border-radius:12px; padding:10px 14px; font-size:14.5px; line-height:1.5; margin-top:4px; }
+  .why.ok{ background:var(--goodsoft); } .why.no{ background:#fff7ed; }
+  .score{ text-align:center; font-size:18px; font-weight:900; }
+  .crumbs{ font-size:13px; font-weight:800; color:var(--muted); margin-bottom:10px; }
+  .crumbs a{ color:var(--accent); cursor:pointer; text-decoration:none; }
+  .ex-reveal{ margin-top:8px; }
+  /* writing form */
+  .form label{ display:block; font-size:12.5px; font-weight:800; color:var(--muted); margin:10px 0 4px; text-transform:uppercase; letter-spacing:.05em; }
+  .form input[type=text], .form textarea, .form select{ width:100%; font:inherit; font-size:15px; padding:9px 11px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+  .form textarea{ min-height:130px; line-height:1.5; }
+  .form .row3{ display:grid; grid-template-columns:1fr 2fr; gap:6px; margin-bottom:6px; }
+  .form .two{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .qbox{ border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin:10px 0; background:#f8fafc; }
+  .qbox .ch{ display:flex; gap:8px; align-items:center; margin:5px 0; }
+  .qbox .ch input[type=text]{ flex:1; }
+  .err{ color:var(--bad); font-weight:800; font-size:14px; margin-top:8px; }
+  .note{ font-size:13.5px; color:var(--muted); line-height:1.5; }
+  .empty{ text-align:center; color:var(--muted); padding:20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="home" href="../index.html">← Learn Zone</a>
+    <h1>📖 Reading Lab</h1>
+    <div class="kids" id="kids"></div>
+  </div>
+  <div id="app"></div>
+</div>
+
+<script src="data-1.js?v=1"></script>
+<script src="data-2.js?v=1"></script>
+<script src="data-3.js?v=1"></script>
+<script src="../plan/lz-sync.js?v=18"></script>
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c]);
+const LEVELS = { starter: "🌱 Starter · grades 3–5", core: "📘 Core · grades 6–8", advanced: "🎓 Advanced · grades 9–12" };
+const LV_SHORT = { starter: "Starter", core: "Core", advanced: "Advanced" };
+const PARTS = { 1: "Part I · Core Comprehension", 2: "Part II · Structure & Synthesis", 3: "Part III · Argument & Rhetoric" };
+const KIDS = [{ id: "ryland", name: "Ryland" }, { id: "reid", name: "Reid" }, { id: "guest", name: "Guest" }];
+const LETTERS = ["A", "B", "C", "D"];
+
+/* ---------------------------------------------------------------- storage
+   Progress and the passages you write live under lz… keys, so the sync script shares them
+   between devices like the rest of the site. The chosen kid and level are per-device only. */
+const PREF_KEY = "readingLabPrefs";
+let prefs = { kid: "ryland", level: { ryland: "core", reid: "starter", guest: "all" } };
+try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREF_KEY) || "{}")); } catch(e){}
+const savePrefs = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch(e){} };
+const progKey = kid => "lzReadLab|" + kid;
+const CUSTOM_KEY = "lzReadLabCustom";
+const readJSON = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || "") ?? d; } catch(e){ return d; } };
+const getProg = () => prefs.kid === "guest" ? (window.__guestProg = window.__guestProg || {}) : readJSON(progKey(prefs.kid), {});
+function saveResult(pid, right, total){
+  const p = getProg();
+  const old = p[pid] || {};
+  p[pid] = { best: Math.max(old.best || 0, right), total, last: right, tries: (old.tries || 0) + 1,
+             date: new Date().toISOString().slice(0, 10) };
+  if(prefs.kid !== "guest") localStorage.setItem(progKey(prefs.kid), JSON.stringify(p));
+}
+const getCustom = () => { const a = readJSON(CUSTOM_KEY, []); return Array.isArray(a) ? a : []; };
+const setCustom = arr => arr.length ? localStorage.setItem(CUSTOM_KEY, JSON.stringify(arr)) : localStorage.removeItem(CUSTOM_KEY);
+
+/* ---------------------------------------------------------------- content */
+const SKILLS = (window.RL_SKILLS || []).slice().sort((a, b) => a.n - b.n);
+const skillById = id => SKILLS.find(s => s.id === id);
+/** Every passage for a skill: the built-in ones, then ones written here (marked `ours`). */
+function passagesFor(skill){
+  const mine = getCustom().filter(p => p.skill === skill.id).map(p => Object.assign({}, p, { ours: true }));
+  return skill.passages.concat(mine);
+}
+function findPassage(pid){
+  for(const s of SKILLS){ const p = passagesFor(s).find(x => x.id === pid); if(p) return { skill: s, p }; }
+  return null;
+}
+const levelOn = lv => { const l = prefs.level[prefs.kid] || "all"; return l === "all" || l === lv; };
+
+/* ---------------------------------------------------------------- shared bits */
+function kidsBar(){
+  $("kids").innerHTML = KIDS.map(k => `<button class="${prefs.kid === k.id ? "on" : ""}" data-kid="${k.id}">${k.name}</button>`).join("");
+}
+function levelBar(){
+  const cur = prefs.level[prefs.kid] || "all";
+  return `<div class="bar">${["all", "starter", "core", "advanced"].map(l =>
+    `<button class="chip ${cur === l ? "on" : ""}" data-lv="${l}">${l === "all" ? "All levels" : LEVELS[l].split(" · ")[0]}</button>`).join("")}</div>`;
+}
+function chartHtml(c){
+  if(!c || !c.rows || !c.rows.length) return "";
+  const max = Math.max(...c.rows.map(r => +r[1]), 1);
+  // if any value has a decimal, show them all to one place, so 8 reads as 8.0 beside 7.2
+  const dec = c.rows.some(r => !Number.isInteger(+r[1]));
+  const fmt = v => dec ? (+v).toFixed(1) : String(v);
+  return `<div class="chart"><div class="ct">${esc(c.title)}</div>${c.rows.map(r =>
+    `<div class="row"><span>${esc(r[0])}</span><div class="track"><div class="fill" style="width:${(+r[1] / max * 100).toFixed(1)}%"></div></div><span class="val">${esc(fmt(r[1]))}</span></div>`).join("")}
+    ${c.unit ? `<div class="unit">Values in ${esc(c.unit)}</div>` : ""}</div>`;
+}
+const paras = t => String(t || "").split(/\n\s*\n/).map(x => `<p>${esc(x.trim())}</p>`).join("");
+function passageHtml(p){
+  const body = p.textB
+    ? `<div class="pair"><div class="passage"><h4>Passage 1${p.title ? " · " + esc(p.title) : ""}</h4>${paras(p.text)}</div>
+       <div class="passage"><h4>Passage 2${p.titleB ? " · " + esc(p.titleB) : ""}</h4>${paras(p.textB)}</div></div>`
+    : `<div class="passage">${paras(p.text)}</div>`;
+  return body + chartHtml(p.chart);
+}
+
+/* ---------------------------------------------------------------- questions
+   Built-in questions are shuffled each time (their explanations mark choice letters as {A}…{D},
+   which are rewritten to wherever those choices land). Ones you write keep their order, since
+   their explanations may name letters directly. */
+function prepare(q, shuffle){
+  const order = [0, 1, 2, 3];
+  if(shuffle) for(let i = 3; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+  const shownAt = {}; order.forEach((orig, pos) => { shownAt[orig] = pos; });
+  const why = String(q.why || "").replace(/\{([A-D])\}/g, (_, L) => LETTERS[shownAt[LETTERS.indexOf(L)]]);
+  return { stem: q.stem, choices: order.map(i => q.choices[i]), answer: shownAt[q.answer], why };
+}
+let quiz = null;   // { pid, qs:[prepared], picked:[] }
+function questionHtml(q, i){
+  const picked = quiz.picked[i];
+  const done = picked !== undefined;
+  return `<div class="q" id="q${i}"><div class="stem">${i + 1}. ${esc(q.stem)}</div>
+    ${q.choices.map((c, ci) => {
+      const cls = done ? (ci === q.answer ? "right" : (ci === picked ? "wrong" : "")) : "";
+      return `<button class="choice ${cls}" data-q="${i}" data-c="${ci}" ${done ? "disabled" : ""}><span class="L">${LETTERS[ci]}</span><span>${esc(c)}</span></button>`;
+    }).join("")}
+    ${done ? `<div class="why ${picked === q.answer ? "ok" : "no"}"><b>${picked === q.answer ? "✓ Correct." : "Not quite — the answer is " + LETTERS[q.answer] + "."}</b> ${esc(q.why)}</div>` : ""}
+  </div>`;
+}
+
+/* ---------------------------------------------------------------- screens */
+let route = { name: "home" };
+function go(r){ route = r; render(); window.scrollTo(0, 0); }
+
+function homeView(){
+  const prog = getProg();
+  let html = levelBar() + `<div class="bar">
+    <button class="btn primary" data-act="practice">🎲 Mixed practice</button>
+    <button class="btn" data-act="write">✏️ Write a passage</button>
+    <button class="btn" data-act="mine">📚 Passages we wrote (${getCustom().length})</button></div>`;
+  [1, 2, 3].forEach(part => {
+    html += `<h2 class="part">${PARTS[part]}</h2><div class="grid">`;
+    SKILLS.filter(s => s.part === part).forEach(s => {
+      const ps = passagesFor(s).filter(p => levelOn(p.level));
+      html += `<div class="skill" data-skill="${s.id}"><div class="ic">${s.icon}</div><div class="num">Skill ${s.n}</div><h3>${esc(s.title)}</h3>
+        <div class="dots">${ps.map(p => { const r = prog[p.id];
+          return `<span class="dot ${r && r.best === r.total ? "done" : ""}">${p.ours ? "★ " : ""}${LV_SHORT[p.level]}${r ? " " + r.best + "/" + r.total : ""}</span>`; }).join("") || '<span class="dot">none at this level</span>'}</div></div>`;
+    });
+    html += `</div>`;
+  });
+  return html;
+}
+
+function skillView(id){
+  const s = skillById(id); if(!s) return homeView();
+  const prog = getProg();
+  const ex = route.ex || (route.ex = prepare(s.example, true));
+  const exPicked = route.exPicked;
+  const ps = passagesFor(s).filter(p => levelOn(p.level));
+  return `<div class="crumbs"><a data-act="home">Reading Lab</a> › Skill ${s.n}</div>
+    <div class="card"><h2>${s.icon} ${esc(s.title)}</h2><p class="lead">${esc(s.concept)}</p>
+      <h3>Strategies</h3><ul class="tips">${s.strategies.map(t => `<li>${esc(t)}</li>`).join("")}</ul></div>
+    <div class="card"><h3>🧪 Worked example — try it first</h3>
+      <div class="passage">${paras(s.example.text)}</div>${chartHtml(s.example.chart)}
+      <div class="q"><div class="stem">${esc(ex.stem)}</div>
+        ${ex.choices.map((c, ci) => { const cls = exPicked !== undefined ? (ci === ex.answer ? "right" : (ci === exPicked ? "wrong" : "")) : "";
+          return `<button class="choice ${cls}" data-ex="${ci}" ${exPicked !== undefined ? "disabled" : ""}><span class="L">${LETTERS[ci]}</span><span>${esc(c)}</span></button>`; }).join("")}
+        ${exPicked !== undefined ? `<div class="why ${exPicked === ex.answer ? "ok" : "no"}"><b>How an expert thinks it through:</b> ${esc(ex.why)}</div>` : ""}
+      </div></div>
+    <div class="card"><h3>Practice passages</h3>${levelBar()}
+      <div class="plist">${ps.map(p => { const r = prog[p.id];
+        return `<div class="prow" data-pid="${p.id}"><span class="lvl ${p.level}">${LV_SHORT[p.level]}</span>${p.ours ? '<span class="lvl ours">ours</span>' : ""}
+          <span class="t">${esc(p.title || "Untitled")}</span><span class="sc ${r && r.best === r.total ? "full" : ""}">${r ? "best " + r.best + "/" + r.total : (p.questions.length + " questions")}</span></div>`; }).join("")
+        || '<div class="empty">No passages at this level yet — pick another level, or write one!</div>'}</div></div>`;
+}
+
+function passageView(pid){
+  const found = findPassage(pid); if(!found) return homeView();
+  const { skill, p } = found;
+  if(!quiz || quiz.pid !== pid) quiz = { pid, qs: p.questions.map(q => prepare(q, !p.ours)), picked: [] };
+  const done = quiz.picked.filter(x => x !== undefined).length;
+  const right = quiz.qs.filter((q, i) => quiz.picked[i] === q.answer).length;
+  const finished = done === quiz.qs.length;
+  const queue = route.queue || [];
+  return `<div class="crumbs"><a data-act="home">Reading Lab</a> › ${route.queue ? `<a data-act="home">Mixed practice</a>` : `<a data-skill="${skill.id}">${esc(skill.title)}</a>`} › ${esc(p.title || "Passage")}</div>
+    <div class="card"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+      <span class="lvl ${p.level}">${LEVELS[p.level]}</span>${p.ours ? '<span class="lvl ours">we wrote this</span>' : ""}
+      <span class="note">${skill.icon} ${esc(skill.title)}</span></div>
+      <h2>${esc(p.title || "Passage")}</h2>
+      ${p.vocab && p.vocab.length ? `<div class="note"><b>Vocabulary preview</b> — tap a word:</div>
+        <div class="vocab">${p.vocab.map((v, i) => `<button class="vw" data-vw="${i}">${esc(v[0])}</button>`).join("")}</div><div class="vdef" id="vdef"></div>` : ""}
+      ${passageHtml(p)}</div>
+    <div class="card"><h3>Questions</h3>${quiz.qs.map(questionHtml).join("")}
+      ${finished ? `<div class="score" style="margin-top:14px">${right === quiz.qs.length ? "🌟" : "📖"} ${right} of ${quiz.qs.length} correct</div>
+        <div class="bar" style="justify-content:center;margin-top:10px">
+          <button class="btn" data-act="retry">↻ Try again</button>
+          ${queue.length ? `<button class="btn primary" data-act="nextq">Next passage ▶ (${queue.length} left)</button>` : `<button class="btn primary" data-skill="${skill.id}">Back to ${esc(skill.title)}</button>`}
+        </div>` : `<div class="note" style="margin-top:8px">${done} of ${quiz.qs.length} answered</div>`}
+    </div>`;
+}
+
+/* ------------------------------------------------ writing your own passages */
+const blankQ = () => ({ stem: "", choices: ["", "", "", ""], answer: 0, why: "" });
+const blankDraft = () => ({ id: "", skill: SKILLS[0].id, level: "core", title: "", text: "", paired: false, titleB: "", textB: "",
+  vocab: [["", ""], ["", ""], ["", ""]], hasChart: false, chartTitle: "", chartUnit: "", chartRows: "", questions: [blankQ(), blankQ(), blankQ()] });
+let draft = null;
+function writeView(){
+  const d = draft || (draft = blankDraft());
+  const err = route.err || "";
+  return `<div class="crumbs"><a data-act="home">Reading Lab</a> › ${d.id ? "Edit passage" : "Write a passage"}</div>
+  <div class="card form" id="form">
+    <h2>${d.id ? "✏️ Edit passage" : "✏️ Write a new passage"}</h2>
+    <p class="note">Pick the skill it practices and the level. Use the lessons as a model: a short story or article, three vocabulary words, then 3–5 questions with four choices each and an explanation of why the answer is right (and why the tempting wrong ones aren't).</p>
+    <div class="two">
+      <div><label>Skill</label><select data-f="skill">${SKILLS.map(s => `<option value="${s.id}" ${d.skill === s.id ? "selected" : ""}>${s.n}. ${esc(s.title)}</option>`).join("")}</select></div>
+      <div><label>Level</label><select data-f="level">${Object.keys(LEVELS).map(l => `<option value="${l}" ${d.level === l ? "selected" : ""}>${LEVELS[l]}</option>`).join("")}</select></div>
+    </div>
+    <label>Title</label><input type="text" data-f="title" value="${esc(d.title)}" maxlength="80">
+    <label>Passage (leave a blank line between paragraphs)</label><textarea data-f="text">${esc(d.text)}</textarea>
+    <label><input type="checkbox" data-f="paired" ${d.paired ? "checked" : ""}> This is a paired passage (two texts)</label>
+    ${d.paired ? `<label>Passage 2 title</label><input type="text" data-f="titleB" value="${esc(d.titleB)}" maxlength="80">
+      <label>Passage 2</label><textarea data-f="textB">${esc(d.textB)}</textarea>` : ""}
+    <label><input type="checkbox" data-f="hasChart" ${d.hasChart ? "checked" : ""}> Include a bar chart</label>
+    ${d.hasChart ? `<div class="two"><div><label>Chart title</label><input type="text" data-f="chartTitle" value="${esc(d.chartTitle)}"></div>
+      <div><label>Unit (e.g. percent, votes)</label><input type="text" data-f="chartUnit" value="${esc(d.chartUnit)}"></div></div>
+      <label>Bars — one per line as <i>label, number</i></label><textarea data-f="chartRows" style="min-height:90px" placeholder="Walk, 90&#10;Bus, 60">${esc(d.chartRows)}</textarea>` : ""}
+    <label>Vocabulary preview (word — meaning)</label>
+    ${d.vocab.map((v, i) => `<div class="row3"><input type="text" data-v="${i}" data-k="0" value="${esc(v[0])}" placeholder="word"><input type="text" data-v="${i}" data-k="1" value="${esc(v[1])}" placeholder="what it means"></div>`).join("")}
+    <label>Questions</label>
+    ${d.questions.map((q, qi) => `<div class="qbox"><b>Question ${qi + 1}</b>
+      ${d.questions.length > 1 ? `<button class="btn small" style="float:right" data-rmq="${qi}">Remove</button>` : ""}
+      <input type="text" data-q="${qi}" data-k="stem" value="${esc(q.stem)}" placeholder="e.g. Which choice best states the main idea?" style="margin-top:6px">
+      ${q.choices.map((c, ci) => `<div class="ch"><input type="radio" name="ans${qi}" data-ans="${qi}" value="${ci}" ${q.answer === ci ? "checked" : ""} title="Mark as the right answer"><b>${LETTERS[ci]}</b>
+        <input type="text" data-q="${qi}" data-c="${ci}" value="${esc(c)}" placeholder="choice ${LETTERS[ci]}"></div>`).join("")}
+      <input type="text" data-q="${qi}" data-k="why" value="${esc(q.why)}" placeholder="Why the right answer is right (and why the others are wrong)">
+      <div class="note">Tick the circle beside the right answer.</div></div>`).join("")}
+    <button class="btn small" data-act="addq">+ Add a question</button>
+    ${err ? `<div class="err">${esc(err)}</div>` : ""}
+    <div class="bar" style="margin-top:14px"><button class="btn primary" data-act="savep">💾 Save passage</button>
+      <button class="btn" data-act="home">Cancel</button></div>
+  </div>`;
+}
+function mineView(){
+  const list = getCustom();
+  return `<div class="crumbs"><a data-act="home">Reading Lab</a> › Passages we wrote</div>
+  <div class="card"><h2>📚 Passages we wrote</h2>
+    <p class="note">These show up inside their skill alongside the built-in lessons, marked “ours”, and are shared with every device.</p>
+    <div class="plist">${list.map(p => { const s = skillById(p.skill);
+      return `<div class="prow" data-pid="${p.id}"><span class="lvl ${p.level}">${LV_SHORT[p.level]}</span><span class="t">${esc(p.title || "Untitled")}</span>
+        <span class="note">${s ? esc(s.title) : ""}</span>
+        <button class="btn small" data-edit="${p.id}">Edit</button><button class="btn small" data-del="${p.id}">Delete</button></div>`; }).join("")
+      || '<div class="empty">None yet.</div>'}</div>
+    <div class="bar" style="margin-top:12px"><button class="btn primary" data-act="write">✏️ Write a passage</button></div></div>`;
+}
+function draftFromPassage(p){
+  return { id: p.id, skill: p.skill, level: p.level, title: p.title || "", text: p.text || "", paired: !!p.textB, titleB: p.titleB || "", textB: p.textB || "",
+    vocab: [0, 1, 2].map(i => (p.vocab && p.vocab[i]) ? [p.vocab[i][0], p.vocab[i][1]] : ["", ""]),
+    hasChart: !!p.chart, chartTitle: p.chart ? p.chart.title : "", chartUnit: p.chart ? p.chart.unit : "",
+    chartRows: p.chart ? p.chart.rows.map(r => r[0] + ", " + r[1]).join("\n") : "",
+    questions: p.questions.map(q => ({ stem: q.stem, choices: q.choices.slice(), answer: q.answer, why: q.why || "" })) };
+}
+function saveDraft(){
+  const d = draft;
+  const problem = (() => {
+    if(!d.title.trim()) return "Give the passage a title.";
+    if(d.text.trim().length < 40) return "The passage needs some text.";
+    if(d.paired && d.textB.trim().length < 40) return "Passage 2 needs some text (or untick “paired passage”).";
+    for(let i = 0; i < d.questions.length; i++){
+      const q = d.questions[i];
+      if(!q.stem.trim()) return `Question ${i + 1} needs a question.`;
+      if(q.choices.some(c => !c.trim())) return `Question ${i + 1} needs all four choices filled in.`;
+      if(new Set(q.choices.map(c => c.trim().toLowerCase())).size < 4) return `Question ${i + 1} has two identical choices.`;
+    }
+    if(d.hasChart){
+      const rows = d.chartRows.split("\n").map(l => l.trim()).filter(Boolean);
+      if(!rows.length || rows.some(l => !/,\s*-?\d+(\.\d+)?\s*$/.test(l))) return "Each chart line should look like: label, number";
+    }
+    return "";
+  })();
+  if(problem){ route.err = problem; render(); return; }
+  const rows = d.hasChart ? d.chartRows.split("\n").map(l => l.trim()).filter(Boolean).map(l => { const i = l.lastIndexOf(","); return [l.slice(0, i).trim(), +l.slice(i + 1)]; }) : null;
+  const p = { id: d.id || ("my-" + Date.now().toString(36)), skill: d.skill, level: d.level, title: d.title.trim(), text: d.text.trim(),
+    vocab: d.vocab.filter(v => v[0].trim()).map(v => [v[0].trim(), v[1].trim()]),
+    questions: d.questions.map(q => ({ stem: q.stem.trim(), choices: q.choices.map(c => c.trim()), answer: q.answer, why: q.why.trim() })) };
+  if(d.paired){ p.titleB = d.titleB.trim(); p.textB = d.textB.trim(); }
+  if(rows) p.chart = { title: d.chartTitle.trim(), unit: d.chartUnit.trim(), rows };
+  const list = getCustom();
+  const at = list.findIndex(x => x.id === p.id);
+  if(at >= 0) list[at] = p; else list.push(p);
+  setCustom(list);
+  draft = null; quiz = null;
+  go({ name: "skill", id: p.skill });
+}
+
+/* ---------------------------------------------------------------- mixed practice */
+function startPractice(){
+  const pool = [];
+  SKILLS.forEach(s => passagesFor(s).filter(p => levelOn(p.level)).forEach(p => pool.push(p.id)));
+  for(let i = pool.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  const pick = pool.slice(0, 3);
+  if(!pick.length) return;
+  quiz = null;
+  go({ name: "passage", pid: pick[0], queue: pick.slice(1) });
+}
+
+/* ---------------------------------------------------------------- render + events */
+function render(){
+  kidsBar();
+  const v = route.name === "skill" ? skillView(route.id)
+    : route.name === "passage" ? passageView(route.pid)
+    : route.name === "write" ? writeView()
+    : route.name === "mine" ? mineView() : homeView();
+  $("app").innerHTML = v;
+}
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-kid],[data-lv],[data-act],[data-skill],[data-pid],[data-ex],[data-q][data-c],.vw,[data-rmq],[data-edit],[data-del]");
+  if(!t) return;
+  if(t.dataset.kid){ prefs.kid = t.dataset.kid; savePrefs(); render(); return; }
+  if(t.dataset.lv){ prefs.level[prefs.kid] = t.dataset.lv; savePrefs(); render(); return; }
+  if(t.dataset.edit){ e.stopPropagation(); const p = getCustom().find(x => x.id === t.dataset.edit); if(p){ draft = draftFromPassage(p); go({ name: "write" }); } return; }
+  if(t.dataset.del){ e.stopPropagation(); const p = getCustom().find(x => x.id === t.dataset.del);
+    if(p && confirm(`Delete “${p.title}”? This can't be undone.`)){ setCustom(getCustom().filter(x => x.id !== p.id)); render(); } return; }
+  if(t.dataset.rmq !== undefined){ readForm(); draft.questions.splice(+t.dataset.rmq, 1); render(); return; }
+  if(t.classList.contains("vw")){ const found = findPassage(route.pid); const v = found && found.p.vocab[+t.dataset.vw];
+    if(v) $("vdef").innerHTML = `<b>${esc(v[0])}</b> — ${esc(v[1])}`; return; }
+  if(t.dataset.ex !== undefined){ route.exPicked = +t.dataset.ex; render(); return; }
+  if(t.dataset.q !== undefined && t.dataset.c !== undefined && t.classList.contains("choice")){
+    const i = +t.dataset.q;
+    if(quiz.picked[i] !== undefined) return;
+    quiz.picked[i] = +t.dataset.c;
+    if(quiz.picked.filter(x => x !== undefined).length === quiz.qs.length){
+      const right = quiz.qs.filter((q, k) => quiz.picked[k] === q.answer).length;
+      saveResult(quiz.pid, right, quiz.qs.length);
+    }
+    const y = window.scrollY; render(); window.scrollTo(0, y);
+    return;
+  }
+  if(t.dataset.skill){ quiz = null; go({ name: "skill", id: t.dataset.skill }); return; }
+  if(t.dataset.pid){ quiz = null; go({ name: "passage", pid: t.dataset.pid }); return; }
+  switch(t.dataset.act){
+    case "home": draft = null; go({ name: "home" }); break;
+    case "practice": startPractice(); break;
+    case "write": draft = null; go({ name: "write" }); break;
+    case "mine": go({ name: "mine" }); break;
+    case "retry": quiz = null; render(); window.scrollTo(0, 0); break;
+    case "nextq": { const q = route.queue.slice(); const next = q.shift(); quiz = null; go({ name: "passage", pid: next, queue: q }); break; }
+    case "addq": readForm(); draft.questions.push(blankQ()); render(); break;
+    case "savep": readForm(); saveDraft(); break;
+  }
+});
+/** Copy everything typed in the writing form into the draft. */
+function readForm(){
+  const f = $("form"); if(!f || !draft) return;
+  f.querySelectorAll("[data-f]").forEach(el => { draft[el.dataset.f] = el.type === "checkbox" ? el.checked : el.value; });
+  f.querySelectorAll("[data-v]").forEach(el => { draft.vocab[+el.dataset.v][+el.dataset.k] = el.value; });
+  f.querySelectorAll("[data-q]").forEach(el => {
+    const q = draft.questions[+el.dataset.q]; if(!q) return;
+    if(el.dataset.c !== undefined) q.choices[+el.dataset.c] = el.value; else q[el.dataset.k] = el.value;
+  });
+  f.querySelectorAll("[data-ans]").forEach(el => { if(el.checked) draft.questions[+el.dataset.ans].answer = +el.value; });
+}
+// ticking "paired" or "chart" reveals more fields, so keep what's been typed and redraw
+document.addEventListener("change", e => {
+  if(route.name === "write" && e.target.matches("[data-f=paired],[data-f=hasChart],[data-f=skill],[data-f=level]")){ readForm(); render(); }
+});
+// another device's edits arrive through sync; redraw the home page so they show up
+window.addEventListener("storage", () => { if(route.name === "home" || route.name === "mine") render(); });
+
+render();
+// for tests
+window.__readingLab = { SKILLS, prepare, getCustom };
+})();
+</script>
+</body>
+</html>

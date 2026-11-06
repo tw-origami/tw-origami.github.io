@@ -696,6 +696,15 @@ export function endOfTurn(battle, battlers, log = []) {
         checkFaint(b, log);
       }
     }
+    if (battle.weather === 'hail') {
+      for (const b of battlers) {
+        if (b.fainted || b.types.includes('ice')) continue;
+        const d = Math.max(1, Math.floor(b.maxHp / 16));
+        b.hp = Math.max(0, b.hp - d);
+        log.push({ t: 'weatherHurt', who: b.name, weather: 'hail', amount: d });
+        checkFaint(b, log);
+      }
+    }
     if (battle.weatherTurns === 0) {
       log.push({ t: 'weatherEnd', weather: battle.weather });
       battle.weather = null;

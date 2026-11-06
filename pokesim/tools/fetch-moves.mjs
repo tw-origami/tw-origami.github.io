@@ -25,6 +25,7 @@ const have = new Set(Object.keys(window.PL_MOVES));
 const OK_CATEGORY = new Set([
   'damage', 'damage-ailment', 'damage-lower', 'damage-raise', 'damage-heal',
   'net-good-stats', 'ailment', 'heal', 'ohko',
+  'whole-field-effect',   // weather moves (Hail); isSimulated() below lets through only the ones the engine plays
 ]);
 // status conditions the engine really models; anything else would do nothing
 const REAL_AILMENT = new Set(['burn', 'poison', 'toxic', 'paralysis', 'sleep', 'freeze', 'confusion']);
@@ -76,7 +77,7 @@ async function worker() {
       ailment = null;
       note = ' (The Battle Lab doesn’t simulate this extra effect.)';
     }
-    if (cls === 'status' && !ailment && !(d.stat_changes?.length) && !m.healing && !m.drain) {
+    if (cls === 'status' && !ailment && !(d.stat_changes?.length) && !m.healing && !m.drain && cat !== 'whole-field-effect') {
       skip('status move with no modelled effect'); continue;
     }
     const probe = { name: c.name, cat };
