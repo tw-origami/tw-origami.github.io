@@ -47,6 +47,20 @@
   #screen button{ font-family:inherit; font-size:14px; background:var(--red); color:#fff; border:4px solid #fff; border-radius:8px; padding:12px 18px; margin-top:12px; cursor:pointer; box-shadow:0 5px 0 #000; }
   #screen a{ color:var(--gold); font-size:10px; display:inline-block; margin-top:16px; }
   .hidden{ display:none !important; }
+  /* driving */
+  #drive{ position:fixed; inset:0; pointer-events:none; }
+  #targets{ position:fixed; top:54px; right:10px; width:150px; display:flex; flex-direction:column; gap:6px; align-items:flex-end; }
+  #mini{ border:3px solid #fff; border-radius:6px; background:#3f9b3f; image-rendering:pixelated; width:150px; height:150px; }
+  #compass{ background:rgba(27,16,48,.85); border:3px solid #fff; border-radius:8px; padding:8px 10px; font-size:10px; text-align:center; width:150px; line-height:1.7; }
+  #compass .arrow{ display:inline-block; font-size:28px; color:#ffd23f; transition:transform .1s linear; font-family:system-ui,sans-serif; }
+  #pad{ position:fixed; bottom:12px; left:0; right:0; display:flex; justify-content:space-between; padding:0 14px; pointer-events:none; }
+  #pad .grp{ display:flex; gap:10px; pointer-events:auto; }
+  #pad button{ width:66px; height:66px; font-size:26px; border-radius:50%; border:3px solid #fff; background:rgba(43,29,79,.85); color:#fff; box-shadow:0 4px 0 #000; touch-action:none; user-select:none; -webkit-user-select:none; }
+  #pad button.on{ background:#ffd23f; color:#000; }
+  #homeBtn{ position:fixed; bottom:100px; left:50%; transform:translateX(-50%); pointer-events:auto; font-family:inherit; font-size:12px; background:#e63946; color:#fff; border:3px solid #fff; border-radius:8px; padding:10px 14px; box-shadow:0 4px 0 #000; cursor:pointer; }
+  .ticket .addr{ background:#1b1030; color:#ffd23f; padding:2px 5px; border-radius:3px; display:inline-block; margin-top:3px; }
+  .ticket.boxed{ background:#d9f99d; }
+  #bins button.drive{ background:#1d4ed8; }
   @media (max-width:700px){ .pill{ font-size:9px; padding:6px 8px; } #bins button{ min-width:62px; font-size:8px; padding:6px 5px; } #bins button .em{ font-size:16px; }
     .ticket{ font-size:8px; } #rail{ top:44px; } }
 </style>
@@ -57,12 +71,19 @@
 <div id="rail"></div>
 <div id="bins"></div>
 <div id="toast"></div>
+<div id="drive" class="hidden">
+  <div id="targets"><canvas id="mini" width="150" height="150"></canvas><div id="compass"></div></div>
+  <button id="homeBtn" class="hidden">🍕 Back to the kitchen (Enter)</button>
+  <div id="pad"><div class="grp"><button data-k="left">◀</button><button data-k="right">▶</button></div>
+    <div class="grp"><button data-k="down">▼</button><button data-k="up">▲</button></div></div>
+</div>
 <div id="screen"><div class="box">
   <h1>PIZZA RUSH 64</h1>
   <p>Orders come in on the left. Make the <b style="color:#ffd23f">oldest</b> one first!</p>
-  <p>Add SAUCE, then CHEESE, then the right number of each topping. BAKE it in the oven, then BOX it to send it out.</p>
+  <p>Add SAUCE, then CHEESE, then the right number of each topping. BAKE it, then BOX it — it goes in the car.</p>
+  <p>Press 🚗 DRIVE and deliver each pizza to the right house number. Drive back to the shop for more!</p>
   <p>Wrong toppings, a raw pizza, or a customer who waits too long = a strike. Three strikes and the shift is over.</p>
-  <p style="color:#ffd23f">Keys: 1–8 toppings · B bake · SPACE box · X trash</p>
+  <p style="color:#ffd23f">Kitchen: 1–8 toppings · B bake · SPACE box · X trash · D drive<br>Driving: arrow keys or WASD · ENTER back to kitchen</p>
   <button id="startBtn">▶ START SHIFT</button><br>
   <a href="../index.html">← back to Learn Zone</a>
 </div></div>
@@ -71,6 +92,7 @@
 <script>
 (function(){
 const $ = id => document.getElementById(id);
+const esc = t => String(t).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c]);
 
 /* =============================================================== ingredients */
 // Each topping: how it looks (built below) and how it reads on a ticket.
@@ -188,8 +210,14 @@ function makeOrder(){
   const items = {}; pool.forEach(t => items[t.id] = 2 + Math.floor(Math.random()*(maxN-1)));
   // now and then a "white pizza" (no sauce) to keep everyone reading the ticket
   const sauce = !(level >= 3 && Math.random() < .15);
-  const patience = Math.max(28, 75 - level*5) + Object.values(items).reduce((a,b)=>a+b,0)*1.5;
-  return { id: ++orderSeq, who: CUSTOMERS[Math.floor(Math.random()*CUSTOMERS.length)], sauce, cheese:true, items, patience, left: patience };
+  // extra time for the drive, which grows with distance from the shop
+  const taken = new Set(orders.map(o => o.addr));
+  const free = HOUSES.map((h, i) => i).filter(i => !taken.has(i));
+  const addr = free[Math.floor(Math.random()*free.length)];
+  const far = Math.hypot(HOUSES[addr].door.x - SHOP_DOOR.x, HOUSES[addr].door.z - SHOP_DOOR.z);
+  const patience = Math.max(28, 75 - level*5) + Object.values(items).reduce((a,b)=>a+b,0)*1.5 + 25 + far*0.9;
+  return { id: ++orderSeq, who: CUSTOMERS[Math.floor(Math.random()*CUSTOMERS.length)], sauce, cheese:true, items, patience, left: patience,
+           addr, boxed:false, problems:null };
 }
 
 /* =============================================================== HUD */
@@ -198,10 +226,13 @@ function makeOrder(){
 const shownTickets = new Set();
 function updateTickets(){
   const rail = $("rail");
+  const making = orders.find(o => !o.boxed);
   rail.innerHTML = orders.map((o, i) => {
     const lines = [];
     const mark = (ok) => ok ? "ok" : "";
-    if(i === 0 && cur){
+    if(o.boxed){
+      lines.push(`<div class="line"><span>📦 In the car!</span></div>`);
+    } else if(o === making && cur && mode === "kitchen"){
       lines.push(`<div class="line ${mark(cur.sauce === o.sauce)}"><span>${o.sauce ? "🍅 Sauce" : "🚫 NO sauce"}</span><span>${o.sauce ? (cur.sauce ? "✓" : "") : (cur.sauce ? "✗" : "✓")}</span></div>`);
       lines.push(`<div class="line ${mark(cur.cheese)}"><span>🧀 Cheese</span><span>${cur.cheese ? "✓" : ""}</span></div>`);
       Object.entries(o.items).forEach(([id,n]) => { const t = TOPPINGS.find(x=>x.id===id); const have = cur.counts[id] || 0;
@@ -214,7 +245,8 @@ function updateTickets(){
     }
     const f = o.left / o.patience;
     const fresh = !shownTickets.has(o.id); shownTickets.add(o.id);
-    return `<div class="ticket ${i===0?"cur":""} ${fresh?"new":""}"><div class="who"><span>${o.who}</span><span>#${o.id}</span></div>${lines.join("")}
+    return `<div class="ticket ${o===making && mode==="kitchen"?"cur":""} ${o.boxed?"boxed":""} ${fresh?"new":""}"><div class="who"><span>${o.who}</span><span>#${o.id}</span></div>${lines.join("")}
+      <div><span class="addr">🏠 ${esc(addrText(o.addr))}</span></div>
       <div class="pat"><i class="${f<.25?"bad":f<.5?"warn":""}" style="width:${Math.max(0,f*100)}%"></i></div></div>`;
   }).join("");
 }
@@ -237,7 +269,8 @@ function buildBins(){
     b.join("") +
     `<button class="act" data-act="bake"><span class="em">🔥</span>Bake<br><span class="k">B</span></button>` +
     `<button class="go" data-act="box"><span class="em">📦</span>Box it<br><span class="k">SPACE</span></button>` +
-    `<button class="trash" data-act="trash"><span class="em">🗑️</span>Trash<br><span class="k">X</span></button>`;
+    `<button class="trash" data-act="trash"><span class="em">🗑️</span>Trash<br><span class="k">X</span></button>` +
+    `<button class="drive" data-act="drive"><span class="em">🚗</span>Drive <b id="inCar">0</b><br><span class="k">D</span></button>`;
 }
 
 /* =============================================================== sounds (tiny synth blips) */
@@ -311,10 +344,13 @@ function trash(){
   busy = true;
   tween(.3, f => { pizza.rotation.z = f*1.4; pizza.position.y = PIZZA_HOME.y - f*2; }, () => { busy = false; newPizza(); });
 }
+const CAR_SIZE = 3;
 function boxIt(){
-  if(busy || !orders.length) return;
-  const o = orders[0];
-  // what's wrong, if anything — checked against the oldest order
+  if(busy) return;
+  const o = orders.find(x => !x.boxed);
+  if(!o){ toast("No order to<br>box yet!", "#ffd23f"); return; }
+  if(orders.filter(x => x.boxed).length >= CAR_SIZE){ toast("The car is full —<br>go deliver! 🚗", "#ffd23f"); return; }
+  // what's wrong, if anything — the customer finds out when they open the box
   const problems = [];
   if(!cur.baked) problems.push("It's RAW!");
   if(cur.sauce !== o.sauce) problems.push(o.sauce ? "No sauce!" : "They said NO sauce!");
@@ -322,28 +358,193 @@ function boxIt(){
   TOPPINGS.forEach(t => { const want = o.items[t.id]||0, have = cur.counts[t.id]||0;
     if(want !== have) problems.push(have > want ? `Too much ${t.name.toLowerCase()}` : `Need ${want - have} more ${t.name.toLowerCase()}`); });
   busy = true;
-  // the box drops over the pizza, closes, and slides out the window
+  // the box drops over the pizza, closes, and slides over to the door
   const lid = box(2.8, .12, 2.8, 0xe8d3a3), base = box(2.8, .18, 2.8, 0xe8d3a3);
   const logo = box(1, .02, 1, 0xd62828); logo.position.y = .07; lid.add(logo);
   base.position.set(0, -.08, 0); pizza.add(base); lid.position.set(0, 2, 0); pizza.add(lid);
   tween(.3, f => { lid.position.y = 2 - 1.75*f; }, () => {
     const start = pizza.position.clone(), out = new THREE.Vector3(-3.3, 2.5, -4.5);
     tween(.6, f => { pizza.position.lerpVectors(start, out, f); pizza.scale.setScalar(1 - .6*f); }, () => {
-      orders.shift();
-      if(problems.length){
-        strikes++; sfx.bad();
-        toast(`😠 ${o.who.split(" ").slice(1).join(" ")} is upset!<br><span style="font-size:13px">${problems.slice(0,2).join("<br>")}</span>`, "#ff6b6b");
-      } else {
-        const tip = Math.round(o.left / o.patience * 10);
-        const pay = 10 + Object.values(o.items).reduce((a,b)=>a+b,0) + tip;
-        coins += pay; served++; sfx.good();
-        toast(`😋 PERFECT!<br>+${pay} coins`, "#3ddc84");
-        if(served % 3 === 0){ level++; setTimeout(()=>toast(`⭐ LEVEL ${level}!`, "#ffd23f"), 900); }
-      }
-      updateHud(); busy = false; newPizza();
-      if(strikes >= 3) gameOver();
+      o.boxed = true; o.problems = problems;
+      sfx.ding();
+      toast(`📦 In the car!<br><span style="font-size:13px">Deliver to ${esc(addrText(o.addr))}</span>`, "#ffd23f");
+      busy = false; newPizza(); updateCarCount();
     });
   });
+}
+/** The customer opens the box at their door: paid, or a strike. */
+function deliver(o){
+  orders = orders.filter(x => x !== o);
+  if(o.problems && o.problems.length){
+    strikes++; sfx.bad();
+    toast(`😠 ${o.who.split(" ").slice(1).join(" ")} is upset!<br><span style="font-size:13px">${o.problems.slice(0,2).join("<br>")}</span>`, "#ff6b6b");
+  } else {
+    const tip = Math.round(o.left / o.patience * 15);
+    const pay = 15 + Object.values(o.items).reduce((a,b)=>a+b,0) + tip;
+    coins += pay; served++; sfx.good();
+    toast(`😋 Delivered!<br>+${pay} coins`, "#3ddc84");
+    if(served % 3 === 0){ level++; setTimeout(()=>toast(`⭐ LEVEL ${level}!`, "#ffd23f"), 900); }
+  }
+  updateHud(); updateTickets(); updateCarCount();
+  if(strikes >= 3) gameOver();
+}
+function updateCarCount(){ const n = orders.filter(o => o.boxed).length; const el = $("inCar"); if(el) el.textContent = n; }
+
+/* =============================================================== the town */
+// A grid of blocks with roads between them. Every house sits on an east–west street and has a
+// number facing that street; the pizza shop takes the middle block.
+const townScene = new THREE.Scene();
+townScene.background = new THREE.Color(0x8fd3ff);
+townScene.fog = new THREE.Fog(0x8fd3ff, 28, 70);
+townScene.add(new THREE.HemisphereLight(0xffffff, 0x3a7a3a, 1.0));
+const tsun = new THREE.DirectionalLight(0xffffff, 0.6); tsun.position.set(10, 20, 6); townScene.add(tsun);
+const townCam = new THREE.PerspectiveCamera(60, W/H, 0.1, 120);
+const BLOCK = 16, HALF = 5, ROAD = 6, N = 2;          // blocks at -2..2 in each direction
+const STREETS = ["Maple St", "Oak St", "Pine St", "Cedar St", "Birch St", "Elm St"];   // north → south
+const streetZ = k => (k - N) * BLOCK - BLOCK/2;        // k = 0..5
+const SHOP_DOOR = { x: 0, z: -HALF - 1.6 };
+const HOUSES = [];
+function label(text, bg, fg, w, h){
+  const c = document.createElement("canvas"); c.width = w || 64; c.height = h || 32;
+  const g = c.getContext("2d"); g.fillStyle = bg; g.fillRect(0, 0, c.width, c.height);
+  g.strokeStyle = "#000"; g.lineWidth = 3; g.strokeRect(1.5, 1.5, c.width-3, c.height-3);
+  g.fillStyle = fg; g.font = `bold ${Math.floor(c.height*.62)}px monospace`; g.textAlign = "center"; g.textBaseline = "middle";
+  g.fillText(text, c.width/2, c.height/2 + 1);
+  const tex = new THREE.CanvasTexture(c); tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter;
+  return new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, fog: true }));
+}
+(function buildTown(){
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(140, 140), mat(0x4caf50)); ground.rotation.x = -Math.PI/2; townScene.add(ground);
+  const span = (2*N+1) * BLOCK + ROAD;
+  for(let k = 0; k <= 2*N+1; k++){
+    const p = (k - N) * BLOCK - BLOCK/2;
+    const h = box(span, .05, ROAD, 0x4b4b5a); h.position.set(0, .03, p); townScene.add(h);
+    const v = box(ROAD, .05, span, 0x4b4b5a); v.position.set(p, .031, 0); townScene.add(v);
+    for(let d = -span/2 + 2; d < span/2; d += 4){
+      const a = box(1.6, .06, .18, 0xffd23f); a.position.set(d, .06, p); townScene.add(a);
+      const b = box(.18, .06, 1.6, 0xffd23f); b.position.set(p, .061, d); townScene.add(b);
+    }
+  }
+  // street-name signs at each corner of every east–west street
+  for(let k = 0; k <= 2*N+1; k++) for(let i = -N; i <= N+1; i++){
+    const s = label(STREETS[k], "#1f6f3f", "#fff", 128, 28); s.scale.set(3.2, .7, 1);
+    s.position.set(i*BLOCK - BLOCK/2 + 3.6, 2.6, streetZ(k) - 3.4); townScene.add(s);
+    const post = box(.12, 2.4, .12, 0x9ca3af); post.position.set(i*BLOCK - BLOCK/2 + 3.6, 1.2, streetZ(k) - 3.4); townScene.add(post);
+  }
+  const COLORS = [0xf4a261, 0x2a9d8f, 0xe9c46a, 0x8ecae6, 0xffafcc, 0xcdb4db, 0xb5e48c, 0xf28482, 0xa3c4f3, 0xffd6a5];
+  const xs = [];
+  for(let i = -N; i <= N; i++) xs.push(i*BLOCK - 2.5, i*BLOCK + 2.5);
+  for(let i = -N; i <= N; i++) for(let j = -N; j <= N; j++){
+    const bx = i*BLOCK, bz = j*BLOCK;
+    const walk = box(2*HALF + .8, .1, 2*HALF + .8, 0xd6d3c9); walk.position.set(bx, .05, bz); townScene.add(walk);
+    const lawn = box(2*HALF - .2, .12, 2*HALF - .2, 0x6abf4b); lawn.position.set(bx, .07, bz); townScene.add(lawn);
+    if(i === 0 && j === 0){
+      // the pizza shop
+      const shop = box(8, 3.4, 7, 0xd62828); shop.position.set(0, 1.8, 0); townScene.add(shop);
+      const awn = box(8.4, .3, 1.6, 0xffffff); awn.position.set(0, 2.6, -4.1); townScene.add(awn);
+      const sgn = label("PIZZA 🍕", "#ffd23f", "#b91c1c", 128, 40); sgn.scale.set(5, 1.6, 1); sgn.position.set(0, 4.6, -3.6); townScene.add(sgn);
+      const door = box(1.6, 2, .1, 0x5b3a1a); door.position.set(0, 1.1, -3.55); townScene.add(door);
+      continue;
+    }
+    for(const side of [-1, 1]) for(const dx of [-2.5, 2.5]){
+      // side -1: faces the street to the north; +1: faces the street to the south
+      const x = bx + dx, z = bz + side*2.2;
+      const c = COLORS[Math.floor(Math.random()*COLORS.length)];
+      const body = box(3.6, 2.4, 3.6, c); body.position.set(x, 1.3, z); townScene.add(body);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(2.9, 1.7, 4), mat([0x7f1d1d, 0x374151, 0x1e3a8a, 0x713f12][Math.floor(Math.random()*4)]));
+      roof.position.set(x, 3.35, z); roof.rotation.y = Math.PI/4; townScene.add(roof);
+      const door = box(.9, 1.4, .1, 0x5b3a1a); door.position.set(x, .8, z + side*1.82); townScene.add(door);
+      const k = side < 0 ? j + N : j + N + 1;                       // which street it faces
+      const xi = xs.indexOf(x);
+      const number = (xi + 1) * 2 - (side < 0 ? 0 : 1) + 100;      // north side even, south side odd
+      const tag = label(String(number), "#ffffff", "#111", 64, 32); tag.scale.set(1.9, .95, 1);
+      tag.position.set(x, 2.95, z + side*1.95); townScene.add(tag);
+      const mail = box(.25, 1, .25, 0x374151); mail.position.set(x + 1.2, .5, bz + side*(HALF + .1)); townScene.add(mail);
+      HOUSES.push({ x, z, number, street: STREETS[k], door: { x, z: bz + side*(HALF + 1.6) } });
+    }
+  }
+})();
+const addrText = i => HOUSES[i] ? `${HOUSES[i].number} ${HOUSES[i].street}` : "";
+
+// the delivery car
+const car = new THREE.Group(); townScene.add(car);
+{ const body = box(1.7, .7, 2.9, 0xe63946); body.position.y = .65; car.add(body);
+  const cab = box(1.4, .6, 1.3, 0xffffff); cab.position.set(0, 1.25, -.25); car.add(cab);
+  const glass = box(1.42, .4, .05, 0x60a5fa); glass.position.set(0, 1.28, .42); car.add(glass);
+  const topSign = box(1, .45, .15, 0xffd23f); topSign.position.set(0, 1.78, -.25); car.add(topSign);
+  car.wheels = [];
+  for(const [x,z] of [[-.9,.95],[.9,.95],[-.9,-.95],[.9,-.95]]){
+    const w = cyl(.38, .38, .3, 8, 0x111111); w.rotation.z = Math.PI/2; w.position.set(x, .38, z); car.add(w); car.wheels.push(w); } }
+const drv = { x: 0, z: SHOP_DOOR.z - 1.5, h: Math.PI/2, v: 0 };
+const keys = { up:false, down:false, left:false, right:false };
+// gold markers spinning over houses waiting for a pizza
+const markers = [0,1,2].map(() => { const m = new THREE.Mesh(new THREE.ConeGeometry(.7, 1.4, 4), mat(0xffd23f)); m.rotation.x = Math.PI; m.visible = false; townScene.add(m); return m; });
+const solid = (x, z) => Math.abs(x) > (N+.5)*BLOCK + ROAD/2 - 1 || Math.abs(z) > (N+.5)*BLOCK + ROAD/2 - 1 ||
+  (Math.abs(x - Math.round(x/BLOCK)*BLOCK) < HALF + 1.2 && Math.abs(z - Math.round(z/BLOCK)*BLOCK) < HALF + 1.2);
+function driveStep(dt){
+  const throttle = keys.up ? 1 : keys.down ? -1 : 0, steer = keys.left ? 1 : keys.right ? -1 : 0;
+  drv.v += throttle * (throttle > 0 ? 11 : 15) * dt;
+  drv.v -= drv.v * (throttle ? .6 : 1.8) * dt;
+  drv.v = Math.max(-6, Math.min(15, drv.v));
+  drv.h += steer * dt * 2.3 * Math.max(-1, Math.min(1, drv.v / 5));
+  const fx = Math.sin(drv.h), fz = Math.cos(drv.h);
+  const nx = drv.x + fx*drv.v*dt, nz = drv.z + fz*drv.v*dt;
+  // bump into blocks and the edge of town; slide along walls when only one direction is blocked
+  if(!solid(nx, nz)){ drv.x = nx; drv.z = nz; }
+  else if(!solid(nx, drv.z)){ drv.x = nx; drv.v *= .9; }
+  else if(!solid(drv.x, nz)){ drv.z = nz; drv.v *= .9; }
+  else { if(Math.abs(drv.v) > 4) beep(90, .1, "sawtooth", .05); drv.v = -drv.v*.25; }
+  car.position.set(drv.x, 0, drv.z); car.rotation.y = drv.h;
+  car.wheels.forEach(w => { w.rotation.x += drv.v*dt*2; });
+  // chase camera
+  const want = new THREE.Vector3(drv.x - fx*8, 4.6, drv.z - fz*8);
+  townCam.position.lerp(want, Math.min(1, dt*4));
+  townCam.lookAt(drv.x + fx*4, .8, drv.z + fz*4);
+  // markers over every house with a pizza in the car, and deliveries at the door
+  const boxed = orders.filter(o => o.boxed);
+  markers.forEach((m, i) => { const o = boxed[i]; m.visible = !!o; if(o){ const h = HOUSES[o.addr]; m.position.set(h.x, 5.4 + Math.sin(performance.now()/300)*.3, h.z); m.rotation.y += dt*3; } });
+  for(const o of boxed){
+    const d = HOUSES[o.addr].door;
+    if(Math.hypot(drv.x - d.x, drv.z - d.z) < 2.8 && Math.abs(drv.v) < 6){ deliver(o); break; }
+  }
+  const nearShop = Math.hypot(drv.x - SHOP_DOOR.x, drv.z - SHOP_DOOR.z) < 4;
+  $("homeBtn").classList.toggle("hidden", !nearShop);
+  driveHud(boxed);
+}
+function driveHud(boxed){
+  // compass to the nearest delivery (or back to the shop when the car is empty)
+  let tgt = null, best = 1e9;
+  boxed.forEach(o => { const d = HOUSES[o.addr].door, dist = Math.hypot(d.x - drv.x, d.z - drv.z); if(dist < best){ best = dist; tgt = { ...d, o }; } });
+  if(!tgt) tgt = { ...SHOP_DOOR, o: null };
+  const rel = Math.atan2(tgt.x - drv.x, tgt.z - drv.z) - drv.h;
+  $("compass").innerHTML = `<span class="arrow" style="transform:rotate(${(-rel).toFixed(2)}rad)">⬆</span><br>` +
+    (tgt.o ? `${esc(addrText(tgt.o.addr))}<br>${Math.round(best)} m` : `Back to the shop<br>${Math.round(Math.hypot(tgt.x-drv.x, tgt.z-drv.z))} m`);
+  // minimap: north up, roads grey, houses waiting for pizza gold, the shop red
+  const g = $("mini").getContext("2d"), S = 150 / ((2*N+1)*BLOCK + ROAD), o = 75;
+  g.fillStyle = "#3f9b3f"; g.fillRect(0, 0, 150, 150);
+  g.fillStyle = "#5b5b6a";
+  for(let k = 0; k <= 2*N+1; k++){ const p = o + ((k - N)*BLOCK - BLOCK/2) * S; g.fillRect(0, p - ROAD*S/2, 150, ROAD*S); g.fillRect(p - ROAD*S/2, 0, ROAD*S, 150); }
+  g.fillStyle = "#d62828"; g.fillRect(o - 4*S, o - 3.5*S, 8*S, 7*S);
+  boxed.forEach(b => { const h = HOUSES[b.addr]; g.fillStyle = "#ffd23f"; g.beginPath(); g.arc(o + h.x*S, o + h.z*S, 4.5, 0, 7); g.fill(); g.strokeStyle = "#000"; g.stroke(); });
+  g.save(); g.translate(o + drv.x*S, o + drv.z*S); g.rotate(-drv.h + Math.PI);
+  g.fillStyle = "#fff"; g.beginPath(); g.moveTo(0, -6); g.lineTo(4.5, 5); g.lineTo(-4.5, 5); g.closePath(); g.fill(); g.restore();
+}
+
+/* =============================================================== switching between kitchen and street */
+let mode = "kitchen";
+function goDrive(){
+  if(busy) return;
+  if(!orders.some(o => o.boxed)){ toast("No pizzas in<br>the car yet!", "#ffd23f"); return; }
+  mode = "town";
+  Object.assign(drv, { x: 0, z: SHOP_DOOR.z - 1.5, h: Math.PI/2, v: 0 });
+  townCam.position.set(-8, 4.6, drv.z);
+  $("bins").classList.add("hidden"); $("drive").classList.remove("hidden");
+  updateTickets();
+}
+function goKitchen(){
+  mode = "kitchen"; Object.keys(keys).forEach(k => keys[k] = false);
+  $("bins").classList.remove("hidden"); $("drive").classList.add("hidden");
+  updateTickets(); updateCarCount();
 }
 
 /* =============================================================== loop */
@@ -359,7 +560,8 @@ function frame(now){
   sign.rotation.z = Math.sin(now/900)*.02;
   if(running){
     nextOrderIn -= dt;
-    if((orders.length === 0 || nextOrderIn <= 0) && orders.length < 3){
+    const waiting = orders.filter(o => !o.boxed).length;
+    if((waiting === 0 || nextOrderIn <= 0) && waiting < 3 && orders.length < 5){
       orders.push(makeOrder()); nextOrderIn = Math.max(9, 24 - level*2); sfx.ding(); updateTickets();
     }
     let changed = false;
@@ -368,21 +570,23 @@ function frame(now){
     if(gone.length){
       orders = orders.filter(o => o.left > 0);
       gone.forEach(o => { strikes++; toast(`😤 ${o.who.split(" ").slice(1).join(" ")} gave up waiting!`, "#ff6b6b"); sfx.bad(); });
-      updateHud(); changed = true;
+      updateHud(); updateCarCount(); changed = true;
       if(strikes >= 3) gameOver();
     }
     if(changed || Math.floor(now/250) !== Math.floor((now - dt*1000)/250)) updateTickets();
   }
-  renderer.render(scene, camera);
+  if(mode === "town"){ if(running) driveStep(dt); renderer.render(townScene, townCam); }
+  else renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
 
 function start(){
   coins = 0; served = 0; strikes = 0; level = 1; orders = []; nextOrderIn = 0; orderSeq = 0;
+  goKitchen();
   $("screen").classList.add("hidden"); running = true; newPizza(); updateHud(); updateTickets();
 }
 function gameOver(){
-  running = false;
+  running = false; goKitchen();
   const best = Math.max(coins, Number(localStorage.getItem("pizzaRush64Best")) || 0);
   try{ localStorage.setItem("pizzaRush64Best", best); }catch(e){}
   $("screen").innerHTML = `<div class="box"><h1>SHIFT OVER!</h1>
@@ -397,11 +601,26 @@ function gameOver(){
 document.addEventListener("click", e => {
   const b = e.target.closest("#bins button"); if(!b || !running) return;
   if(b.dataset.top) addTopping(b.dataset.top);
-  else ({ sauce:addSauce, cheese:addCheese, bake, box:boxIt, trash })[b.dataset.act]();
+  else ({ sauce:addSauce, cheese:addCheese, bake, box:boxIt, trash, drive:goDrive })[b.dataset.act]();
 });
+$("homeBtn").addEventListener("click", goKitchen);
+// on-screen driving pad: hold to press
+document.querySelectorAll("#pad button").forEach(b => {
+  const on = v => e => { e.preventDefault(); keys[b.dataset.k] = v; b.classList.toggle("on", v); };
+  b.addEventListener("pointerdown", on(true)); b.addEventListener("pointerup", on(false));
+  b.addEventListener("pointerleave", on(false)); b.addEventListener("pointercancel", on(false));
+});
+const KEYMAP = { arrowup:"up", w:"up", arrowdown:"down", s:"down", arrowleft:"left", a:"left", arrowright:"right", d:"right" };
+document.addEventListener("keyup", e => { const k = KEYMAP[e.key.toLowerCase()]; if(k) keys[k] = false; });
 document.addEventListener("keydown", e => {
   if(!running) return;
   const k = e.key.toLowerCase();
+  if(mode === "town"){
+    if(KEYMAP[k]){ e.preventDefault(); keys[KEYMAP[k]] = true; }
+    else if(k === "enter" && !$("homeBtn").classList.contains("hidden")) goKitchen();
+    return;
+  }
+  if(k === "d"){ goDrive(); return; }
   if(k === "1") addSauce(); else if(k === "2") addCheese();
   else if(k >= "3" && k <= "8") addTopping(TOPPINGS[+k - 3].id);
   else if(k === "b") bake(); else if(k === " "){ e.preventDefault(); boxIt(); } else if(k === "x") trash();
@@ -409,7 +628,8 @@ document.addEventListener("keydown", e => {
 $("startBtn").onclick = start;
 buildBins(); newPizza(); updateHud();
 requestAnimationFrame(frame);
-window.__pizza = { get orders(){ return orders; }, get cur(){ return cur; }, addSauce, addCheese, addTopping, bake, boxIt, get state(){ return { coins, served, strikes, level, busy, running }; } };
+window.__pizza = { get orders(){ return orders; }, get cur(){ return cur; }, addSauce, addCheese, addTopping, bake, boxIt, goDrive, goKitchen, drv, keys, HOUSES, SHOP_DOOR, solid,
+  get state(){ return { coins, served, strikes, level, busy, running, mode }; } };
 })();
 </script>
 </body>
