@@ -920,6 +920,7 @@
       "Grammar Gym":      "../grammar/index.html",
       "Reading Rescue":   "../readingrescue/index.html",
       "Reading Lab":      "../readinglab/index.html",
+      "Music Lab":        "../music/index.html",
       "Writing Sprint":   "../writingsprint/index.html",
       "Typing Quest":     "../typing/index.html",
       "Spelling Bee":     "../spellingbee/index.html",

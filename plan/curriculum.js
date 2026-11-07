@@ -26,12 +26,13 @@ window.CURRICULUM = {
     "Money Smarts",
     "Spell It",
     "Science Lab",
-    "Battle Lab"
+    "Battle Lab",
+    "Music Lab"
    ],
    "kind": "ongoing",
    "pick": "daily",
    "lessons": [],
-   "note": "One is chosen automatically each day — it rotates through all eight."
+   "note": "One is chosen automatically each day — it rotates through all of them."
   },
   {
    "subject": "Reading",
@@ -2024,12 +2025,13 @@ window.CURRICULUM = {
     "Money Smarts",
     "Spell It",
     "Science Lab",
-    "Battle Lab"
+    "Battle Lab",
+    "Music Lab"
    ],
    "kind": "ongoing",
    "pick": "daily",
    "lessons": [],
-   "note": "One is chosen automatically each day — it rotates through all eight."
+   "note": "One is chosen automatically each day — it rotates through all of them."
   },
   {
    "subject": "Reading",
