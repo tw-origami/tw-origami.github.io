@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Baseball Companion</title>
+    <link rel="stylesheet" href="./ds/broadsheet.css" />
+    <link rel="stylesheet" href="./watch.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚾</text></svg>"
+    />
+  </head>
+  <body class="watch" data-theme="night">
+    <div class="sheet">
+      <!-- ══════════════ masthead ══════════════ -->
+      <header class="masthead">
+        <div class="masthead-top">
+          <h1>Baseball Companion</h1>
+          <div class="masthead-pick">
+            <select id="game-select" class="pick">
+              <option value="">Loading today's games…</option>
+            </select>
+            <button id="theme-toggle" class="bar" title="Switch between the night and paper editions">
+              Paper
+            </button>
+            <button id="refresh" class="bar" title="Reload schedule">↻</button>
+          </div>
+        </div>
+        <div class="rule-thick"></div>
+        <div class="dateline">
+          <span class="dateline-state" id="dateline-state"></span>
+          <span id="dateline-inning"></span>
+          <span class="dateline-venue" id="dateline-venue"></span>
+        </div>
+        <div class="rule-thin"></div>
+      </header>
+
+      <div id="banner" class="banner" hidden></div>
+
+      <main class="columns">
+        <!-- ══════════════ the picture, the count, the sync ══════════════ -->
+        <section class="col col-stage">
+          <div class="screen">
+            <video id="video" controls playsinline hidden></video>
+            <div id="no-video" class="screen-empty halftone">
+              <span>Your broadcast plays here</span>
+            </div>
+            <div class="screen-delay" id="delay-overlay"></div>
+          </div>
+
+          <form class="source" id="video-form" autocomplete="off">
+            <input id="video-url" class="input" type="text" placeholder="Paste the video URL — .m3u8 or .mp4" spellcheck="false" />
+            <button id="load-url" class="bar" type="submit">Load</button>
+            <button id="clear-video" class="bar" type="button" hidden>Clear</button>
+          </form>
+          <div id="video-err" class="video-err" hidden></div>
+
+          <div class="scoreline">
+            <div class="score-grid">
+              <span class="score-abbr" id="sb-away">—</span>
+              <span class="score-num" id="sb-away-score">0</span>
+              <span class="score-abbr" id="sb-home">—</span>
+              <span class="score-num" id="sb-home-score">0</span>
+            </div>
+
+            <svg class="diamond" viewBox="0 0 60 60" aria-label="runners on base">
+              <rect id="b2" x="24" y="6" width="12" height="12" transform="rotate(45 30 12)" />
+              <rect id="b3" x="6" y="24" width="12" height="12" transform="rotate(45 12 30)" />
+              <rect id="b1" x="42" y="24" width="12" height="12" transform="rotate(45 48 30)" />
+            </svg>
+
+            <div class="tally">
+              <div><div class="tally-lbl">Balls</div><div class="tally-num" id="cnt-balls">0</div></div>
+              <div><div class="tally-lbl">Strikes</div><div class="tally-num" id="cnt-strikes">0</div></div>
+              <div><div class="tally-lbl">Outs</div><div class="tally-num" id="cnt-outs">0</div></div>
+            </div>
+
+            <div class="stepper">
+              <button id="pitch-back" class="bar" title="One pitch earlier">◀ pitch</button>
+              <button id="pitch-fwd" class="bar" title="One pitch later">pitch ▶</button>
+            </div>
+          </div>
+
+          <div class="stage-foot">
+            <div class="sync">
+              <span class="kick sync-kick">Sync</span>
+              <button id="sync-now" class="bar">Snap to a pitch</button>
+              <button id="nudge-less" class="bar" title="Panel is running behind your picture">−1s</button>
+              <button id="nudge-more" class="bar" title="Panel is running ahead of your picture">+1s</button>
+              <span class="beat" id="beat" title="Time until the next pitch should appear on your screen">
+                <span class="beat-lbl" id="beat-label">next</span>
+                <span class="beat-count" id="beat-count">—</span>
+              </span>
+              <span class="sync-delay">Delay <b id="delay-label">0s</b></span>
+              <button id="go-live" class="bar">Live</button>
+            </div>
+            <p class="minor sync-help">
+              The counter should hit zero as the pitch leaves the hand on screen. Saw it first,
+              press <b>−1s</b>; counter first, press <b>+1s</b>.
+            </p>
+          </div>
+        </section>
+
+        <!-- ══════════════ this at-bat, and what it means ══════════════ -->
+        <section class="col col-atbat">
+          <div class="slab slab-happened" id="happened-card" hidden>
+            <p class="kick kick-accent">What just happened</p>
+            <p class="happened" id="happened-desc"></p>
+          </div>
+
+          <div class="slab slab-pitch" id="last-pitch-card" hidden>
+            <div class="pitch-head">
+              <div class="cmyk-num mph" id="mph-num">
+                <span class="paper" id="mph-paper">—</span>
+                <span class="plate plate-c" id="mph-c" aria-hidden="true">—</span>
+                <span class="plate plate-m" id="mph-m" aria-hidden="true">—</span>
+                <span class="plate plate-y" id="mph-y" aria-hidden="true">—</span>
+              </div>
+              <div class="pitch-id">
+                <div class="pitch-unit">mph</div>
+                <div class="pitch-type" id="lp-type"></div>
+                <div class="pitch-call" id="lp-call"></div>
+              </div>
+            </div>
+            <p class="pitch-explain" id="lp-explain"></p>
+          </div>
+
+          <div class="countblock" id="count-card">
+            <div class="countblock-num">
+              <div class="kick">Count</div>
+              <div class="count-val" id="count-val">0–0</div>
+            </div>
+            <p class="minor count-explain" id="count-explain"></p>
+          </div>
+
+          <!-- the live read on the moment: bases, outs, strategy — rebuilt as
+               the situation on the field changes -->
+          <div id="situation-list" class="situation-list"></div>
+        </section>
+
+        <!-- ══════════════ the people, the season, the lore ══════════════ -->
+        <section class="col col-people">
+          <div class="person" id="batter-card" hidden>
+            <p class="kick">At the plate</p>
+            <div class="person-head">
+              <span class="person-shot halftone"><img id="batter-shot" alt="" /></span>
+              <div>
+                <div class="person-name" id="batter-name"></div>
+                <div class="person-meta" id="batter-sub"></div>
+              </div>
+            </div>
+            <div class="statline" id="batter-stats"></div>
+            <p class="minor person-note" id="batter-note"></p>
+          </div>
+
+          <div class="person" id="pitcher-card" hidden>
+            <p class="kick">On the mound</p>
+            <div class="person-head">
+              <span class="person-shot halftone"><img id="pitcher-shot" alt="" /></span>
+              <div>
+                <div class="person-name" id="pitcher-name"></div>
+                <div class="person-meta" id="pitcher-sub"></div>
+              </div>
+            </div>
+            <div class="statline" id="pitcher-stats"></div>
+            <p class="minor person-note" id="pitcher-note"></p>
+          </div>
+
+          <div id="season-card" hidden>
+            <p class="kick">Where they stand</p>
+            <div id="season-rows"></div>
+            <p class="minor" id="season-note"></p>
+          </div>
+
+          <!-- rotating reading: this club, these players, the sport -->
+          <div class="lore" id="lore-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./vendor/hls.min.js"></script>
+    <script src="./factoids.js"></script>
+    <script type="module" src="./watch.js"></script>
+  </body>
+</html>

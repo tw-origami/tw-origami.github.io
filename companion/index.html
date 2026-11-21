@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Game Companion</title>
+    <link rel="stylesheet" href="./ds/broadsheet.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏟️</text></svg>"
+    />
+    <style>
+      :root { color-scheme: light; }
+      body { padding: 0 32px 40px; max-width: 900px; margin: 0 auto; }
+      header { padding-top: 26px; }
+      h1 { margin: 0; font-size: 34px; letter-spacing: -0.02em; }
+      .rule-thick { height: 3px; background: var(--color-text); margin-top: 10px; }
+      .dateline {
+        padding: 7px 0; font-size: 12px; letter-spacing: 0.13em;
+        text-transform: uppercase; color: var(--color-neutral-600);
+      }
+      .rule-thin { height: 1px; background: var(--color-text); }
+      .lede { font-size: 19px; line-height: 1.5; max-width: 60ch; margin: 22px 0 30px; }
+      .picks { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+      @media (max-width: 680px) { .picks { grid-template-columns: 1fr; } }
+      .pick { text-decoration: none; color: inherit; display: block; }
+      .pick h2 {
+        margin: 0 0 6px; font-size: 25px; letter-spacing: -0.015em;
+        border-bottom: 1px solid var(--color-divider); padding-bottom: 7px;
+      }
+      .pick:hover h2 { color: var(--color-accent-700); border-bottom-color: var(--color-accent-400); }
+      .pick p { margin: 0; font-size: 16px; line-height: 1.55; color: var(--color-neutral-700); }
+      .kick {
+        font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+        font-weight: 600; color: var(--color-neutral-500); margin: 0 0 6px;
+      }
+      footer {
+        margin-top: 38px; padding-top: 14px;
+        border-top: 1px solid var(--color-divider);
+        font-size: 15px; line-height: 1.55; color: var(--color-neutral-600);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Game Companion</h1>
+      <div class="rule-thick"></div>
+      <div class="dateline">A second screen that teaches you the game while you watch it</div>
+      <div class="rule-thin"></div>
+    </header>
+
+    <p class="lede">
+      Pick today's game and the panel tracks it <strong>in step with your picture</strong> — live
+      player lines, an explainer for every play, what just happened in plain English, and rotating
+      cards on the rules and strategy of the moment.
+    </p>
+
+    <div class="picks">
+      <a class="pick" href="./hoops.html">
+        <p class="kick">Basketball</p>
+        <h2>🏀 Basketball Companion</h2>
+        <p>
+          NBA. Read the game clock off your broadcast, type it in, and the panel locks to your
+          screen exactly.
+        </p>
+      </a>
+
+      <a class="pick" href="./watch.html">
+        <p class="kick">Baseball</p>
+        <h2>⚾ Baseball Companion</h2>
+        <p>
+          MLB. Snap to a pitch and step until the speed on screen matches. Out of season until
+          spring.
+        </p>
+      </a>
+    </div>
+
+    <footer>
+      Both pages run entirely in your browser and talk to the public MLB and ESPN feeds directly —
+      no account, no server. Nothing shown is ever ahead of your picture: the panel renders the
+      game as it looked however many seconds you are behind, so it can't spoil a play you haven't
+      seen.
+    </footer>
+  </body>
+</html>

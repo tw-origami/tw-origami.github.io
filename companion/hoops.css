@@ -1,0 +1,68 @@
+/* hoops.css — the basketball-only bits, layered on watch.css.
+   Everything shared (themes, columns, slabs, type scale, person cards) comes
+   from watch.css; this file only replaces baseball's furniture — the diamond
+   and the balls/strikes tally — with a game clock and a clock-entry sync. */
+
+/* the big clock, standing where the baseball diamond used to */
+.gameclock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: none;
+  min-width: 96px;
+}
+.gc-period {
+  font-size: 11.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-5);
+}
+.gc-clock {
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+/* under a minute the clock is the whole story — let it shout */
+.gc-clock.urgent {
+  color: var(--accent2-ink);
+}
+
+/* sync by typing the clock you can see */
+.clock-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--ink-5);
+}
+.clock-entry > span {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+#sync-period {
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+.clock-input {
+  width: 74px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-1);
+}
+.clock-input::placeholder {
+  color: var(--ink-6);
+}
+#sync-go {
+  font-weight: 600;
+  color: var(--ink-1);
+  border-color: var(--ink-5);
+}
+
+/* the scoring value in the plate numeral is one or two characters, so it wants
+   a wider setting than baseball's three-digit pitch speed */
+#pts-num {
+  letter-spacing: -0.02em;
+}

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Basketball Companion</title>
+    <link rel="stylesheet" href="./ds/broadsheet.css" />
+    <link rel="stylesheet" href="./watch.css" />
+    <link rel="stylesheet" href="./hoops.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏀</text></svg>"
+    />
+  </head>
+  <body class="watch" data-theme="night">
+    <div class="sheet">
+      <header class="masthead">
+        <div class="masthead-top">
+          <h1>Basketball Companion</h1>
+          <div class="masthead-pick">
+            <select id="game-select" class="pick">
+              <option value="">Loading today's games…</option>
+            </select>
+            <button id="theme-toggle" class="bar" title="Switch between the night and paper editions">
+              Paper
+            </button>
+            <button id="refresh" class="bar" title="Reload schedule">↻</button>
+          </div>
+        </div>
+        <div class="rule-thick"></div>
+        <div class="dateline">
+          <span class="dateline-state" id="dateline-state"></span>
+          <span id="dateline-inning"></span>
+          <span class="dateline-venue" id="dateline-venue"></span>
+        </div>
+        <div class="rule-thin"></div>
+      </header>
+
+      <div id="banner" class="banner" hidden></div>
+
+      <main class="columns">
+        <!-- ══════════ the picture, the score, the sync ══════════ -->
+        <section class="col col-stage">
+          <div class="screen">
+            <video id="video" controls playsinline hidden></video>
+            <div id="no-video" class="screen-empty halftone">
+              <span>Your broadcast plays here</span>
+            </div>
+            <div class="screen-delay" id="delay-overlay"></div>
+          </div>
+
+          <form class="source" id="video-form" autocomplete="off">
+            <input id="video-url" class="input" type="text" placeholder="Paste the video URL — .m3u8 or .mp4" spellcheck="false" />
+            <button id="load-url" class="bar" type="submit">Load</button>
+            <button id="clear-video" class="bar" type="button" hidden>Clear</button>
+          </form>
+          <div id="video-err" class="video-err" hidden></div>
+
+          <div class="scoreline">
+            <div class="score-grid">
+              <span class="score-abbr" id="sb-away">—</span>
+              <span class="score-num" id="sb-away-score">0</span>
+              <span class="score-abbr" id="sb-home">—</span>
+              <span class="score-num" id="sb-home-score">0</span>
+            </div>
+
+            <div class="gameclock">
+              <div class="gc-period" id="gc-period">—</div>
+              <div class="gc-clock" id="gc-clock">--:--</div>
+            </div>
+
+            <div class="tally">
+              <div><div class="tally-lbl">Margin</div><div class="tally-num" id="tl-margin">0</div></div>
+              <div><div class="tally-lbl">Run</div><div class="tally-num" id="tl-run">0</div></div>
+            </div>
+          </div>
+
+          <div class="stage-foot">
+            <!-- Basketball has a clock on screen, so sync is a direct match
+                 rather than baseball's step-until-it-lines-up. -->
+            <div class="sync">
+              <span class="kick sync-kick">Sync</span>
+              <label class="clock-entry">
+                <span>Clock on your screen</span>
+                <select id="sync-period" class="bar"></select>
+                <input id="sync-clock" class="bar clock-input" type="text" placeholder="11:24" spellcheck="false" />
+              </label>
+              <button id="sync-go" class="bar">Match it</button>
+              <button id="nudge-less" class="bar" title="Panel is running behind your picture">−1s</button>
+              <button id="nudge-more" class="bar" title="Panel is running ahead of your picture">+1s</button>
+              <span class="sync-delay">Delay <b id="delay-label">0s</b></span>
+              <button id="go-live" class="bar">Live</button>
+            </div>
+            <p class="minor sync-help">
+              Read the game clock off your broadcast, type it in, and hit <b>Match it</b> — that
+              sets the delay exactly. Use <b>−1s</b> / <b>+1s</b> if it drifts later.
+            </p>
+          </div>
+        </section>
+
+        <!-- ══════════ this possession, and what it means ══════════ -->
+        <section class="col col-atbat">
+          <div class="slab slab-happened" id="happened-card" hidden>
+            <p class="kick kick-accent">What just happened</p>
+            <p class="happened" id="happened-desc"></p>
+          </div>
+
+          <div class="slab slab-pitch" id="play-card" hidden>
+            <div class="pitch-head">
+              <div class="cmyk-num mph" id="pts-num">
+                <span class="paper" id="pts-paper">—</span>
+                <span class="plate plate-c" id="pts-c" aria-hidden="true">—</span>
+                <span class="plate plate-m" id="pts-m" aria-hidden="true">—</span>
+                <span class="plate plate-y" id="pts-y" aria-hidden="true">—</span>
+              </div>
+              <div class="pitch-id">
+                <div class="pitch-unit" id="play-unit">the play</div>
+                <div class="pitch-type" id="play-type"></div>
+                <div class="pitch-call" id="play-when"></div>
+              </div>
+            </div>
+            <p class="pitch-explain" id="play-explain"></p>
+          </div>
+
+          <div id="situation-list" class="situation-list"></div>
+        </section>
+
+        <!-- ══════════ the people, the season, the lore ══════════ -->
+        <section class="col col-people">
+          <div class="person" id="p1-card" hidden>
+            <p class="kick">In the play</p>
+            <div class="person-head">
+              <span class="person-shot halftone"><img id="p1-shot" alt="" /></span>
+              <div>
+                <div class="person-name" id="p1-name"></div>
+                <div class="person-meta" id="p1-sub"></div>
+              </div>
+            </div>
+            <div class="statline" id="p1-stats"></div>
+            <p class="minor person-note" id="p1-note"></p>
+          </div>
+
+          <div class="person" id="p2-card" hidden>
+            <p class="kick">Also involved</p>
+            <div class="person-head">
+              <span class="person-shot halftone"><img id="p2-shot" alt="" /></span>
+              <div>
+                <div class="person-name" id="p2-name"></div>
+                <div class="person-meta" id="p2-sub"></div>
+              </div>
+            </div>
+            <div class="statline" id="p2-stats"></div>
+            <p class="minor person-note" id="p2-note"></p>
+          </div>
+
+          <div id="season-card" hidden>
+            <p class="kick">Where they stand</p>
+            <div id="season-rows"></div>
+            <p class="minor" id="season-note"></p>
+          </div>
+
+          <div class="lore" id="lore-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./vendor/hls.min.js"></script>
+    <script src="./hoops-factoids.js"></script>
+    <script type="module" src="./hoops.js"></script>
+  </body>
+</html>
